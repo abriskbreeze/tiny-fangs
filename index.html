@@ -1,0 +1,3392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TINY FANGS v2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #080b0e;
+      --panel: rgba(14, 20, 27, 0.95);
+      --panel-solid: #0e141b;
+      --border: rgba(255,255,255,0.08);
+      --border-hi: rgba(255,255,255,0.15);
+      --text: #e4e7eb;
+      --dim: #6b7280;
+      --muted: #3b4455;
+      --green: #10b981;
+      --red: #ef4444;
+      --gold: #f59e0b;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+    }
+    
+    html { height: 100%; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100%;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    /* Background */
+    .bg-img {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: url('https://images.unsplash.com/photo-1518562180175-34a163b1a9a6?w=1600') center/cover;
+      opacity: 0.25;
+      filter: saturate(0.5);
+    }
+    
+    /* ═══════════════════════════════════════════════════
+       MOBILE LAYOUT
+       ═══════════════════════════════════════════════════ */
+    
+    .mobile { display: flex; flex-direction: column; min-height: 100vh; }
+    .desktop { display: none; }
+    
+    /* Top Bar */
+    .m-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .m-top .logo {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    
+    .m-top .right {
+      display: flex;
+      gap: 14px;
+      font-size: 10px;
+      color: var(--dim);
+    }
+    
+    /* LP Bar */
+    .m-lp-bar {
+      display: flex;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .m-lp-side {
+      flex: 1;
+      padding: 8px 14px;
+      text-align: center;
+    }
+    
+    .m-lp-side.you { border-right: 1px solid var(--border); }
+    
+    .m-lp-side .label {
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .m-lp-side .lp {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--red);
+      letter-spacing: 2px;
+    }
+    
+    .m-lp-side .mana {
+      font-size: 10px;
+      color: var(--blue);
+      margin-top: 2px;
+    }
+    
+    /* Battle Area */
+    .m-battle {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .m-field-half {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .m-field-half.opp { align-items: flex-end; }
+    .m-field-half.you { align-items: flex-start; }
+    
+    .m-active-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    
+    .m-field-half.opp .m-active-row { flex-direction: row-reverse; }
+    
+    .m-bench-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    
+    .m-field-half.opp .m-bench-row { justify-content: flex-end; }
+    
+    .m-set-verse {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      font-size: 9px;
+      color: var(--dim);
+    }
+    
+    .m-set-verse.has { border-color: var(--purple); color: var(--purple); }
+    
+    .m-vs {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 6px 0;
+    }
+    
+    /* Card Styles */
+    .card-mini {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      font-size: 10px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    .card-mini .name { font-weight: 500; }
+    .card-mini .stats { color: var(--dim); font-size: 9px; }
+    
+    .card-active {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      width: 140px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    .card-active.creature { border-color: var(--green); }
+    .card-active.verse-cast { border-color: var(--gold); }
+    .card-active.verse-set { border-color: var(--purple); }
+    
+    .card-active .header {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+    }
+    
+    .card-active .cost {
+      color: var(--blue);
+      font-weight: 600;
+    }
+    
+    .card-active .hp-bar {
+      height: 3px;
+      background: var(--muted);
+    }
+    
+    .card-active .hp-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.2s;
+    }
+    
+    .card-active .hp-fill.low { background: var(--red); }
+    
+    .card-active .art {
+      padding: 8px;
+      text-align: center;
+      font-size: 10px;
+      white-space: pre;
+      line-height: 1.15;
+      min-height: 50px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-active .footer {
+      padding: 6px 8px;
+      font-size: 9px;
+      color: var(--dim);
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .card-active .status { color: var(--gold); }
+    
+    .card-empty {
+      width: 140px;
+      height: 100px;
+      border: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 10px;
+    }
+    
+    /* Hand */
+    .m-hand {
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+    }
+    
+    .m-hand-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 12px;
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .m-hand-scroll {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .hand-card {
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 8px;
+      width: 72px;
+      text-align: center;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    .hand-card.selected {
+      border-color: var(--blue);
+      background: rgba(59,130,246,0.15);
+    }
+    
+    .hand-card.creature { border-left: 2px solid var(--green); }
+    .hand-card.verse-cast { border-left: 2px solid var(--gold); }
+    .hand-card.verse-set { border-left: 2px solid var(--purple); }
+    
+    .hand-card .cost-pip {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+    
+    .hand-card .name {
+      font-size: 9px;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    
+    .hand-card .type {
+      font-size: 8px;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    
+    /* Actions */
+    .m-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+    }
+    
+    .m-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 10px 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 9px;
+      text-align: center;
+      cursor: pointer;
+    }
+    
+    .m-btn:active:not(:disabled) {
+      background: rgba(255,255,255,0.1);
+    }
+    
+    .m-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+    
+    .m-btn.primary {
+      background: rgba(16,185,129,0.15);
+      border-color: rgba(16,185,129,0.3);
+    }
+    
+    .m-btn .k {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    /* Log */
+    .m-log {
+      padding: 8px 12px;
+      padding-bottom: 28px;
+      background: var(--panel-solid);
+      font-size: 9px;
+      color: var(--dim);
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    
+    .m-log .dmg { color: var(--red); }
+    .m-log .heal { color: var(--green); }
+    .m-log .mana { color: var(--blue); }
+    
+    /* ═══════════════════════════════════════════════════
+       DESKTOP LAYOUT (900px+)
+       ═══════════════════════════════════════════════════ */
+    
+    @media (min-width: 900px) {
+      .mobile { display: none; }
+      .desktop { display: flex; flex-direction: column; height: 100vh; }
+      
+      .d-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+      }
+      
+      .d-top .logo {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 2px;
+      }
+      
+      .d-top .right {
+        display: flex;
+        gap: 20px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+      
+      .d-main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 200px 1fr 200px;
+        grid-template-rows: 1fr auto;
+        gap: 12px;
+        padding: 12px 20px;
+        min-height: 0;
+      }
+      
+      /* Left Panel */
+      .d-left {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        grid-row: span 2;
+      }
+      
+      .d-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .d-panel-hdr {
+        padding: 8px 12px;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--dim);
+        border-bottom: 1px solid var(--border);
+      }
+      
+      .d-panel-body {
+        padding: 12px;
+        flex: 1;
+        overflow-y: auto;
+      }
+      
+      .d-stat-big {
+        margin-bottom: 16px;
+      }
+      
+      .d-stat-big .label {
+        font-size: 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 2px;
+      }
+      
+      .d-stat-big .val {
+        font-size: 32px;
+        font-weight: 600;
+      }
+      
+      .d-stat-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      
+      .d-stat-sm .label {
+        font-size: 8px;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      
+      .d-stat-sm .val {
+        font-size: 14px;
+      }
+      
+      .d-mana-pips {
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      
+      .d-mana-pip {
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: var(--blue);
+      }
+      
+      .d-mana-pip.filled {
+        background: var(--blue);
+        color: var(--bg);
+      }
+      
+      /* Battlefield */
+      .d-battle {
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        min-height: 0;
+      }
+      
+      .d-battle .d-panel-hdr {
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .d-field {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+        min-height: 0;
+        overflow: hidden;
+      }
+      
+      .d-side {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      
+      .d-side.opp { flex-direction: row-reverse; }
+      
+      .d-active-area {
+        flex-shrink: 0;
+      }
+      
+      .d-bench-area {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .d-bench-area .label {
+        font-size: 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      
+      .d-bench-list {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .d-set-area {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .d-vs {
+        text-align: center;
+        padding: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+      
+      /* Right Panel - Hand */
+      .d-right {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        grid-row: span 2;
+      }
+      
+      .d-hand-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .d-hand-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+      
+      .d-hand-card:hover {
+        border-color: var(--border-hi);
+      }
+      
+      .d-hand-card.selected {
+        border-color: var(--blue);
+        background: rgba(59,130,246,0.1);
+      }
+      
+      .d-hand-card.creature { border-left: 2px solid var(--green); }
+      .d-hand-card.verse-cast { border-left: 2px solid var(--gold); }
+      .d-hand-card.verse-set { border-left: 2px solid var(--purple); }
+      
+      .d-hand-card .cost {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--blue);
+        width: 20px;
+        text-align: center;
+      }
+      
+      .d-hand-card .info {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .d-hand-card .name {
+        font-size: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .d-hand-card .type {
+        font-size: 8px;
+        color: var(--dim);
+        text-transform: uppercase;
+      }
+      
+      /* Bottom Row */
+      .d-bottom {
+        grid-column: 2;
+        display: flex;
+        gap: 12px;
+      }
+      
+      .d-actions-panel { flex: 0 0 300px; }
+      
+      .d-actions-grid {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      
+      .d-btn {
+        flex: 1 1 calc(33% - 4px);
+        min-width: 80px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        padding: 10px 8px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 10px;
+        text-align: center;
+        cursor: pointer;
+      }
+      
+      .d-btn:hover:not(:disabled) {
+        border-color: var(--border-hi);
+        background: rgba(255,255,255,0.06);
+      }
+      
+      .d-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      
+      .d-btn.primary {
+        background: rgba(16,185,129,0.15);
+        border-color: rgba(16,185,129,0.3);
+      }
+      
+      .d-btn .k {
+        font-weight: 600;
+        margin-right: 4px;
+      }
+      
+      .d-log-panel { flex: 1; }
+      
+      .d-log-entries {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 10px;
+        color: var(--dim);
+        max-height: 80px;
+        overflow-y: auto;
+      }
+      
+      .d-log-entries .dmg { color: var(--red); }
+      .d-log-entries .heal { color: var(--green); }
+      .d-log-entries .mana { color: var(--blue); }
+    }
+    
+    /* Desktop Zoom */
+    @media (min-width: 1400px) and (min-height: 800px) {
+      body { zoom: 1.2; }
+    }
+    
+    /* ═══════════════════════════════════════════════════
+       CARD DETAIL MODAL
+       ═══════════════════════════════════════════════════ */
+    
+    .card-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    
+    .card-modal.open { display: flex; }
+    
+    .card-detail {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 280px;
+    }
+    
+    .card-detail .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-detail .top-bar .type {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--dim);
+    }
+    
+    .card-detail .top-bar .cost {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--blue);
+    }
+    
+    .card-detail .name-row {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-detail .name-row .name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .card-detail .name-row .subtitle {
+      font-size: 10px;
+      color: var(--dim);
+    }
+    
+    .card-detail .art-box {
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      white-space: pre;
+      line-height: 1.2;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+      min-height: 80px;
+    }
+    
+    .card-detail .stats-row {
+      display: flex;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      gap: 20px;
+    }
+    
+    .card-detail .stats-row .stat .label {
+      font-size: 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    
+    .card-detail .stats-row .stat .val {
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .card-detail .ability-box {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-detail .ability-box .ability-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    
+    .card-detail .ability-box .ability-text {
+      font-size: 10px;
+      color: var(--dim);
+      line-height: 1.4;
+    }
+    
+    .card-detail .flavor {
+      padding: 12px 14px;
+      font-size: 10px;
+      font-style: italic;
+      color: var(--muted);
+    }
+    
+    .card-detail .close-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    
+    .card-detail .close-btn:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    
+    /* ═══════════════════════════════════════════════════
+       OTHER MODALS
+       ═══════════════════════════════════════════════════ */
+    
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      padding: 16px;
+    }
+    
+    .modal.open { display: flex; }
+    
+    .modal-box {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 300px;
+      padding: 16px;
+    }
+    
+    .modal-box .title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--dim);
+      margin-bottom: 12px;
+    }
+    
+    .modal-box .option {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 12px;
+      margin-bottom: 6px;
+      cursor: pointer;
+    }
+    
+    .modal-box .option:hover:not(.off) {
+      border-color: var(--border-hi);
+    }
+    
+    .modal-box .option.off {
+      opacity: 0.3;
+      cursor: default;
+    }
+    
+    .modal-box .option .name {
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+    
+    .modal-box .option .sub {
+      font-size: 9px;
+      color: var(--dim);
+    }
+    
+    .modal-box .cancel {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: inherit;
+      font-size: 10px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    
+    /* Response Prompt */
+    .response-modal .modal-box {
+      border-color: var(--purple);
+    }
+    
+    .response-modal .title {
+      color: var(--purple);
+    }
+    
+    /* Setup Screen */
+    .setup {
+      position: fixed;
+      inset: 0;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .setup.hidden { display: none; }
+    
+    .setup h1 {
+      font-size: 18px;
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+    }
+    
+    .setup .sub {
+      color: var(--dim);
+      font-size: 11px;
+      margin-bottom: 32px;
+    }
+    
+    .setup h2 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--dim);
+      margin-bottom: 16px;
+    }
+    
+    .deck-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 260px;
+    }
+    
+    @media (min-width: 700px) {
+      .deck-grid {
+        flex-direction: row;
+        max-width: none;
+        justify-content: center;
+      }
+    }
+    
+    .deck-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 16px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    @media (min-width: 700px) {
+      .deck-btn { width: 180px; }
+    }
+    
+    .deck-btn:hover {
+      border-color: var(--border-hi);
+    }
+    
+    .deck-btn .icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    
+    .deck-btn .name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .deck-btn .desc {
+      font-size: 9px;
+      color: var(--dim);
+      line-height: 1.4;
+    }
+    
+    /* Result Screen */
+    .result {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+    }
+    
+    .result.open { display: flex; }
+    
+    .result h2 {
+      font-size: 24px;
+      letter-spacing: 4px;
+      margin-bottom: 24px;
+    }
+    
+    .result.win h2 { color: var(--green); }
+    .result.lose h2 { color: var(--red); }
+    
+    .result button {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      padding: 12px 28px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    /* Rules Modal */
+    .rules-box {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .rules-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .rules-header button {
+      background: none;
+      border: none;
+      color: var(--dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    
+    .rules-header button:hover {
+      color: var(--text);
+    }
+    
+    .rules-content {
+      padding: 16px;
+      overflow-y: auto;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    
+    .rules-content h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gold);
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .rules-content h3:first-child {
+      margin-top: 0;
+    }
+    
+    .rules-content p {
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+    
+    .rules-content strong {
+      color: var(--text);
+    }
+    
+    .rules-content ol, .rules-content ul {
+      color: var(--dim);
+      margin-left: 20px;
+      margin-bottom: 8px;
+    }
+    
+    .rules-content li {
+      margin-bottom: 4px;
+    }
+    
+    /* Rules Button - Mobile */
+    .m-rules-link {
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-size: 10px;
+      color: var(--muted);
+      cursor: pointer;
+      z-index: 10;
+    }
+    
+    .m-rules-link:hover {
+      color: var(--dim);
+    }
+    
+    /* Rules Link - Desktop */
+    .d-rules-link {
+      text-align: center;
+      padding: 10px;
+      font-size: 10px;
+      color: var(--muted);
+      cursor: pointer;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    
+    .d-rules-link:hover {
+      color: var(--dim);
+    }
+    
+    @media (min-width: 900px) {
+      .m-rules-link { display: none; }
+      .d-rules-link { display: block; }
+    }
+    
+    /* ═══════════════════════════════════════════════════
+       TRIGGER REVEAL MODAL (Set Verse Activation)
+       ═══════════════════════════════════════════════════ */
+    
+    .trigger-modal {
+      z-index: 500;
+    }
+    
+    .trigger-modal.open {
+      display: flex;
+      animation: trigger-bg-pulse 0.8s ease-out;
+    }
+    
+    @keyframes trigger-bg-pulse {
+      0% { background: rgba(139, 92, 246, 0.3); }
+      100% { background: rgba(0, 0, 0, 0.9); }
+    }
+    
+    .trigger-box {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), var(--panel-solid));
+      border: 3px solid var(--purple);
+      width: 100%;
+      max-width: 300px;
+      animation: trigger-box-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 
+        0 0 60px 20px rgba(139, 92, 246, 0.4),
+        0 0 100px 40px rgba(139, 92, 246, 0.2),
+        inset 0 0 40px rgba(139, 92, 246, 0.1);
+    }
+    
+    @keyframes trigger-box-appear {
+      0% { 
+        opacity: 0; 
+        transform: scale(0.5) rotateX(30deg); 
+      }
+      100% { 
+        opacity: 1; 
+        transform: scale(1) rotateX(0deg); 
+      }
+    }
+    
+    .trigger-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.5);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--purple);
+      text-shadow: 0 0 20px var(--purple);
+    }
+    
+    .trigger-flash {
+      animation: trigger-flash-pulse 0.6s ease-in-out infinite alternate;
+    }
+    
+    @keyframes trigger-flash-pulse {
+      0% { opacity: 0.5; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+    
+    .trigger-box .name-row {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .trigger-box .name-row .name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+      margin-bottom: 4px;
+    }
+    
+    .trigger-box .name-row .type {
+      font-size: 10px;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .trigger-box .trigger-condition {
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .trigger-box .trigger-condition .label {
+      font-size: 9px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    
+    .trigger-box .trigger-condition .text {
+      font-size: 11px;
+      color: var(--dim);
+    }
+    
+    .trigger-box .effect-box {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .trigger-box .effect-box .label {
+      font-size: 9px;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    
+    .trigger-box .effect-box .text {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    
+    .trigger-hint {
+      padding: 12px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      animation: trigger-hint-pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes trigger-hint-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    
+    /* ═══════════════════════════════════════════════════
+       ANIMATIONS - ENHANCED FOR VISIBILITY
+       ═══════════════════════════════════════════════════ */
+    
+    /* Shake (damage taken) - MORE INTENSE */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10% { transform: translateX(-8px) rotate(-1deg); }
+      20% { transform: translateX(8px) rotate(1deg); }
+      30% { transform: translateX(-8px) rotate(-1deg); }
+      40% { transform: translateX(8px) rotate(1deg); }
+      50% { transform: translateX(-6px); }
+      60% { transform: translateX(6px); }
+      70% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+      90% { transform: translateX(-2px); }
+    }
+    .anim-shake { animation: shake 0.4s ease-out; }
+    
+    /* Lunge (attack forward) - BIGGER MOVEMENT */
+    @keyframes lunge-down {
+      0% { transform: translateY(0) scale(1); }
+      40% { transform: translateY(35px) scale(1.1); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes lunge-up {
+      0% { transform: translateY(0) scale(1); }
+      40% { transform: translateY(-35px) scale(1.1); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .anim-lunge-down { animation: lunge-down 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .anim-lunge-up { animation: lunge-up 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    
+    /* Summon (card slam) - MORE DRAMATIC */
+    @keyframes card-summon {
+      0% { 
+        opacity: 0; 
+        transform: translateY(-60px) scale(0.2) rotateX(60deg); 
+        filter: brightness(3) drop-shadow(0 0 20px rgba(16, 185, 129, 0.8));
+      }
+      40% { 
+        opacity: 1; 
+        transform: translateY(8px) scale(1.15) rotateX(0deg); 
+        filter: brightness(1.8) drop-shadow(0 0 30px rgba(16, 185, 129, 0.6));
+      }
+      60% {
+        transform: translateY(-4px) scale(1.08);
+        filter: brightness(1.4) drop-shadow(0 0 15px rgba(16, 185, 129, 0.4));
+      }
+      80% {
+        transform: translateY(2px) scale(1.02);
+        filter: brightness(1.1);
+      }
+      100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1) rotateX(0deg); 
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+      }
+    }
+    .anim-summon { 
+      animation: card-summon 0.6s cubic-bezier(0.22, 1, 0.36, 1); 
+    }
+    
+    /* Summon glow ring - BIGGER GLOW */
+    @keyframes summon-glow {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 1), inset 0 0 0 0 rgba(16, 185, 129, 0.3); }
+      30% { box-shadow: 0 0 30px 15px rgba(16, 185, 129, 0.6), inset 0 0 20px 5px rgba(16, 185, 129, 0.2); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), inset 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .anim-summon-glow { animation: summon-glow 0.7s ease-out; }
+    
+    /* KO - DRAMATIC DEATH */
+    @keyframes fade-out-down {
+      0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); filter: brightness(1); }
+      30% { opacity: 1; transform: translateY(-10px) scale(1.1) rotate(-3deg); filter: brightness(1.5) saturate(0.5); }
+      100% { opacity: 0; transform: translateY(40px) scale(0.5) rotate(10deg); filter: brightness(0.5) saturate(0); }
+    }
+    .anim-ko { animation: fade-out-down 0.5s ease-in forwards; }
+    
+    /* Flash colors - MUCH BRIGHTER */
+    @keyframes flash-red {
+      0% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+      30% { background-color: rgba(239, 68, 68, 0.5); box-shadow: inset 0 0 30px 10px rgba(239, 68, 68, 0.4); }
+      100% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes flash-green {
+      0% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(16, 185, 129, 0); }
+      30% { background-color: rgba(16, 185, 129, 0.5); box-shadow: inset 0 0 30px 10px rgba(16, 185, 129, 0.4); }
+      100% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    @keyframes flash-gold {
+      0% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(245, 158, 11, 0); }
+      30% { background-color: rgba(245, 158, 11, 0.5); box-shadow: inset 0 0 30px 10px rgba(245, 158, 11, 0.4); }
+      100% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    @keyframes flash-purple {
+      0% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(139, 92, 246, 0); }
+      30% { background-color: rgba(139, 92, 246, 0.6); box-shadow: inset 0 0 40px 15px rgba(139, 92, 246, 0.5); }
+      100% { background-color: transparent; box-shadow: inset 0 0 0 0 rgba(139, 92, 246, 0); }
+    }
+    @keyframes flash-blue {
+      0% { background-color: transparent; }
+      30% { background-color: rgba(59, 130, 246, 0.5); box-shadow: inset 0 0 20px 5px rgba(59, 130, 246, 0.4); }
+      100% { background-color: transparent; }
+    }
+    .anim-flash-red { animation: flash-red 0.4s ease-out; }
+    .anim-flash-green { animation: flash-green 0.4s ease-out; }
+    .anim-flash-gold { animation: flash-gold 0.4s ease-out; }
+    .anim-flash-purple { animation: flash-purple 0.6s ease-out; }
+    .anim-flash-blue { animation: flash-blue 0.3s ease-out; }
+    
+    /* Pulse (mana gain, heal) - BIGGER */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.25); filter: brightness(1.3); }
+    }
+    .anim-pulse { animation: pulse 0.4s ease-out; }
+    
+    /* Floating damage/heal numbers - BIGGER & BOLDER */
+    .float-text {
+      position: fixed;
+      pointer-events: none;
+      font-weight: 700;
+      font-size: 28px;
+      z-index: 500;
+      text-shadow: 
+        0 0 10px currentColor,
+        0 2px 4px rgba(0,0,0,0.9),
+        0 4px 8px rgba(0,0,0,0.5);
+      animation: float-up 1s ease-out forwards;
+      letter-spacing: -1px;
+    }
+    .float-text.damage { 
+      color: #ff4444; 
+      text-shadow: 
+        0 0 15px rgba(255,68,68,0.8),
+        0 2px 4px rgba(0,0,0,0.9);
+    }
+    .float-text.heal { 
+      color: #22ff88; 
+      text-shadow: 
+        0 0 15px rgba(34,255,136,0.8),
+        0 2px 4px rgba(0,0,0,0.9);
+    }
+    .float-text.mana { color: var(--blue); }
+    .float-text.gold { 
+      color: #ffcc00; 
+      text-shadow: 
+        0 0 20px rgba(255,204,0,0.8),
+        0 2px 4px rgba(0,0,0,0.9);
+    }
+    .float-text.ko { 
+      color: #ff0000; 
+      font-size: 36px; 
+      font-weight: 800;
+      text-shadow: 
+        0 0 20px rgba(255,0,0,0.9),
+        0 0 40px rgba(255,0,0,0.5),
+        0 4px 8px rgba(0,0,0,0.9);
+    }
+    
+    @keyframes float-up {
+      0% { opacity: 1; transform: translateY(0) scale(1.2); }
+      20% { opacity: 1; transform: translateY(-15px) scale(1.3); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+    }
+    
+    /* Verse trigger popup - MORE DRAMATIC */
+    .verse-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), var(--panel-solid));
+      border: 3px solid var(--purple);
+      padding: 20px 32px;
+      z-index: 450;
+      text-align: center;
+      animation: verse-reveal 0.7s ease-out forwards;
+      box-shadow: 
+        0 0 40px 10px rgba(139, 92, 246, 0.4),
+        inset 0 0 30px rgba(139, 92, 246, 0.2);
+    }
+    .verse-popup .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--purple);
+      margin-bottom: 6px;
+      text-shadow: 0 0 10px var(--purple);
+    }
+    .verse-popup .name {
+      font-size: 18px;
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    
+    @keyframes verse-reveal {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotateX(20deg); }
+      25% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotateX(0deg); }
+      40% { transform: translate(-50%, -50%) scale(1); }
+      75% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    }
+    
+    /* Negate X overlay - BIGGER & BOLDER */
+    .negate-x {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 120px;
+      font-weight: 900;
+      color: #ff0000;
+      z-index: 460;
+      text-shadow: 
+        0 0 30px rgba(255, 0, 0, 1),
+        0 0 60px rgba(255, 0, 0, 0.8),
+        0 0 100px rgba(255, 0, 0, 0.5);
+      animation: negate-flash 0.6s ease-out forwards;
+    }
+    
+    @keyframes negate-flash {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-20deg); }
+      25% { opacity: 1; transform: translate(-50%, -50%) scale(1.4) rotate(10deg); }
+      50% { transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); }
+      70% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.7) rotate(5deg); }
+    }
+    
+    /* Status pulse - MORE VISIBLE */
+    @keyframes poison-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); filter: brightness(1); }
+      50% { box-shadow: 0 0 25px 10px rgba(16, 185, 129, 0.7); filter: brightness(1.3) saturate(1.5); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); filter: brightness(1); }
+    }
+    .anim-poison { animation: poison-pulse 0.6s ease-out; }
+    
+    @keyframes trap-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+      50% { box-shadow: 0 0 25px 10px rgba(139, 92, 246, 0.7); filter: brightness(1.2); }
+      100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+    }
+    .anim-trapped { animation: trap-pulse 0.6s ease-out; }
+    
+    /* Screen flash for big hits */
+    @keyframes screen-flash-red {
+      0%, 100% { background: transparent; }
+      30% { background: rgba(255, 0, 0, 0.15); }
+    }
+    .screen-flash-red { animation: screen-flash-red 0.3s ease-out; }
+    
+    @keyframes screen-flash-gold {
+      0%, 100% { background: transparent; }
+      30% { background: rgba(255, 200, 0, 0.15); }
+    }
+    .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
+  </style>
+</head>
+<body>
+  <div class="bg-img"></div>
+  
+  <!-- SETUP -->
+  <div id="setup" class="setup">
+    <h1>TINY FANGS</h1>
+    <p class="sub">v2 • Card Battler</p>
+    <h2>Choose Deck</h2>
+    <div class="deck-grid">
+      <button class="deck-btn" onclick="startGame('shadow')">
+        <div class="icon">🌑</div>
+        <div class="name">Shadow</div>
+        <div class="desc">Control & graveyard synergy</div>
+      </button>
+      <button class="deck-btn" onclick="startGame('fang')">
+        <div class="icon">🔥</div>
+        <div class="name">Fang</div>
+        <div class="desc">Aggro & direct damage</div>
+      </button>
+      <button class="deck-btn" onclick="startGame('venom')">
+        <div class="icon">🌿</div>
+        <div class="name">Venom</div>
+        <div class="desc">Attrition & healing</div>
+      </button>
+    </div>
+  </div>
+  
+  <!-- MOBILE -->
+  <div id="mobile" class="mobile">
+    <div class="m-top">
+      <div class="logo">TINY FANGS</div>
+      <div class="right">
+        <span>T<span id="m-turn">1</span></span>
+        <span id="m-time">0:00</span>
+      </div>
+    </div>
+    
+    <div class="m-lp-bar">
+      <div class="m-lp-side you">
+        <div class="label">You</div>
+        <div class="lp" id="m-my-lp">♥♥♥</div>
+        <div class="mana" id="m-my-mana">●●○○○</div>
+      </div>
+      <div class="m-lp-side">
+        <div class="label">Rival</div>
+        <div class="lp" id="m-opp-lp">♥♥♥</div>
+        <div class="mana" id="m-opp-mana">●●○○○</div>
+      </div>
+    </div>
+    
+    <div class="m-battle">
+      <div class="m-field-half opp">
+        <div class="m-active-row">
+          <div id="m-opp-active"></div>
+          <div class="m-set-verse" id="m-opp-set">NO SET</div>
+        </div>
+        <div id="m-opp-bench" class="m-bench-row"></div>
+      </div>
+      
+      <div class="m-vs">── VS ──</div>
+      
+      <div class="m-field-half you">
+        <div class="m-active-row">
+          <div id="m-my-active"></div>
+          <div class="m-set-verse" id="m-my-set">NO SET</div>
+        </div>
+        <div id="m-my-bench" class="m-bench-row"></div>
+      </div>
+    </div>
+    
+    <div class="m-hand">
+      <div class="m-hand-header">
+        <span>Hand</span>
+        <span id="m-hand-ct">5</span>
+      </div>
+      <div id="m-hand" class="m-hand-scroll"></div>
+    </div>
+    
+    <div class="m-actions">
+      <button class="m-btn" id="m-btn-summon" onclick="doSummon()"><span class="k">S</span>Summon</button>
+      <button class="m-btn" id="m-btn-cast" onclick="doCast()"><span class="k">C</span>Cast</button>
+      <button class="m-btn" id="m-btn-set" onclick="doSet()"><span class="k">T</span>Set</button>
+      <button class="m-btn primary" id="m-btn-atk" onclick="doAttack()"><span class="k">A</span>Attack</button>
+      <button class="m-btn" id="m-btn-retreat" onclick="doRetreat()"><span class="k">R</span>Retreat</button>
+      <button class="m-btn" id="m-btn-end" onclick="endTurn()"><span class="k">E</span>End</button>
+    </div>
+    
+    <div id="m-log" class="m-log"></div>
+  </div>
+  
+  <!-- DESKTOP -->
+  <div id="desktop" class="desktop">
+    <div class="d-top">
+      <div class="logo">TINY FANGS v2</div>
+      <div class="right">
+        <span>Turn <span id="d-turn">1</span></span>
+        <span id="d-time">0:00</span>
+      </div>
+    </div>
+    
+    <div class="d-main">
+      <!-- Left Panel -->
+      <div class="d-left">
+        <div class="d-panel" style="flex:1;">
+          <div class="d-panel-hdr">Your Stats</div>
+          <div class="d-panel-body">
+            <div class="d-stat-big">
+              <div class="label">Lives</div>
+              <div class="val" id="d-my-lp">♥♥♥</div>
+            </div>
+            <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Deck</div><div class="val" id="d-deck">20</div></div>
+              <div class="d-stat-sm"><div class="label">Grave</div><div class="val" id="d-grave">0</div></div>
+            </div>
+            <div class="d-stat-sm">
+              <div class="label">Mana</div>
+              <div id="d-mana-pips" class="d-mana-pips"></div>
+            </div>
+          </div>
+        </div>
+        <div class="d-panel">
+          <div class="d-panel-hdr">Opponent</div>
+          <div class="d-panel-body">
+            <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Lives</div><div class="val" id="d-opp-lp">♥♥♥</div></div>
+              <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Battle -->
+      <div class="d-panel d-battle">
+        <div class="d-panel-hdr">
+          <span>Battlefield</span>
+          <span><span id="d-lp-left">♥♥♥</span> vs <span id="d-lp-right">♥♥♥</span></span>
+        </div>
+        <div class="d-field">
+          <div class="d-side opp">
+            <div class="d-active-area" id="d-opp-active"></div>
+            <div class="d-bench-area">
+              <div class="label">Rival Bench</div>
+              <div id="d-opp-bench" class="d-bench-list"></div>
+            </div>
+            <div class="d-set-area">
+              <div class="m-set-verse" id="d-opp-set">NO SET</div>
+            </div>
+          </div>
+          <div class="d-vs">───────── VS ─────────</div>
+          <div class="d-side">
+            <div class="d-active-area" id="d-my-active"></div>
+            <div class="d-bench-area">
+              <div class="label">Your Bench</div>
+              <div id="d-my-bench" class="d-bench-list"></div>
+            </div>
+            <div class="d-set-area">
+              <div class="m-set-verse" id="d-my-set">NO SET</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Panel -->
+      <div class="d-right">
+        <div class="d-panel" style="flex:1; min-height:0;">
+          <div class="d-panel-hdr">Hand <span id="d-hand-ct">5</span></div>
+          <div class="d-panel-body">
+            <div id="d-hand" class="d-hand-list"></div>
+          </div>
+          <div class="d-rules-link" onclick="showRules()">[ rules ]</div>
+        </div>
+      </div>
+      
+      <!-- Bottom -->
+      <div class="d-bottom">
+        <div class="d-panel d-actions-panel">
+          <div class="d-panel-hdr">Actions</div>
+          <div class="d-panel-body">
+            <div class="d-actions-grid">
+              <button class="d-btn" id="d-btn-summon" onclick="doSummon()"><span class="k">[S]</span>Summon</button>
+              <button class="d-btn" id="d-btn-cast" onclick="doCast()"><span class="k">[C]</span>Cast</button>
+              <button class="d-btn" id="d-btn-set" onclick="doSet()"><span class="k">[T]</span>Set</button>
+              <button class="d-btn primary" id="d-btn-atk" onclick="doAttack()"><span class="k">[A]</span>Attack</button>
+              <button class="d-btn" id="d-btn-retreat" onclick="doRetreat()"><span class="k">[R]</span>Retreat</button>
+              <button class="d-btn" id="d-btn-end" onclick="endTurn()"><span class="k">[E]</span>End Turn</button>
+            </div>
+          </div>
+        </div>
+        <div class="d-panel d-log-panel">
+          <div class="d-panel-hdr">Battle Log</div>
+          <div class="d-panel-body">
+            <div id="d-log" class="d-log-entries"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Rules Link (Mobile) -->
+  <span class="m-rules-link" onclick="showRules()">[ rules ]</span>
+  
+  <!-- Card Detail Modal -->
+  <div id="cardModal" class="card-modal" onclick="closeCardModal(event)">
+    <div class="card-detail" id="cardDetail"></div>
+  </div>
+  
+  <!-- Generic Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-box">
+      <div class="title" id="modal-title"></div>
+      <div id="modal-opts"></div>
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+  
+  <!-- Response Modal -->
+  <div id="responseModal" class="modal response-modal">
+    <div class="modal-box">
+      <div class="title">Respond?</div>
+      <div id="response-opts"></div>
+      <button class="cancel" onclick="passResponse()">Let it happen</button>
+    </div>
+  </div>
+  
+  <!-- Rules Modal -->
+  <div id="rulesModal" class="modal" onclick="if(event.target===this)closeRules()">
+    <div class="rules-box">
+      <div class="rules-header">
+        <span>How to Play</span>
+        <button onclick="closeRules()">✕</button>
+      </div>
+      <div class="rules-content">
+        <h3>Objective</h3>
+        <p>Reduce your opponent's <strong>3 lives</strong> to 0.</p>
+        
+        <h3>Turn Structure</h3>
+        <ol>
+          <li><strong>Mana Phase</strong> — Gain 1 max mana (max 5), refill to max. Start with 1 mana.</li>
+          <li><strong>Main Phase</strong> — Summon creatures, play Cast Verses, set Set Verses.</li>
+          <li><strong>Battle Phase</strong> — Attack with your active creature.</li>
+          <li><strong>End Phase</strong> — Pass turn to opponent.</li>
+        </ol>
+        
+        <h3>Cards</h3>
+        <p><strong>Creatures</strong> — Summon to the field to fight. Each has HP, ATK, and a unique ability. One active creature fights; up to 2 on bench as backup.</p>
+        <p><strong>Cast Verses</strong> — Immediate effects. Pay mana, resolve effect, goes to graveyard.</p>
+        <p><strong>Set Verses</strong> — Placed face-down. Trigger automatically when conditions are met.</p>
+        
+        <h3>Combat</h3>
+        <p>Your active creature attacks the enemy's active creature. Damage reduces HP. When HP hits 0, creature is KO'd and goes to graveyard.</p>
+        <p><strong>Direct Damage:</strong> If opponent has no active creature, your attack takes 1 of their lives!</p>
+        
+        <h3>Winning</h3>
+        <ul>
+          <li>Take all 3 of your opponent's lives</li>
+          <li>Enemy can't draw (deck out)</li>
+        </ul>
+        
+        <h3>Controls</h3>
+        <p><strong>Desktop:</strong> [S] Summon, [C] Cast, [T] Set Verse, [A] Attack, [R] Retreat, [E] End Turn</p>
+        <p><strong>Mobile:</strong> Tap buttons. Long-press any card to see details.</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Trigger Reveal Modal (when set verse activates) -->
+  <div id="triggerModal" class="modal trigger-modal" onclick="dismissTriggerReveal()">
+    <div class="trigger-box" onclick="event.stopPropagation()">
+      <div class="trigger-header">
+        <span class="trigger-flash">⚡</span>
+        <span>TRIGGERED!</span>
+        <span class="trigger-flash">⚡</span>
+      </div>
+      <div id="triggerContent"></div>
+      <div class="trigger-hint">tap anywhere to continue</div>
+    </div>
+  </div>
+  
+  <!-- Result -->
+  <div id="result" class="result">
+    <h2 id="result-text"></h2>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // CARD DATABASE
+    // ═══════════════════════════════════════════════════════════════
+    
+    const CREATURES = {
+      whisper: { id:'whisper', name:'Whisper', subtitle:'Shadow Ermine', cost:1, hp:30, atk:20,
+        ability:'Elusive', abilityText:'Cannot be targeted by Set Verses the turn it is summoned.',
+        flavor:'"A flicker in the corner of your eye."',
+        art:' /\\_/\\\n(  ·.·)\n > ~ <' },
+      thornling: { id:'thornling', name:'Thornling', subtitle:'Bramble Sprite', cost:1, hp:40, atk:10,
+        ability:'Thorns', abilityText:'Attackers take 10 damage.',
+        flavor:'"It doesn\'t chase. It waits."',
+        art:' ���ί\n(�oο)\n \\|/' },
+      cindermaw: { id:'cindermaw', name:'Cindermaw', subtitle:'Ember Shrew', cost:2, hp:30, atk:30,
+        ability:'Frenzy', abilityText:'Attacks twice, but takes 10 self-damage.',
+        flavor:'"Burns fast. Burns everything."',
+        art:'  ~~\n=(Φ ω Φ)=\n  \\|/' },
+      gloom: { id:'gloom', name:'Gloom', subtitle:'Void Mite', cost:1, hp:20, atk:20,
+        ability:'Fade', abilityText:'When KO\'d, opponent discards 1 random card.',
+        flavor:'"It takes something with it."',
+        art:'  ┌─┐\n  │░│\n  └┬┘' },
+      bladewhisker: { id:'bladewhisker', name:'Bladewhisker', subtitle:'Steel Weasel', cost:2, hp:40, atk:30,
+        ability:'Rend', abilityText:'Attacks deal +10 damage.',
+        flavor:'"Forged in forgotten wars."',
+        art:' /\\_╱\\\n<(⚔ ⚔)>\n  ╲═╱' },
+      mireveil: { id:'mireveil', name:'Mireveil', subtitle:'Swamp Phantom', cost:3, hp:50, atk:20,
+        ability:'Bog Grasp', abilityText:'Enemy creature cannot retreat next turn.',
+        flavor:'"The water remembers your name."',
+        art:'  ,~,\n (o o)\n/| |\\' },
+      pulsefin: { id:'pulsefin', name:'Pulsefin', subtitle:'Abyssal Shrimp', cost:2, hp:40, atk:30,
+        ability:'Sonic Strike', abilityText:'First attack each game deals double damage.',
+        flavor:'"One perfect strike."',
+        art:' >(°□°)>\n  ├──┤\n  /| |\\' },
+      hexweaver: { id:'hexweaver', name:'Hexweaver', subtitle:'Curse Spider', cost:2, hp:40, atk:20,
+        ability:'Venom Thread', abilityText:'On hit, enemy takes 10 at end of each turn.',
+        flavor:'"The web is already complete."',
+        art:' /\\╱\\/\\\n(◉ _ ◉)\n /|\\|/|\\' },
+      duskfang: { id:'duskfang', name:'Duskfang', subtitle:'Twilight Wolf', cost:3, hp:60, atk:40,
+        ability:'Pack Call', abilityText:'When summoned, +20 ATK if you have a creature in graveyard.',
+        flavor:'"It hunts with ghosts."',
+        art:'  /\\_/\\\n (❂ ω ❂)\n  /| |\\' },
+      sundewqueen: { id:'sundewqueen', name:'Sundew Queen', subtitle:'Carnivorous Monarch', cost:4, hp:70, atk:30,
+        ability:'Digest', abilityText:'When it KO\'s a creature, heal 30 HP.',
+        flavor:'"She feeds on ambition."',
+        art:' .:*::.\n(  ♛  )\n  ╲|╱' },
+      stormtalon: { id:'stormtalon', name:'Stormtalon', subtitle:'Thunder Raptor', cost:4, hp:50, atk:50,
+        ability:'Chain Lightning', abilityText:'On KO, deal 20 damage to the next creature that enters.',
+        flavor:'"The sky remembers its anger."',
+        art:'  ╱╲\n <(⚡)>\n  /╲' },
+      echomask: { id:'echomask', name:'Echomask', subtitle:'Mirror Fiend', cost:4, hp:40, atk:0,
+        ability:'Reflection', abilityText:'ATK equals enemy creature\'s ATK. When KO\'d, enemy loses 1 life.',
+        flavor:'"It wears your face."',
+        art:' .-----.\n(  ???  )\n `-----\'' },
+    };
+    
+    const VERSES = {
+      // Cast Verses
+      soulSiphon: { id:'soulSiphon', name:'Soul Siphon', type:'cast', cost:2,
+        text:'Deal 20 damage to enemy creature. Heal your creature 10.' },
+      darkPact: { id:'darkPact', name:'Dark Pact', type:'cast', cost:1,
+        text:'Draw 2 cards. Lose 1 life.' },
+      graveEcho: { id:'graveEcho', name:'Grave Echo', type:'cast', cost:3,
+        text:'Return a creature from your graveyard to your hand.' },
+      manaSurge: { id:'manaSurge', name:'Mana Surge', type:'cast', cost:0,
+        text:'Gain 2 mana this turn. Once per game.' },
+      predatorsMark: { id:'predatorsMark', name:"Predator's Mark", type:'cast', cost:2,
+        text:'Your creature\'s next attack deals +30 damage.' },
+      banish: { id:'banish', name:'Banish', type:'cast', cost:3,
+        text:'Destroy enemy creature. Remove from game.' },
+      bloodMoon: { id:'bloodMoon', name:'Blood Moon', type:'cast', cost:2,
+        text:'All creatures take 20 damage.' },
+      secondWind: { id:'secondWind', name:'Second Wind', type:'cast', cost:2,
+        text:'Heal your active creature 40 HP.' },
+      // Set Verses
+      phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
+        trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.' },
+      soulTrap: { id:'soulTrap', name:'Soul Trap', type:'set', cost:2,
+        trigger:'When opponent summons', text:'That creature enters with -20 HP.' },
+      mirrorForce: { id:'mirrorForce', name:'Mirror Force', type:'set', cost:2,
+        trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.' },
+      graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
+        trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.' },
+      manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
+        trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.' },
+      lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
+        trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.' },
+    };
+    
+    const DECKS = {
+      shadow: {
+        creatures: ['whisper','whisper','gloom','gloom','mireveil','mireveil','duskfang','duskfang'],
+        verses: ['darkPact','darkPact','graveEcho','graveEcho','soulSiphon','soulSiphon','soulTrap','soulTrap','graveRise','graveRise','manaDrain','manaDrain']
+      },
+      fang: {
+        creatures: ['cindermaw','cindermaw','bladewhisker','bladewhisker','pulsefin','pulsefin','stormtalon','stormtalon'],
+        verses: ['predatorsMark','predatorsMark','manaSurge','manaSurge','bloodMoon','bloodMoon','phantomWall','phantomWall','mirrorForce','mirrorForce','lastBreath','lastBreath']
+      },
+      venom: {
+        creatures: ['thornling','thornling','hexweaver','hexweaver','sundewqueen','sundewqueen','echomask','echomask'],
+        verses: ['secondWind','secondWind','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath','lastBreath']
+      }
+    };
+    
+    // ═══════════════════════════════════════════════════════════════
+    // GAME STATE
+    // ═══════════════════════════════════════════════════════════════
+    
+    let G = null;
+    let selectedCard = null;
+    let startTime = null;
+    let timerInt = null;
+    let longPressTimer = null;
+    
+    const $ = id => document.getElementById(id);
+    const uid = () => Math.random().toString(36).slice(2,9);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION SYSTEM
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Animation timing constants (keep in sync with CSS)
+    const ANIM_TIMING = {
+      SHAKE: 300,
+      LUNGE: 300,
+      SUMMON: 500,
+      KO: 400,
+      FLASH: 300,
+      VERSE_POPUP: 700,
+      NEGATE: 500,
+      FLOAT_TEXT: 800,
+      ATTACK_SEQUENCE: 450, // lunge + hit
+      AI_PAUSE: 1000,       // pause between AI actions for readability
+      TRIGGER_REVEAL: 2500, // how long to show triggered set verse
+    };
+    
+    const Anim = {
+      // Add animation class, remove after duration. Returns promise.
+      play(el, animClass, durationMs = 300) {
+        return new Promise(resolve => {
+          if (!el) { resolve(); return; }
+          el.classList.add(animClass);
+          setTimeout(() => {
+            el.classList.remove(animClass);
+            resolve();
+          }, durationMs);
+        });
+      },
+      
+      // Play on element(s) matching selector
+      playOn(selector, animClass, durationMs = 300) {
+        document.querySelectorAll(selector).forEach(el => this.play(el, animClass, durationMs));
+      },
+      
+      // Floating damage/heal number
+      floatText(text, type, targetEl) {
+        const el = document.createElement('div');
+        el.className = `float-text ${type}`;
+        el.textContent = text;
+        
+        // Position near target or center screen
+        if (targetEl) {
+          const rect = targetEl.getBoundingClientRect();
+          el.style.left = rect.left + rect.width / 2 + 'px';
+          el.style.top = rect.top + rect.height / 3 + 'px';
+        } else {
+          el.style.left = '50%';
+          el.style.top = '40%';
+          el.style.transform = 'translateX(-50%)';
+        }
+        
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+      },
+      
+      // Verse trigger popup - returns promise
+      versePopup(verseName) {
+        return new Promise(resolve => {
+          const el = document.createElement('div');
+          el.className = 'verse-popup';
+          el.innerHTML = `<div class="label">Set Verse Triggered</div><div class="name">${verseName}</div>`;
+          document.body.appendChild(el);
+          setTimeout(() => {
+            el.remove();
+            resolve();
+          }, ANIM_TIMING.VERSE_POPUP);
+        });
+      },
+      
+      // Negate X - returns promise
+      negateX() {
+        return new Promise(resolve => {
+          const el = document.createElement('div');
+          el.className = 'negate-x';
+          el.textContent = '✕';
+          document.body.appendChild(el);
+          setTimeout(() => {
+            el.remove();
+            resolve();
+          }, ANIM_TIMING.NEGATE);
+        });
+      },
+      
+      // Get card element by creature uid
+      getCardEl(creatureUid, side) {
+        // Try to find in active or bench
+        const prefix = side === 'me' ? ['m-my-active', 'd-my-active'] : ['m-opp-active', 'd-opp-active'];
+        for (const id of prefix) {
+          const container = $(id);
+          if (container) {
+            const card = container.querySelector('.card-active, .card-mini');
+            if (card) return card;
+          }
+        }
+        return null;
+      },
+      
+      // Attack animation sequence - returns promise that resolves when complete
+      attack(attackerSide, defenderSide, damage) {
+        return new Promise(resolve => {
+          const defEl = this.getCardEl(null, defenderSide);
+          
+          // Lunge animation
+          const lungeClass = attackerSide === 'me' ? 'anim-lunge-up' : 'anim-lunge-down';
+          const atkSelector = attackerSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          const defSelector = defenderSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          
+          this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
+          
+          // On hit (after lunge peaks)
+          setTimeout(() => {
+            // Screen flash for impact
+            this.screenFlash('red');
+            // Shake defender
+            this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+            this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
+            // Floating damage
+            this.floatText(`-${damage}`, 'damage', defEl);
+          }, 140);
+          
+          // Resolve after full sequence
+          setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
+        });
+      },
+      
+      // Damage animation (non-combat) - returns promise
+      damage(side, amount, targetEl) {
+        return new Promise(resolve => {
+          const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE);
+          this.floatText(`-${amount}`, 'damage', targetEl || this.getCardEl(null, side));
+          setTimeout(resolve, ANIM_TIMING.SHAKE);
+        });
+      },
+      
+      // Heal animation - returns promise
+      heal(side, amount) {
+        return new Promise(resolve => {
+          const el = this.getCardEl(null, side);
+          const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          this.playOn(selector, 'anim-flash-green', ANIM_TIMING.FLASH);
+          this.floatText(`+${amount}`, 'heal', el);
+          setTimeout(resolve, ANIM_TIMING.FLASH);
+        });
+      },
+      
+      // LP damage - returns promise (EXTRA DRAMATIC)
+      lpDamage(side, amount) {
+        return new Promise(resolve => {
+          // Screen flash for LP hits
+          this.screenFlash('red');
+          const selector = side === 'me' ? '#m-my-lp, #d-my-lp' : '#m-opp-lp, #d-opp-lp';
+          this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH + 100);
+          this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+          this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
+          const el = document.querySelector(selector);
+          this.floatText(`-${amount}`, 'damage', el);
+          setTimeout(resolve, ANIM_TIMING.SHAKE + 100);
+        });
+      },
+      
+      // LP heal - returns promise
+      lpHeal(side, amount) {
+        return new Promise(resolve => {
+          const selector = side === 'me' ? '#m-my-lp, #d-my-lp' : '#m-opp-lp, #d-opp-lp';
+          this.playOn(selector, 'anim-flash-green', ANIM_TIMING.FLASH);
+          this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
+          setTimeout(resolve, ANIM_TIMING.FLASH);
+        });
+      },
+      
+      // Summon animation (dramatic card slam) - returns promise
+      summon(side) {
+        return new Promise(resolve => {
+          const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          // Screen flash on summon
+          this.screenFlash('gold');
+          this.playOn(selector, 'anim-summon', ANIM_TIMING.SUMMON + 100);
+          this.playOn(selector, 'anim-summon-glow', ANIM_TIMING.SUMMON + 200);
+          const el = document.querySelector(selector);
+          this.floatText('SUMMON!', 'gold', el);
+          setTimeout(resolve, ANIM_TIMING.SUMMON + 100);
+        });
+      },
+      
+      // KO animation - returns promise
+      ko(side) {
+        return new Promise(resolve => {
+          const el = this.getCardEl(null, side);
+          const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          this.playOn(selector, 'anim-ko', ANIM_TIMING.KO);
+          this.floatText('KO!', 'ko', el);
+          setTimeout(resolve, ANIM_TIMING.KO);
+        });
+      },
+      
+      // Cast verse - returns promise
+      castVerse() {
+        return new Promise(resolve => {
+          this.floatText('✦', 'gold', null);
+          setTimeout(resolve, 200);
+        });
+      },
+      
+      // Mana spend
+      manaSpend(amount) {
+        this.playOn('#d-mana-pips .d-mana-pip.filled:last-of-type', 'anim-flash-blue', 200);
+      },
+      
+      // Mana gain - returns promise
+      manaGain() {
+        return new Promise(resolve => {
+          this.playOn('#d-mana-pips', 'anim-pulse', ANIM_TIMING.FLASH);
+          setTimeout(resolve, ANIM_TIMING.FLASH);
+        });
+      },
+      
+      // Poison tick - returns promise
+      poisonTick(side) {
+        return new Promise(resolve => {
+          const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+          this.playOn(selector, 'anim-poison', 500);
+          const el = this.getCardEl(null, side);
+          this.floatText('-10', 'heal', el);
+          setTimeout(resolve, 500);
+        });
+      },
+      
+      // Wait helper - use to sequence animations
+      wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      },
+      
+      // Screen flash for impact
+      screenFlash(color = 'red') {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 1000;
+        `;
+        overlay.className = `screen-flash-${color}`;
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.remove(), 400);
+      }
+    };
+    
+    function mkCreature(id) {
+      const t = CREATURES[id];
+      return { ...t, cardType:'creature', curHp:t.hp, status:null, uid:uid(), firstAtk:true };
+    }
+    
+    function mkVerse(id) {
+      const t = VERSES[id];
+      return { ...t, cardType:'verse', uid:uid() };
+    }
+    
+    function mkDeck(deckId) {
+      const def = DECKS[deckId];
+      const cards = [
+        ...def.creatures.map(mkCreature),
+        ...def.verses.map(mkVerse)
+      ];
+      // Shuffle
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      return cards;
+    }
+    
+    function mkPlayer(deckId) {
+      const deck = mkDeck(deckId);
+      const hand = deck.splice(0, 5);
+      return {
+        lp: 3,  // 3 hearts/lives
+        mana: 1,
+        maxMana: 1,
+        deck,
+        hand,
+        active: null,
+        bench: [],
+        grave: [],
+        setVerse: null,
+        usedManaSurge: false,
+        usedLastBreath: false,
+        marked: false, // Predator's Mark
+        poisoned: false,
+        chainLightning: 0,
+      };
+    }
+    
+    function startGame(deckId) {
+      const aiDecks = ['shadow','fang','venom'].filter(d => d !== deckId);
+      const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
+      
+      G = {
+        me: mkPlayer(deckId),
+        opp: mkPlayer(aiDeck),
+        turn: 1,
+        phase: 'main', // draw, mana, main, battle, end
+        log: [],
+        myTurn: true,
+        winner: null,
+        firstTurn: true, // No attacking on the very first turn
+      };
+      
+      startTime = Date.now();
+      timerInt = setInterval(updateTimer, 1000);
+      
+      $('setup').classList.add('hidden');
+      
+      log('Game started');
+      log('Choose a creature to summon');
+      
+      render();
+    }
+    
+    function updateTimer() {
+      if (!startTime) return;
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      const str = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+      $('m-time').textContent = str;
+      $('d-time').textContent = str;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════
+    
+    function render() {
+      if (!G) return;
+      
+      // Turn
+      $('m-turn').textContent = G.turn;
+      $('d-turn').textContent = G.turn;
+      
+      // LP (as hearts)
+      const hearts = (n) => '♥'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, 3 - n));
+      $('m-my-lp').textContent = hearts(G.me.lp);
+      $('m-opp-lp').textContent = hearts(G.opp.lp);
+      $('d-my-lp').textContent = hearts(G.me.lp);
+      $('d-opp-lp').textContent = hearts(G.opp.lp);
+      $('d-lp-left').textContent = hearts(G.me.lp);
+      $('d-lp-right').textContent = hearts(G.opp.lp);
+      
+      // Mana
+      const manaStr = m => '●'.repeat(m.mana) + '○'.repeat(m.maxMana - m.mana);
+      $('m-my-mana').textContent = manaStr(G.me);
+      $('m-opp-mana').textContent = manaStr(G.opp);
+      
+      // Desktop mana pips
+      let pipsHtml = '';
+      for (let i = 0; i < 5; i++) {
+        const filled = i < G.me.mana ? 'filled' : '';
+        const visible = i < G.me.maxMana ? '●' : '○';
+        pipsHtml += `<div class="d-mana-pip ${filled}">${visible}</div>`;
+      }
+      $('d-mana-pips').innerHTML = pipsHtml;
+      
+      // Stats
+      $('d-deck').textContent = G.me.deck.length;
+      $('d-grave').textContent = G.me.grave.length;
+      $('d-opp-hand').textContent = G.opp.hand.length;
+      
+      // Set Verses
+      const setVerseHtml = (v, id) => v 
+        ? `<div class="m-set-verse has" id="${id}">[SET]</div>` 
+        : `<div class="m-set-verse" id="${id}">NO SET</div>`;
+      $('m-my-set').outerHTML = setVerseHtml(G.me.setVerse, 'm-my-set');
+      $('m-opp-set').outerHTML = setVerseHtml(G.opp.setVerse, 'm-opp-set');
+      $('d-my-set').outerHTML = setVerseHtml(G.me.setVerse, 'd-my-set');
+      $('d-opp-set').outerHTML = setVerseHtml(G.opp.setVerse, 'd-opp-set');
+      
+      // Active creatures
+      $('m-my-active').innerHTML = renderActiveCard(G.me.active);
+      $('m-opp-active').innerHTML = renderActiveCard(G.opp.active);
+      $('d-my-active').innerHTML = renderActiveCard(G.me.active);
+      $('d-opp-active').innerHTML = renderActiveCard(G.opp.active);
+      
+      // Bench
+      $('m-my-bench').innerHTML = G.me.bench.map(c => renderMiniCard(c)).join('');
+      $('m-opp-bench').innerHTML = G.opp.bench.map(c => renderMiniCard(c)).join('');
+      $('d-my-bench').innerHTML = G.me.bench.map(c => renderMiniCard(c)).join('');
+      $('d-opp-bench').innerHTML = G.opp.bench.map(c => renderMiniCard(c)).join('');
+      
+      // Hand
+      $('m-hand-ct').textContent = G.me.hand.length;
+      $('d-hand-ct').textContent = G.me.hand.length;
+      $('m-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, false)).join('');
+      $('d-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, true)).join('');
+      
+      // Buttons
+      updateButtons();
+      
+      // Log
+      renderLog();
+    }
+    
+    function renderActiveCard(c) {
+      if (!c) return `<div class="card-empty">EMPTY</div>`;
+      const pct = (c.curHp / c.hp) * 100;
+      const low = pct <= 30 ? 'low' : '';
+      const statusStr = c.status ? `[${c.status}]` : '';
+      return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+        <div class="header"><span>${c.name}</span><span>${c.curHp}/${c.hp}</span></div>
+        <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
+        <div class="art">${c.art}</div>
+        <div class="footer"><span>ATK ${c.atk}</span><span class="status">${statusStr}</span></div>
+      </div>`;
+    }
+    
+    function renderMiniCard(c) {
+      return `<div class="card-mini" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+        <div class="name">${c.name}</div>
+        <div class="stats">${c.curHp}/${c.hp}</div>
+      </div>`;
+    }
+    
+    function renderHandCard(c, vertical) {
+      const sel = selectedCard === c.uid ? 'selected' : '';
+      const typeClass = c.cardType === 'creature' ? 'creature' : (c.type === 'cast' ? 'verse-cast' : 'verse-set');
+      const typeLabel = c.cardType === 'creature' ? 'Creature' : (c.type === 'cast' ? 'Cast' : 'Set');
+      
+      if (vertical) {
+        return `<div class="d-hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+          <div class="cost">${c.cost}</div>
+          <div class="info"><div class="name">${c.name}</div><div class="type">${typeLabel}</div></div>
+        </div>`;
+      }
+      
+      return `<div class="hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+        <div class="cost-pip">${c.cost}</div>
+        <div class="name">${c.name}</div>
+        <div class="type">${typeLabel}</div>
+      </div>`;
+    }
+    
+    function renderLog() {
+      const html = G.log.slice(-8).map(l => `<span class="${l.c||''}">${l.t}</span>`).join('');
+      $('m-log').innerHTML = html;
+      $('d-log').innerHTML = G.log.slice(-12).map(l => `<div class="${l.c||''}">${l.t}</div>`).join('');
+    }
+    
+    function updateButtons() {
+      const hasCreature = G.me.hand.some(c => c.cardType === 'creature');
+      const hasCast = G.me.hand.some(c => c.cardType === 'verse' && c.type === 'cast');
+      const hasSet = G.me.hand.some(c => c.cardType === 'verse' && c.type === 'set');
+      const canRetreat = G.me.active && G.me.bench.length > 0;
+      const canAttack = G.me.active && !G.firstTurn; // Can attack creatures or LP directly (not on first turn)
+      
+      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !G.myTurn);
+      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !G.myTurn);
+      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || G.me.setVerse || !G.myTurn);
+      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !canAttack || !G.myTurn);
+      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !canRetreat || !G.myTurn);
+      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !G.myTurn);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // CARD INTERACTIONS
+    // ═══════════════════════════════════════════════════════════════
+    
+    function selectCard(uid) {
+      selectedCard = selectedCard === uid ? null : uid;
+      render();
+    }
+    
+    function cardPress(uid) {
+      longPressTimer = setTimeout(() => showCardDetail(uid), 400);
+    }
+    
+    function cardRelease() {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+    
+    function showCardDetail(uid) {
+      // Find card
+      let card = findCard(uid);
+      if (!card) return;
+      
+      const el = $('cardDetail');
+      
+      if (card.cardType === 'creature') {
+        el.innerHTML = `
+          <div class="top-bar"><span class="type">Creature</span><span class="cost">${card.cost}</span></div>
+          <div class="name-row"><div class="name">${card.name}</div><div class="subtitle">${card.subtitle}</div></div>
+          <div class="art-box">${card.art}</div>
+          <div class="stats-row">
+            <div class="stat"><div class="label">HP</div><div class="val">${card.hp}</div></div>
+            <div class="stat"><div class="label">ATK</div><div class="val">${card.atk}</div></div>
+          </div>
+          <div class="ability-box"><div class="ability-name">${card.ability}</div><div class="ability-text">${card.abilityText}</div></div>
+          <div class="flavor">${card.flavor}</div>
+          <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
+        `;
+      } else {
+        const typeLabel = card.type === 'cast' ? 'Verse • Cast' : 'Verse • Set';
+        const triggerHtml = card.trigger ? `<div class="ability-box"><div class="ability-name">Trigger</div><div class="ability-text">${card.trigger}</div></div>` : '';
+        el.innerHTML = `
+          <div class="top-bar"><span class="type">${typeLabel}</span><span class="cost">${card.cost}</span></div>
+          <div class="name-row"><div class="name">${card.name}</div></div>
+          ${triggerHtml}
+          <div class="ability-box"><div class="ability-name">Effect</div><div class="ability-text">${card.text}</div></div>
+          <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
+        `;
+      }
+      
+      $('cardModal').classList.add('open');
+    }
+    
+    function closeCardModal(e, force) {
+      if (force || e.target === $('cardModal')) {
+        $('cardModal').classList.remove('open');
+      }
+    }
+    
+    function findCard(uid) {
+      const all = [...G.me.hand, ...G.me.bench, ...G.opp.bench, ...G.me.grave, ...G.opp.grave];
+      if (G.me.active) all.push(G.me.active);
+      if (G.opp.active) all.push(G.opp.active);
+      return all.find(c => c.uid === uid);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════════
+    
+    function doSummon() {
+      const creatures = G.me.hand.filter(c => c.cardType === 'creature');
+      if (!creatures.length) return;
+      
+      showModal('Summon Creature', creatures.map(c => ({
+        name: c.name,
+        sub: `Cost ${c.cost} | ${c.hp} HP | ${c.atk} ATK`,
+        disabled: c.cost > G.me.mana,
+        action: () => summonCreature(c)
+      })));
+    }
+    
+    async function summonCreature(c) {
+      closeModal();
+      
+      if (c.cost > G.me.mana) {
+        log('Not enough mana!', 'dmg');
+        return;
+      }
+      
+      G.me.mana -= c.cost;
+      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+      
+      // Check opponent Soul Trap
+      if (G.opp.setVerse?.id === 'soulTrap') {
+        await showTriggerReveal(G.opp.setVerse);
+        log('Soul Trap triggered!', 'dmg');
+        c.curHp -= 20;
+        G.opp.grave.push(G.opp.setVerse);
+        G.opp.setVerse = null;
+        if (c.curHp <= 0) {
+          log(`${c.name} destroyed by trap!`, 'dmg');
+          G.me.grave.push(c);
+          render();
+          return;
+        }
+      }
+      
+      if (!G.me.active) {
+        G.me.active = c;
+        log(`Summoned ${c.name} as active`);
+        render();
+        Anim.summon('me');
+      } else if (G.me.bench.length < 2) {
+        G.me.bench.push(c);
+        log(`Summoned ${c.name} to bench`);
+      } else {
+        log('No room!', 'dmg');
+        G.me.hand.push(c);
+        G.me.mana += c.cost;
+      }
+      
+      // Duskfang ability
+      if (c.id === 'duskfang' && G.me.grave.some(x => x.cardType === 'creature')) {
+        c.atk += 20;
+        log('Pack Call: +20 ATK', 'mana');
+      }
+      
+      // Chain Lightning damage
+      if (G.me.chainLightning > 0) {
+        c.curHp -= G.me.chainLightning;
+        log(`Chain Lightning: -${G.me.chainLightning}`, 'dmg');
+        G.me.chainLightning = 0;
+        if (c.curHp <= 0) {
+          ko(c, G.me);
+        }
+      }
+      
+      render();
+    }
+    
+    function doCast() {
+      const casts = G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
+      if (!casts.length) return;
+      
+      showModal('Cast Verse', casts.map(c => ({
+        name: c.name,
+        sub: `Cost ${c.cost} | ${c.text}`,
+        disabled: c.cost > G.me.mana || (c.id === 'manaSurge' && G.me.usedManaSurge),
+        action: () => castVerse(c)
+      })));
+    }
+    
+    async function castVerse(c) {
+      closeModal();
+      
+      if (c.cost > G.me.mana) {
+        log('Not enough mana!', 'dmg');
+        return;
+      }
+      
+      // Check opponent Mana Drain
+      if (G.opp.setVerse?.id === 'manaDrain') {
+        await showTriggerReveal(G.opp.setVerse);
+        log('Mana Drain triggered!', 'dmg');
+        G.opp.mana = Math.min(5, G.opp.mana + 1);
+        G.opp.grave.push(G.opp.setVerse);
+        G.opp.setVerse = null;
+        G.me.grave.push(c);
+        G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+        await Anim.negateX();
+        log(`${c.name} negated! Rival gains 1 mana.`);
+        render();
+        return;
+      }
+      
+      G.me.mana -= c.cost;
+      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+      G.me.grave.push(c);
+      
+      log(`Cast ${c.name}`);
+      Anim.castVerse();
+      
+      // Execute effect
+      switch(c.id) {
+        case 'soulSiphon':
+          if (G.opp.active) {
+            G.opp.active.curHp -= 20;
+            log('Enemy -20', 'dmg');
+            Anim.damage('opp', 20);
+            if (G.opp.active.curHp <= 0) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+          }
+          if (G.me.active) {
+            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 10);
+            log('You +10', 'heal');
+            Anim.heal('me', 10);
+          }
+          break;
+        case 'darkPact':
+          draw(G.me); draw(G.me);
+          G.me.lp -= 1;
+          log('Drew 2, lost a life!', 'dmg');
+          Anim.lpDamage('me', 1);
+          checkWin();
+          break;
+        case 'graveEcho':
+          const graveCr = G.me.grave.filter(x => x.cardType === 'creature');
+          if (graveCr.length) {
+            const pick = graveCr[0];
+            G.me.grave = G.me.grave.filter(x => x.uid !== pick.uid);
+            G.me.hand.push(pick);
+            log(`Returned ${pick.name}`);
+          }
+          break;
+        case 'manaSurge':
+          G.me.mana += 2;
+          G.me.usedManaSurge = true;
+          log('+2 mana', 'mana');
+          Anim.manaGain();
+          break;
+        case 'predatorsMark':
+          G.me.marked = true;
+          log('Next attack +30');
+          break;
+        case 'banish':
+          if (G.opp.active) {
+            log(`Banished ${G.opp.active.name}`, 'dmg');
+            G.opp.active = null;
+            // Don't go to grave - removed from game
+          }
+          break;
+        case 'bloodMoon':
+          if (G.me.active) { 
+            G.me.active.curHp -= 20; 
+            Anim.damage('me', 20);
+            if (G.me.active.curHp <= 0) { Anim.ko('me'); ko(G.me.active, G.me); }
+          }
+          if (G.opp.active) { 
+            G.opp.active.curHp -= 20; 
+            Anim.damage('opp', 20);
+            if (G.opp.active.curHp <= 0) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+          }
+          log('All creatures -20', 'dmg');
+          break;
+        case 'secondWind':
+          if (G.me.active) {
+            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 40);
+            log('+40 HP', 'heal');
+            Anim.heal('me', 40);
+          }
+          break;
+      }
+      
+      render();
+    }
+    
+    function doSet() {
+      if (G.me.setVerse) {
+        log('Already have a set verse!');
+        return;
+      }
+      
+      const sets = G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'set');
+      if (!sets.length) return;
+      
+      showModal('Set Verse', sets.map(c => ({
+        name: c.name,
+        sub: `Cost ${c.cost} | ${c.trigger}`,
+        disabled: c.cost > G.me.mana || (c.id === 'lastBreath' && G.me.usedLastBreath),
+        action: () => setVerse(c)
+      })));
+    }
+    
+    function setVerse(c) {
+      closeModal();
+      
+      if (c.cost > G.me.mana) {
+        log('Not enough mana!', 'dmg');
+        return;
+      }
+      
+      G.me.mana -= c.cost;
+      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+      G.me.setVerse = c;
+      
+      log('Set a verse face-down');
+      render();
+    }
+    
+    async function doAttack() {
+      if (!G.me.active) return;
+      
+      if (G.firstTurn) {
+        log("Can't attack on first turn!", 'dmg');
+        return;
+      }
+      
+      try {
+        const attacker = G.me.active;
+        
+        // Check opponent's Phantom Wall
+        if (G.opp.setVerse?.id === 'phantomWall') {
+          await showTriggerReveal(G.opp.setVerse);
+          log('Phantom Wall triggered!', 'dmg');
+          attacker.curHp -= 10;
+          log(`${attacker.name} takes 10 damage!`, 'dmg');
+          await Anim.damage('me', 10);
+          G.opp.grave.push(G.opp.setVerse);
+          G.opp.setVerse = null;
+          if (attacker.curHp <= 0) { await Anim.ko('me'); ko(attacker, G.me); }
+          await Anim.negateX();
+          log('Attack negated!');
+          render();
+          if (!G.winner) endTurn();
+          return;
+        }
+        
+        // Direct attack if no defender (always 1 LP)
+        if (!G.opp.active) {
+          G.opp.lp -= 1;
+          log(`Direct attack! Rival loses a life!`, 'dmg');
+          Anim.lpDamage('opp', 1);
+          checkWin();
+          render();
+          setTimeout(() => { if (!G.winner) endTurn(); }, 500);
+          return;
+        }
+        
+        const defender = G.opp.active;
+        
+        // Calculate damage
+        let dmg = attacker.atk;
+        
+        // Bladewhisker Rend
+        if (attacker.id === 'bladewhisker') dmg += 10;
+        
+        // Predator's Mark
+        if (G.me.marked) {
+          dmg += 30;
+          G.me.marked = false;
+        }
+        
+        // Pulsefin Sonic Strike
+        if (attacker.id === 'pulsefin' && attacker.firstAtk) {
+          dmg *= 2;
+          attacker.firstAtk = false;
+          log('Sonic Strike! Double damage', 'mana');
+        }
+        
+        // Echomask Reflection
+        if (attacker.id === 'echomask') {
+          dmg = defender.atk;
+        }
+        
+        // Cindermaw Frenzy
+        if (attacker.id === 'cindermaw') {
+          dmg *= 2;
+          attacker.curHp -= 10;
+          log('Frenzy! Double hit, -10 self', 'dmg');
+          if (attacker.curHp <= 0) ko(attacker, G.me);
+        }
+        
+        log(`${attacker.name} attacks for ${dmg}!`);
+        
+        // Attack animation
+        Anim.attack('me', 'opp', dmg);
+        
+        // Thornling Thorns - only if attacker survived Cindermaw self-damage
+        if (defender.id === 'thornling' && G.me.active && G.me.active.curHp > 0) {
+          G.me.active.curHp -= 10;
+          log('Thorns! -10 to attacker', 'dmg');
+          Anim.damage('me', 10);
+          if (G.me.active.curHp <= 0) ko(G.me.active, G.me);
+        }
+        
+        // Apply damage to defender
+        defender.curHp -= dmg;
+        log(`${defender.name} takes ${dmg}`, 'dmg');
+        
+        // Hexweaver poison - only if attacker survived
+        if (G.me.active?.id === 'hexweaver' && defender.curHp > 0) {
+          defender.status = 'poison';
+          G.opp.poisoned = true;
+          log('Poisoned!');
+        }
+        
+        // Mireveil Bog Grasp
+        if (G.me.active?.id === 'mireveil' && defender.curHp > 0) {
+          defender.status = 'trapped';
+          log('Trapped! Cannot retreat');
+        }
+        
+        // Check KO
+        if (defender.curHp <= 0) {
+          // Sundew Queen Digest
+          if (G.me.active?.id === 'sundewqueen') {
+            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 30);
+            log('Digest! +30 HP', 'heal');
+            Anim.heal('me', 30);
+          }
+          
+          Anim.ko('opp');
+          ko(defender, G.opp, G.me.active, G.me);
+        }
+        
+        render();
+      } catch (err) {
+        console.error('Attack error:', err);
+        log('(Attack error)', 'dmg');
+        render();
+      }
+      
+      // End turn after attack - wait for animations to complete
+      setTimeout(() => {
+        if (!G.winner) endTurn();
+      }, ANIM_TIMING.ATTACK_SEQUENCE + 200);
+    }
+    
+    function doRetreat() {
+      if (!G.me.active || !G.me.bench.length) return;
+      if (G.me.active.status === 'trapped') {
+        log('Cannot retreat - trapped!', 'dmg');
+        return;
+      }
+      
+      showModal('Choose replacement', G.me.bench.map(c => ({
+        name: c.name,
+        sub: `${c.curHp}/${c.hp} HP`,
+        action: () => {
+          closeModal();
+          const old = G.me.active;
+          const idx = G.me.bench.findIndex(x => x.uid === c.uid);
+          G.me.active = G.me.bench.splice(idx, 1)[0];
+          G.me.bench.push(old);
+          log(`Switched to ${G.me.active.name}`);
+          render();
+        }
+      })));
+    }
+    
+    function endTurn() {
+      if (G.winner) return;
+      
+      // Poison damage
+      if (G.me.active && G.me.active.status === 'poison') {
+        G.me.active.curHp -= 10;
+        log('Poison: -10', 'dmg');
+        Anim.poisonTick('me');
+        if (G.me.active.curHp <= 0) { Anim.ko('me'); ko(G.me.active, G.me); }
+      }
+      
+      G.myTurn = false;
+      G.turn++;
+      G.firstTurn = false; // After first turn, attacking is allowed
+      
+      render();
+      
+      // AI turn
+      setTimeout(aiTurn, 600);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AI
+    // ═══════════════════════════════════════════════════════════════
+    
+    async function aiTurn() {
+      if (G.winner) return;
+      
+      console.log('[AI] Turn starting...');
+      const ai = G.opp;
+      const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
+      
+      try {
+        // Mana phase
+        if (ai.maxMana < 5) ai.maxMana++;
+        ai.mana = ai.maxMana;
+        
+        // Draw
+        draw(ai);
+        if (G.winner) return;
+        
+        log('-- Rival turn --');
+        render();
+        await pause();
+        
+        // === SUMMON PHASE ===
+        if (!ai.active) {
+          const creatures = ai.hand.filter(c => c.cardType === 'creature' && c.cost <= ai.mana);
+          if (creatures.length) {
+            const pick = creatures.sort((a,b) => b.cost - a.cost)[0];
+            ai.mana -= pick.cost;
+            ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
+            
+            // Player's Soul Trap check
+            if (G.me.setVerse?.id === 'soulTrap') {
+              await showTriggerReveal(G.me.setVerse);
+              log('Soul Trap triggered!', 'dmg');
+              pick.curHp -= 20;
+              G.me.grave.push(G.me.setVerse);
+              G.me.setVerse = null;
+              if (pick.curHp <= 0) {
+                log(`${pick.name} destroyed by trap!`, 'dmg');
+                ai.grave.push(pick);
+              } else {
+                ai.active = pick;
+                log(`Rival summoned ${pick.name} (wounded)`);
+                render();
+                await Anim.summon('opp');
+              }
+            } else {
+              ai.active = pick;
+              log(`Rival summoned ${pick.name}`);
+              render();
+              await Anim.summon('opp');
+            }
+            
+            if (ai.active?.id === 'duskfang' && ai.grave.some(x => x.cardType === 'creature')) {
+              ai.active.atk += 20;
+              log('Pack Call: +20 ATK', 'mana');
+            }
+            
+            render();
+            await pause();
+          }
+        }
+        
+        // === BENCH PHASE ===
+        while (ai.bench.length < 2) {
+          const creatures = ai.hand.filter(c => c.cardType === 'creature' && c.cost <= ai.mana);
+          if (!creatures.length) break;
+          const pick = creatures[0];
+          ai.mana -= pick.cost;
+          ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
+          
+          // Player's Soul Trap check
+          if (G.me.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(G.me.setVerse);
+            log('Soul Trap triggered!', 'dmg');
+            pick.curHp -= 20;
+            G.me.grave.push(G.me.setVerse);
+            G.me.setVerse = null;
+            if (pick.curHp <= 0) {
+              log(`${pick.name} destroyed by trap!`, 'dmg');
+              ai.grave.push(pick);
+              render();
+              await pause();
+              continue;
+            }
+          }
+          ai.bench.push(pick);
+          log(`Rival benched ${pick.name}`);
+          render();
+        }
+        
+        // === SET VERSE PHASE ===
+        if (!ai.setVerse) {
+          const sets = ai.hand.filter(c => c.cardType === 'verse' && c.type === 'set' && c.cost <= ai.mana);
+          if (sets.length) {
+            const pick = sets[0];
+            ai.mana -= pick.cost;
+            ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
+            ai.setVerse = pick;
+            log('Rival set a verse');
+            render();
+            await Anim.wait(600);
+          }
+        }
+        
+        // === ATTACK PHASE ===
+        if (ai.active) {
+          await pause();
+          
+          // Player's Phantom Wall check
+          if (G.me.setVerse?.id === 'phantomWall') {
+            await showTriggerReveal(G.me.setVerse);
+            log('Phantom Wall triggered!', 'dmg');
+            ai.active.curHp -= 10;
+            log(`${ai.active.name} takes 10 damage!`, 'dmg');
+            await Anim.damage('opp', 10);
+            G.me.grave.push(G.me.setVerse);
+            G.me.setVerse = null;
+            if (ai.active.curHp <= 0) { 
+              await Anim.ko('opp'); 
+              await ko(ai.active, ai); 
+            }
+            await Anim.negateX();
+            log('Attack negated!');
+            render();
+          } else if (G.me.active) {
+            // Normal attack
+            let dmg = ai.active.atk;
+            if (ai.active.id === 'bladewhisker') dmg += 10;
+            if (ai.active.id === 'echomask' && G.me.active) dmg = G.me.active.atk;
+            if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
+              dmg *= 2;
+              ai.active.firstAtk = false;
+              log('Sonic Strike! Double damage', 'mana');
+            }
+            if (ai.active.id === 'cindermaw') {
+              dmg *= 2;
+              ai.active.curHp -= 10;
+              log('Frenzy! Double hit, -10 self', 'dmg');
+              if (ai.active.curHp <= 0) await ko(ai.active, ai);
+            }
+            
+            const attacker = ai.active;
+            if (attacker) {
+              log(`${attacker.name} attacks for ${dmg}!`);
+              await Anim.attack('opp', 'me', dmg);
+              
+              // Thornling thorns
+              if (G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
+                attacker.curHp -= 10;
+                log('Thorns! -10 to attacker', 'dmg');
+                await Anim.damage('opp', 10);
+                if (attacker.curHp <= 0) await ko(attacker, ai);
+              }
+              
+              // Apply damage
+              if (G.me.active) {
+                G.me.active.curHp -= dmg;
+                
+                if (attacker?.id === 'hexweaver' && G.me.active?.curHp > 0) {
+                  G.me.active.status = 'poison';
+                  log('Poisoned!');
+                }
+                if (attacker?.id === 'mireveil' && G.me.active?.curHp > 0) {
+                  G.me.active.status = 'trapped';
+                  log('Trapped! Cannot retreat');
+                }
+                
+                if (G.me.active && G.me.active.curHp <= 0) {
+                  if (attacker?.id === 'sundewqueen') {
+                    attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
+                    log('Digest! +30 HP', 'heal');
+                    await Anim.heal('opp', 30);
+                  }
+                  await Anim.ko('me');
+                  await ko(G.me.active, G.me, attacker, ai);
+                }
+              }
+            }
+            render();
+          } else {
+            // Direct damage (no defender)
+            G.me.lp -= 1;
+            log(`Direct attack! You lose a life!`, 'dmg');
+            await Anim.lpDamage('me', 1);
+            checkWin();
+            render();
+          }
+        }
+        
+        // Poison tick
+        if (ai.active?.status === 'poison') {
+          ai.active.curHp -= 10;
+          log('Rival poison: -10', 'dmg');
+          await Anim.poisonTick('opp');
+          if (ai.active.curHp <= 0) await ko(ai.active, ai);
+          render();
+        }
+        
+      } catch (err) {
+        console.error('[AI] Turn error:', err);
+        log('(AI error)', 'dmg');
+      }
+      
+      // Transition to player turn
+      await pause();
+      if (!G.winner) startPlayerTurn();
+    }
+    
+    // Extracted player turn start for reuse
+    function startPlayerTurn() {
+      // Clear failsafe
+      if (G._aiFailsafe) {
+        clearTimeout(G._aiFailsafe);
+        G._aiFailsafe = null;
+      }
+      
+      if (G.winner) return;
+      
+      try {
+        // Mana phase
+        if (G.me.maxMana < 5) G.me.maxMana++;
+        G.me.mana = G.me.maxMana;
+        
+        // Draw
+        draw(G.me);
+        
+        G.myTurn = true;
+        log('Your turn', 'mana');
+        render();
+        console.log('[GAME] Player turn started successfully');
+      } catch (err) {
+        console.error('[GAME] Player turn start error:', err);
+        G.myTurn = true; // Force it anyway
+        render();
+      }
+    }
+    
+    // Emergency player turn start
+    function forcePlayerTurn() {
+      console.log('[GAME] Forcing player turn...');
+      G._aiFailsafe = null;
+      
+      if (G.winner) return;
+      
+      // Minimal setup to get the game unstuck
+      G.myTurn = true;
+      if (G.me.maxMana < 5) G.me.maxMana++;
+      G.me.mana = G.me.maxMana;
+      
+      try {
+        if (G.me.deck.length > 0) {
+          G.me.hand.push(G.me.deck.pop());
+        }
+        render();
+      } catch (err) {
+        console.error('[GAME] Force player turn render error:', err);
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════
+    
+    function draw(player) {
+      if (player.deck.length === 0) {
+        log('Deck out!', 'dmg');
+        G.winner = player === G.me ? 'Rival' : 'You';
+        showResult(G.winner === 'You');
+        return;
+      }
+      player.hand.push(player.deck.pop());
+    }
+    
+    async function ko(creature, owner, attacker = null, attackerOwner = null) {
+      // Mirror Force check - only during combat with an attacker
+      if (attacker && owner.setVerse?.id === 'mirrorForce') {
+        await showTriggerReveal(owner.setVerse);
+        log('Mirror Force triggered!', 'dmg');
+        creature.curHp = 1; // Survive with 1 HP
+        owner.grave.push(owner.setVerse);
+        owner.setVerse = null;
+        log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
+        await Anim.ko(attackerOwner === G.me ? 'me' : 'opp');
+        // KO the attacker instead (without triggering another Mirror Force)
+        attackerOwner.grave.push(attacker);
+        if (attackerOwner.active?.uid === attacker.uid) {
+          attackerOwner.active = null;
+          if (attackerOwner.bench.length) {
+            attackerOwner.active = attackerOwner.bench.shift();
+            log(`${attackerOwner === G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
+            render();
+            await Anim.summon(attackerOwner === G.me ? 'me' : 'opp');
+          }
+        }
+        checkWin();
+        render();
+        return;
+      }
+      
+      log(`${creature.name} KO'd!`, 'dmg');
+      
+      // Grave Rise - summon 1-cost creature from grave
+      if (owner.setVerse?.id === 'graveRise') {
+        await showTriggerReveal(owner.setVerse);
+        const oneCost = owner.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
+        if (oneCost.length && owner.bench.length < 2) {
+          log('Grave Rise triggered!', 'heal');
+          const revived = oneCost[0];
+          revived.curHp = revived.hp; // Restore HP
+          owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
+          owner.bench.push(revived);
+          log(`${revived.name} rises from the grave!`);
+        }
+        owner.grave.push(owner.setVerse);
+        owner.setVerse = null;
+      }
+      
+      // Gloom Fade
+      if (creature.id === 'gloom') {
+        const enemy = owner === G.me ? G.opp : G.me;
+        if (enemy.hand.length) {
+          const idx = Math.floor(Math.random() * enemy.hand.length);
+          enemy.grave.push(enemy.hand.splice(idx, 1)[0]);
+          log('Fade: enemy discarded', 'mana');
+        }
+      }
+      
+      // Echomask death damage (1 life)
+      if (creature.id === 'echomask') {
+        const enemy = owner === G.me ? G.opp : G.me;
+        enemy.lp -= 1;
+        log('Shatter! Enemy loses a life!', 'dmg');
+        Anim.lpDamage(owner === G.me ? 'opp' : 'me', 1);
+        checkWin();
+      }
+      
+      // Stormtalon Chain Lightning
+      if (creature.id === 'stormtalon') {
+        const enemy = owner === G.me ? G.opp : G.me;
+        enemy.chainLightning = 20;
+        log('Chain Lightning armed!', 'mana');
+      }
+      
+      owner.grave.push(creature);
+      owner.active = null;
+      
+      // Auto-replace from bench
+      if (owner.bench.length) {
+        owner.active = owner.bench.shift();
+        log(`${owner === G.me ? 'You' : 'Rival'} sent out ${owner.active.name}`);
+        // Animate the replacement
+        setTimeout(() => {
+          render();
+          Anim.summon(owner === G.me ? 'me' : 'opp');
+        }, 100);
+        
+        if (owner.chainLightning > 0) {
+          owner.active.curHp -= owner.chainLightning;
+          log(`Chain Lightning: -${owner.chainLightning}`, 'dmg');
+          owner.chainLightning = 0;
+          if (owner.active.curHp <= 0) ko(owner.active, owner);
+        }
+      }
+      
+      checkWin();
+    }
+    
+    function checkWin() {
+      if (G.me.lp <= 0) {
+        // Check Last Breath - survive with 1 life
+        if (G.me.setVerse?.id === 'lastBreath' && !G.me.usedLastBreath) {
+          G.me.lp = 1;
+          G.me.usedLastBreath = true;
+          G.me.setVerse = null;
+          Anim.versePopup('Last Breath');
+          log('Last Breath! Survived with 1 life!', 'heal');
+          Anim.lpHeal('me', 1);
+          return;
+        }
+        G.winner = 'Rival';
+        showResult(false);
+      } else if (G.opp.lp <= 0) {
+        if (G.opp.setVerse?.id === 'lastBreath' && !G.opp.usedLastBreath) {
+          G.opp.lp = 1;
+          G.opp.usedLastBreath = true;
+          G.opp.setVerse = null;
+          Anim.versePopup('Last Breath');
+          log('Rival Last Breath!', 'heal');
+          return;
+        }
+        G.winner = 'You';
+        showResult(true);
+      }
+    }
+    
+    function log(t, c = '') {
+      G.log.push({ t, c });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MODALS
+    // ═══════════════════════════════════════════════════════════════
+    
+    function showModal(title, options) {
+      $('modal-title').textContent = title;
+      $('modal-opts').innerHTML = options.map((o, i) => `
+        <div class="option ${o.disabled ? 'off' : ''}" onclick="${o.disabled ? '' : `modalAction(${i})`}">
+          <div class="name">${o.name}</div>
+          <div class="sub">${o.sub}</div>
+        </div>
+      `).join('');
+      window._modalActions = options.map(o => o.action);
+      $('modal').classList.add('open');
+    }
+    
+    function modalAction(i) {
+      if (window._modalActions && window._modalActions[i]) {
+        window._modalActions[i]();
+      }
+    }
+    
+    function closeModal() {
+      $('modal').classList.remove('open');
+    }
+    
+    function passResponse() {
+      $('responseModal').classList.remove('open');
+    }
+    
+    function showResult(win) {
+      clearInterval(timerInt);
+      $('result').classList.add('open', win ? 'win' : 'lose');
+      $('result-text').textContent = win ? '[ VICTORY ]' : '[ DEFEAT ]';
+    }
+    
+    function showRules() {
+      $('rulesModal').classList.add('open');
+    }
+    
+    function closeRules() {
+      $('rulesModal').classList.remove('open');
+    }
+    
+    // Trigger Reveal - shows set verse when it activates
+    let triggerRevealResolve = null;
+    let triggerRevealTimeout = null;
+    
+    function showTriggerReveal(verse) {
+      return new Promise(resolve => {
+        triggerRevealResolve = resolve;
+        
+        // Build content
+        const content = `
+          <div class="name-row">
+            <div class="name">${verse.name}</div>
+            <div class="type">Set Verse</div>
+          </div>
+          <div class="trigger-condition">
+            <div class="label">Trigger</div>
+            <div class="text">${verse.trigger}</div>
+          </div>
+          <div class="effect-box">
+            <div class="label">Effect</div>
+            <div class="text">${verse.text}</div>
+          </div>
+        `;
+        
+        $('triggerContent').innerHTML = content;
+        $('triggerModal').classList.add('open');
+        
+        // Auto-dismiss after delay
+        triggerRevealTimeout = setTimeout(() => {
+          dismissTriggerReveal();
+        }, ANIM_TIMING.TRIGGER_REVEAL);
+      });
+    }
+    
+    function dismissTriggerReveal() {
+      if (triggerRevealTimeout) {
+        clearTimeout(triggerRevealTimeout);
+        triggerRevealTimeout = null;
+      }
+      $('triggerModal').classList.remove('open');
+      if (triggerRevealResolve) {
+        triggerRevealResolve();
+        triggerRevealResolve = null;
+      }
+    }
+    
+    // Expose for testing
+    window.showTriggerReveal = showTriggerReveal;
+    window.dismissTriggerReveal = dismissTriggerReveal;
+    window.ANIM_TIMING = ANIM_TIMING;
+    window.aiTurn = aiTurn;
+    
+    function toggleMenu() {
+      alert('Menu: Coming soon!');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // KEYBOARD
+    // ═══════════════════════════════════════════════════════════════
+    
+    document.addEventListener('keydown', e => {
+      if (!G || G.winner || !G.myTurn) return;
+      const k = e.key.toLowerCase();
+      if (k === 's') doSummon();
+      else if (k === 'c') doCast();
+      else if (k === 't') doSet();
+      else if (k === 'a') doAttack();
+      else if (k === 'r') doRetreat();
+      else if (k === 'e') endTurn();
+      else if (k === 'escape') closeModal();
+      // Debug: test animations with number keys
+      else if (e.ctrlKey && k === '1') { Anim.attack('me', 'opp', 30); log('TEST: attack'); }
+      else if (e.ctrlKey && k === '2') { Anim.damage('me', 20); log('TEST: damage'); }
+      else if (e.ctrlKey && k === '3') { Anim.heal('me', 30); log('TEST: heal'); }
+      else if (e.ctrlKey && k === '4') { Anim.ko('opp'); log('TEST: KO'); }
+      else if (e.ctrlKey && k === '5') { Anim.versePopup('Test Verse'); log('TEST: verse popup'); }
+      else if (e.ctrlKey && k === '6') { Anim.negateX(); log('TEST: negate'); }
+      else if (e.ctrlKey && k === '7') { Anim.lpDamage('me', 5); log('TEST: LP damage'); }
+      else if (e.ctrlKey && k === '8') { Anim.poisonTick('me'); log('TEST: poison'); }
+      else if (e.ctrlKey && k === '9') { Anim.summon('me'); log('TEST: summon'); }
+      else if (e.ctrlKey && k === '0') { showTriggerReveal(VERSES.phantomWall); log('TEST: trigger reveal'); }
+    });
+  </script>
+</body>
+</html>
