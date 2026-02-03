@@ -1818,19 +1818,14 @@
 
   <script type="module">
     import { CREATURES, VERSES, DECKS } from './src/cards.js';
+    import { $, uid } from './src/state.js';
     
-    // ═══════════════════════════════════════════════════════════════
-    // GAME STATE
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Mutable game state (kept local - G is reassigned throughout)
     let G = null;
     let selectedCard = null;
     let startTime = null;
     let timerInt = null;
     let longPressTimer = null;
-    
-    const $ = id => document.getElementById(id);
-    const uid = () => Math.random().toString(36).slice(2,9);
     
     // ═══════════════════════════════════════════════════════════════
     // ANIMATION SYSTEM
