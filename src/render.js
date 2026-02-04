@@ -67,6 +67,7 @@ export function renderActiveCard(c, atkInfo = null) {
 export function renderMiniCard(c) {
   return `<div class="card-mini" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="name">${c.name}</div>
+    <div class="art">${c.art}</div>
     <div class="stats">${c.curHp}/${c.hp}</div>
   </div>`;
 }
