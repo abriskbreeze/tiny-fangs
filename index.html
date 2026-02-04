@@ -1827,6 +1827,84 @@
     let timerInt = null;
     let longPressTimer = null;
     
+    // ═══════════════════════════════════════════════════════════════
+    // GAME INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════
+    
+    function mkCreature(id) {
+      const t = CREATURES[id];
+      return { ...t, cardType:'creature', curHp:t.hp, status:null, uid:uid(), firstAtk:true };
+    }
+    
+    function mkVerse(id) {
+      const t = VERSES[id];
+      return { ...t, cardType:'verse', uid:uid() };
+    }
+    
+    function mkDeck(deckId) {
+      const def = DECKS[deckId];
+      const cards = [
+        ...def.creatures.map(mkCreature),
+        ...def.verses.map(mkVerse)
+      ];
+      // Shuffle
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      return cards;
+    }
+    
+    function mkPlayer(deckId) {
+      const deck = mkDeck(deckId);
+      const hand = deck.splice(0, 5);
+      return {
+        lp: 3,
+        mana: 1,
+        maxMana: 1,
+        deck,
+        hand,
+        active: null,
+        bench: [],
+        grave: [],
+        setVerse: null,
+        usedManaSurge: false,
+        usedLastBreath: false,
+        marked: false,
+        poisoned: false,
+        chainLightning: 0,
+      };
+    }
+    
+    function startGame(deckId) {
+      const aiDecks = ['shadow','fang','venom'].filter(d => d !== deckId);
+      const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
+      
+      G = {
+        me: mkPlayer(deckId),
+        opp: mkPlayer(aiDeck),
+        turn: 1,
+        phase: 'main',
+        log: [],
+        myTurn: true,
+        winner: null,
+        firstTurn: true,
+      };
+      
+      startTime = Date.now();
+      timerInt = setInterval(updateTimer, 1000);
+      
+      $('setup').classList.add('hidden');
+      
+      log('Game started');
+      log('Choose a creature to summon');
+      
+      render();
+    }
+    
+    // Expose startGame globally for onclick handlers (module scope)
+    window.startGame = startGame;
+    
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
       const s = Math.floor((Date.now() - startTime) / 1000);
@@ -2872,11 +2950,32 @@
       }
     }
     
-    // Expose for testing
+    // Expose functions globally for onclick handlers (module scope)
     window.showTriggerReveal = showTriggerReveal;
     window.dismissTriggerReveal = dismissTriggerReveal;
     window.ANIM_TIMING = ANIM_TIMING;
     window.aiTurn = aiTurn;
+    
+    // Action buttons
+    window.doSummon = doSummon;
+    window.doCast = doCast;
+    window.doSet = doSet;
+    window.doAttack = doAttack;
+    window.doRetreat = doRetreat;
+    window.endTurn = endTurn;
+    
+    // Modals
+    window.modalAction = modalAction;
+    window.closeModal = closeModal;
+    window.passResponse = passResponse;
+    window.closeCardModal = closeCardModal;
+    window.showRules = showRules;
+    window.closeRules = closeRules;
+    
+    // Card interactions
+    window.cardPress = cardPress;
+    window.cardRelease = cardRelease;
+    window.selectCard = selectCard;
     
     function toggleMenu() {
       alert('Menu: Coming soon!');
