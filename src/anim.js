@@ -220,7 +220,7 @@ export const Anim = {
       : '#m-opp-set, #d-opp-set';
     this.playOn(selector, 'anim-set-verse', 600);
     const el = this.getVisibleElement(selector);
-    this.sparkBurst(el);
+    this.sparkBurst(el, 'purple'); // Purple stars for set verse
   },
   
   // Bench to active animation (creature enters the fray)
@@ -233,7 +233,7 @@ export const Anim = {
   },
   
   // Particle burst - 3 stars of random sizes for "poof" effect
-  sparkBurst(targetEl) {
+  sparkBurst(targetEl, color = 'gold') {
     if (!targetEl || targetEl.offsetParent === null) return;
     
     const rect = targetEl.getBoundingClientRect();
@@ -243,7 +243,7 @@ export const Anim = {
     // Create 3 stars with random offsets and sizes
     for (let i = 0; i < 3; i++) {
       const star = document.createElement('div');
-      star.className = 'spark-particle';
+      star.className = `spark-particle spark-${color}`;
       star.textContent = '✦';
       
       // Random offset from center (-15 to +15 px)

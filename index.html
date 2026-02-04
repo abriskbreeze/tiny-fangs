@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.2.1</title>
+  <title>TINY FANGS v2.2.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1235,6 +1235,11 @@
       100% { background: rgba(0, 0, 0, 0.5); }
     }
     
+    @keyframes trigger-bg-pulse-gold {
+      0% { background: rgba(245, 158, 11, 0.2); }
+      100% { background: rgba(0, 0, 0, 0.5); }
+    }
+    
     .trigger-box {
       background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), var(--panel-solid));
       border: 3px solid var(--purple);
@@ -1245,6 +1250,26 @@
         0 0 60px 20px rgba(139, 92, 246, 0.4),
         0 0 100px 40px rgba(139, 92, 246, 0.2),
         inset 0 0 40px rgba(139, 92, 246, 0.1);
+    }
+    
+    /* Cast verse uses gold/orange */
+    .trigger-modal.cast.open {
+      animation: trigger-bg-pulse-gold 0.8s ease-out;
+    }
+    .trigger-modal.cast .trigger-box {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), var(--panel-solid));
+      border-color: var(--gold);
+      box-shadow: 
+        0 0 60px 20px rgba(245, 158, 11, 0.4),
+        0 0 100px 40px rgba(245, 158, 11, 0.2),
+        inset 0 0 40px rgba(245, 158, 11, 0.1);
+    }
+    .trigger-modal.cast .trigger-header {
+      background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent);
+      border-bottom-color: rgba(245, 158, 11, 0.5);
+    }
+    .trigger-modal.cast .name-row .type {
+      color: var(--gold);
     }
     
     @keyframes trigger-box-appear {
@@ -1540,13 +1565,23 @@
     .spark-particle {
       position: fixed;
       pointer-events: none;
-      color: #ffcc00;
       z-index: 500;
+      animation: spark-pop 0.5s ease-out forwards;
+      transform: translate(-50%, -50%);
+    }
+    
+    .spark-particle.spark-gold {
+      color: #ffcc00;
       text-shadow: 
         0 0 10px rgba(255,204,0,0.9),
         0 0 20px rgba(255,204,0,0.5);
-      animation: spark-pop 0.5s ease-out forwards;
-      transform: translate(-50%, -50%);
+    }
+    
+    .spark-particle.spark-purple {
+      color: #a78bfa;
+      text-shadow: 
+        0 0 10px rgba(139,92,246,0.9),
+        0 0 20px rgba(139,92,246,0.5);
     }
     
     @keyframes spark-pop {
@@ -1678,7 +1713,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.2.1 • Card Battler</p>
+    <p class="sub">v2.2.2 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1777,7 +1812,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.2.1</div>
+      <div class="logo">TINY FANGS v2.2.2</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3548,7 +3583,7 @@
         `;
         
         $('triggerContent').innerHTML = content;
-        $('triggerModal').classList.add('open');
+        $('triggerModal').classList.add('open', 'cast');
         
         // Shorter duration for cast verses
         triggerRevealTimeout = setTimeout(() => {
@@ -3587,7 +3622,7 @@
         clearTimeout(triggerRevealTimeout);
         triggerRevealTimeout = null;
       }
-      $('triggerModal').classList.remove('open');
+      $('triggerModal').classList.remove('open', 'cast');
       if (triggerRevealResolve) {
         triggerRevealResolve();
         triggerRevealResolve = null;
