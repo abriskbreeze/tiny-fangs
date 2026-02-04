@@ -304,7 +304,7 @@ export const Anim = {
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
       this.playOn(selector, 'anim-poison', 500);
       const el = this.getCardEl(null, side);
-      this.floatText('-10', 'heal', el);
+      this.floatText('-10', 'damage', el); // Red like regular damage
       setTimeout(resolve, 500);
     });
   },
