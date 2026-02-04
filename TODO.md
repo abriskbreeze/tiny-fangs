@@ -20,11 +20,11 @@ Full modularization of the monolith using TDD approach.
 - [x] **startGame** — initializes game state, starts timer
 - [x] Window exposures for all onclick handlers (module scope fix)
 
-### State Management (NEXT — enables full extraction)
-- [ ] Refactor `let G` → import `state.G` from state.js
-- [ ] Replace all `G` refs with `state.G` (~100+ occurrences)
-- [ ] Replace `selectedCard`, `startTime`, `timerInt`, `longPressTimer` with `state.*`
-- [ ] Extract init functions to **src/init.js** using `setGame()`
+### State Management ✅
+- [x] Refactor `let G` → import `state.G` from state.js
+- [x] Replace all `G` refs with `state.G` (222 occurrences)
+- [x] Replace `selectedCard`, `startTime`, `timerInt`, `longPressTimer` with `state.*`
+- [ ] Extract init functions to **src/init.js** using `setGame()` (future)
 
 ### Game Logic (TODO — after state refactor)
 - [ ] **helpers.js** — draw, ko, checkWin, log

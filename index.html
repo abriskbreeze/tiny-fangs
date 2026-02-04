@@ -1816,17 +1816,12 @@
 
   <script type="module">
     import { CREATURES, VERSES, DECKS } from './src/cards.js';
-    import { $, uid } from './src/state.js';
+    import { $, uid, state, setGame, clearGame } from './src/state.js';
     import { ANIM_TIMING, Anim } from './src/anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
     import { applyDamage } from './src/game.js';
     
-    // Mutable game state (kept local - G is reassigned throughout)
-    let G = null;
-    let selectedCard = null;
-    let startTime = null;
-    let timerInt = null;
-    let longPressTimer = null;
+    // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
     // ═══════════════════════════════════════════════════════════════
     // GAME INITIALIZATION
@@ -1881,7 +1876,7 @@
       const aiDecks = ['shadow','fang','venom'].filter(d => d !== deckId);
       const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
       
-      G = {
+      state.G = {
         me: mkPlayer(deckId),
         opp: mkPlayer(aiDeck),
         turn: 1,
@@ -1892,8 +1887,8 @@
         firstTurn: true,
       };
       
-      startTime = Date.now();
-      timerInt = setInterval(updateTimer, 1000);
+      state.startTime = Date.now();
+      state.timerInt = setInterval(updateTimer, 1000);
       
       $('setup').classList.add('hidden');
       
@@ -1908,7 +1903,7 @@
     
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
-      const s = Math.floor((Date.now() - startTime) / 1000);
+      const s = Math.floor((Date.now() - state.startTime) / 1000);
       const str = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
       $('m-time').textContent = str;
       $('d-time').textContent = str;
@@ -1919,55 +1914,55 @@
     // ═══════════════════════════════════════════════════════════════
     
     function render() {
-      if (!G) return;
+      if (!state.G) return;
       
       // Turn
-      $('m-turn').textContent = G.turn;
-      $('d-turn').textContent = G.turn;
+      $('m-turn').textContent = state.G.turn;
+      $('d-turn').textContent = state.G.turn;
       
       // LP (as hearts)
-      $('m-my-lp').textContent = hearts(G.me.lp);
-      $('m-opp-lp').textContent = hearts(G.opp.lp);
-      $('d-my-lp').textContent = hearts(G.me.lp);
-      $('d-opp-lp').textContent = hearts(G.opp.lp);
-      $('d-lp-left').textContent = hearts(G.me.lp);
-      $('d-lp-right').textContent = hearts(G.opp.lp);
+      $('m-my-lp').textContent = hearts(state.G.me.lp);
+      $('m-opp-lp').textContent = hearts(state.G.opp.lp);
+      $('d-my-lp').textContent = hearts(state.G.me.lp);
+      $('d-opp-lp').textContent = hearts(state.G.opp.lp);
+      $('d-lp-left').textContent = hearts(state.G.me.lp);
+      $('d-lp-right').textContent = hearts(state.G.opp.lp);
       
       // Mana
-      $('m-my-mana').textContent = manaStr(G.me);
-      $('m-opp-mana').textContent = manaStr(G.opp);
+      $('m-my-mana').textContent = manaStr(state.G.me);
+      $('m-opp-mana').textContent = manaStr(state.G.opp);
       
       // Desktop mana pips
-      $('d-mana-pips').innerHTML = renderManaPips(G.me.mana, G.me.maxMana);
+      $('d-mana-pips').innerHTML = renderManaPips(state.G.me.mana, state.G.me.maxMana);
       
       // Stats
-      $('d-deck').textContent = G.me.deck.length;
-      $('d-grave').textContent = G.me.grave.length;
-      $('d-opp-hand').textContent = G.opp.hand.length;
+      $('d-deck').textContent = state.G.me.deck.length;
+      $('d-grave').textContent = state.G.me.grave.length;
+      $('d-opp-hand').textContent = state.G.opp.hand.length;
       
       // Set Verses
-      $('m-my-set').outerHTML = renderSetVerse(G.me.setVerse, 'm-my-set');
-      $('m-opp-set').outerHTML = renderSetVerse(G.opp.setVerse, 'm-opp-set');
-      $('d-my-set').outerHTML = renderSetVerse(G.me.setVerse, 'd-my-set');
-      $('d-opp-set').outerHTML = renderSetVerse(G.opp.setVerse, 'd-opp-set');
+      $('m-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'm-my-set');
+      $('m-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'm-opp-set');
+      $('d-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'd-my-set');
+      $('d-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'd-opp-set');
       
       // Active creatures
-      $('m-my-active').innerHTML = renderActiveCard(G.me.active);
-      $('m-opp-active').innerHTML = renderActiveCard(G.opp.active);
-      $('d-my-active').innerHTML = renderActiveCard(G.me.active);
-      $('d-opp-active').innerHTML = renderActiveCard(G.opp.active);
+      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active);
+      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active);
+      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active);
+      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active);
       
       // Bench
-      $('m-my-bench').innerHTML = G.me.bench.map(c => renderMiniCard(c)).join('');
-      $('m-opp-bench').innerHTML = G.opp.bench.map(c => renderMiniCard(c)).join('');
-      $('d-my-bench').innerHTML = G.me.bench.map(c => renderMiniCard(c)).join('');
-      $('d-opp-bench').innerHTML = G.opp.bench.map(c => renderMiniCard(c)).join('');
+      $('m-my-bench').innerHTML = state.G.me.bench.map(c => renderMiniCard(c)).join('');
+      $('m-opp-bench').innerHTML = state.G.opp.bench.map(c => renderMiniCard(c)).join('');
+      $('d-my-bench').innerHTML = state.G.me.bench.map(c => renderMiniCard(c)).join('');
+      $('d-opp-bench').innerHTML = state.G.opp.bench.map(c => renderMiniCard(c)).join('');
       
       // Hand
-      $('m-hand-ct').textContent = G.me.hand.length;
-      $('d-hand-ct').textContent = G.me.hand.length;
-      $('m-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, false, selectedCard)).join('');
-      $('d-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, true, selectedCard)).join('');
+      $('m-hand-ct').textContent = state.G.me.hand.length;
+      $('d-hand-ct').textContent = state.G.me.hand.length;
+      $('m-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, false, state.selectedCard)).join('');
+      $('d-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, true, state.selectedCard)).join('');
       
       // Buttons
       updateButtons();
@@ -1977,23 +1972,23 @@
     }
     
     function renderLog() {
-      $('m-log').innerHTML = renderLogInline(G.log, 8);
-      $('d-log').innerHTML = renderLogEntries(G.log, 12);
+      $('m-log').innerHTML = renderLogInline(state.G.log, 8);
+      $('d-log').innerHTML = renderLogEntries(state.G.log, 12);
     }
     
     function updateButtons() {
-      const hasCreature = G.me.hand.some(c => c.cardType === 'creature');
-      const hasCast = G.me.hand.some(c => c.cardType === 'verse' && c.type === 'cast');
-      const hasSet = G.me.hand.some(c => c.cardType === 'verse' && c.type === 'set');
-      const canRetreat = G.me.active && G.me.bench.length > 0;
-      const canAttack = G.me.active && !G.firstTurn; // Can attack creatures or LP directly (not on first turn)
+      const hasCreature = state.G.me.hand.some(c => c.cardType === 'creature');
+      const hasCast = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'cast');
+      const hasSet = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'set');
+      const canRetreat = state.G.me.active && state.G.me.bench.length > 0;
+      const canAttack = state.G.me.active && !state.G.firstTurn; // Can attack creatures or LP directly (not on first turn)
       
-      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !G.myTurn);
-      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !G.myTurn);
-      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || G.me.setVerse || !G.myTurn);
-      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !canAttack || !G.myTurn);
-      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !canRetreat || !G.myTurn);
-      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !G.myTurn);
+      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !state.G.myTurn);
+      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !state.G.myTurn);
+      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || state.G.me.setVerse || !state.G.myTurn);
+      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !canAttack || !state.G.myTurn);
+      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !canRetreat || !state.G.myTurn);
+      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !state.G.myTurn);
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -2001,18 +1996,18 @@
     // ═══════════════════════════════════════════════════════════════
     
     function selectCard(uid) {
-      selectedCard = selectedCard === uid ? null : uid;
+      state.selectedCard = state.selectedCard === uid ? null : uid;
       render();
     }
     
     function cardPress(uid) {
-      longPressTimer = setTimeout(() => showCardDetail(uid), 400);
+      state.longPressTimer = setTimeout(() => showCardDetail(uid), 400);
     }
     
     function cardRelease() {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
+      if (state.longPressTimer) {
+        clearTimeout(state.longPressTimer);
+        state.longPressTimer = null;
       }
     }
     
@@ -2058,9 +2053,9 @@
     }
     
     function findCard(uid) {
-      const all = [...G.me.hand, ...G.me.bench, ...G.opp.bench, ...G.me.grave, ...G.opp.grave];
-      if (G.me.active) all.push(G.me.active);
-      if (G.opp.active) all.push(G.opp.active);
+      const all = [...state.G.me.hand, ...state.G.me.bench, ...state.G.opp.bench, ...state.G.me.grave, ...state.G.opp.grave];
+      if (state.G.me.active) all.push(state.G.me.active);
+      if (state.G.opp.active) all.push(state.G.opp.active);
       return all.find(c => c.uid === uid);
     }
     
@@ -2069,13 +2064,13 @@
     // ═══════════════════════════════════════════════════════════════
     
     function doSummon() {
-      const creatures = G.me.hand.filter(c => c.cardType === 'creature');
+      const creatures = state.G.me.hand.filter(c => c.cardType === 'creature');
       if (!creatures.length) return;
       
       showModal('Summon Creature', creatures.map(c => ({
         name: c.name,
         sub: `Cost ${c.cost} | ${c.hp} HP | ${c.atk} ATK`,
-        disabled: c.cost > G.me.mana,
+        disabled: c.cost > state.G.me.mana,
         action: () => summonCreature(c)
       })));
     }
@@ -2083,56 +2078,56 @@
     async function summonCreature(c) {
       closeModal();
       
-      if (c.cost > G.me.mana) {
+      if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
       }
       
-      G.me.mana -= c.cost;
-      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+      state.G.me.mana -= c.cost;
+      state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       
       // Check opponent Soul Trap
-      if (G.opp.setVerse?.id === 'soulTrap') {
-        await showTriggerReveal(G.opp.setVerse);
+      if (state.G.opp.setVerse?.id === 'soulTrap') {
+        await showTriggerReveal(state.G.opp.setVerse);
         log('Soul Trap triggered!', 'dmg');
         const soulTrapKo = applyDamage(c, 20);
-        G.opp.grave.push(G.opp.setVerse);
-        G.opp.setVerse = null;
+        state.G.opp.grave.push(state.G.opp.setVerse);
+        state.G.opp.setVerse = null;
         if (soulTrapKo) {
           log(`${c.name} destroyed by trap!`, 'dmg');
-          G.me.grave.push(c);
+          state.G.me.grave.push(c);
           render();
           return;
         }
       }
       
-      if (!G.me.active) {
-        G.me.active = c;
+      if (!state.G.me.active) {
+        state.G.me.active = c;
         log(`Summoned ${c.name} as active`);
         render();
         Anim.summon('me');
-      } else if (G.me.bench.length < 2) {
-        G.me.bench.push(c);
+      } else if (state.G.me.bench.length < 2) {
+        state.G.me.bench.push(c);
         log(`Summoned ${c.name} to bench`);
       } else {
         log('No room!', 'dmg');
-        G.me.hand.push(c);
-        G.me.mana += c.cost;
+        state.G.me.hand.push(c);
+        state.G.me.mana += c.cost;
       }
       
       // Duskfang ability
-      if (c.id === 'duskfang' && G.me.grave.some(x => x.cardType === 'creature')) {
+      if (c.id === 'duskfang' && state.G.me.grave.some(x => x.cardType === 'creature')) {
         c.atk += 20;
         log('Pack Call: +20 ATK', 'mana');
       }
       
       // Chain Lightning damage
-      if (G.me.chainLightning > 0) {
-        const chainKo = applyDamage(c, G.me.chainLightning);
-        log(`Chain Lightning: -${G.me.chainLightning}`, 'dmg');
-        G.me.chainLightning = 0;
+      if (state.G.me.chainLightning > 0) {
+        const chainKo = applyDamage(c, state.G.me.chainLightning);
+        log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
+        state.G.me.chainLightning = 0;
         if (chainKo) {
-          await ko(c, G.me);
+          await ko(c, state.G.me);
         }
       }
       
@@ -2140,13 +2135,13 @@
     }
     
     function doCast() {
-      const casts = G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
+      const casts = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
       if (!casts.length) return;
       
       showModal('Cast Verse', casts.map(c => ({
         name: c.name,
         sub: `Cost ${c.cost} | ${c.text}`,
-        disabled: c.cost > G.me.mana || (c.id === 'manaSurge' && G.me.usedManaSurge),
+        disabled: c.cost > state.G.me.mana || (c.id === 'manaSurge' && state.G.me.usedManaSurge),
         action: () => castVerse(c)
       })));
     }
@@ -2154,29 +2149,29 @@
     async function castVerse(c) {
       closeModal();
       
-      if (c.cost > G.me.mana) {
+      if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
       }
       
       // Check opponent Mana Drain
-      if (G.opp.setVerse?.id === 'manaDrain') {
-        await showTriggerReveal(G.opp.setVerse);
+      if (state.G.opp.setVerse?.id === 'manaDrain') {
+        await showTriggerReveal(state.G.opp.setVerse);
         log('Mana Drain triggered!', 'dmg');
-        G.opp.mana = Math.min(5, G.opp.mana + 1);
-        G.opp.grave.push(G.opp.setVerse);
-        G.opp.setVerse = null;
-        G.me.grave.push(c);
-        G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
+        state.G.opp.mana = Math.min(5, state.G.opp.mana + 1);
+        state.G.opp.grave.push(state.G.opp.setVerse);
+        state.G.opp.setVerse = null;
+        state.G.me.grave.push(c);
+        state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
         await Anim.negateX();
         log(`${c.name} negated! Rival gains 1 mana.`);
         render();
         return;
       }
       
-      G.me.mana -= c.cost;
-      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
-      G.me.grave.push(c);
+      state.G.me.mana -= c.cost;
+      state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
+      state.G.me.grave.push(c);
       
       log(`Cast ${c.name}`);
       Anim.castVerse();
@@ -2184,67 +2179,67 @@
       // Execute effect
       switch(c.id) {
         case 'soulSiphon':
-          if (G.opp.active) {
-            const siphonKo = applyDamage(G.opp.active, 20);
+          if (state.G.opp.active) {
+            const siphonKo = applyDamage(state.G.opp.active, 20);
             log('Enemy -20', 'dmg');
             Anim.damage('opp', 20);
-            if (siphonKo) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+            if (siphonKo) { Anim.ko('opp'); ko(state.G.opp.active, state.G.opp); }
           }
-          if (G.me.active) {
-            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 10);
+          if (state.G.me.active) {
+            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 10);
             log('You +10', 'heal');
             Anim.heal('me', 10);
           }
           break;
         case 'darkPact':
-          draw(G.me); draw(G.me);
-          G.me.lp -= 1;
+          draw(state.G.me); draw(state.G.me);
+          state.G.me.lp -= 1;
           log('Drew 2, lost a life!', 'dmg');
           Anim.lpDamage('me', 1);
           checkWin();
           break;
         case 'graveEcho':
-          const graveCr = G.me.grave.filter(x => x.cardType === 'creature');
+          const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
           if (graveCr.length) {
             const pick = graveCr[0];
-            G.me.grave = G.me.grave.filter(x => x.uid !== pick.uid);
-            G.me.hand.push(pick);
+            state.G.me.grave = state.G.me.grave.filter(x => x.uid !== pick.uid);
+            state.G.me.hand.push(pick);
             log(`Returned ${pick.name}`);
           }
           break;
         case 'manaSurge':
-          G.me.mana += 2;
-          G.me.usedManaSurge = true;
+          state.G.me.mana += 2;
+          state.G.me.usedManaSurge = true;
           log('+2 mana', 'mana');
           Anim.manaGain();
           break;
         case 'predatorsMark':
-          G.me.marked = true;
+          state.G.me.marked = true;
           log('Next attack +30');
           break;
         case 'banish':
-          if (G.opp.active) {
-            log(`Banished ${G.opp.active.name}`, 'dmg');
-            G.opp.active = null;
+          if (state.G.opp.active) {
+            log(`Banished ${state.G.opp.active.name}`, 'dmg');
+            state.G.opp.active = null;
             // Don't go to grave - removed from game
           }
           break;
         case 'bloodMoon':
-          if (G.me.active) { 
-            const moonKoMe = applyDamage(G.me.active, 20);
+          if (state.G.me.active) { 
+            const moonKoMe = applyDamage(state.G.me.active, 20);
             Anim.damage('me', 20);
-            if (moonKoMe) { Anim.ko('me'); ko(G.me.active, G.me); }
+            if (moonKoMe) { Anim.ko('me'); ko(state.G.me.active, state.G.me); }
           }
-          if (G.opp.active) { 
-            const moonKoOpp = applyDamage(G.opp.active, 20);
+          if (state.G.opp.active) { 
+            const moonKoOpp = applyDamage(state.G.opp.active, 20);
             Anim.damage('opp', 20);
-            if (moonKoOpp) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+            if (moonKoOpp) { Anim.ko('opp'); ko(state.G.opp.active, state.G.opp); }
           }
           log('All creatures -20', 'dmg');
           break;
         case 'secondWind':
-          if (G.me.active) {
-            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 40);
+          if (state.G.me.active) {
+            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 40);
             log('+40 HP', 'heal');
             Anim.heal('me', 40);
           }
@@ -2255,18 +2250,18 @@
     }
     
     function doSet() {
-      if (G.me.setVerse) {
+      if (state.G.me.setVerse) {
         log('Already have a set verse!');
         return;
       }
       
-      const sets = G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'set');
+      const sets = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'set');
       if (!sets.length) return;
       
       showModal('Set Verse', sets.map(c => ({
         name: c.name,
         sub: `Cost ${c.cost} | ${c.trigger}`,
-        disabled: c.cost > G.me.mana || (c.id === 'lastBreath' && G.me.usedLastBreath),
+        disabled: c.cost > state.G.me.mana || (c.id === 'lastBreath' && state.G.me.usedLastBreath),
         action: () => setVerse(c)
       })));
     }
@@ -2274,59 +2269,59 @@
     function setVerse(c) {
       closeModal();
       
-      if (c.cost > G.me.mana) {
+      if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
       }
       
-      G.me.mana -= c.cost;
-      G.me.hand = G.me.hand.filter(x => x.uid !== c.uid);
-      G.me.setVerse = c;
+      state.G.me.mana -= c.cost;
+      state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
+      state.G.me.setVerse = c;
       
       log('Set a verse face-down');
       render();
     }
     
     async function doAttack() {
-      if (!G.me.active) return;
+      if (!state.G.me.active) return;
       
-      if (G.firstTurn) {
+      if (state.G.firstTurn) {
         log("Can't attack on first turn!", 'dmg');
         return;
       }
       
       try {
-        const attacker = G.me.active;
+        const attacker = state.G.me.active;
         
         // Check opponent's Phantom Wall
-        if (G.opp.setVerse?.id === 'phantomWall') {
-          await showTriggerReveal(G.opp.setVerse);
+        if (state.G.opp.setVerse?.id === 'phantomWall') {
+          await showTriggerReveal(state.G.opp.setVerse);
           log('Phantom Wall triggered!', 'dmg');
           const phantomKo = applyDamage(attacker, 10);
           log(`${attacker.name} takes 10 damage!`, 'dmg');
           await Anim.damage('me', 10);
-          G.opp.grave.push(G.opp.setVerse);
-          G.opp.setVerse = null;
-          if (phantomKo) { await Anim.ko('me'); await ko(attacker, G.me); }
+          state.G.opp.grave.push(state.G.opp.setVerse);
+          state.G.opp.setVerse = null;
+          if (phantomKo) { await Anim.ko('me'); await ko(attacker, state.G.me); }
           await Anim.negateX();
           log('Attack negated!');
           render();
-          if (!G.winner) endTurn();
+          if (!state.G.winner) endTurn();
           return;
         }
         
         // Direct attack if no defender (always 1 LP)
-        if (!G.opp.active) {
-          G.opp.lp -= 1;
+        if (!state.G.opp.active) {
+          state.G.opp.lp -= 1;
           log(`Direct attack! Rival loses a life!`, 'dmg');
           Anim.lpDamage('opp', 1);
           checkWin();
           render();
-          setTimeout(() => { if (!G.winner) endTurn(); }, 500);
+          setTimeout(() => { if (!state.G.winner) endTurn(); }, 500);
           return;
         }
         
-        const defender = G.opp.active;
+        const defender = state.G.opp.active;
         
         // Calculate damage
         let dmg = attacker.atk;
@@ -2335,9 +2330,9 @@
         if (attacker.id === 'bladewhisker') dmg += 10;
         
         // Predator's Mark
-        if (G.me.marked) {
+        if (state.G.me.marked) {
           dmg += 30;
-          G.me.marked = false;
+          state.G.me.marked = false;
         }
         
         // Pulsefin Sonic Strike
@@ -2357,7 +2352,7 @@
           dmg *= 2;
           const frenzyKo = applyDamage(attacker, 10);
           log('Frenzy! Double hit, -10 self', 'dmg');
-          if (frenzyKo) await ko(attacker, G.me);
+          if (frenzyKo) await ko(attacker, state.G.me);
         }
         
         log(`${attacker.name} attacks for ${dmg}!`);
@@ -2366,11 +2361,11 @@
         Anim.attack('me', 'opp', dmg);
         
         // Thornling Thorns - only if attacker survived Cindermaw self-damage
-        if (defender.id === 'thornling' && G.me.active && G.me.active.curHp > 0) {
-          const thornsKo = applyDamage(G.me.active, 10);
+        if (defender.id === 'thornling' && state.G.me.active && state.G.me.active.curHp > 0) {
+          const thornsKo = applyDamage(state.G.me.active, 10);
           log('Thorns! -10 to attacker', 'dmg');
           Anim.damage('me', 10);
-          if (thornsKo) await ko(G.me.active, G.me);
+          if (thornsKo) await ko(state.G.me.active, state.G.me);
         }
         
         // Apply damage to defender
@@ -2378,14 +2373,14 @@
         log(`${defender.name} takes ${dmg}`, 'dmg');
         
         // Hexweaver poison - only if defender survived
-        if (G.me.active?.id === 'hexweaver' && !defenderKo) {
+        if (state.G.me.active?.id === 'hexweaver' && !defenderKo) {
           defender.status = 'poison';
-          G.opp.poisoned = true;
+          state.G.opp.poisoned = true;
           log('Poisoned!');
         }
         
         // Mireveil Bog Grasp
-        if (G.me.active?.id === 'mireveil' && !defenderKo) {
+        if (state.G.me.active?.id === 'mireveil' && !defenderKo) {
           defender.status = 'trapped';
           log('Trapped! Cannot retreat');
         }
@@ -2393,14 +2388,14 @@
         // Check KO
         if (defenderKo) {
           // Sundew Queen Digest
-          if (G.me.active?.id === 'sundewqueen') {
-            G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 30);
+          if (state.G.me.active?.id === 'sundewqueen') {
+            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 30);
             log('Digest! +30 HP', 'heal');
             Anim.heal('me', 30);
           }
           
           Anim.ko('opp');
-          await ko(defender, G.opp, G.me.active, G.me);
+          await ko(defender, state.G.opp, state.G.me.active, state.G.me);
         }
         
         render();
@@ -2412,46 +2407,46 @@
       
       // End turn after attack - wait for animations to complete
       setTimeout(() => {
-        if (!G.winner) endTurn();
+        if (!state.G.winner) endTurn();
       }, ANIM_TIMING.ATTACK_SEQUENCE + 200);
     }
     
     function doRetreat() {
-      if (!G.me.active || !G.me.bench.length) return;
-      if (G.me.active.status === 'trapped') {
+      if (!state.G.me.active || !state.G.me.bench.length) return;
+      if (state.G.me.active.status === 'trapped') {
         log('Cannot retreat - trapped!', 'dmg');
         return;
       }
       
-      showModal('Choose replacement', G.me.bench.map(c => ({
+      showModal('Choose replacement', state.G.me.bench.map(c => ({
         name: c.name,
         sub: `${c.curHp}/${c.hp} HP`,
         action: () => {
           closeModal();
-          const old = G.me.active;
-          const idx = G.me.bench.findIndex(x => x.uid === c.uid);
-          G.me.active = G.me.bench.splice(idx, 1)[0];
-          G.me.bench.push(old);
-          log(`Switched to ${G.me.active.name}`);
+          const old = state.G.me.active;
+          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
+          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
+          state.G.me.bench.push(old);
+          log(`Switched to ${state.G.me.active.name}`);
           render();
         }
       })));
     }
     
     function endTurn() {
-      if (G.winner) return;
+      if (state.G.winner) return;
       
       // Poison damage
-      if (G.me.active && G.me.active.status === 'poison') {
-        const poisonKo = applyDamage(G.me.active, 10);
+      if (state.G.me.active && state.G.me.active.status === 'poison') {
+        const poisonKo = applyDamage(state.G.me.active, 10);
         log('Poison: -10', 'dmg');
         Anim.poisonTick('me');
-        if (poisonKo) { Anim.ko('me'); ko(G.me.active, G.me); }
+        if (poisonKo) { Anim.ko('me'); ko(state.G.me.active, state.G.me); }
       }
       
-      G.myTurn = false;
-      G.turn++;
-      G.firstTurn = false; // After first turn, attacking is allowed
+      state.G.myTurn = false;
+      state.G.turn++;
+      state.G.firstTurn = false; // After first turn, attacking is allowed
       
       render();
       
@@ -2464,10 +2459,10 @@
     // ═══════════════════════════════════════════════════════════════
     
     async function aiTurn() {
-      if (G.winner) return;
+      if (state.G.winner) return;
       
       console.log('[AI] Turn starting...');
-      const ai = G.opp;
+      const ai = state.G.opp;
       const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
       
       try {
@@ -2477,7 +2472,7 @@
         
         // Draw
         draw(ai);
-        if (G.winner) return;
+        if (state.G.winner) return;
         
         log('-- Rival turn --');
         render();
@@ -2492,12 +2487,12 @@
             ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
             
             // Player's Soul Trap check
-            if (G.me.setVerse?.id === 'soulTrap') {
-              await showTriggerReveal(G.me.setVerse);
+            if (state.G.me.setVerse?.id === 'soulTrap') {
+              await showTriggerReveal(state.G.me.setVerse);
               log('Soul Trap triggered!', 'dmg');
               const aiTrapKo = applyDamage(pick, 20);
-              G.me.grave.push(G.me.setVerse);
-              G.me.setVerse = null;
+              state.G.me.grave.push(state.G.me.setVerse);
+              state.G.me.setVerse = null;
               if (aiTrapKo) {
                 log(`${pick.name} destroyed by trap!`, 'dmg');
                 ai.grave.push(pick);
@@ -2533,12 +2528,12 @@
           ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
           
           // Player's Soul Trap check
-          if (G.me.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(G.me.setVerse);
+          if (state.G.me.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(state.G.me.setVerse);
             log('Soul Trap triggered!', 'dmg');
             const benchTrapKo = applyDamage(pick, 20);
-            G.me.grave.push(G.me.setVerse);
-            G.me.setVerse = null;
+            state.G.me.grave.push(state.G.me.setVerse);
+            state.G.me.setVerse = null;
             if (benchTrapKo) {
               log(`${pick.name} destroyed by trap!`, 'dmg');
               ai.grave.push(pick);
@@ -2571,14 +2566,14 @@
           await pause();
           
           // Player's Phantom Wall check
-          if (G.me.setVerse?.id === 'phantomWall') {
-            await showTriggerReveal(G.me.setVerse);
+          if (state.G.me.setVerse?.id === 'phantomWall') {
+            await showTriggerReveal(state.G.me.setVerse);
             log('Phantom Wall triggered!', 'dmg');
             const aiPhantomKo = applyDamage(ai.active, 10);
             log(`${ai.active.name} takes 10 damage!`, 'dmg');
             await Anim.damage('opp', 10);
-            G.me.grave.push(G.me.setVerse);
-            G.me.setVerse = null;
+            state.G.me.grave.push(state.G.me.setVerse);
+            state.G.me.setVerse = null;
             if (aiPhantomKo) { 
               await Anim.ko('opp'); 
               await ko(ai.active, ai); 
@@ -2586,11 +2581,11 @@
             await Anim.negateX();
             log('Attack negated!');
             render();
-          } else if (G.me.active) {
+          } else if (state.G.me.active) {
             // Normal attack
             let dmg = ai.active.atk;
             if (ai.active.id === 'bladewhisker') dmg += 10;
-            if (ai.active.id === 'echomask' && G.me.active) dmg = G.me.active.atk;
+            if (ai.active.id === 'echomask' && state.G.me.active) dmg = state.G.me.active.atk;
             if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
               dmg *= 2;
               ai.active.firstAtk = false;
@@ -2609,7 +2604,7 @@
               await Anim.attack('opp', 'me', dmg);
               
               // Thornling thorns
-              if (G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
+              if (state.G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
                 const aiThornsKo = applyDamage(attacker, 10);
                 log('Thorns! -10 to attacker', 'dmg');
                 await Anim.damage('opp', 10);
@@ -2617,15 +2612,15 @@
               }
               
               // Apply damage
-              if (G.me.active) {
-                const playerKo = applyDamage(G.me.active, dmg);
+              if (state.G.me.active) {
+                const playerKo = applyDamage(state.G.me.active, dmg);
                 
                 if (attacker?.id === 'hexweaver' && !playerKo) {
-                  G.me.active.status = 'poison';
+                  state.G.me.active.status = 'poison';
                   log('Poisoned!');
                 }
                 if (attacker?.id === 'mireveil' && !playerKo) {
-                  G.me.active.status = 'trapped';
+                  state.G.me.active.status = 'trapped';
                   log('Trapped! Cannot retreat');
                 }
                 
@@ -2636,14 +2631,14 @@
                     await Anim.heal('opp', 30);
                   }
                   await Anim.ko('me');
-                  await ko(G.me.active, G.me, attacker, ai);
+                  await ko(state.G.me.active, state.G.me, attacker, ai);
                 }
               }
             }
             render();
           } else {
             // Direct damage (no defender)
-            G.me.lp -= 1;
+            state.G.me.lp -= 1;
             log(`Direct attack! You lose a life!`, 'dmg');
             await Anim.lpDamage('me', 1);
             checkWin();
@@ -2667,34 +2662,34 @@
       
       // Transition to player turn
       await pause();
-      if (!G.winner) startPlayerTurn();
+      if (!state.G.winner) startPlayerTurn();
     }
     
     // Extracted player turn start for reuse
     function startPlayerTurn() {
       // Clear failsafe
-      if (G._aiFailsafe) {
-        clearTimeout(G._aiFailsafe);
-        G._aiFailsafe = null;
+      if (state.G._aiFailsafe) {
+        clearTimeout(state.G._aiFailsafe);
+        state.G._aiFailsafe = null;
       }
       
-      if (G.winner) return;
+      if (state.G.winner) return;
       
       try {
         // Mana phase
-        if (G.me.maxMana < 5) G.me.maxMana++;
-        G.me.mana = G.me.maxMana;
+        if (state.G.me.maxMana < 5) state.G.me.maxMana++;
+        state.G.me.mana = state.G.me.maxMana;
         
         // Draw
-        draw(G.me);
+        draw(state.G.me);
         
-        G.myTurn = true;
+        state.G.myTurn = true;
         log('Your turn', 'mana');
         render();
         console.log('[GAME] Player turn started successfully');
       } catch (err) {
         console.error('[GAME] Player turn start error:', err);
-        G.myTurn = true; // Force it anyway
+        state.G.myTurn = true; // Force it anyway
         render();
       }
     }
@@ -2702,18 +2697,18 @@
     // Emergency player turn start
     function forcePlayerTurn() {
       console.log('[GAME] Forcing player turn...');
-      G._aiFailsafe = null;
+      state.G._aiFailsafe = null;
       
-      if (G.winner) return;
+      if (state.G.winner) return;
       
       // Minimal setup to get the game unstuck
-      G.myTurn = true;
-      if (G.me.maxMana < 5) G.me.maxMana++;
-      G.me.mana = G.me.maxMana;
+      state.G.myTurn = true;
+      if (state.G.me.maxMana < 5) state.G.me.maxMana++;
+      state.G.me.mana = state.G.me.maxMana;
       
       try {
-        if (G.me.deck.length > 0) {
-          G.me.hand.push(G.me.deck.pop());
+        if (state.G.me.deck.length > 0) {
+          state.G.me.hand.push(state.G.me.deck.pop());
         }
         render();
       } catch (err) {
@@ -2728,8 +2723,8 @@
     function draw(player) {
       if (player.deck.length === 0) {
         log('Deck out!', 'dmg');
-        G.winner = player === G.me ? 'Rival' : 'You';
-        showResult(G.winner === 'You');
+        state.G.winner = player === state.G.me ? 'Rival' : 'You';
+        showResult(state.G.winner === 'You');
         return;
       }
       player.hand.push(player.deck.pop());
@@ -2744,16 +2739,16 @@
         owner.grave.push(owner.setVerse);
         owner.setVerse = null;
         log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
-        await Anim.ko(attackerOwner === G.me ? 'me' : 'opp');
+        await Anim.ko(attackerOwner === state.G.me ? 'me' : 'opp');
         // KO the attacker instead (without triggering another Mirror Force)
         attackerOwner.grave.push(attacker);
         if (attackerOwner.active?.uid === attacker.uid) {
           attackerOwner.active = null;
           if (attackerOwner.bench.length) {
             attackerOwner.active = attackerOwner.bench.shift();
-            log(`${attackerOwner === G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
+            log(`${attackerOwner === state.G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
             render();
-            await Anim.summon(attackerOwner === G.me ? 'me' : 'opp');
+            await Anim.summon(attackerOwner === state.G.me ? 'me' : 'opp');
           }
         }
         checkWin();
@@ -2781,7 +2776,7 @@
       
       // Gloom Fade
       if (creature.id === 'gloom') {
-        const enemy = owner === G.me ? G.opp : G.me;
+        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
         if (enemy.hand.length) {
           const idx = Math.floor(Math.random() * enemy.hand.length);
           enemy.grave.push(enemy.hand.splice(idx, 1)[0]);
@@ -2791,16 +2786,16 @@
       
       // Echomask death damage (1 life)
       if (creature.id === 'echomask') {
-        const enemy = owner === G.me ? G.opp : G.me;
+        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
         enemy.lp -= 1;
         log('Shatter! Enemy loses a life!', 'dmg');
-        Anim.lpDamage(owner === G.me ? 'opp' : 'me', 1);
+        Anim.lpDamage(owner === state.G.me ? 'opp' : 'me', 1);
         checkWin();
       }
       
       // Stormtalon Chain Lightning
       if (creature.id === 'stormtalon') {
-        const enemy = owner === G.me ? G.opp : G.me;
+        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
         enemy.chainLightning = 20;
         log('Chain Lightning armed!', 'mana');
       }
@@ -2811,11 +2806,11 @@
       // Auto-replace from bench
       if (owner.bench.length) {
         owner.active = owner.bench.shift();
-        log(`${owner === G.me ? 'You' : 'Rival'} sent out ${owner.active.name}`);
+        log(`${owner === state.G.me ? 'You' : 'Rival'} sent out ${owner.active.name}`);
         // Animate the replacement
         setTimeout(() => {
           render();
-          Anim.summon(owner === G.me ? 'me' : 'opp');
+          Anim.summon(owner === state.G.me ? 'me' : 'opp');
         }, 100);
         
         if (owner.chainLightning > 0) {
@@ -2830,35 +2825,35 @@
     }
     
     function checkWin() {
-      if (G.me.lp <= 0) {
+      if (state.G.me.lp <= 0) {
         // Check Last Breath - survive with 1 life
-        if (G.me.setVerse?.id === 'lastBreath' && !G.me.usedLastBreath) {
-          G.me.lp = 1;
-          G.me.usedLastBreath = true;
-          G.me.setVerse = null;
+        if (state.G.me.setVerse?.id === 'lastBreath' && !state.G.me.usedLastBreath) {
+          state.G.me.lp = 1;
+          state.G.me.usedLastBreath = true;
+          state.G.me.setVerse = null;
           Anim.versePopup('Last Breath');
           log('Last Breath! Survived with 1 life!', 'heal');
           Anim.lpHeal('me', 1);
           return;
         }
-        G.winner = 'Rival';
+        state.G.winner = 'Rival';
         showResult(false);
-      } else if (G.opp.lp <= 0) {
-        if (G.opp.setVerse?.id === 'lastBreath' && !G.opp.usedLastBreath) {
-          G.opp.lp = 1;
-          G.opp.usedLastBreath = true;
-          G.opp.setVerse = null;
+      } else if (state.G.opp.lp <= 0) {
+        if (state.G.opp.setVerse?.id === 'lastBreath' && !state.G.opp.usedLastBreath) {
+          state.G.opp.lp = 1;
+          state.G.opp.usedLastBreath = true;
+          state.G.opp.setVerse = null;
           Anim.versePopup('Last Breath');
           log('Rival Last Breath!', 'heal');
           return;
         }
-        G.winner = 'You';
+        state.G.winner = 'You';
         showResult(true);
       }
     }
     
     function log(t, c = '') {
-      G.log.push({ t, c });
+      state.G.log.push({ t, c });
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -2892,7 +2887,7 @@
     }
     
     function showResult(win) {
-      clearInterval(timerInt);
+      clearInterval(state.timerInt);
       $('result').classList.add('open', win ? 'win' : 'lose');
       $('result-text').textContent = win ? '[ VICTORY ]' : '[ DEFEAT ]';
     }
@@ -2987,7 +2982,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     document.addEventListener('keydown', e => {
-      if (!G || G.winner || !G.myTurn) return;
+      if (!G || state.G.winner || !state.G.myTurn) return;
       const k = e.key.toLowerCase();
       if (k === 's') doSummon();
       else if (k === 'c') doCast();
