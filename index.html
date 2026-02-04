@@ -137,10 +137,13 @@
     
     .m-field-half.opp .m-active-row {
       width: 100%;
+      justify-content: space-between;
     }
     
-    .m-bench-wrap.opp-bench {
-      margin-left: auto;
+    .m-opp-right-group {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
     }
     
     .m-bench-wrap {
@@ -1836,11 +1839,13 @@
             <div class="m-set-verse" id="m-opp-set">NO SET</div>
             <div class="m-grave-btn" onclick="showGraveyard('opp')">[x] <span id="m-opp-grave-ct">0</span></div>
           </div>
-          <div class="m-bench-wrap opp-bench">
-            <div id="m-opp-bench" class="m-bench-col"></div>
-            <div class="m-bench-label">Rival Bench</div>
+          <div class="m-opp-right-group">
+            <div class="m-bench-wrap">
+              <div id="m-opp-bench" class="m-bench-col"></div>
+              <div class="m-bench-label">Rival Bench</div>
+            </div>
+            <div id="m-opp-active"></div>
           </div>
-          <div id="m-opp-active"></div>
         </div>
       </div>
       
