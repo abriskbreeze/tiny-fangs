@@ -58,15 +58,16 @@ export const Anim = {
     el.className = `float-text ${type}`;
     el.textContent = text;
     
-    // Position near target or center screen
-    if (targetEl) {
+    // Position centered on target or center screen
+    if (targetEl && targetEl.offsetParent !== null) {
       const rect = targetEl.getBoundingClientRect();
       el.style.left = rect.left + rect.width / 2 + 'px';
-      el.style.top = rect.top + rect.height / 3 + 'px';
+      el.style.top = rect.top + rect.height / 2 + 'px';
+      el.style.transform = 'translate(-50%, -50%)';
     } else {
       el.style.left = '50%';
       el.style.top = '40%';
-      el.style.transform = 'translateX(-50%)';
+      el.style.transform = 'translate(-50%, -50%)';
     }
     
     document.body.appendChild(el);

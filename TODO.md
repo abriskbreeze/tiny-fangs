@@ -5,6 +5,7 @@
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v2.1.5** — Animation centering fix, cast/set verse popups, lighter background overlay
 - **v2.1.4** — Animation fixes: summon positioned correctly, bench summon animation added
 - **v2.1.3** — Den Mother redesign: "next attack +10 damage" (was broken "this turn" buff)
 - **v2.1.2** — Battlefield UI: graveyard buttons on field, hold-to-zoom on player's [SET]

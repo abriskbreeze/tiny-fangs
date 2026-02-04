@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.4</title>
+  <title>TINY FANGS v2.1.5</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1184,8 +1184,8 @@
     }
     
     @keyframes trigger-bg-pulse {
-      0% { background: rgba(139, 92, 246, 0.3); }
-      100% { background: rgba(0, 0, 0, 0.9); }
+      0% { background: rgba(139, 92, 246, 0.2); }
+      100% { background: rgba(0, 0, 0, 0.5); }
     }
     
     .trigger-box {
@@ -1582,7 +1582,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.4 • Card Battler</p>
+    <p class="sub">v2.1.5 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1681,7 +1681,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.4</div>
+      <div class="logo">TINY FANGS v2.1.5</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2320,7 +2320,7 @@
       state.G.me.grave.push(c);
       
       log(`Cast ${c.name}`);
-      Anim.castVerse();
+      await showCastReveal(c);
       
       // Execute effect
       switch(c.id) {
@@ -2541,7 +2541,7 @@
       })));
     }
     
-    function setVerse(c) {
+    async function setVerse(c) {
       closeModal();
       
       if (c.cost > state.G.me.mana) {
@@ -2555,6 +2555,7 @@
       
       log('Set a verse face-down');
       render();
+      await showSetReveal();
     }
     
     async function doAttack() {
@@ -3399,7 +3400,7 @@
         const content = `
           <div class="name-row">
             <div class="name">${verse.name}</div>
-            <div class="type">Set Verse</div>
+            <div class="type">Set Verse Triggered!</div>
           </div>
           <div class="trigger-condition">
             <div class="label">Trigger</div>
@@ -3418,6 +3419,57 @@
         triggerRevealTimeout = setTimeout(() => {
           dismissTriggerReveal();
         }, ANIM_TIMING.TRIGGER_REVEAL);
+      });
+    }
+    
+    // Show cast verse card popup (briefer than trigger reveal)
+    function showCastReveal(verse) {
+      return new Promise(resolve => {
+        triggerRevealResolve = resolve;
+        
+        const content = `
+          <div class="name-row">
+            <div class="name">${verse.name}</div>
+            <div class="type">Cast Verse</div>
+          </div>
+          <div class="effect-box">
+            <div class="label">Effect</div>
+            <div class="text">${verse.text}</div>
+          </div>
+        `;
+        
+        $('triggerContent').innerHTML = content;
+        $('triggerModal').classList.add('open');
+        
+        // Shorter duration for cast verses
+        triggerRevealTimeout = setTimeout(() => {
+          dismissTriggerReveal();
+        }, 2000);
+      });
+    }
+    
+    // Show set verse animation
+    function showSetReveal() {
+      return new Promise(resolve => {
+        triggerRevealResolve = resolve;
+        
+        const content = `
+          <div class="name-row">
+            <div class="name">Verse Set!</div>
+            <div class="type">Face-down</div>
+          </div>
+          <div class="effect-box">
+            <div class="text">A trap awaits...</div>
+          </div>
+        `;
+        
+        $('triggerContent').innerHTML = content;
+        $('triggerModal').classList.add('open');
+        
+        // Very brief for set notification
+        triggerRevealTimeout = setTimeout(() => {
+          dismissTriggerReveal();
+        }, 1000);
       });
     }
     
