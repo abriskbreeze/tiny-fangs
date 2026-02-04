@@ -1820,6 +1820,7 @@
     import { CREATURES, VERSES, DECKS } from './src/cards.js';
     import { $, uid } from './src/state.js';
     import { ANIM_TIMING, Anim } from './src/anim.js';
+    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
     
     // Mutable game state (kept local - G is reassigned throughout)
     let G = null;
@@ -1848,7 +1849,6 @@
       $('d-turn').textContent = G.turn;
       
       // LP (as hearts)
-      const hearts = (n) => '♥'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, 3 - n));
       $('m-my-lp').textContent = hearts(G.me.lp);
       $('m-opp-lp').textContent = hearts(G.opp.lp);
       $('d-my-lp').textContent = hearts(G.me.lp);
@@ -1857,18 +1857,11 @@
       $('d-lp-right').textContent = hearts(G.opp.lp);
       
       // Mana
-      const manaStr = m => '●'.repeat(m.mana) + '○'.repeat(m.maxMana - m.mana);
       $('m-my-mana').textContent = manaStr(G.me);
       $('m-opp-mana').textContent = manaStr(G.opp);
       
       // Desktop mana pips
-      let pipsHtml = '';
-      for (let i = 0; i < 5; i++) {
-        const filled = i < G.me.mana ? 'filled' : '';
-        const visible = i < G.me.maxMana ? '●' : '○';
-        pipsHtml += `<div class="d-mana-pip ${filled}">${visible}</div>`;
-      }
-      $('d-mana-pips').innerHTML = pipsHtml;
+      $('d-mana-pips').innerHTML = renderManaPips(G.me.mana, G.me.maxMana);
       
       // Stats
       $('d-deck').textContent = G.me.deck.length;
@@ -1876,13 +1869,10 @@
       $('d-opp-hand').textContent = G.opp.hand.length;
       
       // Set Verses
-      const setVerseHtml = (v, id) => v 
-        ? `<div class="m-set-verse has" id="${id}">[SET]</div>` 
-        : `<div class="m-set-verse" id="${id}">NO SET</div>`;
-      $('m-my-set').outerHTML = setVerseHtml(G.me.setVerse, 'm-my-set');
-      $('m-opp-set').outerHTML = setVerseHtml(G.opp.setVerse, 'm-opp-set');
-      $('d-my-set').outerHTML = setVerseHtml(G.me.setVerse, 'd-my-set');
-      $('d-opp-set').outerHTML = setVerseHtml(G.opp.setVerse, 'd-opp-set');
+      $('m-my-set').outerHTML = renderSetVerse(G.me.setVerse, 'm-my-set');
+      $('m-opp-set').outerHTML = renderSetVerse(G.opp.setVerse, 'm-opp-set');
+      $('d-my-set').outerHTML = renderSetVerse(G.me.setVerse, 'd-my-set');
+      $('d-opp-set').outerHTML = renderSetVerse(G.opp.setVerse, 'd-opp-set');
       
       // Active creatures
       $('m-my-active').innerHTML = renderActiveCard(G.me.active);
@@ -1899,8 +1889,8 @@
       // Hand
       $('m-hand-ct').textContent = G.me.hand.length;
       $('d-hand-ct').textContent = G.me.hand.length;
-      $('m-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, false)).join('');
-      $('d-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, true)).join('');
+      $('m-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, false, selectedCard)).join('');
+      $('d-hand').innerHTML = G.me.hand.map(c => renderHandCard(c, true, selectedCard)).join('');
       
       // Buttons
       updateButtons();
@@ -1909,49 +1899,9 @@
       renderLog();
     }
     
-    function renderActiveCard(c) {
-      if (!c) return `<div class="card-empty">EMPTY</div>`;
-      const pct = (c.curHp / c.hp) * 100;
-      const low = pct <= 30 ? 'low' : '';
-      const statusStr = c.status ? `[${c.status}]` : '';
-      return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-        <div class="header"><span>${c.name}</span><span>${c.curHp}/${c.hp}</span></div>
-        <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
-        <div class="art">${c.art}</div>
-        <div class="footer"><span>ATK ${c.atk}</span><span class="status">${statusStr}</span></div>
-      </div>`;
-    }
-    
-    function renderMiniCard(c) {
-      return `<div class="card-mini" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-        <div class="name">${c.name}</div>
-        <div class="stats">${c.curHp}/${c.hp}</div>
-      </div>`;
-    }
-    
-    function renderHandCard(c, vertical) {
-      const sel = selectedCard === c.uid ? 'selected' : '';
-      const typeClass = c.cardType === 'creature' ? 'creature' : (c.type === 'cast' ? 'verse-cast' : 'verse-set');
-      const typeLabel = c.cardType === 'creature' ? 'Creature' : (c.type === 'cast' ? 'Cast' : 'Set');
-      
-      if (vertical) {
-        return `<div class="d-hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-          <div class="cost">${c.cost}</div>
-          <div class="info"><div class="name">${c.name}</div><div class="type">${typeLabel}</div></div>
-        </div>`;
-      }
-      
-      return `<div class="hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-        <div class="cost-pip">${c.cost}</div>
-        <div class="name">${c.name}</div>
-        <div class="type">${typeLabel}</div>
-      </div>`;
-    }
-    
     function renderLog() {
-      const html = G.log.slice(-8).map(l => `<span class="${l.c||''}">${l.t}</span>`).join('');
-      $('m-log').innerHTML = html;
-      $('d-log').innerHTML = G.log.slice(-12).map(l => `<div class="${l.c||''}">${l.t}</div>`).join('');
+      $('m-log').innerHTML = renderLogInline(G.log, 8);
+      $('d-log').innerHTML = renderLogEntries(G.log, 12);
     }
     
     function updateButtons() {
