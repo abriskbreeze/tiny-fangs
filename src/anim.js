@@ -213,6 +213,17 @@ export const Anim = {
     });
   },
   
+  // Bench to active animation (creature enters the fray)
+  benchToActive(side) {
+    return new Promise(resolve => {
+      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      this.playOn(selector, 'anim-enter-fray', 400);
+      const el = this.getVisibleElement(selector);
+      this.floatText('→', 'gold', el);
+      setTimeout(resolve, 400);
+    });
+  },
+  
   // Particle burst - 3 stars of random sizes for "poof" effect
   sparkBurst(targetEl) {
     if (!targetEl || targetEl.offsetParent === null) return;
