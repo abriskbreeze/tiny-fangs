@@ -203,8 +203,8 @@ export const Anim = {
   // Bench summon animation (smaller version for benched creatures)
   summonBench(side, index = 0) {
     return new Promise(resolve => {
-      const mobileSelector = side === 'me' ? '#m-my-bench .mini-card' : '#m-opp-bench .mini-card';
-      const desktopSelector = side === 'me' ? '#d-my-bench .mini-card' : '#d-opp-bench .mini-card';
+      const mobileSelector = side === 'me' ? '#m-my-bench .card-mini' : '#m-opp-bench .card-mini';
+      const desktopSelector = side === 'me' ? '#d-my-bench .card-mini' : '#d-opp-bench .card-mini';
       const selector = `${mobileSelector}, ${desktopSelector}`;
       this.playOn(selector, 'anim-summon-small', 400);
       const el = this.getVisibleElement(selector, index);
@@ -228,8 +228,6 @@ export const Anim = {
     return new Promise(resolve => {
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
       this.playOn(selector, 'anim-enter-fray', 400);
-      const el = this.getVisibleElement(selector);
-      this.floatText('→', 'gold', el);
       setTimeout(resolve, 400);
     });
   },

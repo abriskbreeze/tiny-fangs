@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.8</title>
+  <title>TINY FANGS v2.1.9</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1547,9 +1547,9 @@
     }
     
     @keyframes float-up {
-      0% { opacity: 1; transform: translateY(0) scale(1.2); }
-      20% { opacity: 1; transform: translateY(-15px) scale(1.3); }
-      100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+      0% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1.2); }
+      20% { opacity: 1; transform: translate(-50%, -50%) translateY(-15px) scale(1.3); }
+      100% { opacity: 0; transform: translate(-50%, -50%) translateY(-60px) scale(0.9); }
     }
     
     /* Verse trigger popup - MORE DRAMATIC */
@@ -1650,7 +1650,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.8 • Card Battler</p>
+    <p class="sub">v2.1.9 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1749,7 +1749,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.8</div>
+      <div class="logo">TINY FANGS v2.1.9</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
