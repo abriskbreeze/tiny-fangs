@@ -26,8 +26,8 @@ Full modularization of the monolith using TDD approach.
 - [x] Replace `selectedCard`, `startTime`, `timerInt`, `longPressTimer` with `state.*`
 - [ ] Extract init functions to **src/init.js** using `setGame()` (future)
 
-### Game Logic (TODO — after state refactor)
-- [ ] **helpers.js** — draw, ko, checkWin, log
+### Game Logic (IN PROGRESS)
+- [x] **helpers.js** — log, drawCard, checkWinConditions, KO effects (partial - pure logic extracted)
 - [ ] **ai.js** — AI decision logic  
 - [ ] **actions.js** — doSummon, doCast, doSet, doAttack, doRetreat, endTurn
 
@@ -50,9 +50,9 @@ Full modularization of the monolith using TDD approach.
   - Tests: `game-logic.test.js`, `game.test.js` verify HP never goes negative
 
 ## Current Stats
-- **index.html:** ~2910 lines (down from 3392)
-- **Tests:** 70 passing
-- **Modules:** 5 extracted (cards, state, anim, render, game)
+- **index.html:** ~2900 lines (down from 3392)
+- **Tests:** 116 passing
+- **Modules:** 6 extracted (cards, state, anim, render, game, helpers)
 
 ## Links
 - Local dev: http://100.76.215.88:3004 (v2 refactor)

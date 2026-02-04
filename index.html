@@ -1820,6 +1820,21 @@
     import { ANIM_TIMING, Anim } from './src/anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
     import { applyDamage } from './src/game.js';
+    import {
+      log,
+      drawCard,
+      checkDeckOut,
+      checkWinConditions,
+      applyLastBreath,
+      shouldMirrorForceTrigger,
+      applyMirrorForce,
+      shouldGraveRiseTrigger,
+      applyGraveRise,
+      processDeathEffects,
+      sendToGrave,
+      autoReplace,
+      shouldChainLightningHit
+    } from './src/helpers.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
@@ -2740,13 +2755,12 @@
     // ═══════════════════════════════════════════════════════════════
     
     function draw(player) {
-      if (player.deck.length === 0) {
+      if (!drawCard(player)) {
+        // Deck out - player loses
         log('Deck out!', 'dmg');
         state.G.winner = player === state.G.me ? 'Rival' : 'You';
         showResult(state.G.winner === 'You');
-        return;
       }
-      player.hand.push(player.deck.pop());
     }
     
     async function ko(creature, owner, attacker = null, attackerOwner = null) {
@@ -2844,36 +2858,28 @@
     }
     
     function checkWin() {
-      if (state.G.me.lp <= 0) {
-        // Check Last Breath - survive with 1 life
-        if (state.G.me.setVerse?.id === 'lastBreath' && !state.G.me.usedLastBreath) {
-          state.G.me.lp = 1;
-          state.G.me.usedLastBreath = true;
-          state.G.me.setVerse = null;
-          Anim.versePopup('Last Breath');
-          log('Last Breath! Survived with 1 life!', 'heal');
-          Anim.lpHeal('me', 1);
-          return;
-        }
-        state.G.winner = 'Rival';
-        showResult(false);
-      } else if (state.G.opp.lp <= 0) {
-        if (state.G.opp.setVerse?.id === 'lastBreath' && !state.G.opp.usedLastBreath) {
-          state.G.opp.lp = 1;
-          state.G.opp.usedLastBreath = true;
-          state.G.opp.setVerse = null;
-          Anim.versePopup('Last Breath');
-          log('Rival Last Breath!', 'heal');
-          return;
-        }
-        state.G.winner = 'You';
-        showResult(true);
+      const result = checkWinConditions();
+      
+      if (result.lastBreathTriggered === 'me') {
+        applyLastBreath(state.G.me);
+        Anim.versePopup('Last Breath');
+        log('Last Breath! Survived with 1 life!', 'heal');
+        Anim.lpHeal('me', 1);
+        return;
+      }
+      if (result.lastBreathTriggered === 'opp') {
+        applyLastBreath(state.G.opp);
+        Anim.versePopup('Last Breath');
+        log('Rival Last Breath!', 'heal');
+        return;
+      }
+      if (result.winner) {
+        state.G.winner = result.winner;
+        showResult(result.winner === 'You');
       }
     }
     
-    function log(t, c = '') {
-      state.G.log.push({ t, c });
-    }
+    // log() is now imported from helpers.js
     
     // ═══════════════════════════════════════════════════════════════
     // MODALS
