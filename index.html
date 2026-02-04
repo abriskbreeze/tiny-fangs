@@ -2252,23 +2252,79 @@
     async function doCoinFlip(playerCall) {
       closeModal();
       
-      // Show flipping animation
-      const flipFrames = [
-        '  ___\n /   \\\n| H |\n \\___/',
-        '  ___\n /   \\\n| | |\n \\___/',
-        '  ___\n /   \\\n| T |\n \\___/',
-        '  ___\n /   \\\n| | |\n \\___/'
-      ];
-      
       const result = Math.random() < 0.5 ? 'heads' : 'tails';
       const playerWon = playerCall === result;
       
-      // Show result
-      const resultArt = result === 'heads' 
-        ? '  ___\n /   \\\n| H |\n \\___/'
-        : '  ___\n /   \\\n| T |\n \\___/';
+      // Coin ASCII art at different sizes and rotations
+      const coinSmall = {
+        heads: '  ___\n /   \\\n|  H  |\n \\___/',
+        tails: '  ___\n /   \\\n|  T  |\n \\___/',
+        edge:  '  ___\n /   \\\n|  |  |\n \\___/'
+      };
       
-      await Anim.wait(300);
+      const coinMed = {
+        heads: '    _____\n   /     \\\n  /       \\\n |    H    |\n  \\       /\n   \\_____/',
+        tails: '    _____\n   /     \\\n  /       \\\n |    T    |\n  \\       /\n   \\_____/',
+        edge:  '    _____\n   /     \\\n  /       \\\n |    |    |\n  \\       /\n   \\_____/'
+      };
+      
+      const coinBig = {
+        heads: '      _______\n     /       \\\n    /         \\\n   /           \\\n  |      H      |\n   \\           /\n    \\_________/',
+        tails: '      _______\n     /       \\\n    /         \\\n   /           \\\n  |      T      |\n   \\           /\n    \\_________/',
+        edge:  '      _______\n     /       \\\n    /         \\\n   /           \\\n  |      |      |\n   \\           /\n    \\_________/'
+      };
+      
+      // Create overlay for animation
+      const overlay = document.createElement('div');
+      overlay.id = 'coin-flip-overlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      const coinDisplay = document.createElement('pre');
+      coinDisplay.style.cssText = 'color:var(--gold);font-size:14px;text-align:center;font-family:monospace;transition:transform 0.1s;';
+      overlay.appendChild(coinDisplay);
+      document.body.appendChild(overlay);
+      
+      // Animation sequence: rise, spin, fall, bounce, reveal
+      const frames = [
+        // Rise phase (getting bigger)
+        { art: coinSmall.edge, delay: 80 },
+        { art: coinMed.heads, delay: 80 },
+        { art: coinMed.edge, delay: 60 },
+        { art: coinBig.tails, delay: 60 },
+        { art: coinBig.edge, delay: 50 },
+        { art: coinBig.heads, delay: 50 },
+        { art: coinBig.edge, delay: 50 },
+        { art: coinBig.tails, delay: 50 },
+        { art: coinBig.edge, delay: 50 },
+        { art: coinBig.heads, delay: 50 },
+        // Fall phase (getting smaller)
+        { art: coinBig.edge, delay: 50 },
+        { art: coinMed.tails, delay: 60 },
+        { art: coinMed.edge, delay: 60 },
+        { art: coinMed.heads, delay: 70 },
+        { art: coinSmall.edge, delay: 80 },
+        // Bounce 1
+        { art: coinMed[result], delay: 100, bounce: true },
+        { art: coinSmall.edge, delay: 80 },
+        // Bounce 2 (smaller)
+        { art: coinSmall[result], delay: 120, bounce: true },
+        { art: coinSmall.edge, delay: 60 },
+        // Final land
+        { art: coinSmall[result], delay: 400 },
+      ];
+      
+      // Play animation
+      for (const frame of frames) {
+        coinDisplay.textContent = frame.art;
+        if (frame.bounce) {
+          coinDisplay.style.transform = 'translateY(-10px)';
+          await Anim.wait(50);
+          coinDisplay.style.transform = 'translateY(0)';
+        }
+        await Anim.wait(frame.delay);
+      }
+      
+      // Remove overlay
+      overlay.remove();
       
       if (playerWon) {
         // Player won - let them choose
