@@ -1835,6 +1835,14 @@
       autoReplace,
       shouldChainLightningHit
     } from './src/helpers.js';
+    import {
+      getEffectiveAtk,
+      getEffectiveDamageReduction,
+      applyDrain,
+      applySpark,
+      checkSwarm,
+      applySpawn
+    } from './src/abilities.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
@@ -2136,6 +2144,26 @@
         log('Pack Call: +20 ATK', 'mana');
       }
       
+      // Emberfang Spark - deal 5 damage to enemy on summon
+      if (c.id === 'emberfang' && state.G.opp.active) {
+        const sparkResult = applySpark(state.G.opp);
+        if (sparkResult.damage > 0) {
+          log(`Spark! ${state.G.opp.active.name} takes 5`, 'dmg');
+          Anim.damage('opp', 5);
+          if (sparkResult.ko) {
+            await Anim.ko('opp');
+            await ko(state.G.opp.active, state.G.opp);
+          }
+        }
+      }
+      
+      // Hiveling Swarm - draw 1 if 2+ creatures
+      if (c.id === 'hiveling' && checkSwarm(state.G.me)) {
+        if (drawCard(state.G.me)) {
+          log('Swarm! Drew a card', 'mana');
+        }
+      }
+      
       // Chain Lightning damage (after summon animation completes)
       if (state.G.me.chainLightning > 0) {
         await Anim.wait(300); // Brief pause so player sees the summon
@@ -2262,6 +2290,65 @@
             Anim.heal('me', 40);
           }
           break;
+        
+        // === NEW VERSES ===
+        
+        case 'ignite':
+          if (state.G.opp.active) {
+            const igniteKo = applyDamage(state.G.opp.active, 15);
+            log('Ignite! -15', 'dmg');
+            Anim.damage('opp', 15);
+            if (igniteKo) { Anim.ko('opp'); ko(state.G.opp.active, state.G.opp); }
+          }
+          break;
+        
+        case 'packTactics':
+          // Draw 1 card per creature (max 3)
+          const creatureCount = (state.G.me.active ? 1 : 0) + state.G.me.bench.length;
+          const drawCount = Math.min(creatureCount, 3);
+          for (let i = 0; i < drawCount; i++) {
+            draw(state.G.me);
+          }
+          log(`Pack Tactics! Drew ${drawCount}`, 'mana');
+          break;
+        
+        case 'callOfTheWild':
+          // Summon a 1-cost creature from deck to bench
+          if (state.G.me.bench.length >= 2) {
+            log('Bench is full!', 'dmg');
+            break;
+          }
+          const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
+          if (oneCostInDeck.length) {
+            const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
+            state.G.me.deck = state.G.me.deck.filter(x => x.uid !== summon.uid);
+            state.G.me.bench.push(summon);
+            log(`Called ${summon.name} from deck!`, 'mana');
+          } else {
+            log('No 1-cost creatures in deck');
+          }
+          break;
+        
+        case 'sacrifice':
+          // KO one of your creatures, draw 2
+          if (!state.G.me.active && state.G.me.bench.length === 0) {
+            log('No creatures to sacrifice!', 'dmg');
+            break;
+          }
+          // For simplicity, sacrifice active if exists, else first bench
+          if (state.G.me.active) {
+            const victim = state.G.me.active;
+            log(`Sacrificed ${victim.name}`, 'dmg');
+            Anim.ko('me');
+            await ko(victim, state.G.me);
+          } else if (state.G.me.bench.length) {
+            const victim = state.G.me.bench.shift();
+            state.G.me.grave.push(victim);
+            log(`Sacrificed ${victim.name}`, 'dmg');
+          }
+          draw(state.G.me); draw(state.G.me);
+          log('Drew 2 cards', 'mana');
+          break;
       }
       
       render();
@@ -2341,8 +2428,8 @@
         
         const defender = state.G.opp.active;
         
-        // Calculate damage
-        let dmg = attacker.atk;
+        // Calculate base damage with ability modifiers (Orphan, Pack Bond, Feeding Frenzy, Rally)
+        let dmg = getEffectiveAtk(attacker, state.G.me, state.G.opp);
         
         // Bladewhisker Rend
         if (attacker.id === 'bladewhisker') dmg += 10;
@@ -2372,6 +2459,13 @@
           log('Frenzy! Double damage!', 'dmg');
         }
         
+        // Apply damage reduction (Den Guard)
+        const reduction = getEffectiveDamageReduction(defender, state.G.opp);
+        if (reduction > 0) {
+          dmg = Math.max(0, dmg - reduction);
+          log(`Den Guard! -${reduction} damage`, 'heal');
+        }
+        
         log(`${attacker.name} attacks for ${dmg}!`);
         
         // Attack animation
@@ -2379,6 +2473,15 @@
         
         // Apply damage to defender FIRST
         const defenderKo = applyDamage(defender, dmg);
+        
+        // Leechling Drain - heal equal to damage dealt
+        if (attacker.id === 'leechling' && !defenderKo) {
+          const healed = applyDrain(attacker, dmg);
+          if (healed > 0) {
+            log(`Drain! +${healed} HP`, 'heal');
+            Anim.heal('me', healed);
+          }
+        }
         
         // Cindermaw self-damage AFTER attack lands
         if (isCindermaw) {
@@ -2466,6 +2569,14 @@
         log('Poison: -10', 'dmg');
         Anim.poisonTick('me');
         if (poisonKo) { Anim.ko('me'); ko(state.G.me.active, state.G.me); }
+      }
+      
+      // Broodmother Spawn - summon Antling at end of turn
+      if (state.G.me.active?.id === 'broodmother') {
+        const antling = applySpawn(state.G.me);
+        if (antling) {
+          log('Spawn! Antling joins the swarm', 'mana');
+        }
       }
       
       state.G.myTurn = false;
