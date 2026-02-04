@@ -208,9 +208,43 @@ export const Anim = {
       const selector = `${mobileSelector}, ${desktopSelector}`;
       this.playOn(selector, 'anim-summon-small', 400);
       const el = this.getVisibleElement(selector, index);
-      this.floatText('✦', 'gold', el);
+      this.sparkBurst(el);
       setTimeout(resolve, 400);
     });
+  },
+  
+  // Particle burst - 3 stars of random sizes for "poof" effect
+  sparkBurst(targetEl) {
+    if (!targetEl || targetEl.offsetParent === null) return;
+    
+    const rect = targetEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Create 3 stars with random offsets and sizes
+    for (let i = 0; i < 3; i++) {
+      const star = document.createElement('div');
+      star.className = 'spark-particle';
+      star.textContent = '✦';
+      
+      // Random offset from center (-15 to +15 px)
+      const offsetX = (Math.random() - 0.5) * 30;
+      const offsetY = (Math.random() - 0.5) * 30;
+      
+      // Random size (0.6 to 1.4 scale)
+      const scale = 0.6 + Math.random() * 0.8;
+      
+      // Random delay (0 to 100ms)
+      const delay = Math.random() * 100;
+      
+      star.style.left = centerX + offsetX + 'px';
+      star.style.top = centerY + offsetY + 'px';
+      star.style.fontSize = (16 * scale) + 'px';
+      star.style.animationDelay = delay + 'ms';
+      
+      document.body.appendChild(star);
+      setTimeout(() => star.remove(), 600 + delay);
+    }
   },
   
   // KO animation - returns promise
