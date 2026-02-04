@@ -2789,6 +2789,38 @@
                   state.G.me.active.status = 'trapped';
                   log('Trapped! Cannot retreat');
                 }
+                
+                // Player's Skitter Scurry - offer swap choice
+                if (shouldScurryTrigger(state.G.me.active, state.G.me)) {
+                  render();
+                  await new Promise(resolve => {
+                    showModal('Scurry! Swap with bench?', [
+                      ...state.G.me.bench.map(c => ({
+                        name: `Swap with ${c.name}`,
+                        sub: `${c.curHp}/${c.hp} HP`,
+                        action: () => {
+                          closeModal();
+                          const skitter = state.G.me.active;
+                          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
+                          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
+                          state.G.me.bench.push(skitter);
+                          log(`Scurry! ${skitter.name} retreats, ${state.G.me.active.name} enters`, 'mana');
+                          render();
+                          resolve();
+                        }
+                      })),
+                      {
+                        name: 'Stay',
+                        sub: 'Keep Skitter active',
+                        action: () => {
+                          closeModal();
+                          log('Skitter stays in battle');
+                          resolve();
+                        }
+                      }
+                    ]);
+                  });
+                }
               } else {
                 // Player creature KO'd
                 if (attacker?.id === 'sundewqueen') {
