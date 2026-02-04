@@ -1947,7 +1947,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-C22Gnjqj.js"></script>
+  <script type="module" crossorigin src="./assets/index-BNSSo0aX.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -2091,16 +2091,20 @@
             </div>
           </div>
         </div>
-        <div class="d-panel">
+        <div class="d-panel" style="flex:1;">
           <div class="d-panel-hdr">Opponent</div>
           <div class="d-panel-body">
-            <div class="d-stat-row">
-              <div class="d-stat-sm"><div class="label">Lives</div><div class="val" id="d-opp-lp">♥♥♥</div></div>
-              <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
+            <div class="d-stat-big">
+              <div class="label">Lives</div>
+              <div class="val" id="d-opp-lp">♥♥♥</div>
             </div>
-            <div class="d-stat-sm clickable" onclick="showGraveyard('opp')">
-              <div class="label">Grave</div>
-              <div class="val" id="d-opp-grave">0</div>
+            <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
+              <div class="d-stat-sm clickable" onclick="showGraveyard('opp')"><div class="label">Grave</div><div class="val" id="d-opp-grave">0</div></div>
+            </div>
+            <div class="d-stat-sm">
+              <div class="label">Mana</div>
+              <div id="d-opp-mana-pips" class="d-mana-pips"></div>
             </div>
           </div>
         </div>
