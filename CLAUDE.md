@@ -139,9 +139,13 @@ beforeEach(() => clearGame());
 ```
 
 ## Deployment
-1. `npm run build` → builds to `docs/`
-2. `git push` → GitHub Pages auto-deploys from `docs/`
-3. Restart local: `launchctl stop/start com.tinyfangs.v2`
+**IMPORTANT:** GitHub Pages serves from `docs/` folder, NOT root `index.html`!
+1. Edit `index.html` in root
+2. **Run `npm run build`** → copies to `docs/`
+3. `git push` → GitHub Pages auto-deploys from `docs/`
+4. Restart local: `launchctl stop/start com.tinyfangs.v2`
+
+⚠️ If you forget `npm run build`, GitHub Pages will show OLD code!
 
 ## Style Guide
 - ASCII only (no emoji)
