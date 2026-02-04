@@ -2347,12 +2347,11 @@
           dmg = defender.atk;
         }
         
-        // Cindermaw Frenzy
-        if (attacker.id === 'cindermaw') {
+        // Cindermaw Frenzy - double damage (self-damage applied AFTER attack)
+        const isCindermaw = attacker.id === 'cindermaw';
+        if (isCindermaw) {
           dmg *= 2;
-          const frenzyKo = applyDamage(attacker, 10);
-          log('Frenzy! Double hit, -10 self', 'dmg');
-          if (frenzyKo) await ko(attacker, state.G.me);
+          log('Frenzy! Double damage!', 'dmg');
         }
         
         log(`${attacker.name} attacks for ${dmg}!`);
@@ -2360,16 +2359,23 @@
         // Attack animation
         Anim.attack('me', 'opp', dmg);
         
-        // Thornling Thorns - only if attacker survived Cindermaw self-damage
+        // Apply damage to defender FIRST
+        const defenderKo = applyDamage(defender, dmg);
+        
+        // Cindermaw self-damage AFTER attack lands
+        if (isCindermaw) {
+          const frenzyKo = applyDamage(attacker, 10);
+          log('-10 self from Frenzy', 'dmg');
+          if (frenzyKo) await ko(attacker, state.G.me);
+        }
+        
+        // Thornling Thorns - only if attacker still alive
         if (defender.id === 'thornling' && state.G.me.active && state.G.me.active.curHp > 0) {
           const thornsKo = applyDamage(state.G.me.active, 10);
           log('Thorns! -10 to attacker', 'dmg');
           Anim.damage('me', 10);
           if (thornsKo) await ko(state.G.me.active, state.G.me);
         }
-        
-        // Apply damage to defender
-        const defenderKo = applyDamage(defender, dmg);
         log(`${defender.name} takes ${dmg}`, 'dmg');
         
         // Hexweaver poison - only if defender survived
@@ -2591,48 +2597,58 @@
               ai.active.firstAtk = false;
               log('Sonic Strike! Double damage', 'mana');
             }
-            if (ai.active.id === 'cindermaw') {
+            // Cindermaw Frenzy - double damage (self-damage applied AFTER attack)
+            const aiIsCindermaw = ai.active.id === 'cindermaw';
+            if (aiIsCindermaw) {
               dmg *= 2;
-              const aiFrenzyKo = applyDamage(ai.active, 10);
-              log('Frenzy! Double hit, -10 self', 'dmg');
-              if (aiFrenzyKo) await ko(ai.active, ai);
+              log('Frenzy! Double damage!', 'dmg');
             }
             
             const attacker = ai.active;
-            if (attacker) {
-              log(`${attacker.name} attacks for ${dmg}!`);
-              await Anim.attack('opp', 'me', dmg);
-              
-              // Thornling thorns
-              if (state.G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
-                const aiThornsKo = applyDamage(attacker, 10);
-                log('Thorns! -10 to attacker', 'dmg');
-                await Anim.damage('opp', 10);
-                if (aiThornsKo) await ko(attacker, ai);
-              }
-              
-              // Apply damage
-              if (state.G.me.active) {
-                const playerKo = applyDamage(state.G.me.active, dmg);
-                
-                if (attacker?.id === 'hexweaver' && !playerKo) {
+            log(`${attacker.name} attacks for ${dmg}!`);
+            await Anim.attack('opp', 'me', dmg);
+            
+            // Apply damage to player FIRST
+            let playerKo = false;
+            if (state.G.me.active) {
+              playerKo = applyDamage(state.G.me.active, dmg);
+            }
+            
+            // Cindermaw self-damage AFTER attack lands
+            if (aiIsCindermaw && attacker) {
+              const aiFrenzyKo = applyDamage(attacker, 10);
+              log('-10 self from Frenzy', 'dmg');
+              if (aiFrenzyKo) await ko(attacker, ai);
+            }
+            
+            // Thornling thorns - only if attacker still alive
+            if (state.G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
+              const aiThornsKo = applyDamage(attacker, 10);
+              log('Thorns! -10 to attacker', 'dmg');
+              await Anim.damage('opp', 10);
+              if (aiThornsKo) await ko(attacker, ai);
+            }
+            
+            // Process player damage effects
+            if (state.G.me.active) {
+              if (!playerKo) {
+                if (attacker?.id === 'hexweaver') {
                   state.G.me.active.status = 'poison';
                   log('Poisoned!');
                 }
-                if (attacker?.id === 'mireveil' && !playerKo) {
+                if (attacker?.id === 'mireveil') {
                   state.G.me.active.status = 'trapped';
                   log('Trapped! Cannot retreat');
                 }
-                
-                if (playerKo) {
-                  if (attacker?.id === 'sundewqueen') {
-                    attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
-                    log('Digest! +30 HP', 'heal');
-                    await Anim.heal('opp', 30);
-                  }
-                  await Anim.ko('me');
-                  await ko(state.G.me.active, state.G.me, attacker, ai);
+              } else {
+                // Player creature KO'd
+                if (attacker?.id === 'sundewqueen') {
+                  attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
+                  log('Digest! +30 HP', 'heal');
+                  await Anim.heal('opp', 30);
                 }
+                await Anim.ko('me');
+                await ko(state.G.me.active, state.G.me, attacker, ai);
               }
             }
             render();
