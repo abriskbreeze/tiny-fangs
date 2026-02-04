@@ -14,9 +14,9 @@
     h1 { color: #ffd700; text-align: center; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 20px;
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
     }
     .demo {
@@ -30,18 +30,21 @@
       color: #ffd700;
       margin: 0 0 10px 0;
     }
-    .demo pre {
+    .coin-container {
       background: #0d0d15;
       padding: 20px;
       border-radius: 4px;
-      min-height: 200px;
+      min-height: 280px;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    .demo pre {
       color: #ffd700;
-      font-size: 11px;
       margin: 0;
-      transition: transform 0.1s;
+      transition: transform 0.08s ease-out;
+      white-space: pre;
+      line-height: 1.2;
     }
     .controls {
       margin-top: 10px;
@@ -58,8 +61,8 @@
   </style>
 </head>
 <body>
-  <h1>Coin Flip Animation Demos (with Size Variation)</h1>
-  <p style="text-align:center;color:#888;">Rise → Spin → Fall → Bounce → Land</p>
+  <h1>Coin Flip Animation Demos (with Size + Scale)</h1>
+  <p style="text-align:center;color:#888;">Rise → Spin → Fall → Bounce → Land (font scales with size!)</p>
   <div class="grid" id="grid"></div>
 
 <script>
@@ -67,838 +70,683 @@
 const styles = {
   "1. Classic Circle": {
     small: {
-      heads: `  .---.
- /     \\
-|   H   |
- \\     /
-  '---'`,
-      tails: `  .---.
- /     \\
-|   T   |
- \\     /
-  '---'`,
-      edge: `   .-. 
-  /   \\
- |     |
-  \\   /
-   '-'`
+      heads: `  .--.
+ /    \\
+|  H   |
+ \\    /
+  '--'`,
+      tails: `  .--.
+ /    \\
+|  T   |
+ \\    /
+  '--'`,
+      edge: `  |
+  |
+  |
+  |
+  |`
     },
     med: {
-      heads: `    .-----.
-   /       \\
-  /         \\
- |     H     |
-  \\         /
-   \\_______/`,
-      tails: `    .-----.
-   /       \\
-  /         \\
- |     T     |
-  \\         /
-   \\_______/`,
-      edge: `    .---.
-   /     \\
-  |       |
-  |       |
-   \\     /
-    '---'`
+      heads: `   .----.
+  /      \\
+ /        \\
+|    H     |
+ \\        /
+  \\______/`,
+      tails: `   .----.
+  /      \\
+ /        \\
+|    T     |
+ \\        /
+  \\______/`,
+      edge: `   ||
+   ||
+   ||
+   ||
+   ||
+   ||`
     },
     big: {
-      heads: `      .-------.
-     /         \\
-    /           \\
-   /             \\
-  |       H       |
-   \\             /
-    \\           /
-     \\_________/`,
-      tails: `      .-------.
-     /         \\
-    /           \\
-   /             \\
-  |       T       |
-   \\             /
-    \\           /
-     \\_________/`,
-      edge: `      .---.
-     /     \\
-    /       \\
-   |         |
-   |         |
-    \\       /
-     \\     /
-      '---'`
+      heads: `     .-------.
+    /         \\
+   /           \\
+  /             \\
+ |       H       |
+  \\             /
+   \\           /
+    \\_________/`,
+      tails: `     .-------.
+    /         \\
+   /           \\
+  /             \\
+ |       T       |
+  \\             /
+   \\           /
+    \\_________/`,
+      edge: `     ||
+     ||
+     ||
+     ||
+     ||
+     ||
+     ||
+     ||`
     }
   },
 
   "2. Rounded Rectangle": {
     small: {
-      heads: `.------.
-|      |
-|  H   |
-|      |
-'------'`,
-      tails: `.------.
-|      |
-|  T   |
-|      |
-'------'`,
-      edge: ` .---.
- |   |
- |   |
- |   |
- '---'`
+      heads: `.-----.
+|     |
+|  H  |
+|     |
+'-----'`,
+      tails: `.-----.
+|     |
+|  T  |
+|     |
+'-----'`,
+      edge: ` ||
+ ||
+ ||
+ ||
+ ||`
     },
     med: {
-      heads: `.----------.
-|          |
-|          |
-|    H     |
-|          |
-|          |
-'----------'`,
-      tails: `.----------.
-|          |
-|          |
-|    T     |
-|          |
-|          |
-'----------'`,
-      edge: `  .----.
-  |    |
-  |    |
-  |    |
-  |    |
-  |    |
-  '----'`
+      heads: `.---------.
+|         |
+|         |
+|    H    |
+|         |
+|         |
+'---------'`,
+      tails: `.---------.
+|         |
+|         |
+|    T    |
+|         |
+|         |
+'---------'`,
+      edge: `  ||
+  ||
+  ||
+  ||
+  ||
+  ||
+  ||`
     },
     big: {
-      heads: `.--------------.
-|              |
-|              |
-|              |
-|      H       |
-|              |
-|              |
-|              |
-'--------------'`,
-      tails: `.--------------.
-|              |
-|              |
-|              |
-|      T       |
-|              |
-|              |
-|              |
-'--------------'`,
-      edge: `   .-----.
-   |     |
-   |     |
-   |     |
-   |     |
-   |     |
-   |     |
-   |     |
-   '-----'`
+      heads: `.-------------.
+|             |
+|             |
+|             |
+|      H      |
+|             |
+|             |
+|             |
+'-------------'`,
+      tails: `.-------------.
+|             |
+|             |
+|             |
+|      T      |
+|             |
+|             |
+|             |
+'-------------'`,
+      edge: `   ||
+   ||
+   ||
+   ||
+   ||
+   ||
+   ||
+   ||
+   ||`
     }
   },
 
   "3. Double Border": {
     small: {
-      heads: `╔═════╗
-║ ┌─┐ ║
-║ │H│ ║
-║ └─┘ ║
-╚═════╝`,
-      tails: `╔═════╗
-║ ┌─┐ ║
-║ │T│ ║
-║ └─┘ ║
-╚═════╝`,
-      edge: ` ╔══╗
- ║  ║
- ║  ║
- ║  ║
- ╚══╝`
+      heads: `╔════╗
+║ H  ║
+╚════╝`,
+      tails: `╔════╗
+║ T  ║
+╚════╝`,
+      edge: `║║
+║║
+║║`
     },
     med: {
-      heads: `╔═════════╗
-║ ┌─────┐ ║
-║ │     │ ║
-║ │  H  │ ║
-║ │     │ ║
-║ └─────┘ ║
-╚═════════╝`,
-      tails: `╔═════════╗
-║ ┌─────┐ ║
-║ │     │ ║
-║ │  T  │ ║
-║ │     │ ║
-║ └─────┘ ║
-╚═════════╝`,
-      edge: `  ╔════╗
-  ║    ║
-  ║    ║
-  ║    ║
-  ║    ║
-  ║    ║
-  ╚════╝`
+      heads: `╔════════╗
+║        ║
+║   H    ║
+║        ║
+╚════════╝`,
+      tails: `╔════════╗
+║        ║
+║   T    ║
+║        ║
+╚════════╝`,
+      edge: ` ║║
+ ║║
+ ║║
+ ║║
+ ║║`
     },
     big: {
-      heads: `╔═════════════╗
-║ ┌─────────┐ ║
-║ │         │ ║
-║ │         │ ║
-║ │    H    │ ║
-║ │         │ ║
-║ │         │ ║
-║ └─────────┘ ║
-╚═════════════╝`,
-      tails: `╔═════════════╗
-║ ┌─────────┐ ║
-║ │         │ ║
-║ │         │ ║
-║ │    T    │ ║
-║ │         │ ║
-║ │         │ ║
-║ └─────────┘ ║
-╚═════════════╝`,
-      edge: `   ╔═════╗
-   ║     ║
-   ║     ║
-   ║     ║
-   ║     ║
-   ║     ║
-   ║     ║
-   ║     ║
-   ╚═════╝`
+      heads: `╔════════════╗
+║            ║
+║            ║
+║     H      ║
+║            ║
+║            ║
+╚════════════╝`,
+      tails: `╔════════════╗
+║            ║
+║            ║
+║     T      ║
+║            ║
+║            ║
+╚════════════╝`,
+      edge: `  ║║
+  ║║
+  ║║
+  ║║
+  ║║
+  ║║
+  ║║`
     }
   },
 
   "4. Block Coin": {
     small: {
-      heads: `██████
-█    █
-█ H  █
-█    █
-██████`,
-      tails: `██████
-█    █
-█ T  █
-█    █
-██████`,
-      edge: ` ███
- █ █
- █ █
- █ █
- ███`
+      heads: `█████
+█ H █
+█████`,
+      tails: `█████
+█ T █
+█████`,
+      edge: `██
+██
+██`
     },
     med: {
-      heads: `██████████
-█        █
-█        █
-█   H    █
-█        █
-█        █
-██████████`,
-      tails: `██████████
-█        █
-█        █
-█   T    █
-█        █
-█        █
-██████████`,
-      edge: `  █████
-  █   █
-  █   █
-  █   █
-  █   █
-  █   █
-  █████`
-    },
-    big: {
-      heads: `██████████████
-█            █
-█            █
-█            █
-█     H      █
-█            █
-█            █
-█            █
-██████████████`,
-      tails: `██████████████
-█            █
-█            █
-█            █
-█     T      █
-█            █
-█            █
-█            █
-██████████████`,
-      edge: `   ██████
-   █    █
-   █    █
-   █    █
-   █    █
-   █    █
-   █    █
-   █    █
-   ██████`
-    }
-  },
-
-  "5. Minimal Parens": {
-    small: {
-      heads: `((( H )))`,
-      tails: `((( T )))`,
-      edge: `  ( | )`
-    },
-    med: {
-      heads: `(((   H   )))`,
-      tails: `(((   T   )))`,
-      edge: `  ((  |  ))`
-    },
-    big: {
-      heads: `((((    H    ))))`,
-      tails: `((((    T    ))))`,
-      edge: `  (((   |   )))`
-    }
-  },
-
-  "6. Bracket Coin": {
-    small: {
-      heads: `[=====]
-[     ]
-[  H  ]
-[     ]
-[=====]`,
-      tails: `[=====]
-[     ]
-[  T  ]
-[     ]
-[=====]`,
-      edge: ` [==]
- [  ]
- [  ]
- [  ]
- [==]`
-    },
-    med: {
-      heads: `[=========]
-[         ]
-[         ]
-[    H    ]
-[         ]
-[         ]
-[=========]`,
-      tails: `[=========]
-[         ]
-[         ]
-[    T    ]
-[         ]
-[         ]
-[=========]`,
-      edge: `  [====]
-  [    ]
-  [    ]
-  [    ]
-  [    ]
-  [    ]
-  [====]`
-    },
-    big: {
-      heads: `[=============]
-[             ]
-[             ]
-[             ]
-[      H      ]
-[             ]
-[             ]
-[             ]
-[=============]`,
-      tails: `[=============]
-[             ]
-[             ]
-[             ]
-[      T      ]
-[             ]
-[             ]
-[             ]
-[=============]`,
-      edge: `   [=====]
-   [     ]
-   [     ]
-   [     ]
-   [     ]
-   [     ]
-   [     ]
-   [     ]
-   [=====]`
-    }
-  },
-
-  "7. Dotted Coin": {
-    small: {
-      heads: ` · · · ·
-·       ·
-·   H   ·
-·       ·
- · · · ·`,
-      tails: ` · · · ·
-·       ·
-·   T   ·
-·       ·
- · · · ·`,
-      edge: `  · · ·
- ·     ·
- ·     ·
- ·     ·
-  · · ·`
-    },
-    med: {
-      heads: `  · · · · · ·
- ·           ·
-·             ·
-·      H      ·
-·             ·
- ·           ·
-  · · · · · ·`,
-      tails: `  · · · · · ·
- ·           ·
-·             ·
-·      T      ·
-·             ·
- ·           ·
-  · · · · · ·`,
-      edge: `   · · · ·
-  ·       ·
- ·         ·
- ·         ·
- ·         ·
-  ·       ·
-   · · · ·`
-    },
-    big: {
-      heads: `   · · · · · · · ·
-  ·               ·
- ·                 ·
-·                   ·
-·         H         ·
-·                   ·
- ·                 ·
-  ·               ·
-   · · · · · · · ·`,
-      tails: `   · · · · · · · ·
-  ·               ·
- ·                 ·
-·                   ·
-·         T         ·
-·                   ·
- ·                 ·
-  ·               ·
-   · · · · · · · ·`,
-      edge: `    · · · · · ·
-   ·           ·
-  ·             ·
- ·               ·
- ·               ·
- ·               ·
-  ·             ·
-   ·           ·
-    · · · · · ·`
-    }
-  },
-
-  "8. Star Border": {
-    small: {
-      heads: `*******
-*     *
-*  H  *
-*     *
-*******`,
-      tails: `*******
-*     *
-*  T  *
-*     *
-*******`,
-      edge: ` ****
- *  *
- *  *
- *  *
- ****`
-    },
-    med: {
-      heads: `***********
-*         *
-*         *
-*    H    *
-*         *
-*         *
-***********`,
-      tails: `***********
-*         *
-*         *
-*    T    *
-*         *
-*         *
-***********`,
-      edge: `  ******
-  *    *
-  *    *
-  *    *
-  *    *
-  *    *
-  ******`
-    },
-    big: {
-      heads: `***************
-*             *
-*             *
-*             *
-*      H      *
-*             *
-*             *
-*             *
-***************`,
-      tails: `***************
-*             *
-*             *
-*             *
-*      T      *
-*             *
-*             *
-*             *
-***************`,
-      edge: `   ********
-   *      *
-   *      *
-   *      *
-   *      *
-   *      *
-   *      *
-   *      *
-   ********`
-    }
-  },
-
-  "9. Fancy Unicode": {
-    small: {
-      heads: `╭───────╮
-│ ◉   ◉ │
-│   H   │
-│ ◉   ◉ │
-╰───────╯`,
-      tails: `╭───────╮
-│ ◉   ◉ │
-│   T   │
-│ ◉   ◉ │
-╰───────╯`,
-      edge: ` ╭───╮
- │   │
- │   │
- │   │
- ╰───╯`
-    },
-    med: {
-      heads: `╭───────────╮
-│  ◉     ◉  │
-│           │
-│     H     │
-│           │
-│  ◉     ◉  │
-╰───────────╯`,
-      tails: `╭───────────╮
-│  ◉     ◉  │
-│           │
-│     T     │
-│           │
-│  ◉     ◉  │
-╰───────────╯`,
-      edge: `  ╭─────╮
-  │     │
-  │     │
-  │     │
-  │     │
-  │     │
-  ╰─────╯`
-    },
-    big: {
-      heads: `╭───────────────╮
-│   ◉       ◉   │
-│               │
-│               │
-│       H       │
-│               │
-│               │
-│   ◉       ◉   │
-╰───────────────╯`,
-      tails: `╭───────────────╮
-│   ◉       ◉   │
-│               │
-│               │
-│       T       │
-│               │
-│               │
-│   ◉       ◉   │
-╰───────────────╯`,
-      edge: `   ╭───────╮
-   │       │
-   │       │
-   │       │
-   │       │
-   │       │
-   │       │
-   │       │
-   ╰───────╯`
-    }
-  },
-
-  "10. O-Style": {
-    small: {
-      heads: ` OOOOO
-O     O
-O  H  O
-O     O
- OOOOO`,
-      tails: ` OOOOO
-O     O
-O  T  O
-O     O
- OOOOO`,
-      edge: `  OOO
- O   O
- O   O
- O   O
-  OOO`
-    },
-    med: {
-      heads: `  OOOOOOO
- O       O
-O         O
-O    H    O
-O         O
- O       O
-  OOOOOOO`,
-      tails: `  OOOOOOO
- O       O
-O         O
-O    T    O
-O         O
- O       O
-  OOOOOOO`,
-      edge: `   OOOOO
-  O     O
- O       O
- O       O
- O       O
-  O     O
-   OOOOO`
-    },
-    big: {
-      heads: `   OOOOOOOOO
-  O         O
- O           O
-O             O
-O      H      O
-O             O
- O           O
-  O         O
-   OOOOOOOOO`,
-      tails: `   OOOOOOOOO
-  O         O
- O           O
-O             O
-O      T      O
-O             O
- O           O
-  O         O
-   OOOOOOOOO`,
-      edge: `    OOOOOOO
-   O       O
-  O         O
- O           O
- O           O
- O           O
-  O         O
-   O       O
-    OOOOOOO`
-    }
-  },
-
-  "11. Shaded Depth": {
-    small: {
-      heads: `░▒▓██▓▒░
+      heads: `████████
 █      █
 █  H   █
 █      █
-░▒▓██▓▒░`,
-      tails: `░▒▓██▓▒░
+████████`,
+      tails: `████████
 █      █
 █  T   █
 █      █
-░▒▓██▓▒░`,
-      edge: ` ▒▓█▓▒
- █   █
- █   █
- █   █
- ▒▓█▓▒`
+████████`,
+      edge: ` ██
+ ██
+ ██
+ ██
+ ██`
     },
-    med: {
-      heads: `░░▒▓████▓▒░░
+    big: {
+      heads: `████████████
 █          █
 █          █
 █    H     █
 █          █
 █          █
-░░▒▓████▓▒░░`,
-      tails: `░░▒▓████▓▒░░
+████████████`,
+      tails: `████████████
 █          █
 █          █
 █    T     █
 █          █
 █          █
-░░▒▓████▓▒░░`,
-      edge: `  ▒▓███▓▒
-  █     █
-  █     █
-  █     █
-  █     █
-  █     █
-  ▒▓███▓▒`
+████████████`,
+      edge: `  ██
+  ██
+  ██
+  ██
+  ██
+  ██
+  ██`
+    }
+  },
+
+  "5. Minimal Parens": {
+    small: {
+      heads: `( H )`,
+      tails: `( T )`,
+      edge: `||`
+    },
+    med: {
+      heads: `((  H  ))`,
+      tails: `((  T  ))`,
+      edge: ` || `
     },
     big: {
-      heads: `░░░▒▓██████▓▒░░░
-█              █
-█              █
-█              █
-█      H       █
-█              █
-█              █
-█              █
-░░░▒▓██████▓▒░░░`,
-      tails: `░░░▒▓██████▓▒░░░
-█              █
-█              █
-█              █
-█      T       █
-█              █
-█              █
-█              █
-░░░▒▓██████▓▒░░░`,
-      edge: `   ▒▓████▓▒
-   █      █
-   █      █
-   █      █
-   █      █
-   █      █
-   █      █
-   █      █
-   ▒▓████▓▒`
+      heads: `(((   H   )))`,
+      tails: `(((   T   )))`,
+      edge: `  ||  `
+    }
+  },
+
+  "6. Bracket Coin": {
+    small: {
+      heads: `[====]
+[ H  ]
+[====]`,
+      tails: `[====]
+[ T  ]
+[====]`,
+      edge: `[]
+[]
+[]`
+    },
+    med: {
+      heads: `[========]
+[        ]
+[   H    ]
+[        ]
+[========]`,
+      tails: `[========]
+[        ]
+[   T    ]
+[        ]
+[========]`,
+      edge: ` []
+ []
+ []
+ []
+ []`
+    },
+    big: {
+      heads: `[============]
+[            ]
+[            ]
+[     H      ]
+[            ]
+[            ]
+[============]`,
+      tails: `[============]
+[            ]
+[            ]
+[     T      ]
+[            ]
+[            ]
+[============]`,
+      edge: `  []
+  []
+  []
+  []
+  []
+  []
+  []`
+    }
+  },
+
+  "7. Dotted Coin": {
+    small: {
+      heads: ` · · ·
+·  H  ·
+ · · ·`,
+      tails: ` · · ·
+·  T  ·
+ · · ·`,
+      edge: ` :
+ :
+ :`
+    },
+    med: {
+      heads: `  · · · · ·
+ ·         ·
+·     H     ·
+ ·         ·
+  · · · · ·`,
+      tails: `  · · · · ·
+ ·         ·
+·     T     ·
+ ·         ·
+  · · · · ·`,
+      edge: `  :
+  :
+  :
+  :
+  :`
+    },
+    big: {
+      heads: `   · · · · · · ·
+  ·             ·
+ ·               ·
+·        H        ·
+ ·               ·
+  ·             ·
+   · · · · · · ·`,
+      tails: `   · · · · · · ·
+  ·             ·
+ ·               ·
+·        T        ·
+ ·               ·
+  ·             ·
+   · · · · · · ·`,
+      edge: `   :
+   :
+   :
+   :
+   :
+   :
+   :`
+    }
+  },
+
+  "8. Star Border": {
+    small: {
+      heads: `*****
+* H *
+*****`,
+      tails: `*****
+* T *
+*****`,
+      edge: `*
+*
+*`
+    },
+    med: {
+      heads: `*********
+*       *
+*   H   *
+*       *
+*********`,
+      tails: `*********
+*       *
+*   T   *
+*       *
+*********`,
+      edge: ` *
+ *
+ *
+ *
+ *`
+    },
+    big: {
+      heads: `*************
+*           *
+*           *
+*     H     *
+*           *
+*           *
+*************`,
+      tails: `*************
+*           *
+*           *
+*     T     *
+*           *
+*           *
+*************`,
+      edge: `  *
+  *
+  *
+  *
+  *
+  *
+  *`
+    }
+  },
+
+  "9. Fancy Unicode": {
+    small: {
+      heads: `╭─────╮
+│  H  │
+╰─────╯`,
+      tails: `╭─────╮
+│  T  │
+╰─────╯`,
+      edge: `│
+│
+│`
+    },
+    med: {
+      heads: `╭─────────╮
+│  ◉   ◉  │
+│    H    │
+│  ◉   ◉  │
+╰─────────╯`,
+      tails: `╭─────────╮
+│  ◉   ◉  │
+│    T    │
+│  ◉   ◉  │
+╰─────────╯`,
+      edge: ` │
+ │
+ │
+ │
+ │`
+    },
+    big: {
+      heads: `╭─────────────╮
+│   ◉     ◉   │
+│             │
+│      H      │
+│             │
+│   ◉     ◉   │
+╰─────────────╯`,
+      tails: `╭─────────────╮
+│   ◉     ◉   │
+│             │
+│      T      │
+│             │
+│   ◉     ◉   │
+╰─────────────╯`,
+      edge: `  │
+  │
+  │
+  │
+  │
+  │
+  │`
+    }
+  },
+
+  "10. O-Style": {
+    small: {
+      heads: ` OOO
+O H O
+ OOO`,
+      tails: ` OOO
+O T O
+ OOO`,
+      edge: `O
+O
+O`
+    },
+    med: {
+      heads: `  OOOOO
+ O     O
+O   H   O
+ O     O
+  OOOOO`,
+      tails: `  OOOOO
+ O     O
+O   T   O
+ O     O
+  OOOOO`,
+      edge: ` O
+ O
+ O
+ O
+ O`
+    },
+    big: {
+      heads: `   OOOOOOO
+  O       O
+ O         O
+O     H     O
+ O         O
+  O       O
+   OOOOOOO`,
+      tails: `   OOOOOOO
+  O       O
+ O         O
+O     T     O
+ O         O
+  O       O
+   OOOOOOO`,
+      edge: `  O
+  O
+  O
+  O
+  O
+  O
+  O`
+    }
+  },
+
+  "11. Shaded Depth": {
+    small: {
+      heads: `▓███▓
+█ H █
+▓███▓`,
+      tails: `▓███▓
+█ T █
+▓███▓`,
+      edge: `▌▐
+▌▐
+▌▐`
+    },
+    med: {
+      heads: `░▒▓████▓▒░
+█        █
+█   H    █
+█        █
+░▒▓████▓▒░`,
+      tails: `░▒▓████▓▒░
+█        █
+█   T    █
+█        █
+░▒▓████▓▒░`,
+      edge: ` ▌▐
+ ▌▐
+ ▌▐
+ ▌▐
+ ▌▐`
+    },
+    big: {
+      heads: `░░▒▓██████▓▒░░
+█            █
+█            █
+█     H      █
+█            █
+█            █
+░░▒▓██████▓▒░░`,
+      tails: `░░▒▓██████▓▒░░
+█            █
+█            █
+█     T      █
+█            █
+█            █
+░░▒▓██████▓▒░░`,
+      edge: `  ▌▐
+  ▌▐
+  ▌▐
+  ▌▐
+  ▌▐
+  ▌▐
+  ▌▐`
     }
   },
 
   "12. Retro Game": {
     small: {
-      heads: `┌────┐
-│╔══╗│
-│║H ║│
-│╚══╝│
-└────┘`,
-      tails: `┌────┐
-│╔══╗│
-│║T ║│
-│╚══╝│
-└────┘`,
-      edge: ` ┌──┐
- │╔╗│
- │║║│
- │╚╝│
- └──┘`
+      heads: `┌──┐
+│H │
+└──┘`,
+      tails: `┌──┐
+│T │
+└──┘`,
+      edge: `│
+│
+│`
     },
     med: {
-      heads: `┌────────┐
-│╔══════╗│
-│║      ║│
-│║  H   ║│
-│║      ║│
-│╚══════╝│
-└────────┘`,
-      tails: `┌────────┐
-│╔══════╗│
-│║      ║│
-│║  T   ║│
-│║      ║│
-│╚══════╝│
-└────────┘`,
-      edge: `  ┌────┐
-  │╔══╗│
-  │║  ║│
-  │║  ║│
-  │║  ║│
-  │╚══╝│
-  └────┘`
+      heads: `┌──────┐
+│╔════╗│
+│║ H  ║│
+│╚════╝│
+└──────┘`,
+      tails: `┌──────┐
+│╔════╗│
+│║ T  ║│
+│╚════╝│
+└──────┘`,
+      edge: ` │
+ │
+ │
+ │
+ │`
     },
     big: {
-      heads: `┌────────────┐
-│╔══════════╗│
-│║          ║│
-│║          ║│
-│║    H     ║│
-│║          ║│
-│║          ║│
-│╚══════════╝│
-└────────────┘`,
-      tails: `┌────────────┐
-│╔══════════╗│
-│║          ║│
-│║          ║│
-│║    T     ║│
-│║          ║│
-│║          ║│
-│╚══════════╝│
-└────────────┘`,
-      edge: `   ┌──────┐
-   │╔════╗│
-   │║    ║│
-   │║    ║│
-   │║    ║│
-   │║    ║│
-   │║    ║│
-   │╚════╝│
-   └──────┘`
+      heads: `┌──────────┐
+│╔════════╗│
+│║        ║│
+│║   H    ║│
+│║        ║│
+│╚════════╝│
+└──────────┘`,
+      tails: `┌──────────┐
+│╔════════╗│
+│║        ║│
+│║   T    ║│
+│║        ║│
+│╚════════╝│
+└──────────┘`,
+      edge: `  │
+  │
+  │
+  │
+  │
+  │
+  │`
     }
   }
+};
+
+// Font sizes for each scale
+const fontSizes = {
+  small: '10px',
+  med: '14px',
+  big: '18px'
 };
 
 // Generate animation frames for a style (same sequence as game)
 function generateFrames(style, result) {
   const s = styles[style];
   return [
-    // Rise phase (getting bigger)
-    { art: s.small.edge, delay: 80 },
-    { art: s.med.heads, delay: 80 },
-    { art: s.med.edge, delay: 60 },
-    { art: s.big.tails, delay: 60 },
-    { art: s.big.edge, delay: 50 },
-    { art: s.big.heads, delay: 50 },
-    { art: s.big.edge, delay: 50 },
-    { art: s.big.tails, delay: 50 },
-    { art: s.big.edge, delay: 50 },
-    { art: s.big.heads, delay: 50 },
+    // Rise phase (getting bigger) - with font scaling
+    { art: s.small.edge, size: 'small', delay: 80 },
+    { art: s.med.heads, size: 'med', delay: 80 },
+    { art: s.med.edge, size: 'med', delay: 60 },
+    { art: s.big.tails, size: 'big', delay: 60 },
+    { art: s.big.edge, size: 'big', delay: 50 },
+    { art: s.big.heads, size: 'big', delay: 50 },
+    { art: s.big.edge, size: 'big', delay: 50 },
+    { art: s.big.tails, size: 'big', delay: 50 },
+    { art: s.big.edge, size: 'big', delay: 50 },
+    { art: s.big.heads, size: 'big', delay: 50 },
     // Fall phase (getting smaller)
-    { art: s.big.edge, delay: 50 },
-    { art: s.med.tails, delay: 60 },
-    { art: s.med.edge, delay: 60 },
-    { art: s.med.heads, delay: 70 },
-    { art: s.small.edge, delay: 80 },
+    { art: s.big.edge, size: 'big', delay: 50 },
+    { art: s.med.tails, size: 'med', delay: 60 },
+    { art: s.med.edge, size: 'med', delay: 60 },
+    { art: s.med.heads, size: 'med', delay: 70 },
+    { art: s.small.edge, size: 'small', delay: 80 },
     // Bounce 1
-    { art: s.med[result], delay: 100, bounce: true },
-    { art: s.small.edge, delay: 80 },
+    { art: s.med[result], size: 'med', delay: 100, bounce: true },
+    { art: s.small.edge, size: 'small', delay: 80 },
     // Bounce 2 (smaller)
-    { art: s.small[result], delay: 120, bounce: true },
-    { art: s.small.edge, delay: 60 },
+    { art: s.small[result], size: 'small', delay: 120, bounce: true },
+    { art: s.small.edge, size: 'small', delay: 60 },
     // Final land
-    { art: s.small[result], delay: 600 },
+    { art: s.small[result], size: 'small', delay: 800 },
   ];
 }
 
@@ -910,7 +758,9 @@ for (const name of Object.keys(styles)) {
   demo.className = 'demo';
   demo.innerHTML = `
     <h3>${name}</h3>
-    <pre id="coin-${name}"></pre>
+    <div class="coin-container">
+      <pre id="coin-${name}"></pre>
+    </div>
     <div class="controls">
       <button onclick="restartAnim('${name}')">Restart</button>
     </div>
@@ -932,15 +782,17 @@ async function runAnim(name) {
     for (const frame of frames) {
       if (!animStates[name]) break;
       el.textContent = frame.art;
+      el.style.fontSize = fontSizes[frame.size];
+      
       if (frame.bounce) {
-        el.style.transform = 'translateY(-15px)';
+        el.style.transform = 'translateY(-20px)';
         await new Promise(r => setTimeout(r, 60));
         el.style.transform = 'translateY(0)';
       }
       await new Promise(r => setTimeout(r, frame.delay));
     }
     // Pause before loop
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 500));
   }
 }
 
