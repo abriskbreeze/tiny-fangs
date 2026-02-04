@@ -2242,6 +2242,7 @@
     
     function showCoinFlip(deckId) {
       pendingDeckId = deckId;
+      $('setup').classList.add('hidden');
       showModal('Coin Flip', [
         { name: 'HEADS', sub: 'Call it!', action: () => doCoinFlip('heads') },
         { name: 'TAILS', sub: 'Call it!', action: () => doCoinFlip('tails') }
