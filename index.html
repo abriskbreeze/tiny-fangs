@@ -137,13 +137,25 @@
     
     .m-field-half.opp .m-active-row { flex-direction: row-reverse; }
     
-    .m-bench-row {
+    .m-bench-wrap {
       display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
     
-    .m-field-half.opp .m-bench-row { justify-content: flex-end; }
+    .m-bench-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .m-bench-label {
+      font-size: 7px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
     
     .m-side-info {
       display: flex;
@@ -153,14 +165,23 @@
     
     .m-set-verse {
       background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      font-size: 9px;
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      width: clamp(50px, 14vw, 60px);
+      aspect-ratio: 5 / 7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
       color: var(--dim);
       cursor: pointer;
     }
     
-    .m-set-verse.has { border-color: var(--purple); color: var(--purple); }
+    .m-set-verse.has { 
+      border-style: solid;
+      border-color: var(--purple); 
+      color: var(--purple); 
+    }
     
     /* Set verse animation - glow pulse */
     @keyframes set-verse-glow {
@@ -203,27 +224,48 @@
       padding: 6px 0;
     }
     
-    /* Card Styles */
+    /* Card Styles - Trading Card Shape (5:7 ratio) */
     .card-mini {
       background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      font-size: 10px;
+      border: 2px solid var(--green);
+      border-radius: 4px;
+      width: clamp(50px, 14vw, 60px);
+      aspect-ratio: 5 / 7;
+      padding: 4px;
+      font-size: 8px;
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
     
-    .card-mini .name { font-weight: 500; }
-    .card-mini .stats { color: var(--dim); font-size: 9px; }
+    .card-mini .name { 
+      font-weight: 500; 
+      font-size: 7px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-mini .stats { 
+      color: var(--dim); 
+      font-size: 7px;
+      margin-top: auto;
+    }
     
     .card-active {
       background: var(--panel);
-      border: 1px solid var(--border);
-      width: clamp(110px, 35vw, 160px); /* Responsive: min 110px, prefer 35% viewport, max 160px */
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      width: clamp(80px, 24vw, 100px);
+      aspect-ratio: 5 / 7;
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
     
     .card-active.creature { border-color: var(--green); }
@@ -233,9 +275,10 @@
     .card-active .header {
       display: flex;
       justify-content: space-between;
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border);
-      font-size: 10px;
+      padding: 4px 6px;
+      background: rgba(0,0,0,0.2);
+      font-size: 9px;
+      flex-shrink: 0;
     }
     
     .card-active .cost {
@@ -244,8 +287,9 @@
     }
     
     .card-active .hp-bar {
-      height: 3px;
+      height: 2px;
       background: var(--muted);
+      flex-shrink: 0;
     }
     
     .card-active .hp-fill {
@@ -257,21 +301,27 @@
     .card-active .hp-fill.low { background: var(--red); }
     
     .card-active .art {
-      padding: 8px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
       text-align: center;
-      font-size: 10px;
+      font-size: 9px;
       white-space: pre;
-      line-height: 1.15;
-      min-height: 50px;
-      border-bottom: 1px solid var(--border);
+      line-height: 1.1;
+      min-height: 0;
+      overflow: hidden;
     }
     
     .card-active .footer {
-      padding: 6px 8px;
-      font-size: 9px;
+      padding: 4px 6px;
+      font-size: 8px;
       color: var(--dim);
       display: flex;
       justify-content: space-between;
+      background: rgba(0,0,0,0.2);
+      flex-shrink: 0;
     }
     
     .card-active .status { color: var(--gold); }
@@ -294,14 +344,20 @@
     }
     
     .card-empty {
-      width: 140px;
-      height: 100px;
-      border: 1px dashed var(--border);
+      width: clamp(50px, 14vw, 60px);
+      aspect-ratio: 5 / 7;
+      border: 2px dashed var(--border);
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--muted);
-      font-size: 10px;
+      font-size: 7px;
+    }
+    
+    .card-empty.active-slot {
+      width: clamp(80px, 24vw, 100px);
+      font-size: 9px;
     }
     
     /* Hand */
@@ -433,10 +489,15 @@
     
     /* Small screen adjustments */
     @media (max-width: 380px) {
-      .card-active { width: 100px; }
-      .card-active .header { font-size: 9px; padding: 4px 6px; }
-      .card-active .art { font-size: 24px; padding: 6px; }
-      .card-active .footer { font-size: 8px; padding: 4px 6px; }
+      .card-active { width: 70px; }
+      .card-active .header { font-size: 7px; padding: 3px 4px; }
+      .card-active .art { font-size: 7px; }
+      .card-active .footer { font-size: 6px; padding: 3px 4px; }
+      .card-mini { width: 42px; }
+      .card-mini .name, .card-mini .stats { font-size: 6px; }
+      .card-empty { width: 42px; font-size: 6px; }
+      .card-empty.active-slot { width: 70px; }
+      .m-set-verse { width: 42px; font-size: 6px; }
       .hand-card { width: 60px; padding: 6px; font-size: 9px; }
       .m-actions { gap: 4px; }
       .m-btn { padding: 6px 8px; font-size: 10px; }
@@ -1765,26 +1826,32 @@
     <div class="m-battle">
       <div class="m-field-half opp">
         <div class="m-active-row">
-          <div id="m-opp-active"></div>
           <div class="m-side-info">
             <div class="m-set-verse" id="m-opp-set">NO SET</div>
             <div class="m-grave-btn" onclick="showGraveyard('opp')">[x] <span id="m-opp-grave-ct">0</span></div>
           </div>
+          <div id="m-opp-active"></div>
+          <div class="m-bench-wrap">
+            <div id="m-opp-bench" class="m-bench-col"></div>
+            <div class="m-bench-label">Rival Bench</div>
+          </div>
         </div>
-        <div id="m-opp-bench" class="m-bench-row"></div>
       </div>
       
       <div class="m-vs">── VS ──</div>
       
       <div class="m-field-half you">
         <div class="m-active-row">
+          <div class="m-bench-wrap">
+            <div id="m-my-bench" class="m-bench-col"></div>
+            <div class="m-bench-label">Your Bench</div>
+          </div>
           <div id="m-my-active"></div>
           <div class="m-side-info">
             <div class="m-set-verse" id="m-my-set">NO SET</div>
             <div class="m-grave-btn" onclick="showGraveyard('me')">[x] <span id="m-my-grave-ct">0</span></div>
           </div>
         </div>
-        <div id="m-my-bench" class="m-bench-row"></div>
       </div>
     </div>
     
@@ -2012,7 +2079,7 @@
     import { CREATURES, VERSES, DECKS } from './src/cards.js';
     import { $, uid, state, setGame, clearGame } from './src/state.js';
     import { ANIM_TIMING, Anim } from './src/anim.js';
-    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
+    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
     import { applyDamage } from './src/game.js';
     import {
       log,
@@ -2181,10 +2248,10 @@
       $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo);
       
       // Bench
-      $('m-my-bench').innerHTML = state.G.me.bench.map(c => renderMiniCard(c)).join('');
-      $('m-opp-bench').innerHTML = state.G.opp.bench.map(c => renderMiniCard(c)).join('');
-      $('d-my-bench').innerHTML = state.G.me.bench.map(c => renderMiniCard(c)).join('');
-      $('d-opp-bench').innerHTML = state.G.opp.bench.map(c => renderMiniCard(c)).join('');
+      $('m-my-bench').innerHTML = renderBench(state.G.me.bench);
+      $('m-opp-bench').innerHTML = renderBench(state.G.opp.bench);
+      $('d-my-bench').innerHTML = renderBench(state.G.me.bench);
+      $('d-opp-bench').innerHTML = renderBench(state.G.opp.bench);
       
       // Hand
       $('m-hand-ct').textContent = state.G.me.hand.length;

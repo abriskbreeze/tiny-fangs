@@ -5,7 +5,8 @@ import {
   renderManaPips, 
   renderSetVerse, 
   renderActiveCard, 
-  renderMiniCard, 
+  renderMiniCard,
+  renderBench,
   renderHandCard,
   renderLogEntries,
   renderLogInline
@@ -128,6 +129,29 @@ describe('renderMiniCard', () => {
     expect(html).toContain('Gloom');
     expect(html).toContain('15/20');
     expect(html).toContain('xyz');
+  });
+});
+
+describe('renderBench', () => {
+  it('renders 2 empty slots when bench is empty', () => {
+    const html = renderBench([]);
+    expect((html.match(/card-empty/g) || []).length).toBe(2);
+  });
+
+  it('renders 1 creature and 1 empty slot', () => {
+    const c = { uid: 'a', name: 'Wolf', hp: 10, curHp: 10 };
+    const html = renderBench([c]);
+    expect(html).toContain('Wolf');
+    expect((html.match(/card-empty/g) || []).length).toBe(1);
+  });
+
+  it('renders 2 creatures when bench is full', () => {
+    const c1 = { uid: 'a', name: 'Wolf', hp: 10, curHp: 10 };
+    const c2 = { uid: 'b', name: 'Bear', hp: 20, curHp: 15 };
+    const html = renderBench([c1, c2]);
+    expect(html).toContain('Wolf');
+    expect(html).toContain('Bear');
+    expect(html).not.toContain('card-empty');
   });
 });
 

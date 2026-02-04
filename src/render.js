@@ -39,7 +39,7 @@ export function renderSetVerse(verse, id, isPlayer = false) {
 
 // Active creature card
 export function renderActiveCard(c, atkInfo = null) {
-  if (!c) return `<div class="card-empty">EMPTY</div>`;
+  if (!c) return `<div class="card-empty active-slot">EMPTY</div>`;
   const pct = (c.curHp / c.hp) * 100;
   const low = pct <= 30 ? 'low' : '';
   const statusStr = c.status ? `[${c.status}]` : '';
@@ -69,6 +69,19 @@ export function renderMiniCard(c) {
     <div class="name">${c.name}</div>
     <div class="stats">${c.curHp}/${c.hp}</div>
   </div>`;
+}
+
+// Render bench with 2 slots (filled or empty)
+export function renderBench(benchArray) {
+  const slots = [];
+  for (let i = 0; i < 2; i++) {
+    if (benchArray[i]) {
+      slots.push(renderMiniCard(benchArray[i]));
+    } else {
+      slots.push(`<div class="card-empty"></div>`);
+    }
+  }
+  return slots.join('');
 }
 
 // Hand card (mobile or desktop vertical)
