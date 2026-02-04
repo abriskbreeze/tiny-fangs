@@ -2375,11 +2375,11 @@
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
       const display = document.createElement('pre');
-      display.style.cssText = 'color:var(--dim);font-size:14px;text-align:center;font-family:monospace;line-height:1.2;transition:transform 0.15s ease-out;';
+      display.style.cssText = 'color:var(--text);font-size:28px;text-align:center;font-family:monospace;line-height:1.2;transition:transform 0.15s ease-out;';
       overlay.appendChild(display);
       document.body.appendChild(overlay);
       
-      // Crossbar Letter Slide animation frames
+      // Crossbar Letter Slide animation frames (all centered)
       const frames = [
         { text: "│                           │\n│                           │\n│                           │\n│                           │\n│                           │", delay: 60 },
         { text: " │                         │\n─┼─B─────────────────────!─┼─\n │                         │\n─┼─────E───────────N───────┼─\n │                         │", delay: 70 },
@@ -2389,8 +2389,8 @@
         { text: "     │                 │\n─────┼─────B─────!─────┼─────\n     │      GI         │\n─────┼──────E─N────────┼─────\n     │                 │", delay: 70 },
         { text: "      │               │\n──────┼─────B───!─────┼──────\n      │     GIN       │\n──────┼──────E────────┼──────\n      │               │", delay: 70 },
         { text: "       │             │\n───────┼────BEGIN!───┼───────\n       │             │", delay: 100 },
-        { text: "\n       BEGIN!", delay: 150, scale: 1.3 },
-        { text: "\n       BEGIN!", delay: 600, scale: 1.5 },
+        { text: "BEGIN!", delay: 150, scale: 1.3 },
+        { text: "BEGIN!", delay: 600, scale: 1.5 },
       ];
       
       for (const frame of frames) {
