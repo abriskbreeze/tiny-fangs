@@ -363,6 +363,12 @@
       color: var(--purple);
     }
     
+    .card-empty.grave-slot {
+      cursor: pointer;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
     /* Hand */
     .m-hand {
       background: var(--panel);
@@ -1847,11 +1853,9 @@
     <div class="m-battle">
       <div class="m-field-half opp">
         <div class="m-active-row" style="width: 100%; justify-content: space-between;">
-          <div class="m-side-info">
+          <div class="card-empty grave-slot" onclick="showGraveyard('opp')">☠ <span id="m-opp-grave-ct">0</span></div>
+          <div class="m-opp-right-group" style="display: flex; gap: 6px; align-items: flex-start;">
             <div class="card-empty set-slot" id="m-opp-set">NO SET</div>
-            <div class="m-grave-btn" onclick="showGraveyard('opp')">[x] <span id="m-opp-grave-ct">0</span></div>
-          </div>
-          <div class="m-opp-right-group" style="display: flex; gap: 10px;">
             <div class="m-bench-wrap">
               <div id="m-opp-bench" class="m-bench-col"></div>
               <div class="m-bench-label">Rival Bench</div>
@@ -1870,10 +1874,8 @@
             <div class="m-bench-label">Your Bench</div>
             <div id="m-my-bench" class="m-bench-col"></div>
           </div>
-          <div class="m-side-info">
-            <div class="card-empty set-slot" id="m-my-set">NO SET</div>
-            <div class="m-grave-btn" onclick="showGraveyard('me')">[x] <span id="m-my-grave-ct">0</span></div>
-          </div>
+          <div class="card-empty set-slot" id="m-my-set">NO SET</div>
+          <div class="card-empty grave-slot" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
         </div>
       </div>
     </div>
