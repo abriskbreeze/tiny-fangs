@@ -5,6 +5,7 @@
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v2.1.3** — Den Mother redesign: "next attack +10 damage" (was broken "this turn" buff)
 - **v2.1.2** — Battlefield UI: graveyard buttons on field, hold-to-zoom on player's [SET]
 - **v2.1.1** — UX fixes: Swarm Shield, Sacrifice order/choice, graveyard view, set verse inspect, Grave Rise choice
 - **v2.1** — Swarm deck, 10 new creatures, 6 new verses, ability system

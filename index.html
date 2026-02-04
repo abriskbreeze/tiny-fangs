@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.2</title>
+  <title>TINY FANGS v2.1.3</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1572,7 +1572,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.2 • Card Battler</p>
+    <p class="sub">v2.1.3 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1671,7 +1671,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.2</div>
+      <div class="logo">TINY FANGS v2.1.3</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -1896,8 +1896,7 @@
       checkSwarm,
       applySpawn,
       shouldScurryTrigger,
-      executeScurry,
-      applyDenMotherBuff
+      executeScurry
     } from './src/abilities.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
@@ -2589,6 +2588,13 @@
         // Bladewhisker Rend
         if (attacker.id === 'bladewhisker') dmg += 10;
         
+        // Den Mother bonus (one-shot, from set verse)
+        if (state.G.me.denMotherBonus) {
+          dmg += state.G.me.denMotherBonus;
+          log(`Den Mother bonus! +${state.G.me.denMotherBonus} damage`, 'mana');
+          state.G.me.denMotherBonus = 0;
+        }
+        
         // Predator's Mark
         if (state.G.me.marked) {
           dmg += 30;
@@ -2893,6 +2899,13 @@
             let dmg = ai.active.atk;
             if (ai.active.id === 'bladewhisker') dmg += 10;
             if (ai.active.id === 'echomask' && state.G.me.active) dmg = state.G.me.active.atk;
+            
+            // AI Den Mother bonus
+            if (ai.denMotherBonus) {
+              dmg += ai.denMotherBonus;
+              log(`Rival's Den Mother! +${ai.denMotherBonus} damage`, 'dmg');
+              ai.denMotherBonus = 0;
+            }
             if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
               dmg *= 2;
               ai.active.firstAtk = false;
@@ -3124,11 +3137,11 @@
       
       log(`${creature.name} KO'd!`, 'dmg');
       
-      // Den Mother - other creatures gain +10 ATK
+      // Den Mother - next attack deals +10 bonus damage
       if (owner.setVerse?.id === 'denMother') {
         await showTriggerReveal(owner.setVerse);
-        applyDenMotherBuff(owner);
-        log('Den Mother! Pack gains +10 ATK', 'mana');
+        owner.denMotherBonus = 10;
+        log('Den Mother! Next attack +10 damage', 'mana');
         owner.grave.push(owner.setVerse);
         owner.setVerse = null;
       }

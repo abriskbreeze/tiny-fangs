@@ -149,7 +149,7 @@ export const VERSES = {
   sacrifice: { id:'sacrifice', name:'Sacrifice', type:'cast', cost:0,
     text:'KO one of your creatures. Draw 2 cards.' },
   denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
-    trigger:'When a creature you control is KO\'d', text:'Your other creatures gain +10 ATK this turn.' },
+    trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.' },
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
     trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.' },
 };
