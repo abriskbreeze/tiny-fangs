@@ -55,6 +55,7 @@ Full modularization of the monolith using TDD approach.
 - **Modules:** 5 extracted (cards, state, anim, render, game)
 
 ## Links
-- Local dev: http://100.76.215.88:3003
+- Local dev: http://100.76.215.88:3004 (v2 refactor)
+- Classic: http://100.76.215.88:3003 (original)
 - Live: https://abriskbreeze.github.io/tiny-fangs/
 - Repo: github.com/abriskbreeze/tiny-fangs
