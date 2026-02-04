@@ -2358,12 +2358,16 @@
           { name: 'Go Second', sub: 'You can attack on turn 1', action: () => startGame(pendingDeckId, false) }
         ], { noCancel: true });
       } else {
-        // AI won - randomly choose and start
+        // AI won - randomly choose and auto-start
         const aiGoesFirst = Math.random() < 0.5;
-        await Anim.wait(500);
-        showModal(`${result.toUpperCase()}! Rival won the toss`, [
-          { name: aiGoesFirst ? 'Rival goes first' : 'You go first', sub: 'Starting game...', action: () => startGame(pendingDeckId, !aiGoesFirst) }
-        ], { noCancel: true });
+        // Brief message overlay
+        const msg = document.createElement('div');
+        msg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;';
+        msg.innerHTML = `<div style="margin-bottom:8px;">${result.toUpperCase()}! Rival won</div><div style="color:var(--text);font-size:14px;">${aiGoesFirst ? 'Rival goes first' : 'You go first'}</div>`;
+        document.body.appendChild(msg);
+        await Anim.wait(1500);
+        msg.remove();
+        startGame(pendingDeckId, !aiGoesFirst);
       }
     }
     
