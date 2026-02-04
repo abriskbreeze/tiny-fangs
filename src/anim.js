@@ -16,7 +16,7 @@ export const ANIM_TIMING = {
   FLOAT_TEXT: 800,
   ATTACK_SEQUENCE: 450, // lunge + hit
   AI_PAUSE: 1000,       // pause between AI actions for readability
-  TRIGGER_REVEAL: 2500, // how long to show triggered set verse
+  TRIGGER_REVEAL: 5000, // how long to show triggered set verse (doubled from 2500)
 };
 
 export const Anim = {

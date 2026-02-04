@@ -13,7 +13,7 @@ describe('ANIM_TIMING', () => {
     expect(ANIM_TIMING.FLOAT_TEXT).toBe(800);
     expect(ANIM_TIMING.ATTACK_SEQUENCE).toBe(450);
     expect(ANIM_TIMING.AI_PAUSE).toBe(1000);
-    expect(ANIM_TIMING.TRIGGER_REVEAL).toBe(2500);
+    expect(ANIM_TIMING.TRIGGER_REVEAL).toBe(5000);
   });
 
   it('all timings are positive numbers', () => {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1</title>
+  <title>TINY FANGS v2.1.1</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -469,6 +469,18 @@
       
       .d-stat-sm .val {
         font-size: 14px;
+      }
+      
+      .d-stat-sm.clickable {
+        cursor: pointer;
+        padding: 4px 8px;
+        margin: -4px -8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      
+      .d-stat-sm.clickable:hover {
+        background: rgba(255, 255, 255, 0.1);
       }
       
       .d-mana-pips {
@@ -1538,7 +1550,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1 • Card Battler</p>
+    <p class="sub">v2.1.1 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1631,7 +1643,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1</div>
+      <div class="logo">TINY FANGS v2.1.1</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -1650,7 +1662,11 @@
             </div>
             <div class="d-stat-row">
               <div class="d-stat-sm"><div class="label">Deck</div><div class="val" id="d-deck">20</div></div>
-              <div class="d-stat-sm"><div class="label">Grave</div><div class="val" id="d-grave">0</div></div>
+              <div class="d-stat-sm clickable" onclick="showGraveyard('me')"><div class="label">Grave</div><div class="val" id="d-grave">0</div></div>
+            </div>
+            <div class="d-stat-sm clickable" onclick="showMySetVerse()">
+              <div class="label">Set Verse</div>
+              <div class="val" id="d-set-verse">-</div>
             </div>
             <div class="d-stat-sm">
               <div class="label">Mana</div>
@@ -1664,6 +1680,10 @@
             <div class="d-stat-row">
               <div class="d-stat-sm"><div class="label">Lives</div><div class="val" id="d-opp-lp">♥♥♥</div></div>
               <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
+            </div>
+            <div class="d-stat-sm clickable" onclick="showGraveyard('opp')">
+              <div class="label">Grave</div>
+              <div class="val" id="d-opp-grave">0</div>
             </div>
           </div>
         </div>
@@ -1970,6 +1990,8 @@
       $('d-deck').textContent = state.G.me.deck.length;
       $('d-grave').textContent = state.G.me.grave.length;
       $('d-opp-hand').textContent = state.G.opp.hand.length;
+      $('d-opp-grave').textContent = state.G.opp.grave.length;
+      $('d-set-verse').textContent = state.G.me.setVerse ? '✓' : '-';
       
       // Set Verses
       $('m-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'm-my-set');
@@ -2360,19 +2382,69 @@
             log('No creatures to sacrifice!', 'dmg');
             break;
           }
-          // For simplicity, sacrifice active if exists, else first bench
+          
+          // Build list of creatures to choose from
+          const sacrificeOptions = [];
           if (state.G.me.active) {
-            const victim = state.G.me.active;
-            log(`Sacrificed ${victim.name}`, 'dmg');
-            Anim.ko('me');
-            await ko(victim, state.G.me);
-          } else if (state.G.me.bench.length) {
-            const victim = state.G.me.bench.shift();
-            state.G.me.grave.push(victim);
-            log(`Sacrificed ${victim.name}`, 'dmg');
+            sacrificeOptions.push({ creature: state.G.me.active, location: 'active' });
           }
-          draw(state.G.me); draw(state.G.me);
-          log('Drew 2 cards', 'mana');
+          state.G.me.bench.forEach((c, idx) => {
+            sacrificeOptions.push({ creature: c, location: 'bench', idx });
+          });
+          
+          await new Promise(resolve => {
+            showModal('Choose creature to sacrifice', sacrificeOptions.map(opt => ({
+              name: opt.creature.name,
+              sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
+              action: async () => {
+                closeModal();
+                const victim = opt.creature;
+                log(`Sacrificed ${victim.name}`, 'dmg');
+                
+                // Remove from field (don't trigger ko() auto-replacement)
+                if (opt.location === 'active') {
+                  state.G.me.active = null;
+                  await Anim.ko('me');
+                } else {
+                  state.G.me.bench.splice(opt.idx, 1);
+                }
+                state.G.me.grave.push(victim);
+                
+                // Draw 2 FIRST
+                draw(state.G.me); draw(state.G.me);
+                log('Drew 2 cards', 'mana');
+                render();
+                
+                // THEN send out replacement if needed
+                if (!state.G.me.active && state.G.me.bench.length > 0) {
+                  await pause(300);
+                  if (state.G.me.bench.length === 1) {
+                    state.G.me.active = state.G.me.bench.shift();
+                    log(`Sent out ${state.G.me.active.name}`);
+                    render();
+                    await Anim.summon('me');
+                  } else {
+                    // Multiple bench - let player choose
+                    await new Promise(innerResolve => {
+                      showModal('Choose replacement', state.G.me.bench.map(c => ({
+                        name: c.name,
+                        sub: `${c.curHp}/${c.hp} HP`,
+                        action: () => {
+                          closeModal();
+                          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
+                          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
+                          log(`Sent out ${state.G.me.active.name}`);
+                          render();
+                          Anim.summon('me').then(innerResolve);
+                        }
+                      })));
+                    });
+                  }
+                }
+                resolve();
+              }
+            })));
+          });
           break;
       }
       
@@ -2776,6 +2848,24 @@
             }
             
             const attacker = ai.active;
+            
+            // Apply damage reduction (Den Guard, Swarm Shield) for player
+            if (state.G.me.active) {
+              const reduction = getEffectiveDamageReduction(state.G.me.active, state.G.me);
+              if (reduction > 0) {
+                dmg = Math.max(0, dmg - reduction);
+                if (state.G.me.active.id === 'vulpix' && state.G.me.bench.length > 0) {
+                  log(`Den Guard! -${10} damage`, 'heal');
+                }
+                if (state.G.me.setVerse?.id === 'swarmShield' && state.G.me.bench.length > 0) {
+                  await showTriggerReveal(state.G.me.setVerse);
+                  log(`Swarm Shield! -15 damage`, 'heal');
+                  state.G.me.grave.push(state.G.me.setVerse);
+                  state.G.me.setVerse = null;
+                }
+              }
+            }
+            
             log(`${attacker.name} attacks for ${dmg}!`);
             await Anim.attack('opp', 'me', dmg);
             
@@ -2991,7 +3081,27 @@
         const oneCost = owner.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
         if (oneCost.length) {
           log('Grave Rise triggered!', 'heal');
-          const revived = oneCost[0];
+          
+          // Player chooses, AI auto-selects first
+          const isPlayer = owner === state.G.me;
+          let revived;
+          
+          if (isPlayer && oneCost.length > 1) {
+            // Player has choice
+            revived = await new Promise(resolve => {
+              showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
+                name: c.name,
+                sub: `${c.hp} HP / ${c.atk} ATK`,
+                action: () => {
+                  closeModal();
+                  resolve(c);
+                }
+              })));
+            });
+          } else {
+            revived = oneCost[0];
+          }
+          
           revived.curHp = revived.hp; // Restore HP
           owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
           
@@ -3000,7 +3110,7 @@
             owner.active = revived;
             log(`${revived.name} rises as active!`);
             render();
-            await Anim.summon(owner === state.G.me ? 'me' : 'opp');
+            await Anim.summon(isPlayer ? 'me' : 'opp');
           } else if (owner.bench.length < 2) {
             owner.bench.push(revived);
             log(`${revived.name} rises to bench!`);
@@ -3128,6 +3238,63 @@
       $('rulesModal').classList.remove('open');
     }
     
+    // Graveyard View - scrollable list with hold-to-zoom
+    function showGraveyard(who) {
+      const player = who === 'me' ? state.G.me : state.G.opp;
+      const title = who === 'me' ? 'Your Graveyard' : "Rival's Graveyard";
+      
+      if (player.grave.length === 0) {
+        showModal(title, [{
+          name: 'Empty',
+          sub: 'No cards in graveyard',
+          action: () => closeModal()
+        }]);
+        return;
+      }
+      
+      const options = player.grave.map(c => ({
+        name: c.name,
+        sub: c.cardType === 'creature' 
+          ? `${c.hp} HP / ${c.atk} ATK • Cost ${c.cost}` 
+          : `${c.type} verse • Cost ${c.cost}`,
+        action: () => {} // Hold-to-zoom handled separately
+      }));
+      options.push({
+        name: '[ Close ]',
+        sub: `${player.grave.length} card${player.grave.length !== 1 ? 's' : ''} total`,
+        action: () => closeModal()
+      });
+      
+      showModal(title, options);
+    }
+    
+    // Set Verse Inspect - view your own set verse (not opponent's!)
+    function showMySetVerse() {
+      if (!state.G.me.setVerse) {
+        showModal('Your Set Verse', [{
+          name: 'No set verse',
+          sub: 'Use [T] Set to place one',
+          action: () => closeModal()
+        }]);
+        return;
+      }
+      
+      const v = state.G.me.setVerse;
+      showModal('Your Set Verse', [{
+        name: v.name,
+        sub: `Trigger: ${v.trigger}`,
+        action: () => {}
+      }, {
+        name: 'Effect',
+        sub: v.text,
+        action: () => {}
+      }, {
+        name: '[ Close ]',
+        sub: '',
+        action: () => closeModal()
+      }]);
+    }
+    
     // Trigger Reveal - shows set verse when it activates
     let triggerRevealResolve = null;
     let triggerRevealTimeout = null;
@@ -3195,6 +3362,8 @@
     window.closeCardModal = closeCardModal;
     window.showRules = showRules;
     window.closeRules = closeRules;
+    window.showGraveyard = showGraveyard;
+    window.showMySetVerse = showMySetVerse;
     
     // Card interactions
     window.cardPress = cardPress;
