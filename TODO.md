@@ -1,10 +1,11 @@
 # Tiny Fangs — Development TODO
 
-**Current Version:** v0.2.7 (see VERSION file)
+**Current Version:** v0.2.8 (see VERSION file)
 
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v0.2.8** — Shaded Depth coin flip animation with size scaling, color matched to UI
 - **v0.2.7** — Mana fix (increment at end of turn), coin flip to decide who goes first, first turn attack restriction
 - **v0.2.6** — HP moved to footer with damage coloring, ATK modifiers in card detail, Den Mother ATK bug fix
 - **v0.2.5** — Bench card ASCII art fix (added white-space: pre, smaller font)
