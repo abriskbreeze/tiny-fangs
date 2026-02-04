@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.6</title>
+  <title>TINY FANGS v0.2.7</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -41,7 +41,7 @@
       inset: 0;
       z-index: -1;
       background: url('https://images.unsplash.com/photo-1518562180175-34a163b1a9a6?w=1600') center/cover;
-      opacity: 0.25;
+      opacity: 0.15;
       filter: saturate(0.5);
     }
     
@@ -171,16 +171,15 @@
       gap: 4px;
     }
     
-    /* Battlefield text - improved readability over bg image */
+    /* Battlefield text - consistent color */
     .m-bench-label,
     .m-vs,
     .card-empty {
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+      color: var(--dim);
     }
     
     .m-bench-label {
       font-size: 7px;
-      color: var(--dim);
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
@@ -364,8 +363,14 @@
     }
     
     .card-empty.active-slot {
-      width: clamp(80px, 24vw, 100px);
+      width: clamp(103px, 28.5vw, 124px);
       font-size: 9px;
+    }
+    
+    /* Active cards sized to match height of 2 stacked bench cards */
+    #m-my-active .card-mini,
+    #m-opp-active .card-mini {
+      width: clamp(103px, 28.5vw, 124px);
     }
     
     .card-empty.set-slot {
@@ -520,7 +525,9 @@
       .card-mini { width: 42px; }
       .card-mini .name, .card-mini .stats { font-size: 6px; }
       .card-empty { width: 42px; font-size: 6px; }
-      .card-empty.active-slot { width: 70px; }
+      .card-empty.active-slot { width: 87px; }
+      #m-my-active .card-mini,
+      #m-opp-active .card-mini { width: 87px; }
       .hand-card { width: 60px; padding: 6px; font-size: 9px; }
       .m-actions { gap: 4px; }
       .m-btn { padding: 6px 8px; font-size: 10px; }
@@ -1816,7 +1823,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.6 • Card Battler</p>
+    <p class="sub">v0.2.7 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1921,7 +1928,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.6</div>
+      <div class="logo">TINY FANGS v0.2.7</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
