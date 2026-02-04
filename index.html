@@ -1819,6 +1819,7 @@
     import { $, uid } from './src/state.js';
     import { ANIM_TIMING, Anim } from './src/anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
+    import { applyDamage } from './src/game.js';
     
     // Mutable game state (kept local - G is reassigned throughout)
     let G = null;
@@ -2094,10 +2095,10 @@
       if (G.opp.setVerse?.id === 'soulTrap') {
         await showTriggerReveal(G.opp.setVerse);
         log('Soul Trap triggered!', 'dmg');
-        c.curHp -= 20;
+        const soulTrapKo = applyDamage(c, 20);
         G.opp.grave.push(G.opp.setVerse);
         G.opp.setVerse = null;
-        if (c.curHp <= 0) {
+        if (soulTrapKo) {
           log(`${c.name} destroyed by trap!`, 'dmg');
           G.me.grave.push(c);
           render();
@@ -2127,11 +2128,11 @@
       
       // Chain Lightning damage
       if (G.me.chainLightning > 0) {
-        c.curHp -= G.me.chainLightning;
+        const chainKo = applyDamage(c, G.me.chainLightning);
         log(`Chain Lightning: -${G.me.chainLightning}`, 'dmg');
         G.me.chainLightning = 0;
-        if (c.curHp <= 0) {
-          ko(c, G.me);
+        if (chainKo) {
+          await ko(c, G.me);
         }
       }
       
@@ -2184,10 +2185,10 @@
       switch(c.id) {
         case 'soulSiphon':
           if (G.opp.active) {
-            G.opp.active.curHp -= 20;
+            const siphonKo = applyDamage(G.opp.active, 20);
             log('Enemy -20', 'dmg');
             Anim.damage('opp', 20);
-            if (G.opp.active.curHp <= 0) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+            if (siphonKo) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
           }
           if (G.me.active) {
             G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 10);
@@ -2230,14 +2231,14 @@
           break;
         case 'bloodMoon':
           if (G.me.active) { 
-            G.me.active.curHp -= 20; 
+            const moonKoMe = applyDamage(G.me.active, 20);
             Anim.damage('me', 20);
-            if (G.me.active.curHp <= 0) { Anim.ko('me'); ko(G.me.active, G.me); }
+            if (moonKoMe) { Anim.ko('me'); ko(G.me.active, G.me); }
           }
           if (G.opp.active) { 
-            G.opp.active.curHp -= 20; 
+            const moonKoOpp = applyDamage(G.opp.active, 20);
             Anim.damage('opp', 20);
-            if (G.opp.active.curHp <= 0) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
+            if (moonKoOpp) { Anim.ko('opp'); ko(G.opp.active, G.opp); }
           }
           log('All creatures -20', 'dmg');
           break;
@@ -2301,12 +2302,12 @@
         if (G.opp.setVerse?.id === 'phantomWall') {
           await showTriggerReveal(G.opp.setVerse);
           log('Phantom Wall triggered!', 'dmg');
-          attacker.curHp -= 10;
+          const phantomKo = applyDamage(attacker, 10);
           log(`${attacker.name} takes 10 damage!`, 'dmg');
           await Anim.damage('me', 10);
           G.opp.grave.push(G.opp.setVerse);
           G.opp.setVerse = null;
-          if (attacker.curHp <= 0) { await Anim.ko('me'); ko(attacker, G.me); }
+          if (phantomKo) { await Anim.ko('me'); await ko(attacker, G.me); }
           await Anim.negateX();
           log('Attack negated!');
           render();
@@ -2354,9 +2355,9 @@
         // Cindermaw Frenzy
         if (attacker.id === 'cindermaw') {
           dmg *= 2;
-          attacker.curHp -= 10;
+          const frenzyKo = applyDamage(attacker, 10);
           log('Frenzy! Double hit, -10 self', 'dmg');
-          if (attacker.curHp <= 0) ko(attacker, G.me);
+          if (frenzyKo) await ko(attacker, G.me);
         }
         
         log(`${attacker.name} attacks for ${dmg}!`);
@@ -2366,31 +2367,31 @@
         
         // Thornling Thorns - only if attacker survived Cindermaw self-damage
         if (defender.id === 'thornling' && G.me.active && G.me.active.curHp > 0) {
-          G.me.active.curHp -= 10;
+          const thornsKo = applyDamage(G.me.active, 10);
           log('Thorns! -10 to attacker', 'dmg');
           Anim.damage('me', 10);
-          if (G.me.active.curHp <= 0) ko(G.me.active, G.me);
+          if (thornsKo) await ko(G.me.active, G.me);
         }
         
         // Apply damage to defender
-        defender.curHp -= dmg;
+        const defenderKo = applyDamage(defender, dmg);
         log(`${defender.name} takes ${dmg}`, 'dmg');
         
-        // Hexweaver poison - only if attacker survived
-        if (G.me.active?.id === 'hexweaver' && defender.curHp > 0) {
+        // Hexweaver poison - only if defender survived
+        if (G.me.active?.id === 'hexweaver' && !defenderKo) {
           defender.status = 'poison';
           G.opp.poisoned = true;
           log('Poisoned!');
         }
         
         // Mireveil Bog Grasp
-        if (G.me.active?.id === 'mireveil' && defender.curHp > 0) {
+        if (G.me.active?.id === 'mireveil' && !defenderKo) {
           defender.status = 'trapped';
           log('Trapped! Cannot retreat');
         }
         
         // Check KO
-        if (defender.curHp <= 0) {
+        if (defenderKo) {
           // Sundew Queen Digest
           if (G.me.active?.id === 'sundewqueen') {
             G.me.active.curHp = Math.min(G.me.active.hp, G.me.active.curHp + 30);
@@ -2399,7 +2400,7 @@
           }
           
           Anim.ko('opp');
-          ko(defender, G.opp, G.me.active, G.me);
+          await ko(defender, G.opp, G.me.active, G.me);
         }
         
         render();
@@ -2442,10 +2443,10 @@
       
       // Poison damage
       if (G.me.active && G.me.active.status === 'poison') {
-        G.me.active.curHp -= 10;
+        const poisonKo = applyDamage(G.me.active, 10);
         log('Poison: -10', 'dmg');
         Anim.poisonTick('me');
-        if (G.me.active.curHp <= 0) { Anim.ko('me'); ko(G.me.active, G.me); }
+        if (poisonKo) { Anim.ko('me'); ko(G.me.active, G.me); }
       }
       
       G.myTurn = false;
@@ -2494,10 +2495,10 @@
             if (G.me.setVerse?.id === 'soulTrap') {
               await showTriggerReveal(G.me.setVerse);
               log('Soul Trap triggered!', 'dmg');
-              pick.curHp -= 20;
+              const aiTrapKo = applyDamage(pick, 20);
               G.me.grave.push(G.me.setVerse);
               G.me.setVerse = null;
-              if (pick.curHp <= 0) {
+              if (aiTrapKo) {
                 log(`${pick.name} destroyed by trap!`, 'dmg');
                 ai.grave.push(pick);
               } else {
@@ -2535,10 +2536,10 @@
           if (G.me.setVerse?.id === 'soulTrap') {
             await showTriggerReveal(G.me.setVerse);
             log('Soul Trap triggered!', 'dmg');
-            pick.curHp -= 20;
+            const benchTrapKo = applyDamage(pick, 20);
             G.me.grave.push(G.me.setVerse);
             G.me.setVerse = null;
-            if (pick.curHp <= 0) {
+            if (benchTrapKo) {
               log(`${pick.name} destroyed by trap!`, 'dmg');
               ai.grave.push(pick);
               render();
@@ -2573,12 +2574,12 @@
           if (G.me.setVerse?.id === 'phantomWall') {
             await showTriggerReveal(G.me.setVerse);
             log('Phantom Wall triggered!', 'dmg');
-            ai.active.curHp -= 10;
+            const aiPhantomKo = applyDamage(ai.active, 10);
             log(`${ai.active.name} takes 10 damage!`, 'dmg');
             await Anim.damage('opp', 10);
             G.me.grave.push(G.me.setVerse);
             G.me.setVerse = null;
-            if (ai.active.curHp <= 0) { 
+            if (aiPhantomKo) { 
               await Anim.ko('opp'); 
               await ko(ai.active, ai); 
             }
@@ -2597,9 +2598,9 @@
             }
             if (ai.active.id === 'cindermaw') {
               dmg *= 2;
-              ai.active.curHp -= 10;
+              const aiFrenzyKo = applyDamage(ai.active, 10);
               log('Frenzy! Double hit, -10 self', 'dmg');
-              if (ai.active.curHp <= 0) await ko(ai.active, ai);
+              if (aiFrenzyKo) await ko(ai.active, ai);
             }
             
             const attacker = ai.active;
@@ -2609,26 +2610,26 @@
               
               // Thornling thorns
               if (G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
-                attacker.curHp -= 10;
+                const aiThornsKo = applyDamage(attacker, 10);
                 log('Thorns! -10 to attacker', 'dmg');
                 await Anim.damage('opp', 10);
-                if (attacker.curHp <= 0) await ko(attacker, ai);
+                if (aiThornsKo) await ko(attacker, ai);
               }
               
               // Apply damage
               if (G.me.active) {
-                G.me.active.curHp -= dmg;
+                const playerKo = applyDamage(G.me.active, dmg);
                 
-                if (attacker?.id === 'hexweaver' && G.me.active?.curHp > 0) {
+                if (attacker?.id === 'hexweaver' && !playerKo) {
                   G.me.active.status = 'poison';
                   log('Poisoned!');
                 }
-                if (attacker?.id === 'mireveil' && G.me.active?.curHp > 0) {
+                if (attacker?.id === 'mireveil' && !playerKo) {
                   G.me.active.status = 'trapped';
                   log('Trapped! Cannot retreat');
                 }
                 
-                if (G.me.active && G.me.active.curHp <= 0) {
+                if (playerKo) {
                   if (attacker?.id === 'sundewqueen') {
                     attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
                     log('Digest! +30 HP', 'heal');
@@ -2652,10 +2653,10 @@
         
         // Poison tick
         if (ai.active?.status === 'poison') {
-          ai.active.curHp -= 10;
+          const aiPoisonKo = applyDamage(ai.active, 10);
           log('Rival poison: -10', 'dmg');
           await Anim.poisonTick('opp');
-          if (ai.active.curHp <= 0) await ko(ai.active, ai);
+          if (aiPoisonKo) await ko(ai.active, ai);
           render();
         }
         
@@ -2818,10 +2819,10 @@
         }, 100);
         
         if (owner.chainLightning > 0) {
-          owner.active.curHp -= owner.chainLightning;
+          const chainReplaceKo = applyDamage(owner.active, owner.chainLightning);
           log(`Chain Lightning: -${owner.chainLightning}`, 'dmg');
           owner.chainLightning = 0;
-          if (owner.active.curHp <= 0) ko(owner.active, owner);
+          if (chainReplaceKo) await ko(owner.active, owner);
         }
       }
       

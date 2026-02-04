@@ -42,10 +42,17 @@ Full modularization of the monolith using TDD approach.
 
 ---
 
+## Bug Fixes
+- [x] **Negative HP Display Bug** (2026-02-04)
+  - Root cause: `ko()` async but not awaited; `curHp -= damage` could go negative before render()
+  - Fix: Created `applyDamage()` helper that clamps HP to minimum 0
+  - Added `await` to all `ko()` calls that precede `render()`
+  - Tests: `game-logic.test.js`, `game.test.js` verify HP never goes negative
+
 ## Current Stats
 - **index.html:** ~2910 lines (down from 3392)
-- **Tests:** 53 passing
-- **Modules:** 4 extracted (cards, state, anim, render)
+- **Tests:** 70 passing
+- **Modules:** 5 extracted (cards, state, anim, render, game)
 
 ## Links
 - Local dev: http://100.76.215.88:3003
