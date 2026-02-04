@@ -2101,17 +2101,11 @@
         }
       }
       
-      // Check if Chain Lightning will KO this creature (affects animation)
-      const chainWillKo = state.G.me.chainLightning > 0 && c.curHp <= state.G.me.chainLightning;
-      
       if (!state.G.me.active) {
         state.G.me.active = c;
         log(`Summoned ${c.name} as active`);
         render();
-        // Only animate summon if creature will survive Chain Lightning
-        if (!chainWillKo) {
-          Anim.summon('me');
-        }
+        await Anim.summon('me'); // Wait for summon animation to complete
       } else if (state.G.me.bench.length < 2) {
         state.G.me.bench.push(c);
         log(`Summoned ${c.name} to bench`);
@@ -2127,12 +2121,15 @@
         log('Pack Call: +20 ATK', 'mana');
       }
       
-      // Chain Lightning damage
+      // Chain Lightning damage (after summon animation completes)
       if (state.G.me.chainLightning > 0) {
+        await Anim.wait(300); // Brief pause so player sees the summon
         const chainKo = applyDamage(c, state.G.me.chainLightning);
         log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
+        await Anim.damage('me', state.G.me.chainLightning); // Show damage effect
         state.G.me.chainLightning = 0;
         if (chainKo) {
+          await Anim.ko('me'); // KO animation
           await ko(c, state.G.me);
         }
       }

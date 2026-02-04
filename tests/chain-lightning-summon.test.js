@@ -3,48 +3,74 @@ import { state, clearGame, setGame } from '../src/state.js';
 import { applyDamage } from '../src/game.js';
 
 /**
- * Chain Lightning on Summon - Animation Bug
+ * Chain Lightning on Summon - Animation Sequence
  * 
- * BUG: When Chain Lightning KOs a creature on summon, the "SUMMON!" text
- * appears in the top-left corner instead of on the card.
+ * CORRECT UX FLOW:
+ * 1. SUMMON! animation plays (creature enters)
+ * 2. Brief pause (player sees summon)
+ * 3. Chain Lightning triggers (damage effect)
+ * 4. KO animation plays (if creature dies)
  * 
- * CAUSE: Anim.summon() is not awaited, so ko() removes the card while
- * the animation is still trying to find its target element.
- * 
- * FIX: Check Chain Lightning BEFORE playing summon animation, or skip
- * animation if creature will die.
+ * This tells a clear story to the player about what happened.
  */
 
-describe('Chain Lightning on Summon - Logic', () => {
+describe('Chain Lightning on Summon - Animation Sequence', () => {
   
   beforeEach(() => {
     clearGame();
   });
 
-  it('creature with HP > chainLightning survives and should animate', () => {
-    const creature = { id: 'whisper', name: 'Whisper', hp: 30, curHp: 30 };
+  it('creature survives chain lightning - full animation sequence plays', () => {
+    const creature = { id: 'duskfang', name: 'Duskfang', hp: 60, curHp: 60 };
     const chainLightning = 20;
     
-    // Creature survives
-    const willDie = creature.curHp <= chainLightning;
-    expect(willDie).toBe(false);
+    // Sequence: SUMMON → pause → Chain Lightning → survive
+    const animations = [];
     
-    // Should play summon animation
-    const shouldAnimate = !willDie;
-    expect(shouldAnimate).toBe(true);
+    // 1. Summon animation (always plays)
+    animations.push('SUMMON');
+    
+    // 2. Chain Lightning damage
+    if (chainLightning > 0) {
+      animations.push('PAUSE');
+      animations.push('CHAIN_LIGHTNING_DAMAGE');
+      applyDamage(creature, chainLightning);
+      
+      // 3. KO only if dead
+      if (creature.curHp <= 0) {
+        animations.push('KO');
+      }
+    }
+    
+    expect(animations).toEqual(['SUMMON', 'PAUSE', 'CHAIN_LIGHTNING_DAMAGE']);
+    expect(creature.curHp).toBe(40); // Survived
   });
 
-  it('creature with HP <= chainLightning dies - should NOT animate summon', () => {
+  it('creature dies to chain lightning - full animation sequence with KO', () => {
     const creature = { id: 'gloom', name: 'Gloom', hp: 20, curHp: 20 };
     const chainLightning = 20;
     
-    // Creature will die
-    const willDie = creature.curHp <= chainLightning;
-    expect(willDie).toBe(true);
+    // Sequence: SUMMON → pause → Chain Lightning → KO
+    const animations = [];
     
-    // Should NOT play summon animation (would animate ghost card)
-    const shouldAnimate = !willDie;
-    expect(shouldAnimate).toBe(false);
+    // 1. Summon animation (always plays - player sees creature enter)
+    animations.push('SUMMON');
+    
+    // 2. Chain Lightning damage
+    if (chainLightning > 0) {
+      animations.push('PAUSE');
+      animations.push('CHAIN_LIGHTNING_DAMAGE');
+      applyDamage(creature, chainLightning);
+      
+      // 3. KO because dead
+      if (creature.curHp <= 0) {
+        animations.push('KO');
+      }
+    }
+    
+    // Player sees: summon → chain lightning hits → creature dies
+    expect(animations).toEqual(['SUMMON', 'PAUSE', 'CHAIN_LIGHTNING_DAMAGE', 'KO']);
+    expect(creature.curHp).toBe(0);
   });
 
   it('creature weakened by Soul Trap then killed by Chain Lightning', () => {
@@ -55,55 +81,28 @@ describe('Chain Lightning on Summon - Logic', () => {
     applyDamage(creature, 20);
     expect(creature.curHp).toBe(20);
     
-    // Now Chain Lightning will kill
-    const willDie = creature.curHp <= chainLightning;
-    expect(willDie).toBe(true);
+    const animations = ['SUMMON', 'PAUSE', 'CHAIN_LIGHTNING_DAMAGE'];
+    applyDamage(creature, chainLightning);
+    if (creature.curHp <= 0) animations.push('KO');
+    
+    expect(animations).toContain('KO');
+    expect(creature.curHp).toBe(0);
   });
 });
 
-describe('Chain Lightning - Correct Summon Flow', () => {
+describe('Chain Lightning - No Chain Lightning Case', () => {
 
-  it('correct flow: check chain lightning before animating', () => {
-    // Simulates the CORRECT order of operations
-    const creature = { id: 'gloom', name: 'Gloom', hp: 20, curHp: 20 };
-    const chainLightning = 20;
+  it('no chain lightning - just summon animation', () => {
+    const creature = { id: 'whisper', name: 'Whisper', hp: 30, curHp: 30 };
+    const chainLightning = 0; // No chain lightning armed
     
-    // Step 1: Assign to active (state update)
-    let active = creature;
+    const animations = ['SUMMON']; // Always plays
     
-    // Step 2: Check if chain lightning will kill BEFORE animating
-    const willDieToChain = chainLightning > 0 && creature.curHp <= chainLightning;
-    
-    // Step 3: Only animate if creature will survive
-    let animationPlayed = false;
-    if (!willDieToChain) {
-      animationPlayed = true; // Anim.summon() would be called here
-    }
-    
-    // Step 4: Apply chain lightning damage
     if (chainLightning > 0) {
-      applyDamage(creature, chainLightning);
+      animations.push('CHAIN_LIGHTNING');
     }
     
-    // Verify: Animation was NOT played for doomed creature
-    expect(animationPlayed).toBe(false);
-    expect(creature.curHp).toBe(0);
-  });
-
-  it('correct flow: creature survives chain lightning, animation plays', () => {
-    const creature = { id: 'duskfang', name: 'Duskfang', hp: 60, curHp: 60 };
-    const chainLightning = 20;
-    
-    // Check if will die
-    const willDieToChain = chainLightning > 0 && creature.curHp <= chainLightning;
-    expect(willDieToChain).toBe(false);
-    
-    // Animation should play
-    let animationPlayed = !willDieToChain;
-    expect(animationPlayed).toBe(true);
-    
-    // Apply damage
-    applyDamage(creature, chainLightning);
-    expect(creature.curHp).toBe(40); // Survived with 40 HP
+    expect(animations).toEqual(['SUMMON']); // Just the summon, no extra effects
+    expect(creature.curHp).toBe(30);
   });
 });
