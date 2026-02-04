@@ -213,6 +213,16 @@ export const Anim = {
     });
   },
   
+  // Set verse animation (glow on the SET indicator)
+  setVerse(side) {
+    const selector = side === 'me' 
+      ? '#m-my-set, #d-my-set' 
+      : '#m-opp-set, #d-opp-set';
+    this.playOn(selector, 'anim-set-verse', 600);
+    const el = this.getVisibleElement(selector);
+    this.sparkBurst(el);
+  },
+  
   // Bench to active animation (creature enters the fray)
   benchToActive(side) {
     return new Promise(resolve => {

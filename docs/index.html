@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.7</title>
+  <title>TINY FANGS v2.1.8</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -168,6 +168,27 @@
     }
     
     .m-set-verse.has { border-color: var(--purple); color: var(--purple); }
+    
+    /* Set verse animation - glow pulse */
+    
+    @keyframes set-verse-glow {
+      0% { 
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.8);
+        transform: scale(1);
+      }
+      50% { 
+        box-shadow: 0 0 20px 8px rgba(139, 92, 246, 0.6);
+        transform: scale(1.1);
+      }
+      100% { 
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+        transform: scale(1);
+      }
+    }
+    
+    .anim-set-verse { 
+      animation: set-verse-glow 0.6s ease-out;
+    }
     
     .m-grave-btn {
       background: var(--panel);
@@ -1358,19 +1379,21 @@
     
     @keyframes lunge-down {
       0% { transform: translateY(0) scale(1); }
-      40% { transform: translateY(35px) scale(1.1); }
+      20% { transform: translateY(-12px) scale(0.95); } /* Wind-up back */
+      50% { transform: translateY(40px) scale(1.1); } /* Lunge forward */
       100% { transform: translateY(0) scale(1); }
     }
     
     @keyframes lunge-up {
       0% { transform: translateY(0) scale(1); }
-      40% { transform: translateY(-35px) scale(1.1); }
+      20% { transform: translateY(12px) scale(0.95); } /* Wind-up back */
+      50% { transform: translateY(-40px) scale(1.1); } /* Lunge forward */
       100% { transform: translateY(0) scale(1); }
     }
     
-    .anim-lunge-down { animation: lunge-down 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .anim-lunge-down { animation: lunge-down 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
     
-    .anim-lunge-up { animation: lunge-up 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .anim-lunge-up { animation: lunge-up 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
     
     /* Summon (card slam) - MORE DRAMATIC */
     
@@ -1692,7 +1715,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-Cv2KE3pS.js"></script>
+  <script type="module" crossorigin src="./assets/index-BIMEkTSb.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -1700,7 +1723,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.7 • Card Battler</p>
+    <p class="sub">v2.1.8 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1799,7 +1822,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.7</div>
+      <div class="logo">TINY FANGS v2.1.8</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>

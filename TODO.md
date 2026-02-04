@@ -5,6 +5,7 @@
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v2.1.8** — Set verse glow animation, attack wind-up (pull back before lunge)
 - **v2.1.7** — Bench-to-active animation: slide-in effect when creature enters from bench
 - **v2.1.6** — Spark burst effect: 3 stars with random sizes/positions for bench summon
 - **v2.1.5** — Animation centering fix, cast/set verse popups, lighter background overlay
