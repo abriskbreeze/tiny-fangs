@@ -461,14 +461,18 @@
     
     .hand-card {
       flex-shrink: 0;
-      background: rgba(255,255,255,0.03);
+      background: var(--panel);
       border: 1px solid var(--border);
-      padding: 8px;
-      width: clamp(64px, 18vw, 80px); /* Responsive hand cards */
-      text-align: center;
+      border-radius: 4px;
+      width: clamp(50px, 14vw, 60px);
+      aspect-ratio: 5 / 7;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
+      overflow: hidden;
     }
     
     .hand-card.selected {
@@ -476,29 +480,35 @@
       background: rgba(59,130,246,0.15);
     }
     
-    .hand-card.creature { border-left: 1px solid var(--green); }
+    .hand-card.creature { border-color: var(--green); }
     
-    .hand-card.verse-cast { border-left: 1px solid var(--gold); }
+    .hand-card.verse-cast { border-color: var(--gold); }
     
-    .hand-card.verse-set { border-left: 1px solid var(--purple); }
+    .hand-card.verse-set { border-color: var(--purple); }
     
     .hand-card .cost-pip {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--blue);
-      margin-bottom: 4px;
+      text-align: center;
     }
     
     .hand-card .name {
-      font-size: 9px;
+      flex: 1;
+      font-size: 7px;
       line-height: 1.2;
-      margin-bottom: 2px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
     
     .hand-card .type {
-      font-size: 8px;
+      font-size: 6px;
       color: var(--dim);
       text-transform: uppercase;
+      text-align: center;
     }
     
     /* Actions */
@@ -855,14 +865,15 @@
       .d-hand-card {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        background: rgba(255,255,255,0.02);
+        background: var(--panel);
         border: 1px solid var(--border);
-        padding: 8px 12px;
+        border-radius: 4px;
+        width: 60px;
+        aspect-ratio: 5 / 7;
+        padding: 4px;
         cursor: pointer;
         flex-shrink: 0;
-        min-width: 70px;
+        overflow: hidden;
       }
       
       .d-hand-card:hover {
@@ -874,30 +885,34 @@
         background: rgba(59,130,246,0.1);
       }
       
-      .d-hand-card.creature { border-top: 2px solid var(--green); }
-      .d-hand-card.verse-cast { border-top: 2px solid var(--gold); }
-      .d-hand-card.verse-set { border-top: 2px solid var(--purple); }
+      .d-hand-card.creature { border-color: var(--green); }
+      .d-hand-card.verse-cast { border-color: var(--gold); }
+      .d-hand-card.verse-set { border-color: var(--purple); }
       
       .d-hand-card .cost {
-        font-size: 14px;
+        font-size: 10px;
         font-weight: 600;
         color: var(--blue);
-      }
-      
-      .d-hand-card .info {
         text-align: center;
       }
       
+      .d-hand-card .info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        min-height: 0;
+      }
+      
       .d-hand-card .name {
-        font-size: 9px;
-        white-space: nowrap;
+        font-size: 8px;
+        line-height: 1.2;
         overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 60px;
       }
       
       .d-hand-card .type {
-        font-size: 7px;
+        font-size: 6px;
         color: var(--dim);
         text-transform: uppercase;
       }
