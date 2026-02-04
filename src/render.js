@@ -26,10 +26,15 @@ export function renderManaPips(mana, maxMana) {
 }
 
 // Set verse indicator HTML
-export function renderSetVerse(verse, id) {
-  return verse 
-    ? `<div class="m-set-verse has" id="${id}">[SET]</div>` 
-    : `<div class="m-set-verse" id="${id}">NO SET</div>`;
+export function renderSetVerse(verse, id, isPlayer = false) {
+  if (!verse) {
+    return `<div class="m-set-verse" id="${id}">NO SET</div>`;
+  }
+  // Player's set verse is hold-to-zoom, opponent's is just [SET]
+  if (isPlayer) {
+    return `<div class="m-set-verse has" id="${id}" onpointerdown="setVersePress()" onpointerup="setVerseRelease()" onpointerleave="setVerseRelease()">[SET]</div>`;
+  }
+  return `<div class="m-set-verse has" id="${id}">[SET]</div>`;
 }
 
 // Active creature card

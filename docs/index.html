@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.1</title>
+  <title>TINY FANGS v2.1.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -152,15 +152,37 @@
     
     .m-field-half.opp .m-bench-row { justify-content: flex-end; }
     
+    .m-side-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
     .m-set-verse {
       background: var(--panel);
       border: 1px solid var(--border);
       padding: 6px 10px;
       font-size: 9px;
       color: var(--dim);
+      cursor: pointer;
     }
     
     .m-set-verse.has { border-color: var(--purple); color: var(--purple); }
+    
+    .m-grave-btn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      font-size: 9px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    
+    .m-grave-btn:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
     
     .m-vs {
       text-align: center;
@@ -1609,7 +1631,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-BqZ7BnJH.js"></script>
+  <script type="module" crossorigin src="./assets/index-WF0aX9Kf.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -1617,7 +1639,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.1 • Card Battler</p>
+    <p class="sub">v2.1.2 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1670,7 +1692,10 @@
       <div class="m-field-half opp">
         <div class="m-active-row">
           <div id="m-opp-active"></div>
-          <div class="m-set-verse" id="m-opp-set">NO SET</div>
+          <div class="m-side-info">
+            <div class="m-set-verse" id="m-opp-set">NO SET</div>
+            <div class="m-grave-btn" onclick="showGraveyard('opp')">☠ <span id="m-opp-grave-ct">0</span></div>
+          </div>
         </div>
         <div id="m-opp-bench" class="m-bench-row"></div>
       </div>
@@ -1680,7 +1705,10 @@
       <div class="m-field-half you">
         <div class="m-active-row">
           <div id="m-my-active"></div>
-          <div class="m-set-verse" id="m-my-set">NO SET</div>
+          <div class="m-side-info">
+            <div class="m-set-verse" id="m-my-set">NO SET</div>
+            <div class="m-grave-btn" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
+          </div>
         </div>
         <div id="m-my-bench" class="m-bench-row"></div>
       </div>
@@ -1710,7 +1738,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.1</div>
+      <div class="logo">TINY FANGS v2.1.2</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
