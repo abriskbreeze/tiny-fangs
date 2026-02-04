@@ -171,7 +171,7 @@ export const Anim = {
       this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
       const el = this.getVisibleElement(selector);
       // Show hearts lost instead of number
-      const hearts = Array(amount).fill('-<3').join(' ');
+      const hearts = '-' + '♥'.repeat(amount);
       this.floatText(hearts, 'damage', el);
       setTimeout(resolve, ANIM_TIMING.SHAKE + 100);
     });
