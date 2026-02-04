@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.5</title>
+  <title>TINY FANGS v0.2.6</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -357,6 +357,13 @@
       color: #ff4444;
       background: rgba(255, 68, 68, 0.15);
       text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    }
+    
+    .hp-stat {
+      padding: 1px 4px;
+    }
+    .hp-stat.hp-damaged {
+      color: #ff4444;
     }
     
     .card-empty {
@@ -1845,7 +1852,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.5 • Card Battler</p>
+    <p class="sub">v0.2.6 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1950,7 +1957,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.5</div>
+      <div class="logo">TINY FANGS v0.2.6</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2413,13 +2420,38 @@
       const el = $('cardDetail');
       
       if (card.cardType === 'creature') {
+        // Check if creature is active on battlefield (to show effective stats)
+        let atkInfo = null;
+        let isOnField = false;
+        if (state.G.me.active?.uid === uid) {
+          atkInfo = getAtkModifiers(card, state.G.me, state.G.opp);
+          isOnField = true;
+        } else if (state.G.opp.active?.uid === uid) {
+          atkInfo = getAtkModifiers(card, state.G.opp, state.G.me);
+          isOnField = true;
+        }
+        
+        // HP display: show current if on field, otherwise max
+        const hpVal = isOnField ? `${card.curHp}/${card.hp}` : card.hp;
+        const hpClass = (isOnField && card.curHp < card.hp) ? 'hp-damaged' : '';
+        
+        // ATK display: show effective if modified
+        let atkVal = card.atk;
+        let atkClass = '';
+        let atkTooltip = '';
+        if (atkInfo && atkInfo.effectiveAtk !== atkInfo.baseAtk) {
+          atkVal = atkInfo.effectiveAtk;
+          atkClass = atkInfo.effectiveAtk > atkInfo.baseAtk ? 'atk-boosted' : 'atk-reduced';
+          atkTooltip = atkInfo.modifiers.map(m => `${m.name}: +${m.value}`).join(', ');
+        }
+        
         el.innerHTML = `
           <div class="top-bar"><span class="type">Creature</span><span class="cost">${card.cost}</span></div>
           <div class="name-row"><div class="name">${card.name}</div><div class="subtitle">${card.subtitle}</div></div>
           <div class="art-box">${card.art}</div>
           <div class="stats-row">
-            <div class="stat"><div class="label">HP</div><div class="val">${card.hp}</div></div>
-            <div class="stat"><div class="label">ATK</div><div class="val">${card.atk}</div></div>
+            <div class="stat"><div class="label">HP</div><div class="val ${hpClass}">${hpVal}</div></div>
+            <div class="stat"><div class="label">ATK</div><div class="val ${atkClass}" title="${atkTooltip}">${atkVal}</div></div>
           </div>
           <div class="ability-box"><div class="ability-name">${card.ability}</div><div class="ability-text">${card.abilityText}</div></div>
           <div class="flavor">${card.flavor}</div>

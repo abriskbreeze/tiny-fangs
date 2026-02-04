@@ -1,10 +1,11 @@
 # Tiny Fangs — Development TODO
 
-**Current Version:** v0.2.5 (see VERSION file)
+**Current Version:** v0.2.6 (see VERSION file)
 
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v0.2.6** — HP moved to footer with damage coloring, ATK modifiers in card detail, Den Mother ATK bug fix
 - **v0.2.5** — Bench card ASCII art fix (added white-space: pre, smaller font)
 - **v0.2.4** — AI pause increased, LP loss shows "-<3", all emojis replaced with ASCII
 - **v0.2.3** — Poison damage now shows red like regular damage (was green/heal color)

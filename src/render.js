@@ -55,11 +55,15 @@ export function renderActiveCard(c, atkInfo = null) {
     atkDisplay = `<span>ATK ${c.atk}</span>`;
   }
   
+  // HP display with damage coloring
+  const hpDamaged = c.curHp < c.hp ? 'hp-damaged' : '';
+  const hpDisplay = `<span class="hp-stat ${hpDamaged}">${c.curHp}/${c.hp}</span>`;
+  
   return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-    <div class="header"><span>${c.name}</span><span>${c.curHp}/${c.hp}</span></div>
+    <div class="header"><span>${c.name}</span>${statusStr ? `<span class="status">${statusStr}</span>` : ''}</div>
     <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
     <div class="art">${c.art}</div>
-    <div class="footer">${atkDisplay}<span class="status">${statusStr}</span></div>
+    <div class="footer">${atkDisplay}${hpDisplay}</div>
   </div>`;
 }
 

@@ -73,6 +73,7 @@ export function getAtkModifiers(creature, owner, enemy) {
   
   // Den Mother bonus (one-shot)
   if (owner.denMotherBonus) {
+    effectiveAtk += owner.denMotherBonus;
     modifiers.push({ name: 'Den Mother', value: owner.denMotherBonus, desc: 'Next attack' });
   }
   
