@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.5</title>
+  <title>TINY FANGS v0.2.6</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -144,6 +144,8 @@
     
     .m-field-half.you .m-active-row {
       align-items: flex-end;
+      width: 100%;
+      justify-content: space-between;
     }
     
     .m-field-half.opp .m-active-row {
@@ -155,6 +157,12 @@
       display: flex;
       gap: 10px;
       align-items: flex-start;
+    }
+    
+    .m-you-left-group {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
     }
     
     .m-bench-wrap {
@@ -170,9 +178,17 @@
       gap: 4px;
     }
     
+    /* Battlefield text - improved readability over bg image */
+    
+    .m-bench-label,
+    .m-vs,
+    .card-empty {
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+    }
+    
     .m-bench-label {
       font-size: 7px;
-      color: var(--muted);
+      color: var(--dim);
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
@@ -1882,7 +1898,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.5 • Card Battler</p>
+    <p class="sub">v0.2.6 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1950,12 +1966,14 @@
       
       <div class="m-field-half you">
         <div class="m-active-row">
-          <div id="m-my-active"></div>
-          <div class="m-bench-wrap">
-            <div class="m-bench-label">Your Bench</div>
-            <div id="m-my-bench" class="m-bench-col"></div>
+          <div class="m-you-left-group">
+            <div id="m-my-active"></div>
+            <div class="m-bench-wrap">
+              <div class="m-bench-label">Your Bench</div>
+              <div id="m-my-bench" class="m-bench-col"></div>
+            </div>
+            <div class="card-empty set-slot" id="m-my-set">NO SET</div>
           </div>
-          <div class="card-empty set-slot" id="m-my-set">NO SET</div>
           <div class="card-empty grave-slot" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
         </div>
       </div>
@@ -1985,7 +2003,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.5</div>
+      <div class="logo">TINY FANGS v0.2.6</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
