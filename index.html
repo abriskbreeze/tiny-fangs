@@ -2321,19 +2321,36 @@
           break;
         
         case 'callOfTheWild':
-          // Summon a 1-cost creature from deck to bench
-          if (state.G.me.bench.length >= 2) {
-            log('Bench is full!', 'dmg');
+          // Summon a 1-cost creature from deck
+          const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
+          if (!oneCostInDeck.length) {
+            showModal('Call of the Wild', [{
+              name: 'No 1-cost creatures in deck!',
+              sub: 'The call goes unanswered...',
+              action: () => closeModal()
+            }]);
             break;
           }
-          const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
-          if (oneCostInDeck.length) {
+          if (!state.G.me.active) {
+            // No active - summon as active
+            const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
+            state.G.me.deck = state.G.me.deck.filter(x => x.uid !== summon.uid);
+            state.G.me.active = summon;
+            log(`Called ${summon.name} to battle!`, 'mana');
+            render();
+            await Anim.summon('me');
+          } else if (state.G.me.bench.length < 2) {
+            // Has active, bench has room
             const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
             state.G.me.deck = state.G.me.deck.filter(x => x.uid !== summon.uid);
             state.G.me.bench.push(summon);
-            log(`Called ${summon.name} from deck!`, 'mana');
+            log(`Called ${summon.name} to bench!`, 'mana');
           } else {
-            log('No 1-cost creatures in deck');
+            showModal('Call of the Wild', [{
+              name: 'Board is full!',
+              sub: 'Active + 2 benched creatures',
+              action: () => closeModal()
+            }]);
           }
           break;
         
@@ -2972,13 +2989,22 @@
       if (owner.setVerse?.id === 'graveRise') {
         await showTriggerReveal(owner.setVerse);
         const oneCost = owner.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
-        if (oneCost.length && owner.bench.length < 2) {
+        if (oneCost.length) {
           log('Grave Rise triggered!', 'heal');
           const revived = oneCost[0];
           revived.curHp = revived.hp; // Restore HP
           owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
-          owner.bench.push(revived);
-          log(`${revived.name} rises from the grave!`);
+          
+          // Summon to active if no active, otherwise bench
+          if (!owner.active) {
+            owner.active = revived;
+            log(`${revived.name} rises as active!`);
+            render();
+            await Anim.summon(owner === state.G.me ? 'me' : 'opp');
+          } else if (owner.bench.length < 2) {
+            owner.bench.push(revived);
+            log(`${revived.name} rises to bench!`);
+          }
         }
         owner.grave.push(owner.setVerse);
         owner.setVerse = null;
