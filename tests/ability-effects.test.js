@@ -8,6 +8,10 @@ import {
   applyDrain,
   applySpark,
   checkSwarm,
+  shouldScurryTrigger,
+  executeScurry,
+  applyDenMotherBuff,
+  applySpawn,
 } from '../src/abilities.js';
 
 /**
@@ -253,5 +257,154 @@ describe('checkSwarm() - Hiveling Draw', () => {
     state.G.me.bench = [mockCreature('whisper'), mockCreature('gloom')]; // 3 total
     
     expect(checkSwarm(state.G.me)).toBe(true);
+  });
+});
+
+describe('Swarm Shield - Set Verse Damage Reduction', () => {
+  beforeEach(() => {
+    clearGame();
+    setGame({
+      me: mockPlayer(),
+      opp: mockPlayer(),
+      log: [],
+      winner: null
+    });
+  });
+
+  it('reduces damage by 15 when has bench', () => {
+    const creature = mockCreature('whisper');
+    state.G.me.active = creature;
+    state.G.me.bench = [mockCreature('gloom')];
+    state.G.me.setVerse = { id: 'swarmShield' };
+    
+    expect(getEffectiveDamageReduction(creature, state.G.me)).toBe(15);
+  });
+
+  it('no reduction when bench is empty', () => {
+    const creature = mockCreature('whisper');
+    state.G.me.active = creature;
+    state.G.me.bench = [];
+    state.G.me.setVerse = { id: 'swarmShield' };
+    
+    expect(getEffectiveDamageReduction(creature, state.G.me)).toBe(0);
+  });
+
+  it('stacks with Den Guard (Vulpix)', () => {
+    const vulpix = mockCreature('vulpix');
+    state.G.me.active = vulpix;
+    state.G.me.bench = [mockCreature('whisper')];
+    state.G.me.setVerse = { id: 'swarmShield' };
+    
+    // Vulpix Den Guard (10) + Swarm Shield (15) = 25
+    expect(getEffectiveDamageReduction(vulpix, state.G.me)).toBe(25);
+  });
+});
+
+describe('Scurry - Skitter Swap', () => {
+  beforeEach(() => {
+    clearGame();
+    setGame({
+      me: mockPlayer(),
+      opp: mockPlayer(),
+      log: [],
+      winner: null
+    });
+  });
+
+  it('should trigger when Skitter takes damage and has bench', () => {
+    const skitter = mockCreature('skitter', { curHp: 20 });
+    state.G.me.active = skitter;
+    state.G.me.bench = [mockCreature('whisper')];
+    
+    expect(shouldScurryTrigger(skitter, state.G.me)).toBe(true);
+  });
+
+  it('should not trigger when bench is empty', () => {
+    const skitter = mockCreature('skitter', { curHp: 20 });
+    state.G.me.active = skitter;
+    state.G.me.bench = [];
+    
+    expect(shouldScurryTrigger(skitter, state.G.me)).toBe(false);
+  });
+
+  it('should not trigger when Skitter is KOd', () => {
+    const skitter = mockCreature('skitter', { curHp: 0 });
+    state.G.me.active = skitter;
+    state.G.me.bench = [mockCreature('whisper')];
+    
+    expect(shouldScurryTrigger(skitter, state.G.me)).toBe(false);
+  });
+
+  it('executeScurry swaps active with bench', () => {
+    const skitter = mockCreature('skitter');
+    const whisper = mockCreature('whisper');
+    state.G.me.active = skitter;
+    state.G.me.bench = [whisper];
+    
+    executeScurry(state.G.me);
+    
+    expect(state.G.me.active).toBe(whisper);
+    expect(state.G.me.bench).toContain(skitter);
+  });
+});
+
+describe('Den Mother - KO Buff', () => {
+  beforeEach(() => {
+    clearGame();
+    setGame({
+      me: mockPlayer(),
+      opp: mockPlayer(),
+      log: [],
+      winner: null
+    });
+  });
+
+  it('buffs all remaining creatures by +10 ATK', () => {
+    const active = mockCreature('fangpup'); // 20 ATK
+    const benched = mockCreature('whisper'); // 20 ATK
+    state.G.me.active = active;
+    state.G.me.bench = [benched];
+    
+    applyDenMotherBuff(state.G.me);
+    
+    expect(active.atk).toBe(30); // 20 + 10
+    expect(benched.atk).toBe(30); // 20 + 10
+  });
+
+});
+
+describe('Broodmother Spawn', () => {
+  beforeEach(() => {
+    clearGame();
+    setGame({
+      me: mockPlayer(),
+      opp: mockPlayer(),
+      log: [],
+      winner: null
+    });
+  });
+
+  it('creates Antling token on bench', () => {
+    state.G.me.active = mockCreature('broodmother');
+    state.G.me.bench = [];
+    
+    const antling = applySpawn(state.G.me);
+    
+    expect(antling).not.toBeNull();
+    expect(antling.name).toBe('Antling');
+    expect(antling.hp).toBe(10);
+    expect(antling.atk).toBe(10);
+    expect(antling.isToken).toBe(true);
+    expect(state.G.me.bench).toContain(antling);
+  });
+
+  it('returns null when bench is full', () => {
+    state.G.me.active = mockCreature('broodmother');
+    state.G.me.bench = [mockCreature('whisper'), mockCreature('gloom')];
+    
+    const result = applySpawn(state.G.me);
+    
+    expect(result).toBeNull();
+    expect(state.G.me.bench).toHaveLength(2);
   });
 });

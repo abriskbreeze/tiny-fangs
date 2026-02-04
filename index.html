@@ -1841,7 +1841,10 @@
       applyDrain,
       applySpark,
       checkSwarm,
-      applySpawn
+      applySpawn,
+      shouldScurryTrigger,
+      executeScurry,
+      applyDenMotherBuff
     } from './src/abilities.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
@@ -2459,11 +2462,20 @@
           log('Frenzy! Double damage!', 'dmg');
         }
         
-        // Apply damage reduction (Den Guard)
+        // Apply damage reduction (Den Guard, Swarm Shield)
         const reduction = getEffectiveDamageReduction(defender, state.G.opp);
         if (reduction > 0) {
           dmg = Math.max(0, dmg - reduction);
-          log(`Den Guard! -${reduction} damage`, 'heal');
+          // Check which ability triggered
+          if (defender.id === 'vulpix' && state.G.opp.bench.length > 0) {
+            log(`Den Guard! -10 damage`, 'heal');
+          }
+          if (state.G.opp.setVerse?.id === 'swarmShield' && state.G.opp.bench.length > 0) {
+            await showTriggerReveal(state.G.opp.setVerse);
+            log(`Swarm Shield! -15 damage`, 'heal');
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+          }
         }
         
         log(`${attacker.name} attacks for ${dmg}!`);
@@ -2510,6 +2522,14 @@
         if (state.G.me.active?.id === 'mireveil' && !defenderKo) {
           defender.status = 'trapped';
           log('Trapped! Cannot retreat');
+        }
+        
+        // Skitter Scurry - auto-swap with bench after taking damage
+        if (!defenderKo && shouldScurryTrigger(defender, state.G.opp)) {
+          if (executeScurry(state.G.opp)) {
+            log('Scurry! Skitter retreats', 'mana');
+            render();
+          }
         }
         
         // Check KO
@@ -2901,6 +2921,15 @@
       }
       
       log(`${creature.name} KO'd!`, 'dmg');
+      
+      // Den Mother - other creatures gain +10 ATK
+      if (owner.setVerse?.id === 'denMother') {
+        await showTriggerReveal(owner.setVerse);
+        applyDenMotherBuff(owner);
+        log('Den Mother! Pack gains +10 ATK', 'mana');
+        owner.grave.push(owner.setVerse);
+        owner.setVerse = null;
+      }
       
       // Grave Rise - summon 1-cost creature from grave
       if (owner.setVerse?.id === 'graveRise') {

@@ -6,10 +6,6 @@ import { applyDamage } from './game.js';
 
 /**
  * Calculate effective ATK including ability modifiers
- * @param {Object} creature - The attacking creature
- * @param {Object} owner - The creature's owner (player)
- * @param {Object} enemy - The opponent player
- * @returns {number} Effective ATK value
  */
 export function getEffectiveAtk(creature, owner, enemy) {
   let atk = creature.atk;
@@ -31,7 +27,7 @@ export function getEffectiveAtk(creature, owner, enemy) {
     }
   }
   
-  // Rally (Alpha): +10 ATK per bench creature (assists)
+  // Rally (Alpha): +10 ATK per bench creature
   if (creature.id === 'alpha') {
     atk += owner.bench.length * 10;
   }
@@ -41,9 +37,6 @@ export function getEffectiveAtk(creature, owner, enemy) {
 
 /**
  * Calculate damage reduction for a creature
- * @param {Object} creature - The creature taking damage
- * @param {Object} owner - The creature's owner
- * @returns {number} Damage reduction amount
  */
 export function getEffectiveDamageReduction(creature, owner) {
   let reduction = 0;
@@ -53,14 +46,16 @@ export function getEffectiveDamageReduction(creature, owner) {
     reduction += 10;
   }
   
+  // Swarm Shield (set verse): -15 damage when has bench
+  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
+    reduction += 15;
+  }
+  
   return reduction;
 }
 
 /**
  * Apply Drain effect (Leechling) - heal equal to damage dealt
- * @param {Object} creature - The creature with Drain
- * @param {number} damageDealt - Amount of damage dealt
- * @returns {number} Amount actually healed
  */
 export function applyDrain(creature, damageDealt) {
   const maxHeal = creature.hp - creature.curHp;
@@ -70,25 +65,19 @@ export function applyDrain(creature, damageDealt) {
 }
 
 /**
- * Apply Spark effect (Emberfang) - deal 5 damage to enemy on summon
- * @param {Object} enemy - The opponent player
- * @returns {{ damage: number, ko: boolean }} Result of spark
+ * Apply Spark effect (Emberfang) - deal 5 damage on summon
  */
 export function applySpark(enemy) {
   if (!enemy.active) {
     return { damage: 0, ko: false };
   }
-  
   const sparkDamage = 5;
   const ko = applyDamage(enemy.active, sparkDamage);
   return { damage: sparkDamage, ko };
 }
 
 /**
- * Check if Swarm ability should trigger (Hiveling)
- * Triggers when player controls 2+ creatures
- * @param {Object} owner - The player
- * @returns {boolean} Whether swarm triggers
+ * Check if Swarm ability triggers (Hiveling) - 2+ creatures
  */
 export function checkSwarm(owner) {
   const totalCreatures = (owner.active ? 1 : 0) + owner.bench.length;
@@ -96,18 +85,38 @@ export function checkSwarm(owner) {
 }
 
 /**
- * Check if Scurry can trigger (Skitter)
- * @param {Object} owner - The player
- * @returns {boolean} Whether scurry is available
+ * Check if Scurry should trigger (Skitter took damage, has bench)
  */
-export function canScurry(owner) {
-  return owner.bench.length > 0;
+export function shouldScurryTrigger(creature, owner) {
+  return creature.id === 'skitter' && owner.bench.length > 0 && creature.curHp > 0;
+}
+
+/**
+ * Execute Scurry - swap with bench creature
+ */
+export function executeScurry(owner) {
+  if (owner.bench.length === 0 || !owner.active) return null;
+  const current = owner.active;
+  const replacement = owner.bench.shift();
+  owner.active = replacement;
+  owner.bench.push(current);
+  return replacement;
+}
+
+/**
+ * Apply Den Mother buff (+10 ATK to all creatures)
+ */
+export function applyDenMotherBuff(owner) {
+  if (owner.active) {
+    owner.active.atk += 10;
+  }
+  owner.bench.forEach(c => {
+    c.atk += 10;
+  });
 }
 
 /**
  * Apply Spawn effect (Broodmother) - summon Antling to bench
- * @param {Object} owner - The player
- * @returns {Object|null} The spawned Antling or null if bench full
  */
 export function applySpawn(owner) {
   if (owner.bench.length >= 2) {

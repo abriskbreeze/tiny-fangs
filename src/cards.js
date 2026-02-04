@@ -174,8 +174,8 @@ export const DECKS = {
     verses: ['secondWind','secondWind','soulSiphon','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath']
   },
   swarm: {
-    // 8 creatures: pack synergy focus
-    creatures: ['fangpup','fangpup','fangpup','hiveling','hiveling','skitter','piranix','alpha'],
+    // 8 creatures: pack synergy focus (includes Vulpix for defense, Broodmother for spawning)
+    creatures: ['fangpup','fangpup','hiveling','hiveling','skitter','vulpix','alpha','broodmother'],
     // 12 verses: draw, summon, bench synergy
     verses: ['packTactics','packTactics','packTactics','callOfTheWild','callOfTheWild','sacrifice','sacrifice','denMother','denMother','swarmShield','swarmShield','lastBreath']
   }
