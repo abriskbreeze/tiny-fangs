@@ -11,23 +11,29 @@ Full modularization of the monolith using TDD approach.
 
 ### Data & Utilities
 - [x] **cards.js** — CREATURES, VERSES, DECKS
-- [x] **state.js** — `$`, `uid` helpers
+- [x] **state.js** — `$`, `uid` helpers + state container
 - [x] **anim.js** — ANIM_TIMING, Anim object
 - [x] **render.js** — render helper functions (hearts, manaStr, renderActiveCard, etc.)
 
-### Game Logic (TODO)
-- [ ] **helpers.js** — draw, ko, checkWin, log (needs state refactor)
-- [ ] **ai.js** — AI decision logic
+### Game Initialization (RESTORED)
+- [x] **mkCreature, mkVerse, mkDeck, mkPlayer** — card/player factories
+- [x] **startGame** — initializes game state, starts timer
+- [x] Window exposures for all onclick handlers (module scope fix)
+
+### State Management (NEXT — enables full extraction)
+- [ ] Refactor `let G` → import `state.G` from state.js
+- [ ] Replace all `G` refs with `state.G` (~100+ occurrences)
+- [ ] Replace `selectedCard`, `startTime`, `timerInt`, `longPressTimer` with `state.*`
+- [ ] Extract init functions to **src/init.js** using `setGame()`
+
+### Game Logic (TODO — after state refactor)
+- [ ] **helpers.js** — draw, ko, checkWin, log
+- [ ] **ai.js** — AI decision logic  
 - [ ] **actions.js** — doSummon, doCast, doSet, doAttack, doRetreat, endTurn
 
 ### UI Layer (TODO)
 - [ ] **modals.js** — showModal, closeModal, showResult, showRules, showTriggerReveal
 - [ ] **interactions.js** — cardPress, cardRelease, selectCard, keyboard handlers
-
-### State Management (TODO — enables full extraction)
-- [ ] Refactor G from reassigned variable to proper state object
-- [ ] Move all mutable state into state.js
-- [ ] Export state accessors that other modules can use
 
 ## Phase 3: Polish
 - [ ] Review test coverage
