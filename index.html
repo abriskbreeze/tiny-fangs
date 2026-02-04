@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.12</title>
+  <title>TINY FANGS v0.2.13</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1844,7 +1844,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.12 • Card Battler</p>
+    <p class="sub">v0.2.13 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1949,7 +1949,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.12</div>
+      <div class="logo">TINY FANGS v0.2.13</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3439,6 +3439,12 @@
       
       log(`${creature.name} KO'd!`, 'dmg');
       
+      // Add to graveyard and clear active FIRST (so triggers can see the KO'd creature)
+      owner.grave.push(creature);
+      owner.active = null;
+      
+      const isPlayer = owner === state.G.me;
+      
       // Den Mother - next attack deals +10 bonus damage
       if (owner.setVerse?.id === 'denMother') {
         await showTriggerReveal(owner.setVerse);
@@ -3455,8 +3461,6 @@
         if (oneCost.length) {
           log('Grave Rise triggered!', 'heal');
           
-          // Player chooses, AI auto-selects first
-          const isPlayer = owner === state.G.me;
           let revived;
           
           if (isPlayer && oneCost.length > 1) {
@@ -3478,13 +3482,8 @@
           revived.curHp = revived.hp; // Restore HP
           owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
           
-          // Summon to active if no active, otherwise bench
-          if (!owner.active) {
-            owner.active = revived;
-            log(`${revived.name} rises as active!`);
-            render();
-            await Anim.summon(isPlayer ? 'me' : 'opp');
-          } else if (owner.bench.length < 2) {
+          // Always summon to bench first (active slot selection happens after all triggers)
+          if (owner.bench.length < 2) {
             const benchIdx = owner.bench.length;
             owner.bench.push(revived);
             log(`${revived.name} rises to bench!`);
@@ -3522,16 +3521,32 @@
         log('Chain Lightning armed!', 'mana');
       }
       
-      owner.grave.push(creature);
-      owner.active = null;
-      
-      // Auto-replace from bench
-      if (owner.bench.length) {
-        owner.active = owner.bench.shift();
-        log(`${owner === state.G.me ? 'You' : 'Rival'} sent out ${owner.active.name}`);
-        // Animate the replacement
+      // Replace from bench - player chooses if multiple, AI auto-selects
+      if (owner.bench.length > 0) {
+        let replacement;
+        
+        if (isPlayer && owner.bench.length > 1) {
+          // Player chooses which bench creature becomes active
+          replacement = await new Promise(resolve => {
+            showModal('Choose new active creature', owner.bench.map(c => ({
+              name: c.name,
+              sub: `${c.curHp}/${c.hp} HP / ${c.atk} ATK`,
+              action: () => {
+                closeModal();
+                resolve(c);
+              }
+            })));
+          });
+          owner.bench = owner.bench.filter(c => c.uid !== replacement.uid);
+        } else {
+          // AI or only one option - take first
+          replacement = owner.bench.shift();
+        }
+        
+        owner.active = replacement;
+        log(`${isPlayer ? 'You' : 'Rival'} sent out ${owner.active.name}`);
         render();
-        await Anim.benchToActive(owner === state.G.me ? 'me' : 'opp');
+        await Anim.benchToActive(isPlayer ? 'me' : 'opp');
         
         if (owner.chainLightning > 0) {
           const chainReplaceKo = applyDamage(owner.active, owner.chainLightning);
