@@ -15,10 +15,11 @@ launchctl stop com.tinyfangs.v2 && launchctl start com.tinyfangs.v2  # Restart l
 ## Version Numbering
 - Format: `0.X.Y` where Y can go past 9 (0.2.9 → 0.2.10 → 0.2.11)
 - **DO NOT bump from 0.2.x to 0.3.x without Rico's approval**
-- Update version in ALL 3 places in `index.html`:
-  1. `<title>TINY FANGS v0.2.X</title>` (line ~6)
-  2. `<p class="sub">v0.2.X • Card Battler</p>` (deck selection screen)
-  3. `<div class="logo">TINY FANGS v0.2.X</div>` (mobile header)
+- Update version in ALL 4 places:
+  1. `VERSION` file (just the number, e.g. `0.2.5`)
+  2. `<title>TINY FANGS v0.2.X</title>` in index.html (line ~6)
+  3. `<p class="sub">v0.2.X • Card Battler</p>` in index.html (deck selection screen)
+  4. `<div class="logo">TINY FANGS v0.2.X</div>` in index.html (mobile header)
 - Also update `TODO.md` version history
 
 ## Architecture
