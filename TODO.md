@@ -1,26 +1,26 @@
 # Tiny Fangs — Development TODO
 
-**Current Version:** v2.1 (see VERSION file)
+**Current Version:** v0.2.4 (see VERSION file)
 
 Full modularization of the monolith using TDD approach.
 
 ## Version History
-- **v2.2.4** — AI pause increased, LP loss shows "-<3", all emojis replaced with ASCII
-- **v2.2.3** — Poison damage now shows red like regular damage (was green/heal color)
-- **v2.2.2** — Verse color consistency: cast=gold/orange, set=purple (borders, popups, stars)
-- **v2.2.1** — Responsive mobile layout: clamp() sizing for cards, small screen media query
-- **v2.2.0** — ATK modifier display (green/red + tooltip), Call of the Wild pre-check
-- **v2.1.9** — Fixed: float text centering, bench summon selector (.mini-card → .card-mini)
-- **v2.1.8** — Set verse glow animation, attack wind-up (pull back before lunge)
-- **v2.1.7** — Bench-to-active animation: slide-in effect when creature enters from bench
-- **v2.1.6** — Spark burst effect: 3 stars with random sizes/positions for bench summon
-- **v2.1.5** — Animation centering fix, cast/set verse popups, lighter background overlay
-- **v2.1.4** — Animation fixes: summon positioned correctly, bench summon animation added
-- **v2.1.3** — Den Mother redesign: "next attack +10 damage" (was broken "this turn" buff)
-- **v2.1.2** — Battlefield UI: graveyard buttons on field, hold-to-zoom on player's [SET]
-- **v2.1.1** — UX fixes: Swarm Shield, Sacrifice order/choice, graveyard view, set verse inspect, Grave Rise choice
-- **v2.1** — Swarm deck, 10 new creatures, 6 new verses, ability system
-- **v2.0** — Refactor: modular architecture, TDD, bug fixes
+- **v0.2.4** — AI pause increased, LP loss shows "-<3", all emojis replaced with ASCII
+- **v0.2.3** — Poison damage now shows red like regular damage (was green/heal color)
+- **v0.2.2** — Verse color consistency: cast=gold/orange, set=purple (borders, popups, stars)
+- **v0.2.1** — Responsive mobile layout: clamp() sizing for cards, small screen media query
+- **v0.2.0** — ATK modifier display (green/red + tooltip), Call of the Wild pre-check
+- **v0.1.9** — Fixed: float text centering, bench summon selector (.mini-card → .card-mini)
+- **v0.1.8** — Set verse glow animation, attack wind-up (pull back before lunge)
+- **v0.1.7** — Bench-to-active animation: slide-in effect when creature enters from bench
+- **v0.1.6** — Spark burst effect: 3 stars with random sizes/positions for bench summon
+- **v0.1.5** — Animation centering fix, cast/set verse popups, lighter background overlay
+- **v0.1.4** — Animation fixes: summon positioned correctly, bench summon animation added
+- **v0.1.3** — Den Mother redesign: "next attack +10 damage" (was broken "this turn" buff)
+- **v0.1.2** — Battlefield UI: graveyard buttons on field, hold-to-zoom on player's [SET]
+- **v0.1.1** — UX fixes: Swarm Shield, Sacrifice order/choice, graveyard view, set verse inspect, Grave Rise choice
+- **v0.1** — Swarm deck, 10 new creatures, 6 new verses, ability system
+- **v0.0** — Refactor: modular architecture, TDD, bug fixes
 
 ## Phase 1: Project Setup
 - [x] Initialize Vite + Vitest
