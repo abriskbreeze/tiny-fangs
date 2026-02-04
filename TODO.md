@@ -1,6 +1,12 @@
-# Tiny Fangs v2 — Refactor TODO
+# Tiny Fangs — Development TODO
+
+**Current Version:** v2.1 (see VERSION file)
 
 Full modularization of the monolith using TDD approach.
+
+## Version History
+- **v2.1** — Swarm deck, 10 new creatures, 6 new verses, ability system
+- **v2.0** — Refactor: modular architecture, TDD, bug fixes
 
 ## Phase 1: Project Setup
 - [x] Initialize Vite + Vitest
