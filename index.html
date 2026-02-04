@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.9</title>
+  <title>TINY FANGS v2.2.0</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -275,6 +275,23 @@
     }
     
     .card-active .status { color: var(--gold); }
+    
+    /* ATK modifier colors */
+    .atk-stat {
+      cursor: help;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .atk-stat.atk-boosted {
+      color: #22ff88;
+      background: rgba(34, 255, 136, 0.15);
+      text-shadow: 0 0 8px rgba(34, 255, 136, 0.5);
+    }
+    .atk-stat.atk-reduced {
+      color: #ff4444;
+      background: rgba(255, 68, 68, 0.15);
+      text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    }
     
     .card-empty {
       width: 140px;
@@ -1650,7 +1667,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.9 • Card Battler</p>
+    <p class="sub">v2.2.0 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1749,7 +1766,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.9</div>
+      <div class="logo">TINY FANGS v2.2.0</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -1968,6 +1985,7 @@
     } from './src/helpers.js';
     import {
       getEffectiveAtk,
+      getAtkModifiers,
       getEffectiveDamageReduction,
       applyDrain,
       applySpark,
@@ -2107,10 +2125,14 @@
       $('d-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'd-opp-set', false);
       
       // Active creatures
-      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active);
-      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active);
-      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active);
-      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active);
+      // Calculate ATK modifiers for display
+      const myAtkInfo = state.G.me.active ? getAtkModifiers(state.G.me.active, state.G.me, state.G.opp) : null;
+      const oppAtkInfo = state.G.opp.active ? getAtkModifiers(state.G.opp.active, state.G.opp, state.G.me) : null;
+      
+      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo);
+      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo);
+      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo);
+      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo);
       
       // Bench
       $('m-my-bench').innerHTML = state.G.me.bench.map(c => renderMiniCard(c)).join('');
@@ -2383,6 +2405,27 @@
         return;
       }
       
+      // Pre-check for cards that might fail
+      if (c.id === 'callOfTheWild') {
+        const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
+        if (!oneCostInDeck.length) {
+          showModal('Call of the Wild', [{
+            name: 'No 1-cost creatures in deck!',
+            sub: 'The call goes unanswered...',
+            action: () => closeModal()
+          }]);
+          return; // Don't spend mana
+        }
+        if (state.G.me.active && state.G.me.bench.length >= 2) {
+          showModal('Call of the Wild', [{
+            name: 'Board is full!',
+            sub: 'Active + 2 benched creatures',
+            action: () => closeModal()
+          }]);
+          return; // Don't spend mana
+        }
+      }
+      
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       state.G.me.grave.push(c);
@@ -2481,16 +2524,8 @@
           break;
         
         case 'callOfTheWild':
-          // Summon a 1-cost creature from deck
+          // Summon a 1-cost creature from deck (pre-checks done above)
           const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
-          if (!oneCostInDeck.length) {
-            showModal('Call of the Wild', [{
-              name: 'No 1-cost creatures in deck!',
-              sub: 'The call goes unanswered...',
-              action: () => closeModal()
-            }]);
-            break;
-          }
           if (!state.G.me.active) {
             // No active - summon as active
             const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
@@ -2499,8 +2534,8 @@
             log(`Called ${summon.name} to battle!`, 'mana');
             render();
             await Anim.summon('me');
-          } else if (state.G.me.bench.length < 2) {
-            // Has active, bench has room
+          } else {
+            // Has active, bench has room (verified in pre-check)
             const benchIdx = state.G.me.bench.length;
             const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
             state.G.me.deck = state.G.me.deck.filter(x => x.uid !== summon.uid);
@@ -2508,12 +2543,6 @@
             log(`Called ${summon.name} to bench!`, 'mana');
             render();
             await Anim.summonBench('me', benchIdx);
-          } else {
-            showModal('Call of the Wild', [{
-              name: 'Board is full!',
-              sub: 'Active + 2 benched creatures',
-              action: () => closeModal()
-            }]);
           }
           break;
         

@@ -38,16 +38,28 @@ export function renderSetVerse(verse, id, isPlayer = false) {
 }
 
 // Active creature card
-export function renderActiveCard(c) {
+export function renderActiveCard(c, atkInfo = null) {
   if (!c) return `<div class="card-empty">EMPTY</div>`;
   const pct = (c.curHp / c.hp) * 100;
   const low = pct <= 30 ? 'low' : '';
   const statusStr = c.status ? `[${c.status}]` : '';
+  
+  // ATK display with modifiers
+  let atkDisplay;
+  if (atkInfo && atkInfo.effectiveAtk !== atkInfo.baseAtk) {
+    const diff = atkInfo.effectiveAtk - atkInfo.baseAtk;
+    const colorClass = diff > 0 ? 'atk-boosted' : 'atk-reduced';
+    const tooltip = atkInfo.modifiers.map(m => `${m.name}: +${m.value} (${m.desc})`).join('\\n');
+    atkDisplay = `<span class="atk-stat ${colorClass}" title="${tooltip}">ATK ${atkInfo.effectiveAtk}</span>`;
+  } else {
+    atkDisplay = `<span>ATK ${c.atk}</span>`;
+  }
+  
   return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="header"><span>${c.name}</span><span>${c.curHp}/${c.hp}</span></div>
     <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
     <div class="art">${c.art}</div>
-    <div class="footer"><span>ATK ${c.atk}</span><span class="status">${statusStr}</span></div>
+    <div class="footer">${atkDisplay}<span class="status">${statusStr}</span></div>
   </div>`;
 }
 

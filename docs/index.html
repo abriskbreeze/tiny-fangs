@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.9</title>
+  <title>TINY FANGS v2.2.0</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -288,6 +288,26 @@
     }
     
     .card-active .status { color: var(--gold); }
+    
+    /* ATK modifier colors */
+    
+    .atk-stat {
+      cursor: help;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    
+    .atk-stat.atk-boosted {
+      color: #22ff88;
+      background: rgba(34, 255, 136, 0.15);
+      text-shadow: 0 0 8px rgba(34, 255, 136, 0.5);
+    }
+    
+    .atk-stat.atk-reduced {
+      color: #ff4444;
+      background: rgba(255, 68, 68, 0.15);
+      text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    }
     
     .card-empty {
       width: 140px;
@@ -1715,7 +1735,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-DldvrSqk.js"></script>
+  <script type="module" crossorigin src="./assets/index-D6_ZWp1p.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -1723,7 +1743,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.9 • Card Battler</p>
+    <p class="sub">v2.2.0 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1822,7 +1842,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.9</div>
+      <div class="logo">TINY FANGS v2.2.0</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>

@@ -36,6 +36,50 @@ export function getEffectiveAtk(creature, owner, enemy) {
 }
 
 /**
+ * Get ATK modifiers for display (returns effective ATK + list of reasons)
+ */
+export function getAtkModifiers(creature, owner, enemy) {
+  const baseAtk = creature.atk;
+  const modifiers = [];
+  let effectiveAtk = baseAtk;
+  
+  // Orphan (Shade Pup): +15 ATK when bench is empty
+  if (creature.id === 'shadePup' && owner.bench.length === 0) {
+    effectiveAtk += 15;
+    modifiers.push({ name: 'Orphan', value: 15, desc: 'Bench empty' });
+  }
+  
+  // Pack Bond (Fangpup): +10 ATK per other creature you control
+  if (creature.id === 'fangpup' && owner.bench.length > 0) {
+    const bonus = owner.bench.length * 10;
+    effectiveAtk += bonus;
+    modifiers.push({ name: 'Pack Bond', value: bonus, desc: `${owner.bench.length} benched` });
+  }
+  
+  // Feeding Frenzy (Piranix): +15 ATK if enemy below half HP
+  if (creature.id === 'piranix' && enemy?.active) {
+    if (enemy.active.curHp < enemy.active.hp / 2) {
+      effectiveAtk += 15;
+      modifiers.push({ name: 'Feeding Frenzy', value: 15, desc: 'Enemy wounded' });
+    }
+  }
+  
+  // Rally (Alpha): +10 ATK per bench creature
+  if (creature.id === 'alpha' && owner.bench.length > 0) {
+    const bonus = owner.bench.length * 10;
+    effectiveAtk += bonus;
+    modifiers.push({ name: 'Rally', value: bonus, desc: `${owner.bench.length} benched` });
+  }
+  
+  // Den Mother bonus (one-shot)
+  if (owner.denMotherBonus) {
+    modifiers.push({ name: 'Den Mother', value: owner.denMotherBonus, desc: 'Next attack' });
+  }
+  
+  return { baseAtk, effectiveAtk, modifiers };
+}
+
+/**
  * Calculate damage reduction for a creature
  */
 export function getEffectiveDamageReduction(creature, owner) {
