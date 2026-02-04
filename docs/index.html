@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.9</title>
+  <title>TINY FANGS v0.2.10</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -272,8 +272,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 10px;
       line-height: 1;
+      overflow: hidden;
     }
     
     .card-mini .stats { 
@@ -336,7 +337,7 @@
       justify-content: center;
       padding: 4px;
       text-align: center;
-      font-size: 9px;
+      font-size: 11px;
       white-space: pre;
       line-height: 1.1;
       min-height: 0;
@@ -398,6 +399,13 @@
     #m-my-active .card-active,
     #m-opp-active .card-active {
       width: calc(clamp(50px, 14vw, 60px) * 2 + 3px);
+    }
+    
+    /* Mobile active card art - bigger since card is bigger */
+    
+    #m-my-active .card-active .art,
+    #m-opp-active .card-active .art {
+      font-size: 16px;
     }
     
     .card-empty.set-slot {
@@ -566,7 +574,9 @@
       #m-opp-active .card-mini,
       #m-my-active .card-active,
       #m-opp-active .card-active { width: 87px; }
-      .card-mini .art { font-size: 12px; }
+      .card-mini .art { font-size: 8px; }
+      #m-my-active .card-active .art,
+      #m-opp-active .card-active .art { font-size: 12px; }
       .hand-card { width: 60px; padding: 6px; font-size: 9px; }
       .m-actions { gap: 4px; }
       .m-btn { padding: 6px 8px; font-size: 10px; }
@@ -1919,7 +1929,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.9 • Card Battler</p>
+    <p class="sub">v0.2.10 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -2024,7 +2034,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.9</div>
+      <div class="logo">TINY FANGS v0.2.10</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
