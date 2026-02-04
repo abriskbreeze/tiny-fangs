@@ -5,6 +5,7 @@
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v2.2.1** — Responsive mobile layout: clamp() sizing for cards, small screen media query
 - **v2.2.0** — ATK modifier display (green/red + tooltip), Call of the Wild pre-check
 - **v2.1.9** — Fixed: float text centering, bench summon selector (.mini-card → .card-mini)
 - **v2.1.8** — Set verse glow animation, attack wind-up (pull back before lunge)

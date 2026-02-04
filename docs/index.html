@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.2.0</title>
+  <title>TINY FANGS v2.2.1</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -120,10 +120,10 @@
     .m-battle {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
+      padding: clamp(8px, 2vw, 16px);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: clamp(6px, 1.5vw, 12px);
     }
     
     .m-field-half {
@@ -231,7 +231,7 @@
     .card-active {
       background: var(--panel);
       border: 1px solid var(--border);
-      width: 140px;
+      width: clamp(110px, 35vw, 160px); /* Responsive: min 110px, prefer 35% viewport, max 160px */
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
@@ -350,7 +350,7 @@
       background: rgba(255,255,255,0.03);
       border: 1px solid var(--border);
       padding: 8px;
-      width: 72px;
+      width: clamp(64px, 18vw, 80px); /* Responsive hand cards */
       text-align: center;
       cursor: pointer;
       -webkit-user-select: none;
@@ -453,6 +453,18 @@
     /* ═══════════════════════════════════════════════════
        DESKTOP LAYOUT (900px+)
        ═══════════════════════════════════════════════════ */
+    
+    /* Small screen adjustments */
+    
+    @media (max-width: 380px) {
+      .card-active { width: 100px; }
+      .card-active .header { font-size: 9px; padding: 4px 6px; }
+      .card-active .art { font-size: 24px; padding: 6px; }
+      .card-active .footer { font-size: 8px; padding: 4px 6px; }
+      .hand-card { width: 60px; padding: 6px; font-size: 9px; }
+      .m-actions { gap: 4px; }
+      .m-btn { padding: 6px 8px; font-size: 10px; }
+    }
     
     @media (min-width: 900px) {
       .mobile { display: none; }
@@ -1743,7 +1755,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.2.0 • Card Battler</p>
+    <p class="sub">v2.2.1 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1842,7 +1854,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.2.0</div>
+      <div class="logo">TINY FANGS v2.2.1</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
