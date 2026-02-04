@@ -2267,7 +2267,7 @@
       showModal('Coin Flip', [
         { name: 'HEADS', sub: 'Call it!', action: () => doCoinFlip('heads') },
         { name: 'TAILS', sub: 'Call it!', action: () => doCoinFlip('tails') }
-      ]);
+      ], { noCancel: true });
     }
     
     async function doCoinFlip(playerCall) {
@@ -2356,14 +2356,14 @@
         showModal(`${result.toUpperCase()}! You won the toss`, [
           { name: 'Go First', sub: 'You cannot attack on turn 1', action: () => startGame(pendingDeckId, true) },
           { name: 'Go Second', sub: 'You can attack on turn 1', action: () => startGame(pendingDeckId, false) }
-        ]);
+        ], { noCancel: true });
       } else {
         // AI won - randomly choose and start
         const aiGoesFirst = Math.random() < 0.5;
         await Anim.wait(500);
         showModal(`${result.toUpperCase()}! Rival won the toss`, [
           { name: aiGoesFirst ? 'Rival goes first' : 'You go first', sub: 'Starting game...', action: () => startGame(pendingDeckId, !aiGoesFirst) }
-        ]);
+        ], { noCancel: true });
       }
     }
     
@@ -3768,7 +3768,7 @@
     // MODALS
     // ═══════════════════════════════════════════════════════════════
     
-    function showModal(title, options) {
+    function showModal(title, options, opts = {}) {
       $('modal-title').textContent = title;
       $('modal-opts').innerHTML = options.map((o, i) => `
         <div class="option ${o.disabled ? 'off' : ''}" onclick="${o.disabled ? '' : `modalAction(${i})`}">
@@ -3777,6 +3777,9 @@
         </div>
       `).join('');
       window._modalActions = options.map(o => o.action);
+      // Hide cancel button if noCancel option is set
+      const cancelBtn = $('modal').querySelector('.cancel');
+      if (cancelBtn) cancelBtn.style.display = opts.noCancel ? 'none' : '';
       $('modal').classList.add('open');
     }
     
