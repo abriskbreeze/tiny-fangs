@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.8</title>
+  <title>TINY FANGS v0.2.9</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -234,7 +234,7 @@
     /* Card Styles - Trading Card Shape (5:7 ratio) */
     .card-mini {
       background: var(--panel);
-      border: 2px solid var(--green);
+      border: 1px solid var(--green);
       border-radius: 4px;
       width: clamp(50px, 14vw, 60px);
       aspect-ratio: 5 / 7;
@@ -270,7 +270,7 @@
     
     .card-active {
       background: var(--panel);
-      border: 2px solid var(--border);
+      border: 1px solid var(--border);
       border-radius: 4px;
       width: clamp(80px, 24vw, 100px);
       aspect-ratio: 5 / 7;
@@ -360,7 +360,7 @@
     .card-empty {
       width: clamp(50px, 14vw, 60px);
       aspect-ratio: 5 / 7;
-      border: 2px dashed var(--border);
+      border: 1px dashed var(--border);
       border-radius: 4px;
       display: flex;
       align-items: center;
@@ -389,6 +389,7 @@
       border-style: solid;
       border-color: var(--purple);
       color: var(--purple);
+      background: var(--panel);
     }
     
     .card-empty.grave-slot {
@@ -438,9 +439,9 @@
       background: rgba(59,130,246,0.15);
     }
     
-    .hand-card.creature { border-left: 2px solid var(--green); }
-    .hand-card.verse-cast { border-left: 2px solid var(--gold); }
-    .hand-card.verse-set { border-left: 2px solid var(--purple); }
+    .hand-card.creature { border-left: 1px solid var(--green); }
+    .hand-card.verse-cast { border-left: 1px solid var(--gold); }
+    .hand-card.verse-set { border-left: 1px solid var(--purple); }
     
     .hand-card .cost-pip {
       font-size: 11px;
@@ -797,9 +798,9 @@
         background: rgba(59,130,246,0.1);
       }
       
-      .d-hand-card.creature { border-left: 2px solid var(--green); }
-      .d-hand-card.verse-cast { border-left: 2px solid var(--gold); }
-      .d-hand-card.verse-set { border-left: 2px solid var(--purple); }
+      .d-hand-card.creature { border-left: 1px solid var(--green); }
+      .d-hand-card.verse-cast { border-left: 1px solid var(--gold); }
+      .d-hand-card.verse-set { border-left: 1px solid var(--purple); }
       
       .d-hand-card .cost {
         font-size: 14px;
@@ -1834,7 +1835,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.8 • Card Battler</p>
+    <p class="sub">v0.2.9 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1939,7 +1940,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.8</div>
+      <div class="logo">TINY FANGS v0.2.9</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
