@@ -61,13 +61,15 @@ describe('renderSetVerse', () => {
   it('shows [SET] when verse exists', () => {
     const html = renderSetVerse({ id: 'test' }, 'my-set');
     expect(html).toContain('[SET]');
-    expect(html).toContain('has');
+    expect(html).toContain('has-set');
+    expect(html).toContain('card-empty');
   });
 
   it('shows NO SET when no verse', () => {
     const html = renderSetVerse(null, 'my-set');
     expect(html).toContain('NO SET');
-    expect(html).not.toContain('has');
+    expect(html).not.toContain('has-set');
+    expect(html).toContain('card-empty');
   });
 });
 

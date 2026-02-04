@@ -172,26 +172,6 @@
       gap: 4px;
     }
     
-    .m-set-verse {
-      background: var(--panel);
-      border: 2px dashed var(--border);
-      border-radius: 4px;
-      width: clamp(50px, 14vw, 60px);
-      aspect-ratio: 5 / 7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 7px;
-      color: var(--dim);
-      cursor: pointer;
-    }
-    
-    .m-set-verse.has { 
-      border-style: solid;
-      border-color: var(--purple); 
-      color: var(--purple); 
-    }
-    
     /* Set verse animation - glow pulse */
     @keyframes set-verse-glow {
       0% { 
@@ -369,6 +349,16 @@
       font-size: 9px;
     }
     
+    .card-empty.set-slot {
+      cursor: pointer;
+    }
+    
+    .card-empty.has-set {
+      border-style: solid;
+      border-color: var(--purple);
+      color: var(--purple);
+    }
+    
     /* Hand */
     .m-hand {
       background: var(--panel);
@@ -506,7 +496,6 @@
       .card-mini .name, .card-mini .stats { font-size: 6px; }
       .card-empty { width: 42px; font-size: 6px; }
       .card-empty.active-slot { width: 70px; }
-      .m-set-verse { width: 42px; font-size: 6px; }
       .hand-card { width: 60px; padding: 6px; font-size: 9px; }
       .m-actions { gap: 4px; }
       .m-btn { padding: 6px 8px; font-size: 10px; }
@@ -670,11 +659,14 @@
       
       .d-side {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         gap: 20px;
       }
       
-      .d-side.opp { flex-direction: row-reverse; }
+      .d-side.opp { 
+        flex-direction: row-reverse; 
+        align-items: flex-start;
+      }
       
       .d-active-area {
         flex-shrink: 0;
@@ -1852,7 +1844,7 @@
       <div class="m-field-half opp">
         <div class="m-active-row" style="width: 100%; justify-content: space-between;">
           <div class="m-side-info">
-            <div class="m-set-verse" id="m-opp-set">NO SET</div>
+            <div class="card-empty set-slot" id="m-opp-set">NO SET</div>
             <div class="m-grave-btn" onclick="showGraveyard('opp')">[x] <span id="m-opp-grave-ct">0</span></div>
           </div>
           <div class="m-opp-right-group" style="display: flex; gap: 10px;">
@@ -1875,7 +1867,7 @@
           </div>
           <div id="m-my-active"></div>
           <div class="m-side-info">
-            <div class="m-set-verse" id="m-my-set">NO SET</div>
+            <div class="card-empty set-slot" id="m-my-set">NO SET</div>
             <div class="m-grave-btn" onclick="showGraveyard('me')">[x] <span id="m-my-grave-ct">0</span></div>
           </div>
         </div>
@@ -1966,7 +1958,7 @@
               <div id="d-opp-bench" class="d-bench-list"></div>
             </div>
             <div class="d-set-area">
-              <div class="m-set-verse" id="d-opp-set">NO SET</div>
+              <div class="card-empty set-slot" id="d-opp-set">NO SET</div>
             </div>
           </div>
           <div class="d-vs">───────── VS ─────────</div>
@@ -1977,7 +1969,7 @@
               <div id="d-my-bench" class="d-bench-list"></div>
             </div>
             <div class="d-set-area">
-              <div class="m-set-verse" id="d-my-set">NO SET</div>
+              <div class="card-empty set-slot" id="d-my-set">NO SET</div>
             </div>
           </div>
         </div>
