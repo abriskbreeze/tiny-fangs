@@ -52,8 +52,8 @@
     <div class="footer">${r}<span class="status">${o}</span></div>
   </div>`}function oe(t){return`<div class="card-mini" onpointerdown="cardPress('${t.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="name">${t.name}</div>
-    <div class="art">${t.art}</div>
     <div class="stats">${t.curHp}/${t.hp}</div>
+    <div class="art">${t.art}</div>
   </div>`}function R(t){const a=[];for(let i=0;i<2;i++)t[i]?a.push(oe(t[i])):a.push('<div class="card-empty"></div>');return a.join("")}function O(t,a,i){const s=i===t.uid?"selected":"",o=t.cardType==="creature"?"creature":t.type==="cast"?"verse-cast":"verse-set",r=t.cardType==="creature"?"Creature":t.type==="cast"?"Cast":"Set";return a?`<div class="d-hand-card ${o} ${s}" onclick="selectCard('${t.uid}')" onpointerdown="cardPress('${t.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
       <div class="cost">${t.cost}</div>
       <div class="info"><div class="name">${t.name}</div><div class="type">${r}</div></div>
