@@ -14,7 +14,7 @@
     h1 { color: #ffd700; text-align: center; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
       gap: 20px;
       max-width: 1400px;
       margin: 0 auto;
@@ -34,13 +34,14 @@
       background: #0d0d15;
       padding: 20px;
       border-radius: 4px;
-      min-height: 140px;
+      min-height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffd700;
-      font-size: 12px;
+      font-size: 11px;
       margin: 0;
+      transition: transform 0.1s;
     }
     .controls {
       margin-top: 10px;
@@ -57,652 +58,854 @@
   </style>
 </head>
 <body>
-  <h1>Coin Flip Animation Demos</h1>
-  <p style="text-align:center;color:#888;">Each animation loops automatically. Click "Restart" to replay.</p>
+  <h1>Coin Flip Animation Demos (with Size Variation)</h1>
+  <p style="text-align:center;color:#888;">Rise → Spin → Fall → Bounce → Land</p>
   <div class="grid" id="grid"></div>
 
 <script>
-const animations = {
+// Each style has small, medium, big sizes with heads, tails, edge views
+const styles = {
   "1. Classic Circle": {
-    frames: [
-      { art: `    .---.
-   /     \\
-  |   H   |
-   \\     /
-    '---'`, delay: 120 },
-      { art: `     .--.
-    /    \\
-   |      |
-    \\    /
-     '--'`, delay: 80 },
-      { art: `      .-.
-     /   \\
-    |     |
-     \\   /
-      '-'`, delay: 60 },
-      { art: `       |
-       |
-       |
-       |
-       |`, delay: 50 },
-      { art: `      .-.
-     /   \\
-    |     |
-     \\   /
-      '-'`, delay: 60 },
-      { art: `     .--.
-    /    \\
-   |      |
-    \\    /
-     '--'`, delay: 80 },
-      { art: `    .---.
-   /     \\
-  |   T   |
-   \\     /
-    '---'`, delay: 120 },
-      { art: `     .--.
-    /    \\
-   |      |
-    \\    /
-     '--'`, delay: 80 },
-      { art: `      .-.
-     /   \\
-    |     |
-     \\   /
-      '-'`, delay: 60 },
-      { art: `       |
-       |
-       |
-       |
-       |`, delay: 50 },
-      { art: `      .-.
-     /   \\
-    |     |
-     \\   /
-      '-'`, delay: 60 },
-      { art: `    .---.
-   /     \\
-  |   H   |
-   \\     /
-    '---'`, delay: 300 },
-    ]
-  },
-  
-  "2. Rounded Rectangle": {
-    frames: [
-      { art: `.-------.
-|       |
+    small: {
+      heads: `  .---.
+ /     \\
 |   H   |
-|       |
-'-------'`, delay: 120 },
-      { art: ` .----.
- |    |
- |    |
- |    |
- '----'`, delay: 80 },
-      { art: `  .--.
-  |  |
-  |  |
-  |  |
-  '--'`, delay: 60 },
-      { art: `   ||
-   ||
-   ||
-   ||
-   ||`, delay: 50 },
-      { art: `  .--.
-  |  |
-  |  |
-  |  |
-  '--'`, delay: 60 },
-      { art: ` .----.
- |    |
- |    |
- |    |
- '----'`, delay: 80 },
-      { art: `.-------.
-|       |
+ \\     /
+  '---'`,
+      tails: `  .---.
+ /     \\
 |   T   |
-|       |
-'-------'`, delay: 120 },
-      { art: ` .----.
- |    |
- |    |
- |    |
- '----'`, delay: 80 },
-      { art: `  .--.
-  |  |
-  |  |
-  |  |
-  '--'`, delay: 60 },
-      { art: `   ||
-   ||
-   ||
-   ||
-   ||`, delay: 50 },
-      { art: `.-------.
-|       |
-|   H   |
-|       |
-'-------'`, delay: 300 },
-    ]
+ \\     /
+  '---'`,
+      edge: `   .-. 
+  /   \\
+ |     |
+  \\   /
+   '-'`
+    },
+    med: {
+      heads: `    .-----.
+   /       \\
+  /         \\
+ |     H     |
+  \\         /
+   \\_______/`,
+      tails: `    .-----.
+   /       \\
+  /         \\
+ |     T     |
+  \\         /
+   \\_______/`,
+      edge: `    .---.
+   /     \\
+  |       |
+  |       |
+   \\     /
+    '---'`
+    },
+    big: {
+      heads: `      .-------.
+     /         \\
+    /           \\
+   /             \\
+  |       H       |
+   \\             /
+    \\           /
+     \\_________/`,
+      tails: `      .-------.
+     /         \\
+    /           \\
+   /             \\
+  |       T       |
+   \\             /
+    \\           /
+     \\_________/`,
+      edge: `      .---.
+     /     \\
+    /       \\
+   |         |
+   |         |
+    \\       /
+     \\     /
+      '---'`
+    }
   },
-  
+
+  "2. Rounded Rectangle": {
+    small: {
+      heads: `.------.
+|      |
+|  H   |
+|      |
+'------'`,
+      tails: `.------.
+|      |
+|  T   |
+|      |
+'------'`,
+      edge: ` .---.
+ |   |
+ |   |
+ |   |
+ '---'`
+    },
+    med: {
+      heads: `.----------.
+|          |
+|          |
+|    H     |
+|          |
+|          |
+'----------'`,
+      tails: `.----------.
+|          |
+|          |
+|    T     |
+|          |
+|          |
+'----------'`,
+      edge: `  .----.
+  |    |
+  |    |
+  |    |
+  |    |
+  |    |
+  '----'`
+    },
+    big: {
+      heads: `.--------------.
+|              |
+|              |
+|              |
+|      H       |
+|              |
+|              |
+|              |
+'--------------'`,
+      tails: `.--------------.
+|              |
+|              |
+|              |
+|      T       |
+|              |
+|              |
+|              |
+'--------------'`,
+      edge: `   .-----.
+   |     |
+   |     |
+   |     |
+   |     |
+   |     |
+   |     |
+   |     |
+   '-----'`
+    }
+  },
+
   "3. Double Border": {
-    frames: [
-      { art: `╔═══════╗
-║ ┌───┐ ║
-║ │ H │ ║
-║ └───┘ ║
-╚═══════╝`, delay: 120 },
-      { art: ` ╔════╗
- ║    ║
- ║    ║
- ║    ║
- ╚════╝`, delay: 80 },
-      { art: `  ╔══╗
-  ║  ║
-  ║  ║
-  ║  ║
-  ╚══╝`, delay: 60 },
-      { art: `   ║
-   ║
-   ║
-   ║
-   ║`, delay: 50 },
-      { art: `  ╔══╗
-  ║  ║
-  ║  ║
-  ║  ║
-  ╚══╝`, delay: 60 },
-      { art: ` ╔════╗
- ║    ║
- ║    ║
- ║    ║
- ╚════╝`, delay: 80 },
-      { art: `╔═══════╗
-║ ┌───┐ ║
-║ │ T │ ║
-║ └───┘ ║
-╚═══════╝`, delay: 120 },
-      { art: ` ╔════╗
- ║    ║
- ║    ║
- ║    ║
- ╚════╝`, delay: 80 },
-      { art: `   ║
-   ║
-   ║
-   ║
-   ║`, delay: 50 },
-      { art: `╔═══════╗
-║ ┌───┐ ║
-║ │ H │ ║
-║ └───┘ ║
-╚═══════╝`, delay: 300 },
-    ]
+    small: {
+      heads: `╔═════╗
+║ ┌─┐ ║
+║ │H│ ║
+║ └─┘ ║
+╚═════╝`,
+      tails: `╔═════╗
+║ ┌─┐ ║
+║ │T│ ║
+║ └─┘ ║
+╚═════╝`,
+      edge: ` ╔══╗
+ ║  ║
+ ║  ║
+ ║  ║
+ ╚══╝`
+    },
+    med: {
+      heads: `╔═════════╗
+║ ┌─────┐ ║
+║ │     │ ║
+║ │  H  │ ║
+║ │     │ ║
+║ └─────┘ ║
+╚═════════╝`,
+      tails: `╔═════════╗
+║ ┌─────┐ ║
+║ │     │ ║
+║ │  T  │ ║
+║ │     │ ║
+║ └─────┘ ║
+╚═════════╝`,
+      edge: `  ╔════╗
+  ║    ║
+  ║    ║
+  ║    ║
+  ║    ║
+  ║    ║
+  ╚════╝`
+    },
+    big: {
+      heads: `╔═════════════╗
+║ ┌─────────┐ ║
+║ │         │ ║
+║ │         │ ║
+║ │    H    │ ║
+║ │         │ ║
+║ │         │ ║
+║ └─────────┘ ║
+╚═════════════╝`,
+      tails: `╔═════════════╗
+║ ┌─────────┐ ║
+║ │         │ ║
+║ │         │ ║
+║ │    T    │ ║
+║ │         │ ║
+║ │         │ ║
+║ └─────────┘ ║
+╚═════════════╝`,
+      edge: `   ╔═════╗
+   ║     ║
+   ║     ║
+   ║     ║
+   ║     ║
+   ║     ║
+   ║     ║
+   ║     ║
+   ╚═════╝`
+    }
   },
-  
+
   "4. Block Coin": {
-    frames: [
-      { art: `████████
-█      █
-█  H   █
-█      █
-████████`, delay: 120 },
-      { art: ` █████
- █   █
- █   █
- █   █
- █████`, delay: 80 },
-      { art: `  ███
-  █ █
-  █ █
-  █ █
-  ███`, delay: 60 },
-      { art: `   ██
-   ██
-   ██
-   ██
-   ██`, delay: 50 },
-      { art: `  ███
-  █ █
-  █ █
-  █ █
-  ███`, delay: 60 },
-      { art: ` █████
- █   █
- █   █
- █   █
- █████`, delay: 80 },
-      { art: `████████
-█      █
-█  T   █
-█      █
-████████`, delay: 120 },
-      { art: ` █████
- █   █
- █   █
- █   █
- █████`, delay: 80 },
-      { art: `   ██
-   ██
-   ██
-   ██
-   ██`, delay: 50 },
-      { art: `████████
-█      █
-█  H   █
-█      █
-████████`, delay: 300 },
-    ]
-  },
-  
-  "5. Minimal Parens": {
-    frames: [
-      { art: `(((  H  )))`, delay: 120 },
-      { art: ` ((    ))`, delay: 80 },
-      { art: `  (    )`, delay: 60 },
-      { art: `    ||`, delay: 50 },
-      { art: `  (    )`, delay: 60 },
-      { art: ` ((    ))`, delay: 80 },
-      { art: `(((  T  )))`, delay: 120 },
-      { art: ` ((    ))`, delay: 80 },
-      { art: `    ||`, delay: 50 },
-      { art: `(((  H  )))`, delay: 300 },
-    ]
-  },
-  
-  "6. Bracket Coin": {
-    frames: [
-      { art: `[=======]
-[       ]
-[   H   ]
-[       ]
-[=======]`, delay: 120 },
-      { art: ` [====]
- [    ]
- [    ]
- [    ]
- [====]`, delay: 80 },
-      { art: `  [==]
-  [  ]
-  [  ]
-  [  ]
-  [==]`, delay: 60 },
-      { art: `   []
-   []
-   []
-   []
-   []`, delay: 50 },
-      { art: `  [==]
-  [  ]
-  [  ]
-  [  ]
-  [==]`, delay: 60 },
-      { art: ` [====]
- [    ]
- [    ]
- [    ]
- [====]`, delay: 80 },
-      { art: `[=======]
-[       ]
-[   T   ]
-[       ]
-[=======]`, delay: 120 },
-      { art: ` [====]
- [    ]
- [    ]
- [    ]
- [====]`, delay: 80 },
-      { art: `   []
-   []
-   []
-   []
-   []`, delay: 50 },
-      { art: `[=======]
-[       ]
-[   H   ]
-[       ]
-[=======]`, delay: 300 },
-    ]
-  },
-  
-  "7. Dotted Coin": {
-    frames: [
-      { art: ` · · · · ·
-·         ·
-·    H    ·
-·         ·
- · · · · ·`, delay: 120 },
-      { art: `  · · · ·
- ·       ·
- ·       ·
- ·       ·
-  · · · ·`, delay: 80 },
-      { art: `   · · ·
-  ·     ·
-  ·     ·
-  ·     ·
-   · · ·`, delay: 60 },
-      { art: `     :
-     :
-     :
-     :
-     :`, delay: 50 },
-      { art: `   · · ·
-  ·     ·
-  ·     ·
-  ·     ·
-   · · ·`, delay: 60 },
-      { art: `  · · · ·
- ·       ·
- ·       ·
- ·       ·
-  · · · ·`, delay: 80 },
-      { art: ` · · · · ·
-·         ·
-·    T    ·
-·         ·
- · · · · ·`, delay: 120 },
-      { art: `  · · · ·
- ·       ·
- ·       ·
- ·       ·
-  · · · ·`, delay: 80 },
-      { art: `     :
-     :
-     :
-     :
-     :`, delay: 50 },
-      { art: ` · · · · ·
-·         ·
-·    H    ·
-·         ·
- · · · · ·`, delay: 300 },
-    ]
-  },
-  
-  "8. Star Border": {
-    frames: [
-      { art: `*********
-*       *
-*   H   *
-*       *
-*********`, delay: 120 },
-      { art: ` ******
- *    *
- *    *
- *    *
- ******`, delay: 80 },
-      { art: `  ****
-  *  *
-  *  *
-  *  *
-  ****`, delay: 60 },
-      { art: `   **
-   **
-   **
-   **
-   **`, delay: 50 },
-      { art: `  ****
-  *  *
-  *  *
-  *  *
-  ****`, delay: 60 },
-      { art: ` ******
- *    *
- *    *
- *    *
- ******`, delay: 80 },
-      { art: `*********
-*       *
-*   T   *
-*       *
-*********`, delay: 120 },
-      { art: ` ******
- *    *
- *    *
- *    *
- ******`, delay: 80 },
-      { art: `   **
-   **
-   **
-   **
-   **`, delay: 50 },
-      { art: `*********
-*       *
-*   H   *
-*       *
-*********`, delay: 300 },
-    ]
-  },
-  
-  "9. Fancy Unicode": {
-    frames: [
-      { art: `╭─────────╮
-│  ◉   ◉  │
-│    H    │
-│  ◉   ◉  │
-╰─────────╯`, delay: 120 },
-      { art: ` ╭──────╮
- │      │
- │      │
- │      │
- ╰──────╯`, delay: 80 },
-      { art: `  ╭────╮
-  │    │
-  │    │
-  │    │
-  ╰────╯`, delay: 60 },
-      { art: `    │
-    │
-    │
-    │
-    │`, delay: 50 },
-      { art: `  ╭────╮
-  │    │
-  │    │
-  │    │
-  ╰────╯`, delay: 60 },
-      { art: ` ╭──────╮
- │      │
- │      │
- │      │
- ╰──────╯`, delay: 80 },
-      { art: `╭─────────╮
-│  ◉   ◉  │
-│    T    │
-│  ◉   ◉  │
-╰─────────╯`, delay: 120 },
-      { art: ` ╭──────╮
- │      │
- │      │
- │      │
- ╰──────╯`, delay: 80 },
-      { art: `    │
-    │
-    │
-    │
-    │`, delay: 50 },
-      { art: `╭─────────╮
-│  ◉   ◉  │
-│    H    │
-│  ◉   ◉  │
-╰─────────╯`, delay: 300 },
-    ]
-  },
-  
-  "10. O-Style": {
-    frames: [
-      { art: `  OOOOO
- O     O
- O  H  O
- O     O
-  OOOOO`, delay: 120 },
-      { art: `   OOOO
-  O    O
-  O    O
-  O    O
-   OOOO`, delay: 80 },
-      { art: `    OOO
-   O   O
-   O   O
-   O   O
-    OOO`, delay: 60 },
-      { art: `     O
-     O
-     O
-     O
-     O`, delay: 50 },
-      { art: `    OOO
-   O   O
-   O   O
-   O   O
-    OOO`, delay: 60 },
-      { art: `   OOOO
-  O    O
-  O    O
-  O    O
-   OOOO`, delay: 80 },
-      { art: `  OOOOO
- O     O
- O  T  O
- O     O
-  OOOOO`, delay: 120 },
-      { art: `   OOOO
-  O    O
-  O    O
-  O    O
-   OOOO`, delay: 80 },
-      { art: `     O
-     O
-     O
-     O
-     O`, delay: 50 },
-      { art: `  OOOOO
- O     O
- O  H  O
- O     O
-  OOOOO`, delay: 300 },
-    ]
-  },
-  
-  "11. Shaded Depth": {
-    frames: [
-      { art: `░▒▓████▓▒░
+    small: {
+      heads: `██████
+█    █
+█ H  █
+█    █
+██████`,
+      tails: `██████
+█    █
+█ T  █
+█    █
+██████`,
+      edge: ` ███
+ █ █
+ █ █
+ █ █
+ ███`
+    },
+    med: {
+      heads: `██████████
+█        █
 █        █
 █   H    █
 █        █
-░▒▓████▓▒░`, delay: 120 },
-      { art: ` ▒▓███▓▒
- █      █
- █      █
- █      █
- ▒▓███▓▒`, delay: 80 },
-      { art: `  ▓██▓
-  █  █
-  █  █
-  █  █
-  ▓██▓`, delay: 60 },
-      { art: `   ▌▐
-   ▌▐
-   ▌▐
-   ▌▐
-   ▌▐`, delay: 50 },
-      { art: `  ▓██▓
-  █  █
-  █  █
-  █  █
-  ▓██▓`, delay: 60 },
-      { art: ` ▒▓███▓▒
- █      █
- █      █
- █      █
- ▒▓███▓▒`, delay: 80 },
-      { art: `░▒▓████▓▒░
+█        █
+██████████`,
+      tails: `██████████
+█        █
 █        █
 █   T    █
 █        █
-░▒▓████▓▒░`, delay: 120 },
-      { art: ` ▒▓███▓▒
- █      █
- █      █
- █      █
- ▒▓███▓▒`, delay: 80 },
-      { art: `   ▌▐
-   ▌▐
-   ▌▐
-   ▌▐
-   ▌▐`, delay: 50 },
-      { art: `░▒▓████▓▒░
 █        █
-█   H    █
-█        █
-░▒▓████▓▒░`, delay: 300 },
-    ]
+██████████`,
+      edge: `  █████
+  █   █
+  █   █
+  █   █
+  █   █
+  █   █
+  █████`
+    },
+    big: {
+      heads: `██████████████
+█            █
+█            █
+█            █
+█     H      █
+█            █
+█            █
+█            █
+██████████████`,
+      tails: `██████████████
+█            █
+█            █
+█            █
+█     T      █
+█            █
+█            █
+█            █
+██████████████`,
+      edge: `   ██████
+   █    █
+   █    █
+   █    █
+   █    █
+   █    █
+   █    █
+   █    █
+   ██████`
+    }
   },
-  
+
+  "5. Minimal Parens": {
+    small: {
+      heads: `((( H )))`,
+      tails: `((( T )))`,
+      edge: `  ( | )`
+    },
+    med: {
+      heads: `(((   H   )))`,
+      tails: `(((   T   )))`,
+      edge: `  ((  |  ))`
+    },
+    big: {
+      heads: `((((    H    ))))`,
+      tails: `((((    T    ))))`,
+      edge: `  (((   |   )))`
+    }
+  },
+
+  "6. Bracket Coin": {
+    small: {
+      heads: `[=====]
+[     ]
+[  H  ]
+[     ]
+[=====]`,
+      tails: `[=====]
+[     ]
+[  T  ]
+[     ]
+[=====]`,
+      edge: ` [==]
+ [  ]
+ [  ]
+ [  ]
+ [==]`
+    },
+    med: {
+      heads: `[=========]
+[         ]
+[         ]
+[    H    ]
+[         ]
+[         ]
+[=========]`,
+      tails: `[=========]
+[         ]
+[         ]
+[    T    ]
+[         ]
+[         ]
+[=========]`,
+      edge: `  [====]
+  [    ]
+  [    ]
+  [    ]
+  [    ]
+  [    ]
+  [====]`
+    },
+    big: {
+      heads: `[=============]
+[             ]
+[             ]
+[             ]
+[      H      ]
+[             ]
+[             ]
+[             ]
+[=============]`,
+      tails: `[=============]
+[             ]
+[             ]
+[             ]
+[      T      ]
+[             ]
+[             ]
+[             ]
+[=============]`,
+      edge: `   [=====]
+   [     ]
+   [     ]
+   [     ]
+   [     ]
+   [     ]
+   [     ]
+   [     ]
+   [=====]`
+    }
+  },
+
+  "7. Dotted Coin": {
+    small: {
+      heads: ` · · · ·
+·       ·
+·   H   ·
+·       ·
+ · · · ·`,
+      tails: ` · · · ·
+·       ·
+·   T   ·
+·       ·
+ · · · ·`,
+      edge: `  · · ·
+ ·     ·
+ ·     ·
+ ·     ·
+  · · ·`
+    },
+    med: {
+      heads: `  · · · · · ·
+ ·           ·
+·             ·
+·      H      ·
+·             ·
+ ·           ·
+  · · · · · ·`,
+      tails: `  · · · · · ·
+ ·           ·
+·             ·
+·      T      ·
+·             ·
+ ·           ·
+  · · · · · ·`,
+      edge: `   · · · ·
+  ·       ·
+ ·         ·
+ ·         ·
+ ·         ·
+  ·       ·
+   · · · ·`
+    },
+    big: {
+      heads: `   · · · · · · · ·
+  ·               ·
+ ·                 ·
+·                   ·
+·         H         ·
+·                   ·
+ ·                 ·
+  ·               ·
+   · · · · · · · ·`,
+      tails: `   · · · · · · · ·
+  ·               ·
+ ·                 ·
+·                   ·
+·         T         ·
+·                   ·
+ ·                 ·
+  ·               ·
+   · · · · · · · ·`,
+      edge: `    · · · · · ·
+   ·           ·
+  ·             ·
+ ·               ·
+ ·               ·
+ ·               ·
+  ·             ·
+   ·           ·
+    · · · · · ·`
+    }
+  },
+
+  "8. Star Border": {
+    small: {
+      heads: `*******
+*     *
+*  H  *
+*     *
+*******`,
+      tails: `*******
+*     *
+*  T  *
+*     *
+*******`,
+      edge: ` ****
+ *  *
+ *  *
+ *  *
+ ****`
+    },
+    med: {
+      heads: `***********
+*         *
+*         *
+*    H    *
+*         *
+*         *
+***********`,
+      tails: `***********
+*         *
+*         *
+*    T    *
+*         *
+*         *
+***********`,
+      edge: `  ******
+  *    *
+  *    *
+  *    *
+  *    *
+  *    *
+  ******`
+    },
+    big: {
+      heads: `***************
+*             *
+*             *
+*             *
+*      H      *
+*             *
+*             *
+*             *
+***************`,
+      tails: `***************
+*             *
+*             *
+*             *
+*      T      *
+*             *
+*             *
+*             *
+***************`,
+      edge: `   ********
+   *      *
+   *      *
+   *      *
+   *      *
+   *      *
+   *      *
+   *      *
+   ********`
+    }
+  },
+
+  "9. Fancy Unicode": {
+    small: {
+      heads: `╭───────╮
+│ ◉   ◉ │
+│   H   │
+│ ◉   ◉ │
+╰───────╯`,
+      tails: `╭───────╮
+│ ◉   ◉ │
+│   T   │
+│ ◉   ◉ │
+╰───────╯`,
+      edge: ` ╭───╮
+ │   │
+ │   │
+ │   │
+ ╰───╯`
+    },
+    med: {
+      heads: `╭───────────╮
+│  ◉     ◉  │
+│           │
+│     H     │
+│           │
+│  ◉     ◉  │
+╰───────────╯`,
+      tails: `╭───────────╮
+│  ◉     ◉  │
+│           │
+│     T     │
+│           │
+│  ◉     ◉  │
+╰───────────╯`,
+      edge: `  ╭─────╮
+  │     │
+  │     │
+  │     │
+  │     │
+  │     │
+  ╰─────╯`
+    },
+    big: {
+      heads: `╭───────────────╮
+│   ◉       ◉   │
+│               │
+│               │
+│       H       │
+│               │
+│               │
+│   ◉       ◉   │
+╰───────────────╯`,
+      tails: `╭───────────────╮
+│   ◉       ◉   │
+│               │
+│               │
+│       T       │
+│               │
+│               │
+│   ◉       ◉   │
+╰───────────────╯`,
+      edge: `   ╭───────╮
+   │       │
+   │       │
+   │       │
+   │       │
+   │       │
+   │       │
+   │       │
+   ╰───────╯`
+    }
+  },
+
+  "10. O-Style": {
+    small: {
+      heads: ` OOOOO
+O     O
+O  H  O
+O     O
+ OOOOO`,
+      tails: ` OOOOO
+O     O
+O  T  O
+O     O
+ OOOOO`,
+      edge: `  OOO
+ O   O
+ O   O
+ O   O
+  OOO`
+    },
+    med: {
+      heads: `  OOOOOOO
+ O       O
+O         O
+O    H    O
+O         O
+ O       O
+  OOOOOOO`,
+      tails: `  OOOOOOO
+ O       O
+O         O
+O    T    O
+O         O
+ O       O
+  OOOOOOO`,
+      edge: `   OOOOO
+  O     O
+ O       O
+ O       O
+ O       O
+  O     O
+   OOOOO`
+    },
+    big: {
+      heads: `   OOOOOOOOO
+  O         O
+ O           O
+O             O
+O      H      O
+O             O
+ O           O
+  O         O
+   OOOOOOOOO`,
+      tails: `   OOOOOOOOO
+  O         O
+ O           O
+O             O
+O      T      O
+O             O
+ O           O
+  O         O
+   OOOOOOOOO`,
+      edge: `    OOOOOOO
+   O       O
+  O         O
+ O           O
+ O           O
+ O           O
+  O         O
+   O       O
+    OOOOOOO`
+    }
+  },
+
+  "11. Shaded Depth": {
+    small: {
+      heads: `░▒▓██▓▒░
+█      █
+█  H   █
+█      █
+░▒▓██▓▒░`,
+      tails: `░▒▓██▓▒░
+█      █
+█  T   █
+█      █
+░▒▓██▓▒░`,
+      edge: ` ▒▓█▓▒
+ █   █
+ █   █
+ █   █
+ ▒▓█▓▒`
+    },
+    med: {
+      heads: `░░▒▓████▓▒░░
+█          █
+█          █
+█    H     █
+█          █
+█          █
+░░▒▓████▓▒░░`,
+      tails: `░░▒▓████▓▒░░
+█          █
+█          █
+█    T     █
+█          █
+█          █
+░░▒▓████▓▒░░`,
+      edge: `  ▒▓███▓▒
+  █     █
+  █     █
+  █     █
+  █     █
+  █     █
+  ▒▓███▓▒`
+    },
+    big: {
+      heads: `░░░▒▓██████▓▒░░░
+█              █
+█              █
+█              █
+█      H       █
+█              █
+█              █
+█              █
+░░░▒▓██████▓▒░░░`,
+      tails: `░░░▒▓██████▓▒░░░
+█              █
+█              █
+█              █
+█      T       █
+█              █
+█              █
+█              █
+░░░▒▓██████▓▒░░░`,
+      edge: `   ▒▓████▓▒
+   █      █
+   █      █
+   █      █
+   █      █
+   █      █
+   █      █
+   █      █
+   ▒▓████▓▒`
+    }
+  },
+
   "12. Retro Game": {
-    frames: [
-      { art: `┌──────┐
-│╔════╗│
-│║  H ║│
-│╚════╝│
-└──────┘`, delay: 120 },
-      { art: ` ┌────┐
- │╔══╗│
- │║  ║│
- │╚══╝│
- └────┘`, delay: 80 },
-      { art: `  ┌──┐
-  │╔╗│
-  │║║│
-  │╚╝│
-  └──┘`, delay: 60 },
-      { art: `   │
-   │
-   │
-   │
-   │`, delay: 50 },
-      { art: `  ┌──┐
-  │╔╗│
-  │║║│
-  │╚╝│
-  └──┘`, delay: 60 },
-      { art: ` ┌────┐
- │╔══╗│
- │║  ║│
- │╚══╝│
- └────┘`, delay: 80 },
-      { art: `┌──────┐
-│╔════╗│
-│║  T ║│
-│╚════╝│
-└──────┘`, delay: 120 },
-      { art: ` ┌────┐
- │╔══╗│
- │║  ║│
- │╚══╝│
- └────┘`, delay: 80 },
-      { art: `   │
-   │
-   │
-   │
-   │`, delay: 50 },
-      { art: `┌──────┐
-│╔════╗│
-│║  H ║│
-│╚════╝│
-└──────┘`, delay: 300 },
-    ]
-  },
+    small: {
+      heads: `┌────┐
+│╔══╗│
+│║H ║│
+│╚══╝│
+└────┘`,
+      tails: `┌────┐
+│╔══╗│
+│║T ║│
+│╚══╝│
+└────┘`,
+      edge: ` ┌──┐
+ │╔╗│
+ │║║│
+ │╚╝│
+ └──┘`
+    },
+    med: {
+      heads: `┌────────┐
+│╔══════╗│
+│║      ║│
+│║  H   ║│
+│║      ║│
+│╚══════╝│
+└────────┘`,
+      tails: `┌────────┐
+│╔══════╗│
+│║      ║│
+│║  T   ║│
+│║      ║│
+│╚══════╝│
+└────────┘`,
+      edge: `  ┌────┐
+  │╔══╗│
+  │║  ║│
+  │║  ║│
+  │║  ║│
+  │╚══╝│
+  └────┘`
+    },
+    big: {
+      heads: `┌────────────┐
+│╔══════════╗│
+│║          ║│
+│║          ║│
+│║    H     ║│
+│║          ║│
+│║          ║│
+│╚══════════╝│
+└────────────┘`,
+      tails: `┌────────────┐
+│╔══════════╗│
+│║          ║│
+│║          ║│
+│║    T     ║│
+│║          ║│
+│║          ║│
+│╚══════════╝│
+└────────────┘`,
+      edge: `   ┌──────┐
+   │╔════╗│
+   │║    ║│
+   │║    ║│
+   │║    ║│
+   │║    ║│
+   │║    ║│
+   │╚════╝│
+   └──────┘`
+    }
+  }
 };
+
+// Generate animation frames for a style (same sequence as game)
+function generateFrames(style, result) {
+  const s = styles[style];
+  return [
+    // Rise phase (getting bigger)
+    { art: s.small.edge, delay: 80 },
+    { art: s.med.heads, delay: 80 },
+    { art: s.med.edge, delay: 60 },
+    { art: s.big.tails, delay: 60 },
+    { art: s.big.edge, delay: 50 },
+    { art: s.big.heads, delay: 50 },
+    { art: s.big.edge, delay: 50 },
+    { art: s.big.tails, delay: 50 },
+    { art: s.big.edge, delay: 50 },
+    { art: s.big.heads, delay: 50 },
+    // Fall phase (getting smaller)
+    { art: s.big.edge, delay: 50 },
+    { art: s.med.tails, delay: 60 },
+    { art: s.med.edge, delay: 60 },
+    { art: s.med.heads, delay: 70 },
+    { art: s.small.edge, delay: 80 },
+    // Bounce 1
+    { art: s.med[result], delay: 100, bounce: true },
+    { art: s.small.edge, delay: 80 },
+    // Bounce 2 (smaller)
+    { art: s.small[result], delay: 120, bounce: true },
+    { art: s.small.edge, delay: 60 },
+    // Final land
+    { art: s.small[result], delay: 600 },
+  ];
+}
 
 // Create demo grid
 const grid = document.getElementById('grid');
 
-for (const [name, anim] of Object.entries(animations)) {
+for (const name of Object.keys(styles)) {
   const demo = document.createElement('div');
   demo.className = 'demo';
   demo.innerHTML = `
@@ -719,18 +922,25 @@ for (const [name, anim] of Object.entries(animations)) {
 const animStates = {};
 
 async function runAnim(name) {
-  const anim = animations[name];
   const el = document.getElementById(`coin-${name}`);
   animStates[name] = true;
   
   while (animStates[name]) {
-    for (const frame of anim.frames) {
+    const result = Math.random() < 0.5 ? 'heads' : 'tails';
+    const frames = generateFrames(name, result);
+    
+    for (const frame of frames) {
       if (!animStates[name]) break;
       el.textContent = frame.art;
+      if (frame.bounce) {
+        el.style.transform = 'translateY(-15px)';
+        await new Promise(r => setTimeout(r, 60));
+        el.style.transform = 'translateY(0)';
+      }
       await new Promise(r => setTimeout(r, frame.delay));
     }
     // Pause before loop
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 800));
   }
 }
 
@@ -740,7 +950,7 @@ function restartAnim(name) {
 }
 
 // Start all
-for (const name of Object.keys(animations)) {
+for (const name of Object.keys(styles)) {
   runAnim(name);
 }
 </script>
