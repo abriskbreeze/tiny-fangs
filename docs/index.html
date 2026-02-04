@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.6</title>
+  <title>TINY FANGS v0.2.7</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1930,7 +1930,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-BlR3YgdB.js"></script>
+  <script type="module" crossorigin src="./assets/index-B6Ed1rLr.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -1938,25 +1938,25 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.6 • Card Battler</p>
+    <p class="sub">v0.2.7 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="startGame('shadow')">
+      <button class="deck-btn" onclick="showCoinFlip('shadow')">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="startGame('fang')">
+      <button class="deck-btn" onclick="showCoinFlip('fang')">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="startGame('venom')">
+      <button class="deck-btn" onclick="showCoinFlip('venom')">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="startGame('swarm')">
+      <button class="deck-btn" onclick="showCoinFlip('swarm')">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
@@ -2043,7 +2043,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.6</div>
+      <div class="logo">TINY FANGS v0.2.7</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>

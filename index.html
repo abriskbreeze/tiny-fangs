@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.6</title>
+  <title>TINY FANGS v0.2.7</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1852,25 +1852,25 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.6 • Card Battler</p>
+    <p class="sub">v0.2.7 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="startGame('shadow')">
+      <button class="deck-btn" onclick="showCoinFlip('shadow')">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="startGame('fang')">
+      <button class="deck-btn" onclick="showCoinFlip('fang')">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="startGame('venom')">
+      <button class="deck-btn" onclick="showCoinFlip('venom')">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="startGame('swarm')">
+      <button class="deck-btn" onclick="showCoinFlip('swarm')">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
@@ -1957,7 +1957,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.6</div>
+      <div class="logo">TINY FANGS v0.2.7</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2237,7 +2237,57 @@
       };
     }
     
-    function startGame(deckId) {
+    // Coin flip state
+    let pendingDeckId = null;
+    
+    function showCoinFlip(deckId) {
+      pendingDeckId = deckId;
+      showModal('Coin Flip', [
+        { name: 'HEADS', sub: 'Call it!', action: () => doCoinFlip('heads') },
+        { name: 'TAILS', sub: 'Call it!', action: () => doCoinFlip('tails') }
+      ]);
+    }
+    
+    async function doCoinFlip(playerCall) {
+      closeModal();
+      
+      // Show flipping animation
+      const flipFrames = [
+        '  ___\n /   \\\n| H |\n \\___/',
+        '  ___\n /   \\\n| | |\n \\___/',
+        '  ___\n /   \\\n| T |\n \\___/',
+        '  ___\n /   \\\n| | |\n \\___/'
+      ];
+      
+      const result = Math.random() < 0.5 ? 'heads' : 'tails';
+      const playerWon = playerCall === result;
+      
+      // Show result
+      const resultArt = result === 'heads' 
+        ? '  ___\n /   \\\n| H |\n \\___/'
+        : '  ___\n /   \\\n| T |\n \\___/';
+      
+      await Anim.wait(300);
+      
+      if (playerWon) {
+        // Player won - let them choose
+        showModal(`${result.toUpperCase()}! You won the toss`, [
+          { name: 'Go First', sub: 'You cannot attack on turn 1', action: () => startGame(pendingDeckId, true) },
+          { name: 'Go Second', sub: 'You can attack on turn 1', action: () => startGame(pendingDeckId, false) }
+        ]);
+      } else {
+        // AI won - randomly choose and start
+        const aiGoesFirst = Math.random() < 0.5;
+        await Anim.wait(500);
+        showModal(`${result.toUpperCase()}! Rival won the toss`, [
+          { name: aiGoesFirst ? 'Rival goes first' : 'You go first', sub: 'Starting game...', action: () => startGame(pendingDeckId, !aiGoesFirst) }
+        ]);
+      }
+    }
+    
+    function startGame(deckId, playerFirst = true) {
+      closeModal();
+      
       const aiDecks = ['shadow','fang','venom','swarm'].filter(d => d !== deckId);
       const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
       
@@ -2247,7 +2297,7 @@
         turn: 1,
         phase: 'main',
         log: [],
-        myTurn: true,
+        myTurn: playerFirst,
         winner: null,
         firstTurn: true,
       };
@@ -2258,13 +2308,21 @@
       $('setup').classList.add('hidden');
       
       log('Game started');
-      log('Choose a creature to summon');
       
-      render();
+      if (playerFirst) {
+        log('You go first! Choose a creature to summon');
+        render();
+      } else {
+        log('Rival goes first');
+        render();
+        // AI takes first turn
+        setTimeout(aiTurn, 600);
+      }
     }
     
-    // Expose startGame globally for onclick handlers (module scope)
+    // Expose functions globally for onclick handlers (module scope)
     window.startGame = startGame;
+    window.showCoinFlip = showCoinFlip;
     
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
@@ -3093,6 +3151,9 @@
       state.G.turn++;
       state.G.firstTurn = false; // After first turn, attacking is allowed
       
+      // Mana phase: gain max mana at END of turn (capped at 5)
+      if (state.G.me.maxMana < 5) state.G.me.maxMana++;
+      
       render();
       
       // AI turn
@@ -3111,8 +3172,7 @@
       const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
       
       try {
-        // Mana phase
-        if (ai.maxMana < 5) ai.maxMana++;
+        // Mana phase: refill to max (no increment here - that happens at end of turn)
         ai.mana = ai.maxMana;
         
         // Draw
@@ -3209,7 +3269,8 @@
         }
         
         // === ATTACK PHASE ===
-        if (ai.active) {
+        // Skip attack on first turn of game (whoever goes first can't attack)
+        if (ai.active && !state.G.firstTurn) {
           await pause();
           
           // Player's Phantom Wall check
@@ -3375,6 +3436,12 @@
         log('(AI error)', 'dmg');
       }
       
+      // Mana phase: AI gains max mana at END of turn (capped at 5)
+      if (ai.maxMana < 5) ai.maxMana++;
+      
+      // After first turn of game, attacking is allowed
+      state.G.firstTurn = false;
+      
       // Transition to player turn
       await pause();
       if (!state.G.winner) startPlayerTurn();
@@ -3391,8 +3458,7 @@
       if (state.G.winner) return;
       
       try {
-        // Mana phase
-        if (state.G.me.maxMana < 5) state.G.me.maxMana++;
+        // Mana phase: refill to max (increment happens at end of turn)
         state.G.me.mana = state.G.me.maxMana;
         
         // Draw
@@ -3418,7 +3484,6 @@
       
       // Minimal setup to get the game unstuck
       state.G.myTurn = true;
-      if (state.G.me.maxMana < 5) state.G.me.maxMana++;
       state.G.me.mana = state.G.me.maxMana;
       
       try {
