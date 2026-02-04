@@ -3,7 +3,7 @@ import { CREATURES, VERSES, DECKS, getCreature, getVerse, getDeck } from '../src
 
 describe('CREATURES', () => {
   it('has 12 creatures', () => {
-    expect(Object.keys(CREATURES)).toHaveLength(12);
+    expect(Object.keys(CREATURES)).toHaveLength(22);
   });
 
   it('all creatures have required fields', () => {
@@ -34,8 +34,8 @@ describe('CREATURES', () => {
 });
 
 describe('VERSES', () => {
-  it('has 14 verses', () => {
-    expect(Object.keys(VERSES)).toHaveLength(14);
+  it('has 20 verses', () => {
+    expect(Object.keys(VERSES)).toHaveLength(20);
   });
 
   it('all verses have required fields', () => {
@@ -59,14 +59,14 @@ describe('VERSES', () => {
   it('has 8 cast and 6 set verses', () => {
     const cast = Object.values(VERSES).filter(v => v.type === 'cast');
     const set = Object.values(VERSES).filter(v => v.type === 'set');
-    expect(cast).toHaveLength(8);
-    expect(set).toHaveLength(6);
+    expect(cast).toHaveLength(12);
+    expect(set).toHaveLength(8);
   });
 });
 
 describe('DECKS', () => {
-  it('has 3 decks', () => {
-    expect(Object.keys(DECKS)).toHaveLength(3);
+  it('has 4 decks', () => {
+    expect(Object.keys(DECKS)).toHaveLength(4);
   });
 
   it('all decks have valid creature references', () => {

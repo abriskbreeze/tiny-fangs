@@ -51,6 +51,56 @@ export const CREATURES = {
     ability:'Reflection', abilityText:'ATK equals enemy creature\'s ATK. When KO\'d, enemy loses 1 life.',
     flavor:'"It wears your face."',
     art:' .-----.\n(  ???  )\n `-----\'' },
+  
+  // === NEW CARDS ===
+  
+  // Shadow Pack additions
+  shadePup: { id:'shadePup', name:'Shade Pup', subtitle:'Lone Shadow', cost:1, hp:25, atk:15,
+    ability:'Orphan', abilityText:'+15 ATK while you have no bench creatures.',
+    flavor:'"Stronger alone."',
+    art:'  /\\_/\\\n (;_;)\n  / \\' },
+  
+  // Fang Pack additions  
+  emberfang: { id:'emberfang', name:'Emberfang', subtitle:'Spark Ferret', cost:1, hp:25, atk:25,
+    ability:'Spark', abilityText:'When summoned, deal 5 damage to enemy creature.',
+    flavor:'"First blood."',
+    art:'  ~火~\n=(ΦωΦ)=\n  \\|/' },
+  
+  // Venom Pack additions
+  leechling: { id:'leechling', name:'Leechling', subtitle:'Blood Mite', cost:1, hp:20, atk:15,
+    ability:'Drain', abilityText:'Heal HP equal to damage dealt.',
+    flavor:'"It gives nothing back."',
+    art:'  ┌○┐\n  │▓│\n  └─┘' },
+  
+  // Swarm Pack (new)
+  fangpup: { id:'fangpup', name:'Fangpup', subtitle:'Pack Whelp', cost:1, hp:25, atk:20,
+    ability:'Pack Bond', abilityText:'+10 ATK for each other creature you control.',
+    flavor:'"Never alone."',
+    art:'  /\\_/\\\n (^ω^)\n  ┘ └' },
+  hiveling: { id:'hiveling', name:'Hiveling', subtitle:'Swarm Drone', cost:1, hp:20, atk:20,
+    ability:'Swarm', abilityText:'When summoned with 2+ creatures, draw 1 card.',
+    flavor:'"One of many."',
+    art:'  ╱▽╲\n <(●)>\n  /│\\' },
+  skitter: { id:'skitter', name:'Skitter', subtitle:'Panic Mouse', cost:1, hp:30, atk:15,
+    ability:'Scurry', abilityText:'When damaged, may swap with bench creature (free).',
+    flavor:'"Too fast to catch."',
+    art:'  ○\n ◐│◑\n  /\\' },
+  piranix: { id:'piranix', name:'Piranix', subtitle:'Blood Fin', cost:2, hp:35, atk:25,
+    ability:'Feeding Frenzy', abilityText:'+15 ATK if enemy creature is below half HP.',
+    flavor:'"It smells weakness."',
+    art:' ><(((°>' },
+  vulpix: { id:'vulpix', name:'Vulpix', subtitle:'Den Guardian', cost:2, hp:40, atk:25,
+    ability:'Den Guard', abilityText:'While you have bench creatures, take -10 damage.',
+    flavor:'"The pack comes first."',
+    art:'  /\\_/\\\n (◕ᴥ◕)\n ◢███◣' },
+  alpha: { id:'alpha', name:'Alpha', subtitle:'Pack Leader', cost:3, hp:55, atk:35,
+    ability:'Rally', abilityText:'Your bench creatures can assist attacks (+10 each).',
+    flavor:'"They follow without question."',
+    art:'  ∧___∧\n (▀ ͜͞ʖ▀)\n /|███|\\' },
+  broodmother: { id:'broodmother', name:'Broodmother', subtitle:'Hive Queen', cost:4, hp:60, atk:20,
+    ability:'Spawn', abilityText:'End of your turn, summon a 10/10 Antling to bench (max 2).',
+    flavor:'"The swarm is eternal."',
+    art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },
 };
 
 export const VERSES = {
@@ -84,20 +134,50 @@ export const VERSES = {
     trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.' },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
     trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.' },
+  
+  // === NEW VERSES ===
+  
+  // Fang Pack addition
+  ignite: { id:'ignite', name:'Ignite', type:'cast', cost:1,
+    text:'Deal 15 damage to enemy creature.' },
+  
+  // Swarm Pack verses
+  packTactics: { id:'packTactics', name:'Pack Tactics', type:'cast', cost:1,
+    text:'Draw 1 card for each creature you control (max 3).' },
+  callOfTheWild: { id:'callOfTheWild', name:'Call of the Wild', type:'cast', cost:2,
+    text:'Summon a 1-cost creature from your deck to bench.' },
+  sacrifice: { id:'sacrifice', name:'Sacrifice', type:'cast', cost:0,
+    text:'KO one of your creatures. Draw 2 cards.' },
+  denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
+    trigger:'When a creature you control is KO\'d', text:'Your other creatures gain +10 ATK this turn.' },
+  swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
+    trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.' },
 };
 
 export const DECKS = {
   shadow: {
-    creatures: ['whisper','whisper','gloom','gloom','mireveil','mireveil','duskfang','duskfang'],
-    verses: ['darkPact','darkPact','graveEcho','graveEcho','soulSiphon','soulSiphon','soulTrap','soulTrap','graveRise','graveRise','manaDrain','manaDrain']
+    // 8 creatures: 2 whisper, 2 gloom, 2 shadePup (new!), 1 mireveil, 1 duskfang
+    creatures: ['whisper','whisper','gloom','gloom','shadePup','shadePup','mireveil','duskfang'],
+    // 12 verses
+    verses: ['darkPact','darkPact','darkPact','graveEcho','graveEcho','soulSiphon','soulSiphon','soulTrap','soulTrap','graveRise','graveRise','manaDrain']
   },
   fang: {
-    creatures: ['cindermaw','cindermaw','bladewhisker','bladewhisker','pulsefin','pulsefin','stormtalon','stormtalon'],
-    verses: ['predatorsMark','predatorsMark','manaSurge','manaSurge','bloodMoon','bloodMoon','phantomWall','phantomWall','mirrorForce','mirrorForce','lastBreath','lastBreath']
+    // 8 creatures: 2 emberfang (new!), 2 cindermaw, 2 bladewhisker, 1 pulsefin, 1 stormtalon
+    creatures: ['emberfang','emberfang','cindermaw','cindermaw','bladewhisker','bladewhisker','pulsefin','stormtalon'],
+    // 12 verses: now with ignite!
+    verses: ['ignite','ignite','ignite','predatorsMark','predatorsMark','bloodMoon','bloodMoon','phantomWall','phantomWall','mirrorForce','mirrorForce','lastBreath']
   },
   venom: {
-    creatures: ['thornling','thornling','hexweaver','hexweaver','sundewqueen','sundewqueen','echomask','echomask'],
-    verses: ['secondWind','secondWind','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath','lastBreath']
+    // 8 creatures: 2 leechling (new!), 2 thornling, 2 hexweaver, 1 sundewqueen, 1 echomask
+    creatures: ['leechling','leechling','thornling','thornling','hexweaver','hexweaver','sundewqueen','echomask'],
+    // 12 verses
+    verses: ['secondWind','secondWind','soulSiphon','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath']
+  },
+  swarm: {
+    // 8 creatures: pack synergy focus
+    creatures: ['fangpup','fangpup','fangpup','hiveling','hiveling','skitter','piranix','alpha'],
+    // 12 verses: draw, summon, bench synergy
+    verses: ['packTactics','packTactics','packTactics','callOfTheWild','callOfTheWild','sacrifice','sacrifice','denMother','denMother','swarmShield','swarmShield','lastBreath']
   }
 };
 
