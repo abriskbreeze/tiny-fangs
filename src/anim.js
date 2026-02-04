@@ -37,6 +37,21 @@ export const Anim = {
     document.querySelectorAll(selector).forEach(el => this.play(el, animClass, durationMs));
   },
   
+  // Get visible element from selector (skips display:none elements)
+  getVisibleElement(selector, index = 0) {
+    const elements = document.querySelectorAll(selector);
+    let visibleCount = 0;
+    for (const el of elements) {
+      // Check if element or parent is visible
+      if (el.offsetParent !== null || el.offsetWidth > 0) {
+        if (visibleCount === index) return el;
+        visibleCount++;
+      }
+    }
+    // Fallback to first element
+    return elements[index] || elements[0] || null;
+  },
+  
   // Floating damage/heal number
   floatText(text, type, targetEl) {
     const el = document.createElement('div');
@@ -88,16 +103,11 @@ export const Anim = {
   
   // Get card element by creature uid
   getCardEl(creatureUid, side) {
-    // Try to find in active or bench
-    const prefix = side === 'me' ? ['m-my-active', 'd-my-active'] : ['m-opp-active', 'd-opp-active'];
-    for (const id of prefix) {
-      const container = $(id);
-      if (container) {
-        const card = container.querySelector('.card-active, .card-mini');
-        if (card) return card;
-      }
-    }
-    return null;
+    // Try to find VISIBLE card in active
+    const selector = side === 'me' 
+      ? '#m-my-active .card-active, #d-my-active .card-active' 
+      : '#m-opp-active .card-active, #d-opp-active .card-active';
+    return this.getVisibleElement(selector);
   },
   
   // Attack animation sequence - returns promise that resolves when complete
@@ -182,9 +192,23 @@ export const Anim = {
       this.screenFlash('gold');
       this.playOn(selector, 'anim-summon', ANIM_TIMING.SUMMON + 100);
       this.playOn(selector, 'anim-summon-glow', ANIM_TIMING.SUMMON + 200);
-      const el = document.querySelector(selector);
+      // Find VISIBLE element (mobile or desktop)
+      const el = this.getVisibleElement(selector);
       this.floatText('SUMMON!', 'gold', el);
       setTimeout(resolve, ANIM_TIMING.SUMMON + 100);
+    });
+  },
+  
+  // Bench summon animation (smaller version for benched creatures)
+  summonBench(side, index = 0) {
+    return new Promise(resolve => {
+      const mobileSelector = side === 'me' ? '#m-my-bench .mini-card' : '#m-opp-bench .mini-card';
+      const desktopSelector = side === 'me' ? '#d-my-bench .mini-card' : '#d-opp-bench .mini-card';
+      const selector = `${mobileSelector}, ${desktopSelector}`;
+      this.playOn(selector, 'anim-summon-small', 400);
+      const el = this.getVisibleElement(selector, index);
+      this.floatText('✦', 'gold', el);
+      setTimeout(resolve, 400);
     });
   },
   

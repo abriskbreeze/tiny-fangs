@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.1.3</title>
+  <title>TINY FANGS v2.1.4</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1378,6 +1378,16 @@
     }
     .anim-summon-glow { animation: summon-glow 0.7s ease-out; }
     
+    /* Bench summon - smaller animation for benched creatures */
+    @keyframes summon-small {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .anim-summon-small { 
+      animation: summon-small 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
     /* KO - DRAMATIC DEATH */
     @keyframes fade-out-down {
       0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); filter: brightness(1); }
@@ -1572,7 +1582,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.1.3 • Card Battler</p>
+    <p class="sub">v2.1.4 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
@@ -1671,7 +1681,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.1.3</div>
+      <div class="logo">TINY FANGS v2.1.4</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2217,8 +2227,11 @@
         render();
         await Anim.summon('me'); // Wait for summon animation to complete
       } else if (state.G.me.bench.length < 2) {
+        const benchIdx = state.G.me.bench.length;
         state.G.me.bench.push(c);
         log(`Summoned ${c.name} to bench`);
+        render();
+        await Anim.summonBench('me', benchIdx);
       } else {
         log('No room!', 'dmg');
         state.G.me.hand.push(c);
@@ -2420,10 +2433,13 @@
             await Anim.summon('me');
           } else if (state.G.me.bench.length < 2) {
             // Has active, bench has room
+            const benchIdx = state.G.me.bench.length;
             const summon = oneCostInDeck[Math.floor(Math.random() * oneCostInDeck.length)];
             state.G.me.deck = state.G.me.deck.filter(x => x.uid !== summon.uid);
             state.G.me.bench.push(summon);
             log(`Called ${summon.name} to bench!`, 'mana');
+            render();
+            await Anim.summonBench('me', benchIdx);
           } else {
             showModal('Call of the Wild', [{
               name: 'Board is full!',
@@ -2855,9 +2871,11 @@
               continue;
             }
           }
+          const benchIdx = ai.bench.length;
           ai.bench.push(pick);
           log(`Rival benched ${pick.name}`);
           render();
+          await Anim.summonBench('opp', benchIdx);
         }
         
         // === SET VERSE PHASE ===
@@ -3183,8 +3201,11 @@
             render();
             await Anim.summon(isPlayer ? 'me' : 'opp');
           } else if (owner.bench.length < 2) {
+            const benchIdx = owner.bench.length;
             owner.bench.push(revived);
             log(`${revived.name} rises to bench!`);
+            render();
+            await Anim.summonBench(isPlayer ? 'me' : 'opp', benchIdx);
           }
         }
         owner.grave.push(owner.setVerse);
