@@ -15,7 +15,7 @@ export const ANIM_TIMING = {
   NEGATE: 500,
   FLOAT_TEXT: 800,
   ATTACK_SEQUENCE: 450, // lunge + hit
-  AI_PAUSE: 1000,       // pause between AI actions for readability
+  AI_PAUSE: 1400,       // pause between AI actions for readability (increased)
   TRIGGER_REVEAL: 5000, // how long to show triggered set verse (doubled from 2500)
 };
 
@@ -169,8 +169,10 @@ export const Anim = {
       this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH + 100);
       this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
       this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
-      const el = document.querySelector(selector);
-      this.floatText(`-${amount}`, 'damage', el);
+      const el = this.getVisibleElement(selector);
+      // Show hearts lost instead of number
+      const hearts = Array(amount).fill('-<3').join(' ');
+      this.floatText(hearts, 'damage', el);
       setTimeout(resolve, ANIM_TIMING.SHAKE + 100);
     });
   },
@@ -244,7 +246,7 @@ export const Anim = {
     for (let i = 0; i < 3; i++) {
       const star = document.createElement('div');
       star.className = `spark-particle spark-${color}`;
-      star.textContent = '✦';
+      star.textContent = '*';
       
       // Random offset from center (-15 to +15 px)
       const offsetX = (Math.random() - 0.5) * 30;
@@ -280,7 +282,7 @@ export const Anim = {
   // Cast verse - returns promise
   castVerse() {
     return new Promise(resolve => {
-      this.floatText('✦', 'gold', null);
+      this.floatText('*', 'gold', null);
       setTimeout(resolve, 200);
     });
   },

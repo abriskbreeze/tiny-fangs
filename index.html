@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v2.2.3</title>
+  <title>TINY FANGS v2.2.4</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1713,26 +1713,26 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v2.2.3 • Card Battler</p>
+    <p class="sub">v2.2.4 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="startGame('shadow')">
-        <div class="icon">🌑</div>
+        <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
       <button class="deck-btn" onclick="startGame('fang')">
-        <div class="icon">🔥</div>
+        <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
       <button class="deck-btn" onclick="startGame('venom')">
-        <div class="icon">🕷️</div>
+        <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
       <button class="deck-btn" onclick="startGame('swarm')">
-        <div class="icon">🐺</div>
+        <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
@@ -1768,7 +1768,7 @@
           <div id="m-opp-active"></div>
           <div class="m-side-info">
             <div class="m-set-verse" id="m-opp-set">NO SET</div>
-            <div class="m-grave-btn" onclick="showGraveyard('opp')">☠ <span id="m-opp-grave-ct">0</span></div>
+            <div class="m-grave-btn" onclick="showGraveyard('opp')">[x] <span id="m-opp-grave-ct">0</span></div>
           </div>
         </div>
         <div id="m-opp-bench" class="m-bench-row"></div>
@@ -1781,7 +1781,7 @@
           <div id="m-my-active"></div>
           <div class="m-side-info">
             <div class="m-set-verse" id="m-my-set">NO SET</div>
-            <div class="m-grave-btn" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
+            <div class="m-grave-btn" onclick="showGraveyard('me')">[x] <span id="m-my-grave-ct">0</span></div>
           </div>
         </div>
         <div id="m-my-bench" class="m-bench-row"></div>
@@ -1812,7 +1812,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v2.2.3</div>
+      <div class="logo">TINY FANGS v2.2.4</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>

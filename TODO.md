@@ -5,6 +5,7 @@
 Full modularization of the monolith using TDD approach.
 
 ## Version History
+- **v2.2.4** — AI pause increased, LP loss shows "-<3", all emojis replaced with ASCII
 - **v2.2.3** — Poison damage now shows red like regular damage (was green/heal color)
 - **v2.2.2** — Verse color consistency: cast=gold/orange, set=purple (borders, popups, stars)
 - **v2.2.1** — Responsive mobile layout: clamp() sizing for cards, small screen media query
