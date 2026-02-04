@@ -811,7 +811,7 @@
         border-bottom: 1px solid var(--border);
       }
       
-      /* Right Panel - Hand */
+      /* Right Panel - Actions + Log */
       .d-right {
         display: flex;
         flex-direction: column;
@@ -819,20 +819,50 @@
         grid-row: span 2;
       }
       
-      .d-hand-list {
+      .d-actions-panel { flex: 0 0 auto; }
+      
+      .d-actions-grid {
         display: flex;
         flex-direction: column;
         gap: 6px;
       }
       
+      .d-log-panel { 
+        flex: 1; 
+        min-height: 0;
+      }
+      
+      /* Bottom Row - Hand */
+      .d-bottom {
+        grid-column: 2;
+        display: flex;
+        gap: 12px;
+      }
+      
+      .d-hand-panel {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .d-hand-list {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      
       .d-hand-card {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 10px;
+        gap: 4px;
         background: rgba(255,255,255,0.02);
         border: 1px solid var(--border);
-        padding: 8px 10px;
+        padding: 8px 12px;
         cursor: pointer;
+        flex-shrink: 0;
+        min-width: 70px;
       }
       
       .d-hand-card:hover {
@@ -844,61 +874,42 @@
         background: rgba(59,130,246,0.1);
       }
       
-      .d-hand-card.creature { border-left: 1px solid var(--green); }
-      .d-hand-card.verse-cast { border-left: 1px solid var(--gold); }
-      .d-hand-card.verse-set { border-left: 1px solid var(--purple); }
+      .d-hand-card.creature { border-top: 2px solid var(--green); }
+      .d-hand-card.verse-cast { border-top: 2px solid var(--gold); }
+      .d-hand-card.verse-set { border-top: 2px solid var(--purple); }
       
       .d-hand-card .cost {
         font-size: 14px;
         font-weight: 600;
         color: var(--blue);
-        width: 20px;
-        text-align: center;
       }
       
       .d-hand-card .info {
-        flex: 1;
-        min-width: 0;
+        text-align: center;
       }
       
       .d-hand-card .name {
-        font-size: 10px;
+        font-size: 9px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        max-width: 60px;
       }
       
       .d-hand-card .type {
-        font-size: 8px;
+        font-size: 7px;
         color: var(--dim);
         text-transform: uppercase;
       }
       
-      /* Bottom Row */
-      .d-bottom {
-        grid-column: 2;
-        display: flex;
-        gap: 12px;
-      }
-      
-      .d-actions-panel { flex: 0 0 300px; }
-      
-      .d-actions-grid {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-      }
-      
       .d-btn {
-        flex: 1 1 calc(33% - 4px);
-        min-width: 80px;
         background: rgba(255,255,255,0.04);
         border: 1px solid var(--border);
-        padding: 10px 8px;
+        padding: 8px 12px;
         color: var(--text);
         font-family: inherit;
         font-size: 10px;
-        text-align: center;
+        text-align: left;
         cursor: pointer;
       }
       
@@ -1201,14 +1212,8 @@
       gap: 10px;
       width: 100%;
       max-width: 260px;
-    }
-    
-    @media (min-width: 700px) {
-      .deck-grid {
-        flex-direction: row;
-        max-width: none;
-        justify-content: center;
-      }
+      max-height: 400px;
+      overflow-y: auto;
     }
     
     .deck-btn {
@@ -1221,10 +1226,7 @@
       text-align: left;
       cursor: pointer;
       width: 100%;
-    }
-    
-    @media (min-width: 700px) {
-      .deck-btn { width: 180px; }
+      flex-shrink: 0;
     }
     
     .deck-btn:hover {
@@ -2120,19 +2122,8 @@
         </div>
       </div>
       
-      <!-- Right Panel -->
+      <!-- Right Panel - Actions + Log -->
       <div class="d-right">
-        <div class="d-panel" style="flex:1; min-height:0;">
-          <div class="d-panel-hdr">Hand <span id="d-hand-ct">5</span></div>
-          <div class="d-panel-body">
-            <div id="d-hand" class="d-hand-list"></div>
-          </div>
-          <div class="d-rules-link" onclick="showRules()">[ rules ]</div>
-        </div>
-      </div>
-      
-      <!-- Bottom -->
-      <div class="d-bottom">
         <div class="d-panel d-actions-panel">
           <div class="d-panel-hdr">Actions</div>
           <div class="d-panel-body">
@@ -2146,10 +2137,21 @@
             </div>
           </div>
         </div>
-        <div class="d-panel d-log-panel">
+        <div class="d-panel d-log-panel" style="flex:1; min-height:0;">
           <div class="d-panel-hdr">Battle Log</div>
           <div class="d-panel-body">
             <div id="d-log" class="d-log-entries"></div>
+          </div>
+        </div>
+        <div class="d-rules-link" onclick="showRules()">[ rules ]</div>
+      </div>
+      
+      <!-- Bottom - Hand -->
+      <div class="d-bottom">
+        <div class="d-panel d-hand-panel">
+          <div class="d-panel-hdr">Hand <span id="d-hand-ct">5</span></div>
+          <div class="d-panel-body" style="padding: 8px;">
+            <div id="d-hand" class="d-hand-list"></div>
           </div>
         </div>
       </div>
