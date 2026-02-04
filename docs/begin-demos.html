@@ -34,7 +34,7 @@
       background: #0d0d15;
       padding: 30px;
       border-radius: 4px;
-      min-height: 120px;
+      min-height: 140px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -44,7 +44,7 @@
     .demo pre {
       color: #ffd700;
       margin: 0;
-      font-size: 16px;
+      font-size: 14px;
       white-space: pre;
       line-height: 1.2;
     }
@@ -63,163 +63,149 @@
   </style>
 </head>
 <body>
-  <h1>BEGIN! Animation Demos</h1>
-  <p style="text-align:center;color:#888;">Sword slash style animations</p>
+  <h1>BEGIN! Animation Demos (Vertical Cut Variants)</h1>
+  <p style="text-align:center;color:#888;">6 based on Vertical Cut + 6 variations</p>
   <div class="grid" id="grid"></div>
 
 <script>
 const animations = {
-  "1. Slash Reveal (L→R)": {
+  "1. Vertical Cut (Original)": {
     frames: [
-      { text: "\\", x: -60, delay: 50 },
-      { text: "\\", x: -40, delay: 40 },
-      { text: "B\\", x: -20, delay: 40 },
-      { text: "BE\\", x: 0, delay: 40 },
-      { text: "BEG\\", x: 0, delay: 40 },
-      { text: "BEGI\\", x: 0, delay: 40 },
-      { text: "BEGIN\\", x: 0, delay: 40 },
-      { text: "BEGIN!\\", x: 0, delay: 40 },
-      { text: "BEGIN! ", x: 0, delay: 60 },
-      { text: "BEGIN!", x: 0, delay: 800, scale: 1.2 },
+      { text: "        │\n        │\n        │\n        │\n        │", delay: 60 },
+      { text: "        │\n        │\n   ─────┼─────\n        │\n        │", delay: 60 },
+      { text: "        │\n   ─────┼─────\n   BEGIN!\n   ─────┼─────\n        │", delay: 80 },
+      { text: "   ─────┼─────\n   BEGIN!\n   ─────┼─────", delay: 80 },
+      { text: "\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "2. X-Slash Cross": {
+  "2. Double Vertical": {
     frames: [
-      { text: "    ╲    ╱\n     ╲  ╱\n      ╳\n     ╱  ╲\n    ╱    ╲", delay: 100 },
-      { text: "   ╲      ╱\n    ╲    ╱\n     ╲  ╱\n      ╳\n     ╱  ╲", delay: 80 },
-      { text: "      ╳\n     ╱ ╲\n    ╱   ╲\n\n   BEGIN!", delay: 80 },
+      { text: "     │     │\n     │     │\n     │     │\n     │     │\n     │     │", delay: 60 },
+      { text: "     │     │\n     │     │\n─────┼─────┼─────\n     │     │\n     │     │", delay: 60 },
+      { text: "     │     │\n─────┼─────┼─────\n   BEGIN!\n─────┼─────┼─────\n     │     │", delay: 80 },
+      { text: "─────┼─────┼─────\n   BEGIN!\n─────┼─────┼─────", delay: 80 },
+      { text: "\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n   BEGIN!", delay: 800, scale: 1.5 },
+    ]
+  },
+
+  "3. Cross Expand": {
+    frames: [
+      { text: "        ┼", delay: 50 },
+      { text: "        │\n   ─────┼─────\n        │", delay: 50 },
+      { text: "        │\n        │\n   ─────┼─────\n        │\n        │", delay: 50 },
+      { text: "        │\n        │\n        │\n───────┼───────\n        │\n        │\n        │", delay: 60 },
+      { text: "        │\n   ────┼────\n   BEGIN!\n   ────┼────\n        │", delay: 80 },
+      { text: "\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n   BEGIN!", delay: 800, scale: 1.5 },
+    ]
+  },
+
+  "4. Grid Slice": {
+    frames: [
+      { text: "  │   │   │\n──┼───┼───┼──\n  │   │   │\n──┼───┼───┼──\n  │   │   │", delay: 80 },
+      { text: "  │   │   │\n──┼───┼───┼──\n  │ B │   │\n──┼───┼───┼──\n  │   │   │", delay: 60 },
+      { text: "  │   │   │\n──┼───┼───┼──\n  │BEGIN!│\n──┼───┼───┼──\n  │   │   │", delay: 80 },
       { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
       { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "3. Impact Burst": {
+  "5. Descending Cut": {
     frames: [
-      { text: "       *", delay: 50 },
-      { text: "      ***", delay: 50 },
-      { text: "     *****", delay: 50 },
-      { text: "   * * * * *", delay: 50 },
-      { text: " *  *  *  *  *", delay: 50 },
-      { text: "*   BEGIN!   *", delay: 80 },
-      { text: "    BEGIN!", delay: 100, scale: 1.2 },
-      { text: "    BEGIN!", delay: 800, scale: 1.4 },
+      { text: "───────────────\n        │", delay: 50 },
+      { text: "───────────────\n        │\n        │", delay: 50 },
+      { text: "───────────────\n        │\n        │\n        │", delay: 50 },
+      { text: "───────────────\n        │\n   BEGIN!\n        │\n───────────────", delay: 80 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "4. Katana Draw": {
+  "6. Closing Gate": {
     frames: [
-      { text: "━━━━━━━━━┓", delay: 60 },
-      { text: "━━━━━━━━━╋━", delay: 50 },
-      { text: "━━━━━━━━━╋━━━", delay: 50 },
-      { text: "━━━━━━━━━╋━━━━━", delay: 50 },
-      { text: "  BEGIN! ╋━━━━━━━", delay: 50 },
-      { text: "  BEGIN!  ━━━━━━━━", delay: 80 },
-      { text: "  BEGIN!", delay: 100, scale: 1.2 },
-      { text: "  BEGIN!", delay: 800, scale: 1.3 },
+      { text: "│             │\n│             │\n│             │\n│             │\n│             │", delay: 60 },
+      { text: " │           │\n │           │\n │           │\n │           │\n │           │", delay: 50 },
+      { text: "  │         │\n  │         │\n  │         │\n  │         │\n  │         │", delay: 50 },
+      { text: "   │       │\n   │       │\n───┼───────┼───\n   │       │\n   │       │", delay: 60 },
+      { text: "    │     │\n────┼─────┼────\n   BEGIN!\n────┼─────┼────\n    │     │", delay: 80 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "5. Diagonal Slash": {
+  "7. Triple Horizontal": {
     frames: [
-      { text: "            ╱", delay: 40 },
-      { text: "          ╱", delay: 40 },
-      { text: "        ╱", delay: 40 },
-      { text: "      ╱", delay: 40 },
-      { text: "    ╱", delay: 40 },
-      { text: "  ╱  BEGIN!", delay: 60 },
-      { text: "╱    BEGIN!", delay: 60 },
-      { text: "     BEGIN!", delay: 100, scale: 1.2 },
-      { text: "     BEGIN!", delay: 800, scale: 1.4 },
+      { text: "        │\n        │\n        │\n        │\n        │", delay: 60 },
+      { text: "────────┼────────\n        │\n        │\n        │\n────────┼────────", delay: 60 },
+      { text: "────────┼────────\n        │\n────────┼────────\n        │\n────────┼────────", delay: 60 },
+      { text: "────────┼────────\n   BEGIN!\n────────┼────────", delay: 80 },
+      { text: "\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "6. Shatter In": {
+  "8. Box Form": {
     frames: [
-      { text: "B     E     G     I     N     !", delay: 80 },
-      { text: "B    E    G    I    N    !", delay: 60 },
-      { text: "B   E   G   I   N   !", delay: 50 },
-      { text: "B  E  G  I  N  !", delay: 50 },
-      { text: "B E G I N !", delay: 50 },
-      { text: "BEGIN!", delay: 100, scale: 1.3 },
-      { text: "BEGIN!", delay: 800, scale: 1.5 },
+      { text: "        │\n        │\n        │", delay: 50 },
+      { text: "   ─────┼─────\n        │\n   ─────┼─────", delay: 50 },
+      { text: "   ┌────┼────┐\n   │    │    │\n   └────┼────┘", delay: 50 },
+      { text: "   ┌─────────┐\n   │ BEGIN! │\n   └─────────┘", delay: 80 },
+      { text: "\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "7. Double Slash": {
+  "9. Stab Through": {
     frames: [
-      { text: "╲          ╱", delay: 50 },
-      { text: " ╲        ╱", delay: 40 },
-      { text: "  ╲      ╱", delay: 40 },
-      { text: "   ╲    ╱", delay: 40 },
-      { text: "    ╲  ╱", delay: 40 },
-      { text: "     ╳", delay: 60 },
-      { text: "   BEGIN!", delay: 100, scale: 1.2 },
-      { text: "   BEGIN!", delay: 800, scale: 1.4 },
+      { text: "                 ─", delay: 40 },
+      { text: "              ───", delay: 40 },
+      { text: "           ──────", delay: 40 },
+      { text: "        ─────────", delay: 40 },
+      { text: "     ────────────", delay: 40 },
+      { text: "  ───────────────", delay: 40 },
+      { text: "─────────────────\n        │", delay: 50 },
+      { text: "─────────────────\n        │\n   BEGIN!\n        │\n─────────────────", delay: 80 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "8. Vertical Cut": {
+  "10. Pulse Cross": {
     frames: [
-      { text: "     │\n     │\n     │\n     │\n     │", delay: 60 },
-      { text: "     │\n     │\n  ───┼───\n     │\n     │", delay: 60 },
-      { text: "     │\n  ───┼───\nBEGIN!\n  ───┼───\n     │", delay: 80 },
-      { text: "  ───┼───\nBEGIN!\n  ───┼───", delay: 80 },
-      { text: "\nBEGIN!", delay: 100, scale: 1.3 },
-      { text: "\nBEGIN!", delay: 800, scale: 1.5 },
+      { text: "   ┼", delay: 50 },
+      { text: "   │\n ──┼──\n   │", delay: 50 },
+      { text: "    │\n    │\n ───┼───\n    │\n    │", delay: 50 },
+      { text: "     │\n     │\n     │\n ────┼────\n     │\n     │\n     │", delay: 60 },
+      { text: "      │\n      │\n ─────┼─────\n  BEGIN!\n ─────┼─────\n      │\n      │", delay: 80 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "9. Speed Lines": {
+  "11. Zipper": {
     frames: [
-      { text: "──────────────────", delay: 40 },
-      { text: "════──────────────", delay: 40 },
-      { text: "B═══════──────────", delay: 40 },
-      { text: "BE══════════──────", delay: 40 },
-      { text: "BEG═════════════──", delay: 40 },
-      { text: "BEGI══════════════", delay: 40 },
-      { text: "BEGIN!════════════", delay: 60 },
-      { text: "BEGIN!  ══════════", delay: 60 },
-      { text: "BEGIN!", delay: 100, scale: 1.3 },
-      { text: "BEGIN!", delay: 800, scale: 1.4 },
+      { text: "─┬─────────────┬─\n │             │\n │             │\n │             │\n─┴─────────────┴─", delay: 70 },
+      { text: "──┬───────────┬──\n  │           │\n  │           │\n  │           │\n──┴───────────┴──", delay: 60 },
+      { text: "───┬─────────┬───\n   │         │\n   │         │\n   │         │\n───┴─────────┴───", delay: 60 },
+      { text: "────┬───────┬────\n    │       │\n    │BEGIN! │\n    │       │\n────┴───────┴────", delay: 70 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 
-  "10. Arc Slash": {
+  "12. Rising Blade": {
     frames: [
-      { text: "        ╭──╮", delay: 50 },
-      { text: "      ╭─╯  ╰─╮", delay: 50 },
-      { text: "    ╭─╯      ╰─╮", delay: 50 },
-      { text: "  ╭─╯  BEGIN!  ╰─╮", delay: 60 },
-      { text: "╭─╯    BEGIN!    ╰─╮", delay: 60 },
-      { text: "       BEGIN!", delay: 100, scale: 1.2 },
-      { text: "       BEGIN!", delay: 800, scale: 1.4 },
-    ]
-  },
-
-  "11. Typewriter Slash": {
-    frames: [
-      { text: "█", delay: 60 },
-      { text: "B█", delay: 60 },
-      { text: "BE█", delay: 60 },
-      { text: "BEG█", delay: 60 },
-      { text: "BEGI█", delay: 60 },
-      { text: "BEGIN█", delay: 60 },
-      { text: "BEGIN!█", delay: 80 },
-      { text: "BEGIN! ", delay: 60 },
-      { text: "BEGIN!", delay: 100, scale: 1.3 },
-      { text: "BEGIN!", delay: 800, scale: 1.5 },
-    ]
-  },
-
-  "12. Samurai Strike": {
-    frames: [
-      { text: "      │\n      │\n══════╪══════\n      │\n      │", delay: 80 },
-      { text: "     ╲│╱\n      │\n══════╪══════\n      │\n     ╱│╲", delay: 60 },
-      { text: "    ╲ │ ╱\n     ╲│╱\n══════╪══════\n     ╱│╲\n    ╱ │ ╲", delay: 60 },
-      { text: "   ╲  │  ╱\n    ╲ │ ╱\n══BEGIN!══\n    ╱ │ ╲\n   ╱  │  ╲", delay: 80 },
-      { text: "\n\n  BEGIN!", delay: 100, scale: 1.3 },
-      { text: "\n\n  BEGIN!", delay: 800, scale: 1.5 },
+      { text: "\n\n\n\n─────────────────", delay: 50 },
+      { text: "\n\n\n        │\n────────┼────────", delay: 50 },
+      { text: "\n\n        │\n        │\n────────┼────────", delay: 50 },
+      { text: "\n        │\n        │\n        │\n────────┼────────", delay: 50 },
+      { text: "        │\n        │\n   BEGIN!\n        │\n────────┼────────", delay: 70 },
+      { text: "────────┼────────\n        │\n   BEGIN!\n        │\n────────┼────────", delay: 80 },
+      { text: "\n\n   BEGIN!", delay: 100, scale: 1.3 },
+      { text: "\n\n   BEGIN!", delay: 800, scale: 1.5 },
     ]
   },
 };
@@ -254,7 +240,7 @@ async function runAnim(name) {
     for (const frame of anim.frames) {
       if (!animStates[name]) break;
       el.textContent = frame.text;
-      el.style.transform = `translateX(${frame.x || 0}px) scale(${frame.scale || 1})`;
+      el.style.transform = `scale(${frame.scale || 1})`;
       el.style.transition = frame.scale ? 'transform 0.15s ease-out' : 'none';
       await new Promise(r => setTimeout(r, frame.delay));
     }
