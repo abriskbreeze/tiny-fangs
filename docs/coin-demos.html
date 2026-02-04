@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Coin Flip Animation Demos</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      color: #e0e0e0;
+      font-family: monospace;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 { color: #ffd700; text-align: center; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .demo {
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .demo h3 {
+      color: #ffd700;
+      margin: 0 0 10px 0;
+    }
+    .demo pre {
+      background: #0d0d15;
+      padding: 20px;
+      border-radius: 4px;
+      min-height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffd700;
+      font-size: 12px;
+      margin: 0;
+    }
+    .controls {
+      margin-top: 10px;
+    }
+    button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 5px 15px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover { background: #444; }
+  </style>
+</head>
+<body>
+  <h1>Coin Flip Animation Demos</h1>
+  <p style="text-align:center;color:#888;">Each animation loops automatically. Click "Restart" to replay.</p>
+  <div class="grid" id="grid"></div>
+
+<script>
+const animations = {
+  "1. Classic Circle": {
+    frames: [
+      { art: `    .---.
+   /     \\
+  |   H   |
+   \\     /
+    '---'`, delay: 120 },
+      { art: `     .--.
+    /    \\
+   |      |
+    \\    /
+     '--'`, delay: 80 },
+      { art: `      .-.
+     /   \\
+    |     |
+     \\   /
+      '-'`, delay: 60 },
+      { art: `       |
+       |
+       |
+       |
+       |`, delay: 50 },
+      { art: `      .-.
+     /   \\
+    |     |
+     \\   /
+      '-'`, delay: 60 },
+      { art: `     .--.
+    /    \\
+   |      |
+    \\    /
+     '--'`, delay: 80 },
+      { art: `    .---.
+   /     \\
+  |   T   |
+   \\     /
+    '---'`, delay: 120 },
+      { art: `     .--.
+    /    \\
+   |      |
+    \\    /
+     '--'`, delay: 80 },
+      { art: `      .-.
+     /   \\
+    |     |
+     \\   /
+      '-'`, delay: 60 },
+      { art: `       |
+       |
+       |
+       |
+       |`, delay: 50 },
+      { art: `      .-.
+     /   \\
+    |     |
+     \\   /
+      '-'`, delay: 60 },
+      { art: `    .---.
+   /     \\
+  |   H   |
+   \\     /
+    '---'`, delay: 300 },
+    ]
+  },
+  
+  "2. Rounded Rectangle": {
+    frames: [
+      { art: `.-------.
+|       |
+|   H   |
+|       |
+'-------'`, delay: 120 },
+      { art: ` .----.
+ |    |
+ |    |
+ |    |
+ '----'`, delay: 80 },
+      { art: `  .--.
+  |  |
+  |  |
+  |  |
+  '--'`, delay: 60 },
+      { art: `   ||
+   ||
+   ||
+   ||
+   ||`, delay: 50 },
+      { art: `  .--.
+  |  |
+  |  |
+  |  |
+  '--'`, delay: 60 },
+      { art: ` .----.
+ |    |
+ |    |
+ |    |
+ '----'`, delay: 80 },
+      { art: `.-------.
+|       |
+|   T   |
+|       |
+'-------'`, delay: 120 },
+      { art: ` .----.
+ |    |
+ |    |
+ |    |
+ '----'`, delay: 80 },
+      { art: `  .--.
+  |  |
+  |  |
+  |  |
+  '--'`, delay: 60 },
+      { art: `   ||
+   ||
+   ||
+   ||
+   ||`, delay: 50 },
+      { art: `.-------.
+|       |
+|   H   |
+|       |
+'-------'`, delay: 300 },
+    ]
+  },
+  
+  "3. Double Border": {
+    frames: [
+      { art: `╔═══════╗
+║ ┌───┐ ║
+║ │ H │ ║
+║ └───┘ ║
+╚═══════╝`, delay: 120 },
+      { art: ` ╔════╗
+ ║    ║
+ ║    ║
+ ║    ║
+ ╚════╝`, delay: 80 },
+      { art: `  ╔══╗
+  ║  ║
+  ║  ║
+  ║  ║
+  ╚══╝`, delay: 60 },
+      { art: `   ║
+   ║
+   ║
+   ║
+   ║`, delay: 50 },
+      { art: `  ╔══╗
+  ║  ║
+  ║  ║
+  ║  ║
+  ╚══╝`, delay: 60 },
+      { art: ` ╔════╗
+ ║    ║
+ ║    ║
+ ║    ║
+ ╚════╝`, delay: 80 },
+      { art: `╔═══════╗
+║ ┌───┐ ║
+║ │ T │ ║
+║ └───┘ ║
+╚═══════╝`, delay: 120 },
+      { art: ` ╔════╗
+ ║    ║
+ ║    ║
+ ║    ║
+ ╚════╝`, delay: 80 },
+      { art: `   ║
+   ║
+   ║
+   ║
+   ║`, delay: 50 },
+      { art: `╔═══════╗
+║ ┌───┐ ║
+║ │ H │ ║
+║ └───┘ ║
+╚═══════╝`, delay: 300 },
+    ]
+  },
+  
+  "4. Block Coin": {
+    frames: [
+      { art: `████████
+█      █
+█  H   █
+█      █
+████████`, delay: 120 },
+      { art: ` █████
+ █   █
+ █   █
+ █   █
+ █████`, delay: 80 },
+      { art: `  ███
+  █ █
+  █ █
+  █ █
+  ███`, delay: 60 },
+      { art: `   ██
+   ██
+   ██
+   ██
+   ██`, delay: 50 },
+      { art: `  ███
+  █ █
+  █ █
+  █ █
+  ███`, delay: 60 },
+      { art: ` █████
+ █   █
+ █   █
+ █   █
+ █████`, delay: 80 },
+      { art: `████████
+█      █
+█  T   █
+█      █
+████████`, delay: 120 },
+      { art: ` █████
+ █   █
+ █   █
+ █   █
+ █████`, delay: 80 },
+      { art: `   ██
+   ██
+   ██
+   ██
+   ██`, delay: 50 },
+      { art: `████████
+█      █
+█  H   █
+█      █
+████████`, delay: 300 },
+    ]
+  },
+  
+  "5. Minimal Parens": {
+    frames: [
+      { art: `(((  H  )))`, delay: 120 },
+      { art: ` ((    ))`, delay: 80 },
+      { art: `  (    )`, delay: 60 },
+      { art: `    ||`, delay: 50 },
+      { art: `  (    )`, delay: 60 },
+      { art: ` ((    ))`, delay: 80 },
+      { art: `(((  T  )))`, delay: 120 },
+      { art: ` ((    ))`, delay: 80 },
+      { art: `    ||`, delay: 50 },
+      { art: `(((  H  )))`, delay: 300 },
+    ]
+  },
+  
+  "6. Bracket Coin": {
+    frames: [
+      { art: `[=======]
+[       ]
+[   H   ]
+[       ]
+[=======]`, delay: 120 },
+      { art: ` [====]
+ [    ]
+ [    ]
+ [    ]
+ [====]`, delay: 80 },
+      { art: `  [==]
+  [  ]
+  [  ]
+  [  ]
+  [==]`, delay: 60 },
+      { art: `   []
+   []
+   []
+   []
+   []`, delay: 50 },
+      { art: `  [==]
+  [  ]
+  [  ]
+  [  ]
+  [==]`, delay: 60 },
+      { art: ` [====]
+ [    ]
+ [    ]
+ [    ]
+ [====]`, delay: 80 },
+      { art: `[=======]
+[       ]
+[   T   ]
+[       ]
+[=======]`, delay: 120 },
+      { art: ` [====]
+ [    ]
+ [    ]
+ [    ]
+ [====]`, delay: 80 },
+      { art: `   []
+   []
+   []
+   []
+   []`, delay: 50 },
+      { art: `[=======]
+[       ]
+[   H   ]
+[       ]
+[=======]`, delay: 300 },
+    ]
+  },
+  
+  "7. Dotted Coin": {
+    frames: [
+      { art: ` · · · · ·
+·         ·
+·    H    ·
+·         ·
+ · · · · ·`, delay: 120 },
+      { art: `  · · · ·
+ ·       ·
+ ·       ·
+ ·       ·
+  · · · ·`, delay: 80 },
+      { art: `   · · ·
+  ·     ·
+  ·     ·
+  ·     ·
+   · · ·`, delay: 60 },
+      { art: `     :
+     :
+     :
+     :
+     :`, delay: 50 },
+      { art: `   · · ·
+  ·     ·
+  ·     ·
+  ·     ·
+   · · ·`, delay: 60 },
+      { art: `  · · · ·
+ ·       ·
+ ·       ·
+ ·       ·
+  · · · ·`, delay: 80 },
+      { art: ` · · · · ·
+·         ·
+·    T    ·
+·         ·
+ · · · · ·`, delay: 120 },
+      { art: `  · · · ·
+ ·       ·
+ ·       ·
+ ·       ·
+  · · · ·`, delay: 80 },
+      { art: `     :
+     :
+     :
+     :
+     :`, delay: 50 },
+      { art: ` · · · · ·
+·         ·
+·    H    ·
+·         ·
+ · · · · ·`, delay: 300 },
+    ]
+  },
+  
+  "8. Star Border": {
+    frames: [
+      { art: `*********
+*       *
+*   H   *
+*       *
+*********`, delay: 120 },
+      { art: ` ******
+ *    *
+ *    *
+ *    *
+ ******`, delay: 80 },
+      { art: `  ****
+  *  *
+  *  *
+  *  *
+  ****`, delay: 60 },
+      { art: `   **
+   **
+   **
+   **
+   **`, delay: 50 },
+      { art: `  ****
+  *  *
+  *  *
+  *  *
+  ****`, delay: 60 },
+      { art: ` ******
+ *    *
+ *    *
+ *    *
+ ******`, delay: 80 },
+      { art: `*********
+*       *
+*   T   *
+*       *
+*********`, delay: 120 },
+      { art: ` ******
+ *    *
+ *    *
+ *    *
+ ******`, delay: 80 },
+      { art: `   **
+   **
+   **
+   **
+   **`, delay: 50 },
+      { art: `*********
+*       *
+*   H   *
+*       *
+*********`, delay: 300 },
+    ]
+  },
+  
+  "9. Fancy Unicode": {
+    frames: [
+      { art: `╭─────────╮
+│  ◉   ◉  │
+│    H    │
+│  ◉   ◉  │
+╰─────────╯`, delay: 120 },
+      { art: ` ╭──────╮
+ │      │
+ │      │
+ │      │
+ ╰──────╯`, delay: 80 },
+      { art: `  ╭────╮
+  │    │
+  │    │
+  │    │
+  ╰────╯`, delay: 60 },
+      { art: `    │
+    │
+    │
+    │
+    │`, delay: 50 },
+      { art: `  ╭────╮
+  │    │
+  │    │
+  │    │
+  ╰────╯`, delay: 60 },
+      { art: ` ╭──────╮
+ │      │
+ │      │
+ │      │
+ ╰──────╯`, delay: 80 },
+      { art: `╭─────────╮
+│  ◉   ◉  │
+│    T    │
+│  ◉   ◉  │
+╰─────────╯`, delay: 120 },
+      { art: ` ╭──────╮
+ │      │
+ │      │
+ │      │
+ ╰──────╯`, delay: 80 },
+      { art: `    │
+    │
+    │
+    │
+    │`, delay: 50 },
+      { art: `╭─────────╮
+│  ◉   ◉  │
+│    H    │
+│  ◉   ◉  │
+╰─────────╯`, delay: 300 },
+    ]
+  },
+  
+  "10. O-Style": {
+    frames: [
+      { art: `  OOOOO
+ O     O
+ O  H  O
+ O     O
+  OOOOO`, delay: 120 },
+      { art: `   OOOO
+  O    O
+  O    O
+  O    O
+   OOOO`, delay: 80 },
+      { art: `    OOO
+   O   O
+   O   O
+   O   O
+    OOO`, delay: 60 },
+      { art: `     O
+     O
+     O
+     O
+     O`, delay: 50 },
+      { art: `    OOO
+   O   O
+   O   O
+   O   O
+    OOO`, delay: 60 },
+      { art: `   OOOO
+  O    O
+  O    O
+  O    O
+   OOOO`, delay: 80 },
+      { art: `  OOOOO
+ O     O
+ O  T  O
+ O     O
+  OOOOO`, delay: 120 },
+      { art: `   OOOO
+  O    O
+  O    O
+  O    O
+   OOOO`, delay: 80 },
+      { art: `     O
+     O
+     O
+     O
+     O`, delay: 50 },
+      { art: `  OOOOO
+ O     O
+ O  H  O
+ O     O
+  OOOOO`, delay: 300 },
+    ]
+  },
+  
+  "11. Shaded Depth": {
+    frames: [
+      { art: `░▒▓████▓▒░
+█        █
+█   H    █
+█        █
+░▒▓████▓▒░`, delay: 120 },
+      { art: ` ▒▓███▓▒
+ █      █
+ █      █
+ █      █
+ ▒▓███▓▒`, delay: 80 },
+      { art: `  ▓██▓
+  █  █
+  █  █
+  █  █
+  ▓██▓`, delay: 60 },
+      { art: `   ▌▐
+   ▌▐
+   ▌▐
+   ▌▐
+   ▌▐`, delay: 50 },
+      { art: `  ▓██▓
+  █  █
+  █  █
+  █  █
+  ▓██▓`, delay: 60 },
+      { art: ` ▒▓███▓▒
+ █      █
+ █      █
+ █      █
+ ▒▓███▓▒`, delay: 80 },
+      { art: `░▒▓████▓▒░
+█        █
+█   T    █
+█        █
+░▒▓████▓▒░`, delay: 120 },
+      { art: ` ▒▓███▓▒
+ █      █
+ █      █
+ █      █
+ ▒▓███▓▒`, delay: 80 },
+      { art: `   ▌▐
+   ▌▐
+   ▌▐
+   ▌▐
+   ▌▐`, delay: 50 },
+      { art: `░▒▓████▓▒░
+█        █
+█   H    █
+█        █
+░▒▓████▓▒░`, delay: 300 },
+    ]
+  },
+  
+  "12. Retro Game": {
+    frames: [
+      { art: `┌──────┐
+│╔════╗│
+│║  H ║│
+│╚════╝│
+└──────┘`, delay: 120 },
+      { art: ` ┌────┐
+ │╔══╗│
+ │║  ║│
+ │╚══╝│
+ └────┘`, delay: 80 },
+      { art: `  ┌──┐
+  │╔╗│
+  │║║│
+  │╚╝│
+  └──┘`, delay: 60 },
+      { art: `   │
+   │
+   │
+   │
+   │`, delay: 50 },
+      { art: `  ┌──┐
+  │╔╗│
+  │║║│
+  │╚╝│
+  └──┘`, delay: 60 },
+      { art: ` ┌────┐
+ │╔══╗│
+ │║  ║│
+ │╚══╝│
+ └────┘`, delay: 80 },
+      { art: `┌──────┐
+│╔════╗│
+│║  T ║│
+│╚════╝│
+└──────┘`, delay: 120 },
+      { art: ` ┌────┐
+ │╔══╗│
+ │║  ║│
+ │╚══╝│
+ └────┘`, delay: 80 },
+      { art: `   │
+   │
+   │
+   │
+   │`, delay: 50 },
+      { art: `┌──────┐
+│╔════╗│
+│║  H ║│
+│╚════╝│
+└──────┘`, delay: 300 },
+    ]
+  },
+};
+
+// Create demo grid
+const grid = document.getElementById('grid');
+
+for (const [name, anim] of Object.entries(animations)) {
+  const demo = document.createElement('div');
+  demo.className = 'demo';
+  demo.innerHTML = `
+    <h3>${name}</h3>
+    <pre id="coin-${name}"></pre>
+    <div class="controls">
+      <button onclick="restartAnim('${name}')">Restart</button>
+    </div>
+  `;
+  grid.appendChild(demo);
+}
+
+// Animation runners
+const animStates = {};
+
+async function runAnim(name) {
+  const anim = animations[name];
+  const el = document.getElementById(`coin-${name}`);
+  animStates[name] = true;
+  
+  while (animStates[name]) {
+    for (const frame of anim.frames) {
+      if (!animStates[name]) break;
+      el.textContent = frame.art;
+      await new Promise(r => setTimeout(r, frame.delay));
+    }
+    // Pause before loop
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+
+function restartAnim(name) {
+  animStates[name] = false;
+  setTimeout(() => runAnim(name), 100);
+}
+
+// Start all
+for (const name of Object.keys(animations)) {
+  runAnim(name);
+}
+</script>
+</body>
+</html>
