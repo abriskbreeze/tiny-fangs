@@ -2343,7 +2343,6 @@
       getEffectiveDamageReduction,
       getSetVerseReduction,  // Returns null - set verses use event triggers now
       getDamageReductionSources,
-      applySpark,
       checkSwarm,
       applySpawn,
       shouldScurryTrigger,
@@ -3123,11 +3122,7 @@
           state.G.me.active = card;
           log(`Summoned ${card.name}`);
           
-          // Duskfang ability
-          if (card.id === 'duskfang' && state.G.me.grave.some(c => c.cardType === 'creature')) {
-            card.atk += 20;
-            log('Pack Call: +20 ATK', 'mana');
-          }
+          // NOTE: Duskfang Pack Call now handled by onSummon trigger
           
           render();
           await Anim.summon('me');
@@ -3317,31 +3312,7 @@
         state.G.me.mana += c.cost;
       }
       
-      // Duskfang ability
-      if (c.id === 'duskfang' && state.G.me.grave.some(x => x.cardType === 'creature')) {
-        c.atk += 20;
-        log('Pack Call: +20 ATK', 'mana');
-      }
-      
-      // Emberfang Spark - deal 5 damage to enemy on summon
-      if (c.id === 'emberfang' && state.G.opp.active) {
-        const sparkResult = applySpark(state.G.opp);
-        if (sparkResult.damage > 0) {
-          log(`Spark! ${state.G.opp.active.name} takes 5`, 'dmg');
-          Anim.damage('opp', 5);
-          if (sparkResult.ko) {
-            await Anim.ko('opp');
-            await ko(state.G.opp.active, state.G.opp);
-          }
-        }
-      }
-      
-      // Hiveling Swarm - draw 1 if 2+ creatures
-      if (c.id === 'hiveling' && checkSwarm(state.G.me)) {
-        if (drawCard(state.G.me)) {
-          log('Swarm! Drew a card', 'mana');
-        }
-      }
+      // NOTE: Duskfang Pack Call, Emberfang Spark, Hiveling Swarm now handled by onSummon triggers
       
       // Chain Lightning damage (after summon animation completes)
       if (state.G.me.chainLightning > 0) {
@@ -4497,11 +4468,7 @@
           ai.active = card;
           log(`Rival summoned ${card.name}`);
           
-          // Duskfang ability
-          if (card.id === 'duskfang' && ai.grave.some(c => c.cardType === 'creature')) {
-            card.atk += 20;
-            log('Pack Call: +20 ATK', 'mana');
-          }
+          // NOTE: Duskfang Pack Call now handled by onSummon trigger
           
           render();
           await Anim.summon('opp');
@@ -5138,10 +5105,7 @@
               await Anim.summon('opp');
             }
             
-            if (ai.active?.id === 'duskfang' && ai.grave.some(x => x.cardType === 'creature')) {
-              ai.active.atk += 20;
-              log('Pack Call: +20 ATK', 'mana');
-            }
+            // NOTE: Duskfang Pack Call handled by onSummon trigger above
             
             render();
             await pause();
