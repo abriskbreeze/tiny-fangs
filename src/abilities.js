@@ -71,10 +71,12 @@ export function getAtkModifiers(creature, owner, enemy) {
     modifiers.push({ name: 'Rally', value: bonus, desc: `${owner.bench.length} benched` });
   }
   
-  // Den Mother bonus (one-shot)
-  if (owner.denMotherBonus) {
-    effectiveAtk += owner.denMotherBonus;
-    modifiers.push({ name: 'Den Mother', value: owner.denMotherBonus, desc: 'Next attack' });
+  // Attack bonuses (Den Mother, Predator's Mark, etc.)
+  if (owner.attackBonuses?.length > 0) {
+    for (const bonus of owner.attackBonuses) {
+      effectiveAtk += bonus.value;
+      modifiers.push({ name: bonus.source, value: bonus.value, desc: 'Next attack' });
+    }
   }
   
   return { baseAtk, effectiveAtk, modifiers };
@@ -86,8 +88,8 @@ export function getAtkModifiers(creature, owner, enemy) {
 export function getEffectiveDamageReduction(creature, owner) {
   let reduction = 0;
   
-  // Den Guard (Vulpix): -10 damage when bench has creatures
-  if (creature.id === 'vulpix' && owner.bench.length > 0) {
+  // Den Guard (Hollowfox): -10 damage when bench has creatures
+  if (creature.id === 'hollowfox' && owner.bench.length > 0) {
     reduction += 10;
   }
   
@@ -96,7 +98,89 @@ export function getEffectiveDamageReduction(creature, owner) {
     reduction += 15;
   }
   
+  // Brace (set verse): -15 damage
+  if (owner.setVerse?.id === 'brace') {
+    reduction += 15;
+  }
+  
+  // === Shell Pack damage reduction ===
+  
+  // Sturdy (Pebbleback): always -5 damage
+  if (creature.id === 'pebbleback') {
+    reduction += 5;
+  }
+  
+  // Iron Skin (Ironhide): always -10 damage
+  if (creature.id === 'ironhide') {
+    reduction += 10;
+  }
+  
+  // Juggernaut (Titanback): always -15 damage
+  if (creature.id === 'titanback') {
+    reduction += 15;
+  }
+  
+  // Harden (Shellkin): -10 damage on first hit each turn
+  if (creature.id === 'shellkin' && !creature.hardenUsed) {
+    reduction += 10;
+  }
+  
   return reduction;
+}
+
+/**
+ * Get list of active damage reduction effects (for logging)
+ */
+export function getDamageReductionSources(creature, owner) {
+  const sources = [];
+  
+  if (creature.id === 'hollowfox' && owner.bench.length > 0) {
+    sources.push({ name: 'Den Guard', value: 10 });
+  }
+  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
+    sources.push({ name: 'Swarm Shield', value: 15 });
+  }
+  if (owner.setVerse?.id === 'brace') {
+    sources.push({ name: 'Brace', value: 15 });
+  }
+  if (creature.id === 'pebbleback') {
+    sources.push({ name: 'Sturdy', value: 5 });
+  }
+  if (creature.id === 'ironhide') {
+    sources.push({ name: 'Iron Skin', value: 10 });
+  }
+  if (creature.id === 'titanback') {
+    sources.push({ name: 'Juggernaut', value: 15 });
+  }
+  if (creature.id === 'shellkin' && !creature.hardenUsed) {
+    sources.push({ name: 'Harden', value: 10 });
+  }
+  
+  return sources;
+}
+
+/**
+ * Get retaliation damage (damage dealt back to attacker)
+ */
+export function getRetaliationDamage(defender) {
+  let damage = 0;
+  
+  // Thorns (Thornling): 10 damage back
+  if (defender.id === 'thornling') {
+    damage += 10;
+  }
+  
+  // Recoil (Coilshell): 10 damage back
+  if (defender.id === 'coilshell') {
+    damage += 10;
+  }
+  
+  // Mirror Shell (Reflector): 15 damage back
+  if (defender.id === 'reflector') {
+    damage += 15;
+  }
+  
+  return damage;
 }
 
 /**

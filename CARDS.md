@@ -104,6 +104,34 @@
 
 ---
 
+## 🛡️ SHELL PACK
+*"The Best Defense" — Armor, damage reduction, retaliation*
+
+### Creatures
+
+| Card | Cost | HP | ATK | Ability | Status |
+|------|------|-----|-----|---------|--------|
+| Shellkin | 1 | 35 | 15 | **Harden:** Takes -10 damage from first attack each turn | ✅ Exists |
+| Pebbleback | 1 | 30 | 20 | **Sturdy:** Always takes -5 damage from attacks | ✅ Exists |
+| Ironhide | 2 | 50 | 20 | **Iron Skin:** Always takes -10 damage from attacks | ✅ Exists |
+| Coilshell | 2 | 45 | 25 | **Recoil:** When damaged, deal 10 back to attacker | ✅ Exists |
+| Bulwark | 3 | 70 | 15 | **Fortress:** Survives lethal hit with 1 HP (once) | ✅ Exists |
+| Reflector | 3 | 45 | 30 | **Mirror Shell:** When hit, deal 15 damage back | ✅ Exists |
+| Titanback | 4 | 85 | 25 | **Juggernaut:** Takes -15 damage. On KO, deal 25 to enemy | ✅ Exists |
+
+### Verses
+
+| Card | Type | Cost | Effect | Status |
+|------|------|------|--------|--------|
+| Shell Armor | Cast | 1 | Heal your creature 25 HP. | ✅ Exists |
+| Brace | Set | 1 | **Trigger:** Opponent attacks. **Effect:** Reduce damage by 15. | ✅ Exists |
+| Spike Shield | Set | 2 | **Trigger:** Opponent attacks. **Effect:** Deal 15 to attacker. | ✅ Exists |
+| Regenerate | Cast | 2 | Heal 40 HP. Cure poison. | ✅ Exists |
+| Fortify | Cast | 2 | Your creature survives next lethal hit with 1 HP. | ✅ Exists |
+| Unbreakable | Cast | 3 | Prevent the next damage to your creature. | ✅ Exists |
+
+---
+
 ## 🌐 UNIVERSAL CARDS
 *Available in all packs*
 
@@ -127,6 +155,9 @@
 | Venom Creatures | 4 | 3 | 7 |
 | Venom Verses | 2 | 1 | 3 |
 | Swarm Creatures | 0 | 7 | 7 |
+| Swarm Verses | 0 | 3 | 3 |
+| Shell Creatures | 7 | 0 | 7 |
+| Shell Verses | 6 | 0 | 6 |
 | Swarm Verses | 0 | 3 | 3 |
 | Universal | 4 | 0 | 4 |
 | **TOTAL** | **22** | **22** | **44** |
@@ -188,3 +219,10 @@ These exist in v2 but aren't in the new 40-card cube:
 | Den Guard | Vulpix | -10 damage with bench |
 | Rally | Alpha | Bench can attack |
 | Spawn | Broodmother | Create token each turn |
+| Harden | Shellkin | -10 first hit each turn |
+| Sturdy | Pebbleback | Always -5 damage |
+| Iron Skin | Ironhide | Always -10 damage |
+| Recoil | Coilshell | 10 damage back when hit |
+| Fortress | Bulwark | Survive lethal with 1 HP (once) |
+| Mirror Shell | Reflector | 15 damage back when hit |
+| Juggernaut | Titanback | -15 damage, 25 death damage |

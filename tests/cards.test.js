@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { CREATURES, VERSES, DECKS, getCreature, getVerse, getDeck } from '../src/cards.js';
 
 describe('CREATURES', () => {
-  it('has 12 creatures', () => {
-    expect(Object.keys(CREATURES)).toHaveLength(22);
+  it('has 29 creatures', () => {
+    expect(Object.keys(CREATURES)).toHaveLength(29);
   });
 
   it('all creatures have required fields', () => {
@@ -34,8 +34,8 @@ describe('CREATURES', () => {
 });
 
 describe('VERSES', () => {
-  it('has 20 verses', () => {
-    expect(Object.keys(VERSES)).toHaveLength(20);
+  it('has 26 verses', () => {
+    expect(Object.keys(VERSES)).toHaveLength(26);
   });
 
   it('all verses have required fields', () => {
@@ -59,14 +59,14 @@ describe('VERSES', () => {
   it('has 8 cast and 6 set verses', () => {
     const cast = Object.values(VERSES).filter(v => v.type === 'cast');
     const set = Object.values(VERSES).filter(v => v.type === 'set');
-    expect(cast).toHaveLength(12);
-    expect(set).toHaveLength(8);
+    expect(cast).toHaveLength(16);
+    expect(set).toHaveLength(10);
   });
 });
 
 describe('DECKS', () => {
-  it('has 4 decks', () => {
-    expect(Object.keys(DECKS)).toHaveLength(4);
+  it('has 5 decks', () => {
+    expect(Object.keys(DECKS)).toHaveLength(5);
   });
 
   it('all decks have valid creature references', () => {

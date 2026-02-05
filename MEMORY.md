@@ -200,3 +200,23 @@ When animation class is added but `render()` is called before animation complete
 - Call `e.preventDefault()` in pointer handlers to prevent scroll
 - Track affordability separately from drag ability (visual feedback vs action)
 
+
+### 2026-02-05 — Hunter AI (v0.2.30)
+
+**New Module: `src/ai.js`**
+- `getAllMoves(player, opponent)` — generates all legal moves
+- `scoreMove(move, ai, player)` — evaluates move (0-100+ score)
+- `pickBestMove(moves, threshold)` — selects highest above threshold
+- 25 unit tests for move generation and scoring
+
+**Hunter AI (`aiTurnHunter`)**
+- Loop: get moves → score → pick best → execute → repeat until pass is best
+- Dispatches based on `state.G.aiDifficulty` (default: 2)
+- Difficulty 1 = Pup (original), 2 = Hunter, 3 = Alpha (TBD)
+
+**Scoring Heuristics:**
+- summon-active: 100 base + survival/KO bonuses
+- cast verses: context-specific (Ignite 100 if KO, Dark Pact -100 at 1 LP)
+- attack: 50 base + KO bonus - trap fear
+- set verses: 30-60 based on defensive value
+

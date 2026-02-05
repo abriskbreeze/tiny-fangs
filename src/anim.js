@@ -162,6 +162,25 @@ export const Anim = {
     });
   },
   
+  // Bench damage animation - returns promise
+  benchDamage(side, index, amount) {
+    return new Promise(resolve => {
+      const mobileSelector = side === 'me' 
+        ? `#m-my-bench .card-mini:nth-child(${index + 1})` 
+        : `#m-opp-bench .card-mini:nth-child(${index + 1})`;
+      const desktopSelector = side === 'me'
+        ? `#d-my-bench .card-mini:nth-child(${index + 1})`
+        : `#d-opp-bench .card-mini:nth-child(${index + 1})`;
+      const selector = `${mobileSelector}, ${desktopSelector}`;
+      
+      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE);
+      this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH);
+      const el = this.getVisibleElement(selector);
+      if (el) this.floatText(`-${amount}`, 'damage', el);
+      setTimeout(resolve, ANIM_TIMING.SHAKE);
+    });
+  },
+
   // Heal animation - returns promise
   heal(side, amount) {
     return new Promise(resolve => {

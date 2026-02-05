@@ -89,7 +89,7 @@ export const CREATURES = {
     ability:'Feeding Frenzy', abilityText:'+15 ATK if enemy creature is below half HP.',
     flavor:'"It smells weakness."',
     art:' ><(((°>' },
-  vulpix: { id:'vulpix', name:'Vulpix', subtitle:'Den Guardian', cost:2, hp:40, atk:25,
+  hollowfox: { id:'hollowfox', name:'Hollowfox', subtitle:'Den Guardian', cost:2, hp:40, atk:25,
     ability:'Den Guard', abilityText:'While you have bench creatures, take -10 damage.',
     flavor:'"The pack comes first."',
     art:'  /\\_/\\\n (◕ᴥ◕)\n ◢███◣' },
@@ -101,6 +101,36 @@ export const CREATURES = {
     ability:'Spawn', abilityText:'End of your turn, summon a 10/10 Antling to bench (max 2).',
     flavor:'"The swarm is eternal."',
     art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },
+  
+  // Shell Pack (defensive theme)
+  shellkin: { id:'shellkin', name:'Shellkin', subtitle:'Armored Pup', cost:1, hp:35, atk:15,
+    ability:'Harden', abilityText:'Takes -10 damage from the first attack each turn.',
+    flavor:'"Curl up. Stay safe."',
+    art:'  ╭──╮\n (◕‿◕)\n  ╰┬─╯' },
+  pebbleback: { id:'pebbleback', name:'Pebbleback', subtitle:'Stone Beetle', cost:1, hp:30, atk:20,
+    ability:'Sturdy', abilityText:'Always takes -5 damage from attacks.',
+    flavor:'"Small stones endure."',
+    art:'  ┌▓▓┐\n  │◎◎│\n  └──┘' },
+  ironhide: { id:'ironhide', name:'Ironhide', subtitle:'Metal Armadillo', cost:2, hp:50, atk:20,
+    ability:'Iron Skin', abilityText:'Always takes -10 damage from attacks.',
+    flavor:'"Nothing gets through."',
+    art:'  ╔═══╗\n <(●_●)>\n  ╚═══╝' },
+  coilshell: { id:'coilshell', name:'Coilshell', subtitle:'Spike Snail', cost:2, hp:45, atk:25,
+    ability:'Recoil', abilityText:'When damaged, deal 10 back to attacker.',
+    flavor:'"Touch and regret."',
+    art:'   @@@\n  /◎ ◎\\\n ~~~~~~' },
+  bulwark: { id:'bulwark', name:'Bulwark', subtitle:'Living Wall', cost:3, hp:70, atk:15,
+    ability:'Fortress', abilityText:'Survives lethal hit with 1 HP (once per game).',
+    flavor:'"I will not fall."',
+    art:' ╔═════╗\n ║█████║\n ╚═════╝' },
+  reflector: { id:'reflector', name:'Reflector', subtitle:'Mirror Crab', cost:3, hp:45, atk:30,
+    ability:'Mirror Shell', abilityText:'When hit, deal 15 damage back to attacker.',
+    flavor:'"Your strength becomes mine."',
+    art:'  ╱◇◇╲\n <(◊_◊)>\n  ╲──╱' },
+  titanback: { id:'titanback', name:'Titanback', subtitle:'Ancient Tortoise', cost:4, hp:85, atk:25,
+    ability:'Juggernaut', abilityText:'Takes -15 damage. When KO\'d, deal 25 to enemy creature.',
+    flavor:'"Mountains move slowly."',
+    art:' ╔══════╗\n(  ◉  ◉  )\n ╚══════╝' },
 };
 
 export const VERSES = {
@@ -126,7 +156,7 @@ export const VERSES = {
     trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.' },
   soulTrap: { id:'soulTrap', name:'Soul Trap', type:'set', cost:2,
     trigger:'When opponent summons', text:'That creature enters with -20 HP.' },
-  mirrorForce: { id:'mirrorForce', name:'Mirror Force', type:'set', cost:2,
+  vengeance: { id:'vengeance', name:'Vengeance', type:'set', cost:2,
     trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.' },
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
     trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.' },
@@ -152,6 +182,20 @@ export const VERSES = {
     trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.' },
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
     trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.' },
+  
+  // Shell Pack verses
+  shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,
+    text:'Heal your creature 25 HP.' },
+  brace: { id:'brace', name:'Brace', type:'set', cost:1,
+    trigger:'When opponent attacks', text:'Reduce damage by 15.' },
+  spikeShield: { id:'spikeShield', name:'Spike Shield', type:'set', cost:2,
+    trigger:'When opponent attacks', text:'Deal 15 damage to their creature.' },
+  regenerate: { id:'regenerate', name:'Regenerate', type:'cast', cost:2,
+    text:'Heal your creature 40 HP. Cure poison.' },
+  fortify: { id:'fortify', name:'Fortify', type:'cast', cost:2,
+    text:'Your creature survives the next lethal hit with 1 HP.' },
+  unbreakable: { id:'unbreakable', name:'Unbreakable', type:'cast', cost:3,
+    text:'Prevent the next instance of damage to your creature.' },
 };
 
 export const DECKS = {
@@ -165,7 +209,7 @@ export const DECKS = {
     // 8 creatures: 2 emberfang (new!), 2 cindermaw, 2 bladewhisker, 1 pulsefin, 1 stormtalon
     creatures: ['emberfang','emberfang','cindermaw','cindermaw','bladewhisker','bladewhisker','pulsefin','stormtalon'],
     // 12 verses: now with ignite!
-    verses: ['ignite','ignite','ignite','predatorsMark','predatorsMark','bloodMoon','bloodMoon','phantomWall','phantomWall','mirrorForce','mirrorForce','lastBreath']
+    verses: ['ignite','ignite','ignite','predatorsMark','predatorsMark','bloodMoon','bloodMoon','phantomWall','phantomWall','vengeance','vengeance','lastBreath']
   },
   venom: {
     // 8 creatures: 2 leechling (new!), 2 thornling, 2 hexweaver, 1 sundewqueen, 1 echomask
@@ -174,10 +218,16 @@ export const DECKS = {
     verses: ['secondWind','secondWind','soulSiphon','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath']
   },
   swarm: {
-    // 8 creatures: pack synergy focus (includes Vulpix for defense, Broodmother for spawning)
-    creatures: ['fangpup','fangpup','hiveling','hiveling','skitter','vulpix','alpha','broodmother'],
+    // 8 creatures: pack synergy focus (includes Hollowfox for defense, Broodmother for spawning)
+    creatures: ['fangpup','fangpup','hiveling','hiveling','skitter','hollowfox','alpha','broodmother'],
     // 12 verses: draw, summon, bench synergy
     verses: ['packTactics','packTactics','packTactics','callOfTheWild','callOfTheWild','sacrifice','sacrifice','denMother','denMother','swarmShield','swarmShield','lastBreath']
+  },
+  shell: {
+    // 8 creatures: defensive wall, damage reduction
+    creatures: ['shellkin','shellkin','pebbleback','pebbleback','ironhide','coilshell','bulwark','titanback'],
+    // 12 verses: healing, damage prevention, retaliation
+    verses: ['shellArmor','shellArmor','shellArmor','regenerate','regenerate','fortify','fortify','brace','brace','spikeShield','spikeShield','unbreakable']
   }
 };
 

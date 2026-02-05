@@ -144,19 +144,19 @@ describe('getEffectiveDamageReduction() - Damage Reduction', () => {
   });
 
   it('Den Guard: -10 damage when bench has creatures', () => {
-    const vulpix = mockCreature('vulpix');
-    state.G.me.active = vulpix;
+    const hollowfox = mockCreature('hollowfox');
+    state.G.me.active = hollowfox;
     state.G.me.bench = [mockCreature('whisper')];
     
-    expect(getEffectiveDamageReduction(vulpix, state.G.me)).toBe(10);
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me)).toBe(10);
   });
 
   it('Den Guard: no reduction when bench is empty', () => {
-    const vulpix = mockCreature('vulpix');
-    state.G.me.active = vulpix;
+    const hollowfox = mockCreature('hollowfox');
+    state.G.me.active = hollowfox;
     state.G.me.bench = [];
     
-    expect(getEffectiveDamageReduction(vulpix, state.G.me)).toBe(0);
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me)).toBe(0);
   });
 });
 
@@ -289,14 +289,14 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     expect(getEffectiveDamageReduction(creature, state.G.me)).toBe(0);
   });
 
-  it('stacks with Den Guard (Vulpix)', () => {
-    const vulpix = mockCreature('vulpix');
-    state.G.me.active = vulpix;
+  it('stacks with Den Guard (Hollowfox)', () => {
+    const hollowfox = mockCreature('hollowfox');
+    state.G.me.active = hollowfox;
     state.G.me.bench = [mockCreature('whisper')];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    // Vulpix Den Guard (10) + Swarm Shield (15) = 25
-    expect(getEffectiveDamageReduction(vulpix, state.G.me)).toBe(25);
+    // Hollowfox Den Guard (10) + Swarm Shield (15) = 25
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me)).toBe(25);
   });
 });
 

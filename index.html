@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.29</title>
+  <title>TINY FANGS v0.2.39</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1018,6 +1018,8 @@
       border: 1px solid var(--border);
       width: 100%;
       max-width: 280px;
+      -webkit-user-select: none;
+      user-select: none;
     }
     
     .card-detail .top-bar {
@@ -1287,6 +1289,42 @@
       line-height: 1.4;
     }
     
+    .difficulty-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    
+    .diff-label {
+      font-size: 11px;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    
+    .diff-btn {
+      padding: 6px 16px;
+      font-size: 11px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .diff-btn:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    
+    .diff-btn.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+    
     /* Result Screen */
     .result {
       position: fixed;
@@ -1507,6 +1545,12 @@
       letter-spacing: 3px;
       color: var(--purple);
       text-shadow: 0 0 20px var(--purple);
+    }
+    
+    /* Cast verse header - gold color */
+    .trigger-modal.cast .trigger-header {
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--gold);
     }
     
     .trigger-flash {
@@ -1940,7 +1984,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.29 • Card Battler</p>
+    <p class="sub">v0.2.39 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -1963,6 +2007,16 @@
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
+      <button class="deck-btn" onclick="showCoinFlip('shell')">
+        <div class="icon">[=]</div>
+        <div class="name">Shell</div>
+        <div class="desc">Defense & damage reduction</div>
+      </button>
+    </div>
+    <div class="difficulty-toggle">
+      <span class="diff-label">AI:</span>
+      <button id="diff-pup" class="diff-btn" onclick="setDifficulty(1)">Pup</button>
+      <button id="diff-hunter" class="diff-btn active" onclick="setDifficulty(2)">Hunter</button>
     </div>
   </div>
   
@@ -2045,7 +2099,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.29</div>
+      <div class="logo">TINY FANGS v0.2.39</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2172,7 +2226,7 @@
     <div class="modal-box">
       <div class="title" id="modal-title"></div>
       <div id="modal-opts"></div>
-      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="cancel" onclick="closeModal()">Close</button>
     </div>
   </div>
   
@@ -2231,7 +2285,7 @@
     <div class="trigger-box" onclick="event.stopPropagation()">
       <div class="trigger-header">
         <span class="trigger-flash">⚡</span>
-        <span>TRIGGERED!</span>
+        <span id="triggerHeaderText">TRIGGERED!</span>
         <span class="trigger-flash">⚡</span>
       </div>
       <div id="triggerContent"></div>
@@ -2251,6 +2305,7 @@
     import { ANIM_TIMING, Anim } from './src/anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
     import { applyDamage } from './src/game.js';
+    import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './src/ai.js';
     import {
       log,
       drawCard,
@@ -2270,6 +2325,8 @@
       getEffectiveAtk,
       getAtkModifiers,
       getEffectiveDamageReduction,
+      getDamageReductionSources,
+      getRetaliationDamage,
       applyDrain,
       applySpark,
       checkSwarm,
@@ -2279,6 +2336,16 @@
     } from './src/abilities.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
+    
+    // Selected difficulty (before game starts)
+    let selectedDifficulty = 2; // Default: Hunter
+    
+    function setDifficulty(level) {
+      selectedDifficulty = level;
+      document.getElementById('diff-pup').classList.toggle('active', level === 1);
+      document.getElementById('diff-hunter').classList.toggle('active', level === 2);
+    }
+    window.setDifficulty = setDifficulty;
     
     // ═══════════════════════════════════════════════════════════════
     // GAME INITIALIZATION
@@ -2323,7 +2390,7 @@
         setVerse: null,
         usedManaSurge: false,
         usedLastBreath: false,
-        marked: false,
+        attackBonuses: [], // Unified: [{source, value}]
         poisoned: false,
         chainLightning: 0,
       };
@@ -2491,6 +2558,9 @@
         myTurn: playerFirst,
         winner: null,
         firstTurn: true,
+        hasAttacked: false,  // C3: Track if player attacked this turn
+        hasRetreated: false, // C3: Track if player retreated this turn
+        aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
       };
       
       state.startTime = Date.now();
@@ -2608,11 +2678,15 @@
       const canRetreat = state.G.me.active && state.G.me.bench.length > 0;
       const canAttack = state.G.me.active && !state.G.firstTurn; // Can attack creatures or LP directly (not on first turn)
       
+      // C3: Cannot attack after retreating, cannot retreat after attacking
+      const attackAllowed = canAttack && !state.G.hasAttacked && !state.G.hasRetreated;
+      const retreatAllowed = canRetreat && !state.G.hasAttacked && !state.G.hasRetreated;
+      
       ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !state.G.myTurn);
       ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !state.G.myTurn);
       ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || state.G.me.setVerse || !state.G.myTurn);
-      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !canAttack || !state.G.myTurn);
-      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !canRetreat || !state.G.myTurn);
+      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !attackAllowed || !state.G.myTurn);
+      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !retreatAllowed || !state.G.myTurn);
       ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !state.G.myTurn);
     }
     
@@ -2629,15 +2703,34 @@
     const DRAG_THRESHOLD = 15;
     
     function cardPress(uid, e) {
-      const card = state.G.me.hand.find(c => c.uid === uid);
+      // Check if card is in player's hand (only hand cards can be dragged)
+      const handCard = state.G.me.hand.find(c => c.uid === uid);
+      
+      // Search all card locations for zoom preview
+      let card = handCard;
+      if (!card && state.G.me.active?.uid === uid) card = state.G.me.active;
+      if (!card) card = state.G.me.bench.find(c => c.uid === uid);
+      if (!card) card = state.G.me.grave.find(c => c.uid === uid);
+      if (!card && state.G.me.setVerse?.uid === uid) card = state.G.me.setVerse;
+      if (!card && state.G.opp.active?.uid === uid) card = state.G.opp.active;
+      if (!card) card = state.G.opp.bench.find(c => c.uid === uid);
+      if (!card && state.G.opp.setVerse?.uid === uid) card = state.G.opp.setVerse;
       if (!card) return;
       
       // Prevent touch scrolling
-      if (e.cancelable) e.preventDefault();
+      if (e?.cancelable) e.preventDefault();
       
-      // Get pointer position
-      const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
-      const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+      // Non-hand cards: only allow hold-to-zoom, no drag
+      if (!handCard) {
+        state.longPressTimer = setTimeout(() => {
+          showCardDetail(uid);
+        }, 400);
+        return;
+      }
+      
+      // Hand cards: full drag + zoom functionality
+      const clientX = e?.clientX ?? e?.touches?.[0]?.clientX ?? 0;
+      const clientY = e?.clientY ?? e?.touches?.[0]?.clientY ?? 0;
       
       // Track if card is affordable
       const canAfford = card.cost <= state.G.me.mana;
@@ -3206,6 +3299,19 @@
         }
       }
       
+      // Pre-check for Grave Echo - need creatures in graveyard
+      if (c.id === 'graveEcho') {
+        const creaturesInGrave = state.G.me.grave.filter(x => x.cardType === 'creature');
+        if (!creaturesInGrave.length) {
+          showModal('Grave Echo', [{
+            name: 'No creatures in graveyard!',
+            sub: 'The echoes are silent...',
+            action: () => closeModal()
+          }]);
+          return; // Don't spend mana
+        }
+      }
+      
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       state.G.me.grave.push(c);
@@ -3238,10 +3344,20 @@
         case 'graveEcho':
           const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
           if (graveCr.length) {
-            const pick = graveCr[0];
-            state.G.me.grave = state.G.me.grave.filter(x => x.uid !== pick.uid);
-            state.G.me.hand.push(pick);
-            log(`Returned ${pick.name}`);
+            await new Promise(resolve => {
+              showModal('Grave Echo - Choose creature to return', graveCr.map(creature => ({
+                name: creature.name,
+                sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
+                action: () => {
+                  closeModal();
+                  state.G.me.grave = state.G.me.grave.filter(x => x.uid !== creature.uid);
+                  state.G.me.hand.push(creature);
+                  log(`Returned ${creature.name} to hand`);
+                  render();
+                  resolve();
+                }
+              })));
+            });
           }
           break;
         case 'manaSurge':
@@ -3251,8 +3367,8 @@
           Anim.manaGain();
           break;
         case 'predatorsMark':
-          state.G.me.marked = true;
-          log('Next attack +30');
+          state.G.me.attackBonuses.push({ source: "Predator's Mark", value: 30 });
+          log("Predator's Mark! Next attack +30");
           break;
         case 'banish':
           if (state.G.opp.active) {
@@ -3273,17 +3389,67 @@
           }
           break;
         case 'bloodMoon':
+          // C1: Blood Moon damages ALL creatures (active + bench) on BOTH sides
+          log('Blood Moon! All creatures take 20 damage!', 'dmg');
+          
+          // Damage player's active
           if (state.G.me.active) { 
             const moonKoMe = applyDamage(state.G.me.active, 20);
-            Anim.damage('me', 20);
-            if (moonKoMe) { Anim.ko('me'); ko(state.G.me.active, state.G.me); }
+            await Anim.damage('me', 20);
+            if (moonKoMe) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
           }
+          // Damage player's bench (animate all first, then process KOs)
+          for (let i = 0; i < state.G.me.bench.length; i++) {
+            await Anim.benchDamage('me', i, 20);
+          }
+          for (let i = state.G.me.bench.length - 1; i >= 0; i--) {
+            const benchCreature = state.G.me.bench[i];
+            const benchKo = applyDamage(benchCreature, 20);
+            log(`${benchCreature.name} (bench) -20`, 'dmg');
+            if (benchKo) {
+              log(`${benchCreature.name} KO'd!`, 'dmg');
+              state.G.me.grave.push(benchCreature);
+              state.G.me.bench.splice(i, 1);
+              // C2: Trigger KO effects for benched creatures too (Den Mother, etc.)
+              if (state.G.me.setVerse?.id === 'denMother') {
+                await showTriggerReveal(state.G.me.setVerse);
+                state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                log('Den Mother! Next attack +10 damage', 'mana');
+                state.G.me.grave.push(state.G.me.setVerse);
+                state.G.me.setVerse = null;
+              }
+            }
+          }
+          
+          // Damage opponent's active
           if (state.G.opp.active) { 
             const moonKoOpp = applyDamage(state.G.opp.active, 20);
-            Anim.damage('opp', 20);
-            if (moonKoOpp) { Anim.ko('opp'); ko(state.G.opp.active, state.G.opp); }
+            await Anim.damage('opp', 20);
+            if (moonKoOpp) { await Anim.ko('opp'); await ko(state.G.opp.active, state.G.opp); }
           }
-          log('All creatures -20', 'dmg');
+          // Damage opponent's bench (animate all first, then process KOs)
+          for (let i = 0; i < state.G.opp.bench.length; i++) {
+            await Anim.benchDamage('opp', i, 20);
+          }
+          for (let i = state.G.opp.bench.length - 1; i >= 0; i--) {
+            const benchCreature = state.G.opp.bench[i];
+            const benchKo = applyDamage(benchCreature, 20);
+            log(`${benchCreature.name} (bench) -20`, 'dmg');
+            if (benchKo) {
+              log(`${benchCreature.name} KO'd!`, 'dmg');
+              state.G.opp.grave.push(benchCreature);
+              state.G.opp.bench.splice(i, 1);
+              // C2: Trigger KO effects for opponent's benched creatures too
+              if (state.G.opp.setVerse?.id === 'denMother') {
+                await showTriggerReveal(state.G.opp.setVerse);
+                state.G.opp.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                log('Rival Den Mother! Next attack +10 damage', 'mana');
+                state.G.opp.grave.push(state.G.opp.setVerse);
+                state.G.opp.setVerse = null;
+              }
+            }
+          }
+          render();
           break;
         case 'secondWind':
           if (state.G.me.active) {
@@ -3362,7 +3528,7 @@
                 const victim = opt.creature;
                 log(`Sacrificed ${victim.name}`, 'dmg');
                 
-                // Remove from field (don't trigger ko() auto-replacement)
+                // Remove from field
                 if (opt.location === 'active') {
                   state.G.me.active = null;
                   await Anim.ko('me');
@@ -3371,7 +3537,69 @@
                 }
                 state.G.me.grave.push(victim);
                 
-                // Draw 2 FIRST
+                // C2: Trigger "When creature KO'd" effects (Den Mother, Grave Rise, creature death abilities)
+                // Den Mother - next attack +10
+                if (state.G.me.setVerse?.id === 'denMother') {
+                  await showTriggerReveal(state.G.me.setVerse);
+                  state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                  log('Den Mother! Next attack +10 damage', 'mana');
+                  state.G.me.grave.push(state.G.me.setVerse);
+                  state.G.me.setVerse = null;
+                }
+                
+                // Grave Rise - summon 1-cost from grave to bench
+                if (state.G.me.setVerse?.id === 'graveRise') {
+                  await showTriggerReveal(state.G.me.setVerse);
+                  const oneCost = state.G.me.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
+                  if (oneCost.length) {
+                    log('Grave Rise triggered!', 'heal');
+                    let revived = oneCost[0];
+                    if (oneCost.length > 1) {
+                      revived = await new Promise(innerResolve => {
+                        showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
+                          name: c.name,
+                          sub: `${c.hp} HP / ${c.atk} ATK`,
+                          action: () => { closeModal(); innerResolve(c); }
+                        })));
+                      });
+                    }
+                    revived.curHp = revived.hp;
+                    state.G.me.grave = state.G.me.grave.filter(x => x.uid !== revived.uid);
+                    if (state.G.me.bench.length < 2) {
+                      state.G.me.bench.push(revived);
+                      log(`${revived.name} rises to bench!`);
+                      render();
+                      await Anim.summonBench('me', state.G.me.bench.length - 1);
+                    }
+                  }
+                  state.G.me.grave.push(state.G.me.setVerse);
+                  state.G.me.setVerse = null;
+                }
+                
+                // Gloom Fade - enemy discards
+                if (victim.id === 'gloom') {
+                  if (state.G.opp.hand.length) {
+                    const idx = Math.floor(Math.random() * state.G.opp.hand.length);
+                    state.G.opp.grave.push(state.G.opp.hand.splice(idx, 1)[0]);
+                    log('Fade: enemy discarded', 'mana');
+                  }
+                }
+                
+                // Echomask death damage
+                if (victim.id === 'echomask') {
+                  state.G.opp.lp -= 1;
+                  log('Shatter! Enemy loses a life!', 'dmg');
+                  await Anim.lpDamage('opp', 1);
+                  checkWin();
+                }
+                
+                // Stormtalon Chain Lightning
+                if (victim.id === 'stormtalon') {
+                  state.G.opp.chainLightning = 20;
+                  log('Chain Lightning armed!', 'mana');
+                }
+                
+                // Draw 2 cards
                 draw(state.G.me); draw(state.G.me);
                 log('Drew 2 cards', 'mana');
                 render();
@@ -3406,6 +3634,44 @@
               }
             })));
           });
+          break;
+        
+        // === SHELL PACK VERSES ===
+        
+        case 'shellArmor':
+          if (state.G.me.active) {
+            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 25);
+            log('Shell Armor! +25 HP', 'heal');
+            Anim.heal('me', 25);
+          }
+          break;
+        
+        case 'regenerate':
+          if (state.G.me.active) {
+            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 40);
+            if (state.G.me.active.status === 'poison') {
+              state.G.me.active.status = null;
+              state.G.me.poisoned = false;
+              log('Regenerate! +40 HP, poison cured!', 'heal');
+            } else {
+              log('Regenerate! +40 HP', 'heal');
+            }
+            Anim.heal('me', 40);
+          }
+          break;
+        
+        case 'fortify':
+          if (state.G.me.active) {
+            state.G.me.active.fortified = true;
+            log('Fortified! Will survive next lethal hit.');
+          }
+          break;
+        
+        case 'unbreakable':
+          if (state.G.me.active) {
+            state.G.me.active.shielded = true;
+            log('Unbreakable! Next damage prevented.');
+          }
           break;
       }
       
@@ -3459,6 +3725,13 @@
         
         // Check opponent's Phantom Wall
         if (state.G.opp.setVerse?.id === 'phantomWall') {
+          // Show attack animation FIRST for visual feedback
+          if (state.G.opp.active) {
+            await Anim.attack('me', 'opp', 0); // Attack anim, no damage shown
+          } else {
+            await Anim.attackDirect('me');
+          }
+          // Then trigger Phantom Wall
           await showTriggerReveal(state.G.opp.setVerse);
           log('Phantom Wall triggered!', 'dmg');
           const phantomKo = applyDamage(attacker, 10);
@@ -3469,112 +3742,200 @@
           if (phantomKo) { await Anim.ko('me'); await ko(attacker, state.G.me); }
           await Anim.negateX();
           log('Attack negated!');
+          state.G.hasAttacked = true; // C3: Mark attack attempted
           render();
-          if (!state.G.winner) endTurn();
           return;
         }
         
-        // Direct attack if no defender (always 1 LP)
+        // B2: Cindermaw Frenzy - attacks TWICE (2 hearts on direct attack)
+        const isCindermaw = attacker.id === 'cindermaw';
+        const attackCount = isCindermaw ? 2 : 1;
+        
+        // Direct attack if no defender
         if (!state.G.opp.active) {
-          // Play attack animation (lunge only, no defender to shake)
-          await Anim.attackDirect('me');
-          state.G.opp.lp -= 1;
-          log(`Direct attack! Rival loses a life!`, 'dmg');
-          Anim.lpDamage('opp', 1);
-          checkWin();
+          // B2: Cindermaw direct = 2 LP damage (two separate hits)
+          const directDamage = isCindermaw ? 2 : 1;
+          
+          for (let i = 0; i < attackCount; i++) {
+            await Anim.attackDirect('me');
+            state.G.opp.lp -= 1;
+            log(`Direct attack! Rival loses a life!`, 'dmg');
+            await Anim.lpDamage('opp', 1);
+            checkWin();
+            if (state.G.winner) break;
+            if (i < attackCount - 1) await Anim.wait(200); // Brief pause between hits
+          }
+          
+          // B2: Cindermaw self-damage (10 Burnout) happens ONCE at end
+          if (isCindermaw && state.G.me.active) {
+            const frenzyKo = applyDamage(attacker, 10);
+            log('-10 Burnout from Frenzy', 'dmg');
+            await Anim.damage('me', 10);
+            if (frenzyKo) await ko(attacker, state.G.me);
+          }
+          
+          state.G.hasAttacked = true; // C3: Mark attack done
           render();
-          setTimeout(() => { if (!state.G.winner) endTurn(); }, 500);
           return;
         }
         
         const defender = state.G.opp.active;
         
         // Calculate base damage with ability modifiers (Orphan, Pack Bond, Feeding Frenzy, Rally)
-        let dmg = getEffectiveAtk(attacker, state.G.me, state.G.opp);
+        let baseDmg = getEffectiveAtk(attacker, state.G.me, state.G.opp);
         
         // Bladewhisker Rend
-        if (attacker.id === 'bladewhisker') dmg += 10;
+        if (attacker.id === 'bladewhisker') baseDmg += 10;
         
-        // Den Mother bonus (one-shot, from set verse)
-        if (state.G.me.denMotherBonus) {
-          dmg += state.G.me.denMotherBonus;
-          log(`Den Mother bonus! +${state.G.me.denMotherBonus} damage`, 'mana');
-          state.G.me.denMotherBonus = 0;
+        // Attack bonuses (Den Mother, Predator's Mark, etc.) - apply to first hit only
+        if (state.G.me.attackBonuses.length > 0) {
+          for (const bonus of state.G.me.attackBonuses) {
+            baseDmg += bonus.value;
+            log(`${bonus.source}! +${bonus.value} damage`, 'mana');
+          }
+          state.G.me.attackBonuses = []; // Consume all bonuses
         }
         
-        // Predator's Mark
-        if (state.G.me.marked) {
-          dmg += 30;
-          state.G.me.marked = false;
-        }
-        
-        // Pulsefin Sonic Strike
+        // Pulsefin Sonic Strike (first attack doubles)
         if (attacker.id === 'pulsefin' && attacker.firstAtk) {
-          dmg *= 2;
+          baseDmg *= 2;
           attacker.firstAtk = false;
           log('Sonic Strike! Double damage', 'mana');
         }
         
         // Echomask Reflection
         if (attacker.id === 'echomask') {
-          dmg = defender.atk;
+          baseDmg = defender.atk;
         }
         
-        // Cindermaw Frenzy - double damage (self-damage applied AFTER attack)
-        const isCindermaw = attacker.id === 'cindermaw';
         if (isCindermaw) {
-          dmg *= 2;
-          log('Frenzy! Double damage!', 'dmg');
+          log('Frenzy! Attacks twice!', 'dmg');
         }
         
-        // Apply damage reduction (Den Guard, Swarm Shield)
-        const reduction = getEffectiveDamageReduction(defender, state.G.opp);
-        if (reduction > 0) {
-          dmg = Math.max(0, dmg - reduction);
-          // Check which ability triggered
-          if (defender.id === 'vulpix' && state.G.opp.bench.length > 0) {
-            log(`Den Guard! -10 damage`, 'heal');
+        // B2: Attack loop - Cindermaw attacks twice, others once
+        let totalDamageDealt = 0;
+        let defenderKo = false;
+        
+        for (let hit = 0; hit < attackCount; hit++) {
+          if (defenderKo) break; // Stop if defender already KO'd
+          if (!state.G.opp.active) break; // Defender might be replaced
+          
+          // Recalculate damage for second hit (no Den Mother/Predator's Mark bonus)
+          let dmg = hit === 0 ? baseDmg : getEffectiveAtk(attacker, state.G.me, state.G.opp);
+          if (hit > 0 && attacker.id === 'bladewhisker') dmg += 10;
+          if (hit > 0 && attacker.id === 'echomask') dmg = state.G.opp.active.atk;
+          
+          // Apply damage reduction (Den Guard, Swarm Shield, Shell Pack abilities)
+          const reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp);
+          if (reduction > 0) {
+            dmg = Math.max(0, dmg - reduction);
+            if (hit === 0) { // Only log once
+              const sources = getDamageReductionSources(state.G.opp.active, state.G.opp);
+              for (const src of sources) {
+                log(`${src.name}! -${src.value} damage`, 'heal');
+              }
+              // Consume set verses that trigger
+              if (state.G.opp.setVerse?.id === 'swarmShield' && state.G.opp.bench.length > 0) {
+                await showTriggerReveal(state.G.opp.setVerse);
+                state.G.opp.grave.push(state.G.opp.setVerse);
+                state.G.opp.setVerse = null;
+              }
+              if (state.G.opp.setVerse?.id === 'brace') {
+                await showTriggerReveal(state.G.opp.setVerse);
+                state.G.opp.grave.push(state.G.opp.setVerse);
+                state.G.opp.setVerse = null;
+              }
+              // Mark Harden as used this turn
+              if (state.G.opp.active.id === 'shellkin') {
+                state.G.opp.active.hardenUsed = true;
+              }
+            }
           }
-          if (state.G.opp.setVerse?.id === 'swarmShield' && state.G.opp.bench.length > 0) {
-            await showTriggerReveal(state.G.opp.setVerse);
-            log(`Swarm Shield! -15 damage`, 'heal');
-            state.G.opp.grave.push(state.G.opp.setVerse);
-            state.G.opp.setVerse = null;
+          
+          const hitNum = isCindermaw ? ` (hit ${hit + 1})` : '';
+          
+          // Unbreakable check - prevent damage entirely
+          if (state.G.opp.active.shielded && dmg > 0) {
+            log(`Unbreakable! Damage prevented!`, 'heal');
+            state.G.opp.active.shielded = false;
+            dmg = 0;
+          }
+          
+          log(`${attacker.name} attacks for ${dmg}!${hitNum}`);
+          
+          // Attack animation
+          await Anim.attack('me', 'opp', dmg);
+          
+          // Apply damage to defender
+          defenderKo = applyDamage(state.G.opp.active, dmg);
+          
+          // Fortress (Bulwark) - survive lethal with 1 HP (once per game)
+          if (defenderKo && state.G.opp.active.id === 'bulwark' && !state.G.opp.active.fortressUsed) {
+            state.G.opp.active.curHp = 1;
+            state.G.opp.active.fortressUsed = true;
+            defenderKo = false;
+            log(`Fortress! ${state.G.opp.active.name} survives with 1 HP!`, 'heal');
+          }
+          
+          // Fortify buff - survive lethal with 1 HP
+          if (defenderKo && state.G.opp.active.fortified) {
+            state.G.opp.active.curHp = 1;
+            state.G.opp.active.fortified = false;
+            defenderKo = false;
+            log(`Fortified! ${state.G.opp.active.name} survives with 1 HP!`, 'heal');
+          }
+          
+          totalDamageDealt += dmg;
+          log(`${state.G.opp.active.name} takes ${dmg}`, 'dmg');
+          
+          // Leechling Drain - heal equal to damage dealt (each hit)
+          if (attacker.id === 'leechling' && !defenderKo) {
+            const healed = applyDrain(attacker, dmg);
+            if (healed > 0) {
+              log(`Drain! +${healed} HP`, 'heal');
+              Anim.heal('me', healed);
+            }
+          }
+          
+          // Brief pause between Cindermaw hits
+          if (isCindermaw && hit < attackCount - 1 && !defenderKo) {
+            await Anim.wait(150);
           }
         }
         
-        log(`${attacker.name} attacks for ${dmg}!`);
-        
-        // Attack animation (must await so render() doesn't remove animation class)
-        await Anim.attack('me', 'opp', dmg);
-        
-        // Apply damage to defender FIRST
-        const defenderKo = applyDamage(defender, dmg);
-        
-        // Leechling Drain - heal equal to damage dealt
-        if (attacker.id === 'leechling' && !defenderKo) {
-          const healed = applyDrain(attacker, dmg);
-          if (healed > 0) {
-            log(`Drain! +${healed} HP`, 'heal');
-            Anim.heal('me', healed);
-          }
-        }
-        
-        // Cindermaw self-damage AFTER attack lands
-        if (isCindermaw) {
+        // B2: Cindermaw self-damage (10 Burnout) happens ONCE after all attacks
+        if (isCindermaw && state.G.me.active) {
           const frenzyKo = applyDamage(attacker, 10);
-          log('-10 self from Frenzy', 'dmg');
+          log('-10 Burnout from Frenzy', 'dmg');
+          await Anim.damage('me', 10);
           if (frenzyKo) await ko(attacker, state.G.me);
         }
         
-        // Thornling Thorns - only if attacker still alive
-        if (defender.id === 'thornling' && state.G.me.active && state.G.me.active.curHp > 0) {
-          const thornsKo = applyDamage(state.G.me.active, 10);
-          log('Thorns! -10 to attacker', 'dmg');
-          Anim.damage('me', 10);
-          if (thornsKo) await ko(state.G.me.active, state.G.me);
+        // Retaliation damage (Thornling, Coilshell, Reflector, Spike Shield)
+        const retaliationDmg = getRetaliationDamage(defender);
+        if (retaliationDmg > 0 && state.G.me.active && state.G.me.active.curHp > 0) {
+          const retKo = applyDamage(state.G.me.active, retaliationDmg);
+          if (defender.id === 'thornling') {
+            log('Thorns! -10 to attacker', 'dmg');
+          } else if (defender.id === 'coilshell') {
+            log('Recoil! -10 to attacker', 'dmg');
+          } else if (defender.id === 'reflector') {
+            log('Mirror Shell! -15 to attacker', 'dmg');
+          }
+          await Anim.damage('me', retaliationDmg);
+          if (retKo) await ko(state.G.me.active, state.G.me);
         }
-        log(`${defender.name} takes ${dmg}`, 'dmg');
+        
+        // Spike Shield set verse - deal 15 back to attacker
+        if (state.G.opp.setVerse?.id === 'spikeShield' && state.G.me.active && state.G.me.active.curHp > 0) {
+          await showTriggerReveal(state.G.opp.setVerse);
+          log('Spike Shield! -15 to attacker', 'dmg');
+          state.G.opp.grave.push(state.G.opp.setVerse);
+          state.G.opp.setVerse = null;
+          const spikeKo = applyDamage(state.G.me.active, 15);
+          await Anim.damage('me', 15);
+          if (spikeKo) await ko(state.G.me.active, state.G.me);
+        }
         
         // Hexweaver poison - only if defender survived
         if (state.G.me.active?.id === 'hexweaver' && !defenderKo) {
@@ -3611,17 +3972,14 @@
           await ko(defender, state.G.opp, state.G.me.active, state.G.me);
         }
         
+        state.G.hasAttacked = true; // C3: Mark attack done (can still cast/set verses)
         render();
       } catch (err) {
         console.error('Attack error:', err);
         log('(Attack error)', 'dmg');
+        state.G.hasAttacked = true; // C3: Still mark attack to prevent retry
         render();
       }
-      
-      // End turn after attack - wait for animations to complete
-      setTimeout(() => {
-        if (!state.G.winner) endTurn();
-      }, ANIM_TIMING.ATTACK_SEQUENCE + 200);
     }
     
     function doRetreat() {
@@ -3640,6 +3998,7 @@
           const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
           state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
           state.G.me.bench.push(old);
+          state.G.hasRetreated = true; // C3: Mark that we retreated (can't attack after)
           log(`Switched to ${state.G.me.active.name}`);
           render();
           await Anim.benchToActive('me');
@@ -3683,16 +4042,653 @@
     // AI
     // ═══════════════════════════════════════════════════════════════
     
+    /**
+     * Hunter AI (Difficulty 2) - Score-based decision making
+     * Evaluates all possible moves and picks the best one each iteration
+     */
+    async function aiTurnHunter() {
+      if (state.G.winner) return;
+      
+      console.log('[AI] Turn starting (Hunter)...');
+      const ai = state.G.opp;
+      const player = state.G.me;
+      const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
+      
+      try {
+        // Mana phase: refill to max
+        ai.mana = ai.maxMana;
+        
+        // Reset Harden (Shellkin) for the new turn
+        if (ai.active?.id === 'shellkin') {
+          ai.active.hardenUsed = false;
+        }
+        
+        // Draw
+        draw(ai);
+        if (state.G.winner) return;
+        
+        log('-- Rival turn --');
+        render();
+        await pause();
+        
+        // Main phase: loop until pass is best option
+        let moveCount = 0;
+        let aiHasAttacked = false; // Track if AI already attacked this turn
+        const MAX_MOVES = 10; // Safety limit
+        
+        while (moveCount < MAX_MOVES && !state.G.winner) {
+          const canAttack = !state.G.firstTurn && !aiHasAttacked;
+          const scoredMoves = getScoredMoves(ai, player, canAttack);
+          
+          console.log('[AI Hunter] Moves:', scoredMoves.map(m => `${m.type}:${m.score}`).join(', '));
+          
+          const best = pickBestMove(scoredMoves, 10);
+          
+          if (!best || best.type === 'pass') {
+            console.log('[AI Hunter] Passing');
+            break;
+          }
+          
+          console.log('[AI Hunter] Executing:', best.type, best.card?.name || '');
+          
+          // Execute the chosen move
+          await executeAiMove(best, ai, player, pause);
+          
+          // Mark if AI attacked (can only attack once per turn)
+          if (best.type === 'attack' || best.type === 'attack-direct') {
+            aiHasAttacked = true;
+          }
+          
+          moveCount++;
+          render();
+          await pause();
+        }
+        
+      } catch (err) {
+        console.error('[AI Hunter] Error:', err);
+        log('(AI error)', 'dmg');
+      }
+      
+      // End of turn: increment max mana
+      if (ai.maxMana < 5) ai.maxMana++;
+      state.G.firstTurn = false;
+      
+      // Transition to player turn
+      await pause();
+      if (!state.G.winner) startPlayerTurn();
+    }
+    
+    /**
+     * Execute a single AI move
+     */
+    async function executeAiMove(move, ai, player, pause) {
+      switch (move.type) {
+        case 'summon-active': {
+          const card = move.card;
+          ai.mana -= card.cost;
+          ai.hand = ai.hand.filter(c => c.uid !== card.uid);
+          
+          // Soul Trap check
+          if (player.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(player.setVerse);
+            log('Soul Trap triggered!', 'dmg');
+            const trapKo = applyDamage(card, 20);
+            player.grave.push(player.setVerse);
+            player.setVerse = null;
+            if (trapKo) {
+              log(`${card.name} destroyed by trap!`, 'dmg');
+              ai.grave.push(card);
+              return;
+            }
+          }
+          
+          ai.active = card;
+          log(`Rival summoned ${card.name}`);
+          
+          // Duskfang ability
+          if (card.id === 'duskfang' && ai.grave.some(c => c.cardType === 'creature')) {
+            card.atk += 20;
+            log('Pack Call: +20 ATK', 'mana');
+          }
+          
+          render();
+          await Anim.summon('opp');
+          break;
+        }
+        
+        case 'summon-bench': {
+          const card = move.card;
+          ai.mana -= card.cost;
+          ai.hand = ai.hand.filter(c => c.uid !== card.uid);
+          
+          // Soul Trap check
+          if (player.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(player.setVerse);
+            log('Soul Trap triggered!', 'dmg');
+            const trapKo = applyDamage(card, 20);
+            player.grave.push(player.setVerse);
+            player.setVerse = null;
+            if (trapKo) {
+              log(`${card.name} destroyed by trap!`, 'dmg');
+              ai.grave.push(card);
+              return;
+            }
+          }
+          
+          const benchIdx = ai.bench.length;
+          ai.bench.push(card);
+          log(`Rival benched ${card.name}`);
+          render();
+          await Anim.summonBench('opp', benchIdx);
+          break;
+        }
+        
+        case 'cast': {
+          const card = move.card;
+          await aiCastVerse(card, ai, player, pause);
+          break;
+        }
+        
+        case 'set': {
+          const card = move.card;
+          ai.mana -= card.cost;
+          ai.hand = ai.hand.filter(c => c.uid !== card.uid);
+          ai.setVerse = card;
+          log('Rival set a verse');
+          render();
+          Anim.setVerse('opp');
+          await Anim.wait(600);
+          break;
+        }
+        
+        case 'attack': {
+          await executeAiAttack(ai, player, pause);
+          break;
+        }
+        
+        case 'attack-direct': {
+          // Uses same path as regular attack - handles Phantom Wall etc.
+          await executeAiAttack(ai, player, pause);
+          break;
+        }
+      }
+    }
+    
+    /**
+     * AI casts a verse (extracted for reuse)
+     */
+    async function aiCastVerse(card, ai, player, pause) {
+      ai.mana -= card.cost;
+      ai.hand = ai.hand.filter(c => c.uid !== card.uid);
+      ai.grave.push(card);
+      log(`Rival cast ${card.name}`);
+      await showCastReveal(card);
+      
+      // Mana Drain check
+      if (player.setVerse?.id === 'manaDrain') {
+        await showTriggerReveal(player.setVerse);
+        log('Mana Drain triggered!', 'dmg');
+        player.mana = Math.min(5, player.mana + 1);
+        player.grave.push(player.setVerse);
+        player.setVerse = null;
+        await Anim.negateX();
+        log(`${card.name} negated! You gain 1 mana.`);
+        render();
+        return;
+      }
+      
+      // Execute effect (same as Pup AI)
+      switch (card.id) {
+        case 'manaSurge':
+          ai.mana += 2;
+          ai.usedManaSurge = true;
+          log('Rival +2 mana', 'mana');
+          break;
+        case 'soulSiphon':
+          if (player.active) {
+            const ko = applyDamage(player.active, 20);
+            log('You -20', 'dmg');
+            await Anim.damage('me', 20);
+            if (ko) { await Anim.ko('me'); await ko(player.active, player); }
+          }
+          if (ai.active) {
+            ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 10);
+            log('Rival +10', 'heal');
+            Anim.heal('opp', 10);
+          }
+          break;
+        case 'ignite':
+          if (player.active) {
+            const ko = applyDamage(player.active, 15);
+            log('Ignite! You -15', 'dmg');
+            await Anim.damage('me', 15);
+            if (ko) { await Anim.ko('me'); await ko(player.active, player); }
+          }
+          break;
+        case 'darkPact':
+          draw(ai); draw(ai);
+          ai.lp -= 1;
+          log('Rival drew 2, lost a life!', 'dmg');
+          await Anim.lpDamage('opp', 1);
+          checkWin();
+          break;
+        case 'secondWind':
+          if (ai.active) {
+            ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 40);
+            log('Rival +40 HP', 'heal');
+            Anim.heal('opp', 40);
+          }
+          break;
+        case 'predatorsMark':
+          ai.attackBonuses.push({ source: "Predator's Mark", value: 30 });
+          log("Rival's Predator's Mark! Next attack +30");
+          break;
+        case 'banish':
+          if (player.active) {
+            log(`Banished ${player.active.name}!`, 'dmg');
+            await Anim.ko('me');
+            player.active = null;
+            render();
+            // Bench replacement for player
+            if (player.bench.length > 0) {
+              await Anim.wait(300);
+              if (player.bench.length === 1) {
+                player.active = player.bench.shift();
+                log(`Sent out ${player.active.name}`);
+                render();
+                await Anim.benchToActive('me');
+              } else {
+                await new Promise(resolve => {
+                  showModal('Choose new active creature', player.bench.map(c => ({
+                    name: c.name,
+                    sub: `${c.curHp}/${c.hp} HP / ${c.atk} ATK`,
+                    action: () => {
+                      closeModal();
+                      const idx = player.bench.findIndex(x => x.uid === c.uid);
+                      player.active = player.bench.splice(idx, 1)[0];
+                      log(`Sent out ${player.active.name}`);
+                      render();
+                      Anim.benchToActive('me').then(resolve);
+                    }
+                  })));
+                });
+              }
+            }
+          }
+          break;
+        case 'bloodMoon':
+          // C1: Blood Moon damages ALL creatures (active + bench) on BOTH sides
+          log('Blood Moon! All creatures take 20 damage!', 'dmg');
+          
+          // Damage AI's active
+          if (ai.active) {
+            const koAi = applyDamage(ai.active, 20);
+            await Anim.damage('opp', 20);
+            if (koAi) { await Anim.ko('opp'); await ko(ai.active, ai); }
+          }
+          // Damage AI's bench (animate all first, then process KOs)
+          for (let i = 0; i < ai.bench.length; i++) {
+            await Anim.benchDamage('opp', i, 20);
+          }
+          for (let i = ai.bench.length - 1; i >= 0; i--) {
+            const benchCreature = ai.bench[i];
+            const benchKo = applyDamage(benchCreature, 20);
+            log(`${benchCreature.name} (bench) -20`, 'dmg');
+            if (benchKo) {
+              log(`${benchCreature.name} KO'd!`, 'dmg');
+              ai.grave.push(benchCreature);
+              ai.bench.splice(i, 1);
+              if (ai.setVerse?.id === 'denMother') {
+                await showTriggerReveal(ai.setVerse);
+                ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                log('Rival Den Mother! +10 damage', 'mana');
+                ai.grave.push(ai.setVerse);
+                ai.setVerse = null;
+              }
+            }
+          }
+          
+          // Damage player's active
+          if (player.active) {
+            const koPlayer = applyDamage(player.active, 20);
+            await Anim.damage('me', 20);
+            if (koPlayer) { await Anim.ko('me'); await ko(player.active, player); }
+          }
+          // Damage player's bench (animate all first, then process KOs)
+          for (let i = 0; i < player.bench.length; i++) {
+            await Anim.benchDamage('me', i, 20);
+          }
+          for (let i = player.bench.length - 1; i >= 0; i--) {
+            const benchCreature = player.bench[i];
+            const benchKo = applyDamage(benchCreature, 20);
+            log(`${benchCreature.name} (bench) -20`, 'dmg');
+            if (benchKo) {
+              log(`${benchCreature.name} KO'd!`, 'dmg');
+              player.grave.push(benchCreature);
+              player.bench.splice(i, 1);
+              if (player.setVerse?.id === 'denMother') {
+                await showTriggerReveal(player.setVerse);
+                player.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                log('Den Mother! +10 damage', 'mana');
+                player.grave.push(player.setVerse);
+                player.setVerse = null;
+              }
+            }
+          }
+          render();
+          break;
+        case 'packTactics':
+          const count = (ai.active ? 1 : 0) + ai.bench.length;
+          const drawCount = Math.min(count, 3);
+          for (let i = 0; i < drawCount; i++) draw(ai);
+          log(`Rival drew ${drawCount}`, 'mana');
+          break;
+        case 'graveEcho':
+          const graveCr = ai.grave.filter(c => c.cardType === 'creature');
+          if (graveCr.length) {
+            const pick = graveCr[0];
+            ai.grave = ai.grave.filter(c => c.uid !== pick.uid);
+            ai.hand.push(pick);
+            log(`Rival returned ${pick.name}`);
+          }
+          break;
+        case 'callOfTheWild':
+          const oneCost = ai.deck.filter(c => c.cardType === 'creature' && c.cost === 1);
+          if (oneCost.length) {
+            const summon = oneCost[Math.floor(Math.random() * oneCost.length)];
+            ai.deck = ai.deck.filter(c => c.uid !== summon.uid);
+            if (!ai.active) {
+              ai.active = summon;
+              log(`Rival called ${summon.name}!`, 'mana');
+              render();
+              await Anim.summon('opp');
+            } else {
+              ai.bench.push(summon);
+              log(`Rival called ${summon.name} to bench!`, 'mana');
+              render();
+              await Anim.summonBench('opp', ai.bench.length - 1);
+            }
+          }
+          break;
+        case 'sacrifice':
+          if (ai.bench.length > 0) {
+            const victim = ai.bench.shift();
+            ai.grave.push(victim);
+            log(`Rival sacrificed ${victim.name}`, 'dmg');
+            
+            // C2: Trigger KO effects for AI sacrifice
+            if (ai.setVerse?.id === 'denMother') {
+              await showTriggerReveal(ai.setVerse);
+              ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
+              log('Rival Den Mother! +10 damage', 'mana');
+              ai.grave.push(ai.setVerse);
+              ai.setVerse = null;
+            }
+            if (victim.id === 'gloom' && player.hand.length) {
+              const idx = Math.floor(Math.random() * player.hand.length);
+              player.grave.push(player.hand.splice(idx, 1)[0]);
+              log('Fade: you discarded', 'dmg');
+            }
+            if (victim.id === 'echomask') {
+              player.lp -= 1;
+              log('Shatter! You lose a life!', 'dmg');
+              await Anim.lpDamage('me', 1);
+              checkWin();
+            }
+            if (victim.id === 'stormtalon') {
+              player.chainLightning = 20;
+              log('Chain Lightning armed!', 'mana');
+            }
+            
+            draw(ai); draw(ai);
+            log('Rival drew 2', 'mana');
+          }
+          break;
+        
+        // === SHELL PACK VERSES (AI) ===
+        
+        case 'shellArmor':
+          if (ai.active) {
+            ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 25);
+            log('Rival used Shell Armor! +25 HP', 'heal');
+            Anim.heal('opp', 25);
+          }
+          break;
+        
+        case 'regenerate':
+          if (ai.active) {
+            ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 40);
+            if (ai.active.status === 'poison') {
+              ai.active.status = null;
+              ai.poisoned = false;
+              log('Rival regenerated! +40 HP, cured poison', 'heal');
+            } else {
+              log('Rival regenerated! +40 HP', 'heal');
+            }
+            Anim.heal('opp', 40);
+          }
+          break;
+        
+        case 'fortify':
+          if (ai.active) {
+            ai.active.fortified = true;
+            log('Rival fortified! Will survive next lethal hit.');
+          }
+          break;
+        
+        case 'unbreakable':
+          if (ai.active) {
+            ai.active.shielded = true;
+            log('Rival is unbreakable! Next damage prevented.');
+          }
+          break;
+      }
+      render();
+      await pause();
+    }
+    
+    /**
+     * Execute AI attack (extracted for reuse)
+     */
+    async function executeAiAttack(ai, player, pause) {
+      if (!ai.active) return;
+      
+      // Phantom Wall check - triggers on ALL attacks (including direct)
+      if (player.setVerse?.id === 'phantomWall') {
+        // Show attack animation FIRST for visual feedback
+        if (player.active) {
+          await Anim.attack('opp', 'me', 0); // Attack anim, no damage shown
+        } else {
+          await Anim.attackDirect('opp');
+        }
+        // Then trigger Phantom Wall
+        await showTriggerReveal(player.setVerse);
+        log('Phantom Wall triggered!', 'dmg');
+        const phantomKo = applyDamage(ai.active, 10);
+        log(`${ai.active.name} takes 10 damage!`, 'dmg');
+        await Anim.damage('opp', 10);
+        player.grave.push(player.setVerse);
+        player.setVerse = null;
+        if (phantomKo) {
+          await Anim.ko('opp');
+          await ko(ai.active, ai);
+        }
+        await Anim.negateX();
+        log('Attack negated!');
+        render();
+        return;
+      }
+      
+      // Direct attack (no defender)
+      if (!player.active) {
+        await Anim.attackDirect('opp');
+        player.lp -= 1;
+        log('Direct attack! You lose a life!', 'dmg');
+        await Anim.lpDamage('me', 1);
+        checkWin();
+        render();
+        return;
+      }
+      
+      // Calculate damage (creature vs creature)
+      let dmg = ai.active.atk;
+      if (ai.active.id === 'bladewhisker') dmg += 10;
+      if (ai.active.id === 'echomask' && player.active) dmg = player.active.atk;
+      // Attack bonuses (Den Mother, Predator's Mark, etc.)
+      if (ai.attackBonuses.length > 0) {
+        for (const bonus of ai.attackBonuses) {
+          dmg += bonus.value;
+          log(`Rival's ${bonus.source}! +${bonus.value} damage`, 'dmg');
+        }
+        ai.attackBonuses = [];
+      }
+      if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
+        dmg *= 2;
+        ai.active.firstAtk = false;
+        log('Sonic Strike! Double damage', 'mana');
+      }
+      if (ai.active.id === 'cindermaw') {
+        dmg *= 2;
+        log('Frenzy! Double damage!', 'dmg');
+      }
+      
+      // Damage reduction (Shell Pack abilities, set verses)
+      const reduction = getEffectiveDamageReduction(player.active, player);
+      if (reduction > 0) {
+        dmg = Math.max(0, dmg - reduction);
+        const sources = getDamageReductionSources(player.active, player);
+        for (const src of sources) {
+          log(`${src.name}! -${src.value} damage`, 'heal');
+        }
+        if (player.setVerse?.id === 'swarmShield' && player.bench.length > 0) {
+          await showTriggerReveal(player.setVerse);
+          player.grave.push(player.setVerse);
+          player.setVerse = null;
+        }
+        if (player.setVerse?.id === 'brace') {
+          await showTriggerReveal(player.setVerse);
+          player.grave.push(player.setVerse);
+          player.setVerse = null;
+        }
+        // Mark Harden as used this turn
+        if (player.active.id === 'shellkin') {
+          player.active.hardenUsed = true;
+        }
+      }
+      
+      // Unbreakable - prevent damage entirely
+      if (player.active.shielded && dmg > 0) {
+        log(`Unbreakable! Damage prevented!`, 'heal');
+        player.active.shielded = false;
+        dmg = 0;
+      }
+      
+      const attacker = ai.active;
+      log(`${attacker.name} attacks for ${dmg}!`);
+      await Anim.attack('opp', 'me', dmg);
+      
+      let playerKo = applyDamage(player.active, dmg);
+      
+      // Fortress (Bulwark) - survive lethal with 1 HP (once per game)
+      if (playerKo && player.active.id === 'bulwark' && !player.active.fortressUsed) {
+        player.active.curHp = 1;
+        player.active.fortressUsed = true;
+        playerKo = false;
+        log(`Fortress! ${player.active.name} survives with 1 HP!`, 'heal');
+      }
+      
+      // Fortify buff - survive lethal with 1 HP
+      if (playerKo && player.active.fortified) {
+        player.active.curHp = 1;
+        player.active.fortified = false;
+        playerKo = false;
+        log(`Fortified! ${player.active.name} survives with 1 HP!`, 'heal');
+      }
+      
+      // Cindermaw self-damage
+      if (attacker.id === 'cindermaw') {
+        const selfKo = applyDamage(attacker, 10);
+        log('Cindermaw Frenzy! -10 HP', 'dmg');
+        await Anim.damage('opp', 10);
+        if (selfKo) {
+          await Anim.ko('opp');
+          await ko(attacker, ai);
+        }
+      }
+      
+      // Retaliation damage (Thornling, Coilshell, Reflector)
+      if (player.active && attacker && attacker.curHp > 0) {
+        const retDmg = getRetaliationDamage(player.active);
+        if (retDmg > 0) {
+          const retKo = applyDamage(attacker, retDmg);
+          if (player.active.id === 'thornling') {
+            log('Thorns! -10 to attacker', 'dmg');
+          } else if (player.active.id === 'coilshell') {
+            log('Recoil! -10 to attacker', 'dmg');
+          } else if (player.active.id === 'reflector') {
+            log('Mirror Shell! -15 to attacker', 'dmg');
+          }
+          await Anim.damage('opp', retDmg);
+          if (retKo) await ko(attacker, ai);
+        }
+      }
+      
+      // Spike Shield set verse
+      if (player.setVerse?.id === 'spikeShield' && attacker && attacker.curHp > 0) {
+        await showTriggerReveal(player.setVerse);
+        log('Spike Shield! -15 to attacker', 'dmg');
+        player.grave.push(player.setVerse);
+        player.setVerse = null;
+        const spikeKo = applyDamage(attacker, 15);
+        await Anim.damage('opp', 15);
+        if (spikeKo) await ko(attacker, ai);
+      }
+      
+      if (!playerKo) {
+        // Status effects
+        if (attacker.id === 'hexweaver') {
+          player.active.status = 'poison';
+          log('Poisoned!');
+        }
+        if (attacker.id === 'mireveil') {
+          player.active.status = 'trapped';
+          log('Trapped! Cannot retreat');
+        }
+      } else {
+        // Player KO'd
+        if (attacker.id === 'sundewqueen') {
+          attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
+          log('Digest! +30 HP', 'heal');
+          await Anim.heal('opp', 30);
+        }
+        await Anim.ko('me');
+        await ko(player.active, player, attacker, ai);
+      }
+      
+      render();
+    }
+    
     async function aiTurn() {
       if (state.G.winner) return;
       
-      console.log('[AI] Turn starting...');
+      // Dispatch based on difficulty
+      if (state.G.aiDifficulty >= 2) {
+        return aiTurnHunter();
+      }
+      
+      // === PUP AI (Difficulty 1) - Original fixed-order logic ===
+      console.log('[AI] Turn starting (Pup)...');
       const ai = state.G.opp;
       const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
       
       try {
         // Mana phase: refill to max (no increment here - that happens at end of turn)
         ai.mana = ai.maxMana;
+        
+        // Reset Harden (Shellkin) for the new turn
+        if (ai.active?.id === 'shellkin') {
+          ai.active.hardenUsed = false;
+        }
         
         // Draw
         draw(ai);
@@ -3820,6 +4816,20 @@
             case 'sacrifice':
               shouldCast = ai.bench.length > 0 && ai.hand.length < 3;
               break;
+            
+            // Shell Pack verse decisions
+            case 'shellArmor':
+              shouldCast = ai.active && ai.active.curHp <= ai.active.hp - 20; // Wounded
+              break;
+            case 'regenerate':
+              shouldCast = ai.active && (ai.active.curHp <= ai.active.hp - 30 || ai.active.status === 'poison');
+              break;
+            case 'fortify':
+              shouldCast = ai.active && ai.active.curHp <= 30 && !ai.active.fortified; // Low HP
+              break;
+            case 'unbreakable':
+              shouldCast = ai.active && ai.active.curHp <= 25 && !ai.active.shielded;
+              break;
           }
           
           if (shouldCast) {
@@ -3885,8 +4895,8 @@
                 }
                 break;
               case 'predatorsMark':
-                ai.marked = true;
-                log('Rival marked you! Next attack +30');
+                ai.attackBonuses.push({ source: "Predator's Mark", value: 30 });
+                log("Rival's Predator's Mark! Next attack +30");
                 break;
               case 'banish':
                 if (state.G.me.active) {
@@ -3924,17 +4934,39 @@
                 }
                 break;
               case 'bloodMoon':
+                // C1: Blood Moon damages ALL creatures (active + bench)
+                log('Blood Moon! All creatures take 20 damage!', 'dmg');
                 if (ai.active) {
                   const moonKoAi = applyDamage(ai.active, 20);
-                  Anim.damage('opp', 20);
+                  await Anim.damage('opp', 20);
                   if (moonKoAi) { await Anim.ko('opp'); await ko(ai.active, ai); }
+                }
+                // Animate AI bench damage
+                for (let i = 0; i < ai.bench.length; i++) {
+                  await Anim.benchDamage('opp', i, 20);
+                }
+                for (let i = ai.bench.length - 1; i >= 0; i--) {
+                  const bc = ai.bench[i];
+                  const bko = applyDamage(bc, 20);
+                  log(`${bc.name} (bench) -20`, 'dmg');
+                  if (bko) { ai.grave.push(bc); ai.bench.splice(i, 1); }
                 }
                 if (state.G.me.active) {
                   const moonKoMe = applyDamage(state.G.me.active, 20);
                   await Anim.damage('me', 20);
                   if (moonKoMe) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
                 }
-                log('Blood Moon! All creatures -20', 'dmg');
+                // Animate player bench damage
+                for (let i = 0; i < state.G.me.bench.length; i++) {
+                  await Anim.benchDamage('me', i, 20);
+                }
+                for (let i = state.G.me.bench.length - 1; i >= 0; i--) {
+                  const bc = state.G.me.bench[i];
+                  const bko = applyDamage(bc, 20);
+                  log(`${bc.name} (bench) -20`, 'dmg');
+                  if (bko) { state.G.me.grave.push(bc); state.G.me.bench.splice(i, 1); }
+                }
+                render();
                 break;
               case 'packTactics':
                 const count = (ai.active ? 1 : 0) + ai.bench.length;
@@ -3974,6 +5006,19 @@
                   const victim = ai.bench.shift();
                   ai.grave.push(victim);
                   log(`Rival sacrificed ${victim.name}`, 'dmg');
+                  // C2: Trigger KO effects
+                  if (ai.setVerse?.id === 'denMother') {
+                    await showTriggerReveal(ai.setVerse);
+                    ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
+                    log('Rival Den Mother! +10 damage', 'mana');
+                    ai.grave.push(ai.setVerse);
+                    ai.setVerse = null;
+                  }
+                  if (victim.id === 'gloom' && state.G.me.hand.length) {
+                    const idx = Math.floor(Math.random() * state.G.me.hand.length);
+                    state.G.me.grave.push(state.G.me.hand.splice(idx, 1)[0]);
+                    log('Fade: you discarded', 'dmg');
+                  }
                   draw(ai); draw(ai);
                   log('Rival drew 2', 'mana');
                 }
@@ -4003,155 +5048,7 @@
         // Skip attack on first turn of game (whoever goes first can't attack)
         if (ai.active && !state.G.firstTurn) {
           await pause();
-          
-          // Player's Phantom Wall check
-          if (state.G.me.setVerse?.id === 'phantomWall') {
-            await showTriggerReveal(state.G.me.setVerse);
-            log('Phantom Wall triggered!', 'dmg');
-            const aiPhantomKo = applyDamage(ai.active, 10);
-            log(`${ai.active.name} takes 10 damage!`, 'dmg');
-            await Anim.damage('opp', 10);
-            state.G.me.grave.push(state.G.me.setVerse);
-            state.G.me.setVerse = null;
-            if (aiPhantomKo) { 
-              await Anim.ko('opp'); 
-              await ko(ai.active, ai); 
-            }
-            await Anim.negateX();
-            log('Attack negated!');
-            render();
-          } else if (state.G.me.active) {
-            // Normal attack
-            let dmg = ai.active.atk;
-            if (ai.active.id === 'bladewhisker') dmg += 10;
-            if (ai.active.id === 'echomask' && state.G.me.active) dmg = state.G.me.active.atk;
-            
-            // AI Den Mother bonus
-            if (ai.denMotherBonus) {
-              dmg += ai.denMotherBonus;
-              log(`Rival's Den Mother! +${ai.denMotherBonus} damage`, 'dmg');
-              ai.denMotherBonus = 0;
-            }
-            if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
-              dmg *= 2;
-              ai.active.firstAtk = false;
-              log('Sonic Strike! Double damage', 'mana');
-            }
-            // Cindermaw Frenzy - double damage (self-damage applied AFTER attack)
-            const aiIsCindermaw = ai.active.id === 'cindermaw';
-            if (aiIsCindermaw) {
-              dmg *= 2;
-              log('Frenzy! Double damage!', 'dmg');
-            }
-            
-            const attacker = ai.active;
-            
-            // Apply damage reduction (Den Guard, Swarm Shield) for player
-            if (state.G.me.active) {
-              const reduction = getEffectiveDamageReduction(state.G.me.active, state.G.me);
-              if (reduction > 0) {
-                dmg = Math.max(0, dmg - reduction);
-                if (state.G.me.active.id === 'vulpix' && state.G.me.bench.length > 0) {
-                  log(`Den Guard! -${10} damage`, 'heal');
-                }
-                if (state.G.me.setVerse?.id === 'swarmShield' && state.G.me.bench.length > 0) {
-                  await showTriggerReveal(state.G.me.setVerse);
-                  log(`Swarm Shield! -15 damage`, 'heal');
-                  state.G.me.grave.push(state.G.me.setVerse);
-                  state.G.me.setVerse = null;
-                }
-              }
-            }
-            
-            log(`${attacker.name} attacks for ${dmg}!`);
-            await Anim.attack('opp', 'me', dmg);
-            
-            // Apply damage to player FIRST
-            let playerKo = false;
-            if (state.G.me.active) {
-              playerKo = applyDamage(state.G.me.active, dmg);
-            }
-            
-            // Cindermaw self-damage AFTER attack lands
-            if (aiIsCindermaw && attacker) {
-              const aiFrenzyKo = applyDamage(attacker, 10);
-              log('-10 self from Frenzy', 'dmg');
-              if (aiFrenzyKo) await ko(attacker, ai);
-            }
-            
-            // Thornling thorns - only if attacker still alive
-            if (state.G.me.active?.id === 'thornling' && attacker && attacker.curHp > 0) {
-              const aiThornsKo = applyDamage(attacker, 10);
-              log('Thorns! -10 to attacker', 'dmg');
-              await Anim.damage('opp', 10);
-              if (aiThornsKo) await ko(attacker, ai);
-            }
-            
-            // Process player damage effects
-            if (state.G.me.active) {
-              if (!playerKo) {
-                if (attacker?.id === 'hexweaver') {
-                  state.G.me.active.status = 'poison';
-                  log('Poisoned!');
-                }
-                if (attacker?.id === 'mireveil') {
-                  state.G.me.active.status = 'trapped';
-                  log('Trapped! Cannot retreat');
-                }
-                
-                // Player's Skitter Scurry - offer swap choice
-                if (shouldScurryTrigger(state.G.me.active, state.G.me)) {
-                  render();
-                  await new Promise(resolve => {
-                    showModal('Scurry! Swap with bench?', [
-                      ...state.G.me.bench.map(c => ({
-                        name: `Swap with ${c.name}`,
-                        sub: `${c.curHp}/${c.hp} HP`,
-                        action: async () => {
-                          closeModal();
-                          const skitter = state.G.me.active;
-                          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
-                          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
-                          state.G.me.bench.push(skitter);
-                          log(`Scurry! ${skitter.name} retreats, ${state.G.me.active.name} enters`, 'mana');
-                          render();
-                          await Anim.benchToActive('me');
-                          resolve();
-                        }
-                      })),
-                      {
-                        name: 'Stay',
-                        sub: 'Keep Skitter active',
-                        action: () => {
-                          closeModal();
-                          log('Skitter stays in battle');
-                          resolve();
-                        }
-                      }
-                    ]);
-                  });
-                }
-              } else {
-                // Player creature KO'd
-                if (attacker?.id === 'sundewqueen') {
-                  attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
-                  log('Digest! +30 HP', 'heal');
-                  await Anim.heal('opp', 30);
-                }
-                await Anim.ko('me');
-                await ko(state.G.me.active, state.G.me, attacker, ai);
-              }
-            }
-            render();
-          } else {
-            // Direct damage (no defender)
-            await Anim.attackDirect('opp');
-            state.G.me.lp -= 1;
-            log(`Direct attack! You lose a life!`, 'dmg');
-            await Anim.lpDamage('me', 1);
-            checkWin();
-            render();
-          }
+          await executeAiAttack(ai, state.G.me, pause);
         }
         
         // Poison tick
@@ -4195,6 +5092,15 @@
         
         // Draw
         draw(state.G.me);
+        
+        // C3: Reset attack/retreat flags for new turn
+        state.G.hasAttacked = false;
+        state.G.hasRetreated = false;
+        
+        // Reset Harden (Shellkin) for the new turn
+        if (state.G.me.active?.id === 'shellkin') {
+          state.G.me.active.hardenUsed = false;
+        }
         
         state.G.myTurn = true;
         log('Your turn', 'mana');
@@ -4242,16 +5148,16 @@
     }
     
     async function ko(creature, owner, attacker = null, attackerOwner = null) {
-      // Mirror Force check - only during combat with an attacker
-      if (attacker && owner.setVerse?.id === 'mirrorForce') {
+      // Vengeance check - only during combat with an attacker
+      if (attacker && owner.setVerse?.id === 'vengeance') {
         await showTriggerReveal(owner.setVerse);
-        log('Mirror Force triggered!', 'dmg');
+        log('Vengeance triggered!', 'dmg');
         creature.curHp = 1; // Survive with 1 HP
         owner.grave.push(owner.setVerse);
         owner.setVerse = null;
         log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
         await Anim.ko(attackerOwner === state.G.me ? 'me' : 'opp');
-        // KO the attacker instead (without triggering another Mirror Force)
+        // KO the attacker instead (without triggering another Vengeance)
         attackerOwner.grave.push(attacker);
         if (attackerOwner.active?.uid === attacker.uid) {
           attackerOwner.active = null;
@@ -4274,11 +5180,23 @@
       owner.active = null;
       
       const isPlayer = owner === state.G.me;
+      const enemy = isPlayer ? state.G.opp : state.G.me;
+      
+      // Titanback death effect - deal 25 damage to enemy active
+      if (creature.id === 'titanback' && enemy.active) {
+        log(`Titanback's Juggernaut! ${enemy.active.name} takes 25 damage!`, 'dmg');
+        const titanKo = applyDamage(enemy.active, 25);
+        await Anim.damage(isPlayer ? 'opp' : 'me', 25);
+        if (titanKo) {
+          await Anim.ko(isPlayer ? 'opp' : 'me');
+          await ko(enemy.active, enemy);
+        }
+      }
       
       // Den Mother - next attack deals +10 bonus damage
       if (owner.setVerse?.id === 'denMother') {
         await showTriggerReveal(owner.setVerse);
-        owner.denMotherBonus = 10;
+        owner.attackBonuses.push({ source: 'Den Mother', value: 10 });
         log('Den Mother! Next attack +10 damage', 'mana');
         owner.grave.push(owner.setVerse);
         owner.setVerse = null;
@@ -4419,12 +5337,22 @@
     
     function showModal(title, options, opts = {}) {
       $('modal-title').textContent = title;
-      $('modal-opts').innerHTML = options.map((o, i) => `
-        <div class="option ${o.disabled ? 'off' : ''}" onclick="${o.disabled ? '' : `modalAction(${i})`}">
-          <div class="name">${o.name}</div>
-          <div class="sub">${o.sub}</div>
-        </div>
-      `).join('');
+      // For graveyard modals, add hold-to-zoom handlers
+      if (opts.graveyard) {
+        $('modal-opts').innerHTML = options.map((o, i) => `
+          <div class="option" data-uid="${o.uid || ''}" onpointerdown="graveCardPress('${o.uid}', '${opts.player}')" onpointerup="graveCardRelease()" onpointerleave="graveCardRelease()">
+            <div class="name">${o.name}</div>
+            <div class="sub">${o.sub}</div>
+          </div>
+        `).join('');
+      } else {
+        $('modal-opts').innerHTML = options.map((o, i) => `
+          <div class="option ${o.disabled ? 'off' : ''}" onclick="${o.disabled ? '' : `modalAction(${i})`}">
+            <div class="name">${o.name}</div>
+            <div class="sub">${o.sub}</div>
+          </div>
+        `).join('');
+      }
       window._modalActions = options.map(o => o.action);
       // Hide cancel button if noCancel option is set
       const cancelBtn = $('modal').querySelector('.cancel');
@@ -4479,15 +5407,11 @@
         sub: c.cardType === 'creature' 
           ? `${c.hp} HP / ${c.atk} ATK • Cost ${c.cost}` 
           : `${c.type} verse • Cost ${c.cost}`,
-        action: () => {} // Hold-to-zoom handled separately
+        action: () => {}, // Hold-to-zoom handled separately
+        uid: c.uid
       }));
-      options.push({
-        name: '[ Close ]',
-        sub: `${player.grave.length} card${player.grave.length !== 1 ? 's' : ''} total`,
-        action: () => closeModal()
-      });
       
-      showModal(title, options);
+      showModal(title, options, { graveyard: true, player: who });
     }
     
     // Set Verse Inspect - view your own set verse (not opponent's!)
@@ -4542,6 +5466,7 @@
         `;
         
         $('triggerContent').innerHTML = content;
+        $('triggerHeaderText').textContent = 'TRIGGERED!';
         $('triggerModal').classList.add('open');
         
         // Auto-dismiss after delay
@@ -4568,6 +5493,7 @@
         `;
         
         $('triggerContent').innerHTML = content;
+        $('triggerHeaderText').textContent = 'CAST!';
         $('triggerModal').classList.add('open', 'cast');
         
         // Shorter duration for cast verses
@@ -4644,6 +5570,25 @@
     window.setVersePress = setVersePress;
     window.setVerseRelease = setVerseRelease;
     window.selectCard = selectCard;
+    
+    // Graveyard card zoom
+    let graveZoomTimer = null;
+    function graveCardPress(uid, who) {
+      if (!uid) return;
+      graveZoomTimer = setTimeout(() => {
+        const player = who === 'me' ? state.G.me : state.G.opp;
+        const card = player.grave.find(c => c.uid === uid);
+        if (card) showCardDetail(uid);
+      }, 400);
+    }
+    function graveCardRelease() {
+      if (graveZoomTimer) {
+        clearTimeout(graveZoomTimer);
+        graveZoomTimer = null;
+      }
+    }
+    window.graveCardPress = graveCardPress;
+    window.graveCardRelease = graveCardRelease;
     
     function toggleMenu() {
       alert('Menu: Coming soon!');
