@@ -644,6 +644,9 @@
         padding: 12px 20px;
         min-height: 0;
         overflow: hidden;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
       }
       
       /* Left Panel */
@@ -2081,6 +2084,23 @@
       <!-- Left Panel -->
       <div class="d-left">
         <div class="d-panel" style="flex:1;">
+          <div class="d-panel-hdr">Opponent</div>
+          <div class="d-panel-body">
+            <div class="d-stat-big">
+              <div class="label">Lives</div>
+              <div class="val" id="d-opp-lp">♥♥♥</div>
+            </div>
+            <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
+              <div class="d-stat-sm clickable" onclick="showGraveyard('opp')"><div class="label">Grave</div><div class="val" id="d-opp-grave">0</div></div>
+            </div>
+            <div class="d-stat-sm">
+              <div class="label">Mana</div>
+              <div id="d-opp-mana-pips" class="d-mana-pips"></div>
+            </div>
+          </div>
+        </div>
+        <div class="d-panel" style="flex:1;">
           <div class="d-panel-hdr">Your Stats</div>
           <div class="d-panel-body">
             <div class="d-stat-big">
@@ -2098,23 +2118,6 @@
             <div class="d-stat-sm">
               <div class="label">Mana</div>
               <div id="d-mana-pips" class="d-mana-pips"></div>
-            </div>
-          </div>
-        </div>
-        <div class="d-panel" style="flex:1;">
-          <div class="d-panel-hdr">Opponent</div>
-          <div class="d-panel-body">
-            <div class="d-stat-big">
-              <div class="label">Lives</div>
-              <div class="val" id="d-opp-lp">♥♥♥</div>
-            </div>
-            <div class="d-stat-row">
-              <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
-              <div class="d-stat-sm clickable" onclick="showGraveyard('opp')"><div class="label">Grave</div><div class="val" id="d-opp-grave">0</div></div>
-            </div>
-            <div class="d-stat-sm">
-              <div class="label">Mana</div>
-              <div id="d-opp-mana-pips" class="d-mana-pips"></div>
             </div>
           </div>
         </div>
