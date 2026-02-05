@@ -220,3 +220,53 @@ When animation class is added but `render()` is called before animation complete
 - attack: 50 base + KO bonus - trap fear
 - set verses: 30-60 based on defensive value
 
+
+### 2026-02-05 Afternoon — Bug Fixes & Polish (v0.2.40 → v0.2.48)
+
+**v0.2.40-v0.2.41: Blood Moon AoE Fix**
+- Bug: Bench creatures not showing damage animation
+- Fix v0.2.40: Added `Anim.benchDamage(side, index, amount)` for bench damage visuals
+- Bug: Bench creature escaped damage by swapping to active when active KO'd
+- Root cause: Damage applied sequentially — active KO triggered swap before bench damage
+- Fix v0.2.41: **Option A** — Capture all targets BEFORE any damage, then animate, apply, KO
+
+**v0.2.42: Bladewhisker Rend Display**
+- Added Rend (+10 ATK) to `getAtkModifiers()` so card shows boosted ATK on battlefield
+
+**v0.2.43: Turn Flow Polish**
+- END TURN button pulses gold after player attacks (prompts turn end)
+- TURN END animation banner (ASCII art, same style as BEGIN)
+- Animation blocking on all action buttons during transitions
+
+**v0.2.44: Async KO Fix**
+- Bug: Den Mother set card didn't disappear after triggering
+- Root cause: `ko()` called without `await`, render happened before trigger completed
+- Fix: Added `await` to all `ko()` and `Anim.ko()` calls in Ignite + poison damage
+
+**v0.2.45: END TURN Highlight Fix**
+- Bug: Highlight didn't show after certain action sequences
+- Root cause: Early return paths in `doAttack()` skipped `highlightEndTurn()`
+- Fix: Added highlight to Phantom Wall path, direct attack path, and retreat
+
+**v0.2.46: Spike Shield Priority**
+- Bug: Spike Shield KO'd attacker but attack damage still applied
+- Root cause: Linear resolution — damage applied before counter-triggers
+- Pattern: No priority interrupt mechanism
+- Fix: Pre-check Spike Shield — if `attacker.curHp <= 15`, trigger first and negate attack
+
+**v0.2.47: Shellkin Rebalance**
+- Stats: 35 HP → 20 HP, 15 ATK → 10 ATK
+- Ability text: "Negates first 10 damage each turn from any source"
+
+**v0.2.48: AI Ability Modifiers Fix**
+- Bug: AI Shade Pup attacked for 15 instead of 30 (Orphan not applied)
+- Root cause: AI used `ai.active.atk` instead of `getEffectiveAtk()`
+- Pattern: Duplicated damage calc — player used helper, AI had incomplete inline code
+- Fix: Changed AI to use `getEffectiveAtk(ai.active, ai, player)`
+
+**Key Patterns Learned:**
+1. **Capture-then-process**: For AoE effects, snapshot targets before any state changes
+2. **Await async chains**: Always await async functions that modify state before render
+3. **Check all return paths**: Early returns can skip important side effects
+4. **DRY helpers**: Use shared functions (getEffectiveAtk) instead of inline duplication
+

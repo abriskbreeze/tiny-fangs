@@ -1,24 +1,62 @@
-# Tiny Fangs Classic
+# Tiny Fangs
 
-**Archived:** 2026-02-03
+**ASCII Card Battler** — Pokemon TCG meets Yu-Gi-Oh with original mythical tiny predators.
 
-This is the original version of Tiny Fangs before the Phase 1 rebuild.
+🦷 https://abriskbreeze.github.io/tiny-fangs/
+
+## Features
+
+- **5 Decks**: Fang, Shadow, Storm, Swarm, Shell (each with unique playstyle)
+- **30+ Creatures**: Each with unique abilities
+- **20+ Verses**: Cast spells and set traps
+- **Hunter AI**: Score-based decision making with Pup (easy) and Hunter (normal) difficulties
+- **Drag-to-Play**: Mobile-friendly touch controls
+- **Full Animations**: Attack coils, damage shakes, KO effects, turn transitions
 
 ## How to Play
 
-Just open `index.html` in a browser:
+**Online:** https://abriskbreeze.github.io/tiny-fangs/
+
+**Local:**
 ```bash
-open ~/clawd/tiny-fangs-classic/index.html
+cd ~/clawd/tiny-fangs
+npm install
+npm run dev
+# Open http://localhost:5173
 ```
 
-Or serve it:
+## Win Conditions
+
+- Reduce opponent LP to 0 (start with 3 hearts)
+- Deck out opponent
+
+## Card Types
+
+- **Creatures**: Summon to active/bench, attack enemy
+- **Cast Verses**: Immediate effect, goes to graveyard
+- **Set Verses**: Trap-style, triggers on condition
+
+## Tech Stack
+
+- Vanilla HTML/CSS/JS
+- Vite + Vitest for build/test
+- Font: JetBrains Mono (ASCII aesthetic)
+- Deploy: GitHub Pages (`docs/` folder)
+
+## Development
+
 ```bash
-cd ~/clawd/tiny-fangs-classic && python3 -m http.server 8888
-# Then open http://localhost:8888
+npm test          # Run 190 tests
+npm run build     # Build to docs/
+npm run dev       # Dev server
 ```
 
-## What's Here
-- `index.html` — The complete game (self-contained, ~111KB)
-- `game.js` — Backup of the JS module (not used, index.html is standalone)
+## Version
 
-🦷 *The OG before the glow-up*
+Current: **v0.2.48**
+
+See `MEMORY.md` for full changelog and session history.
+
+---
+
+*Built with 🦷 by Rico & Neve*
