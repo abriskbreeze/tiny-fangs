@@ -142,3 +142,11 @@ Major milestones:
 - All use pure CSS transforms (no special effects) — universal for any creature
 - Rico reviewing to pick one for implementation
 
+
+### 2026-02-04 Late Evening — Attack Animation Fix (v0.2.15)
+- **Bug**: Player attack animation not playing, opponent showing old animation
+- **Root cause**: `render()` called immediately after `Anim.attack()`, re-rendering DOM and removing animation class before it played
+- **Pattern**: AI attack worked because it was `await`ed
+- **Fix**: Added `await` to player attack: `await Anim.attack("me", "opp", dmg);`
+- **Lesson**: When animation is fire-and-forget but DOM gets re-rendered, the animation class disappears
+

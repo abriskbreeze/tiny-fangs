@@ -1604,18 +1604,18 @@
     
     /* Shake (damage taken) - MORE INTENSE */
     
-    /* Hit reaction - tilt wobble */
+    /* Hit reaction - tilt wobble (starts immediately) */
     
     @keyframes shake {
-      0%, 45% { transform: translateY(0) scale(1) rotate(0deg); }
-      52% { transform: translateY(4px) scale(0.9) rotate(-8deg); filter: brightness(1.6); }
-      60% { transform: translateY(6px) scale(0.88) rotate(5deg); }
-      72% { transform: translateY(-3px) scale(1.04) rotate(-3deg); }
-      85% { transform: translateY(1px) rotate(1deg); }
+      0% { transform: translateY(0) scale(1) rotate(0deg); }
+      15% { transform: translateY(4px) scale(0.9) rotate(-8deg); filter: brightness(1.6); }
+      30% { transform: translateY(6px) scale(0.88) rotate(5deg); }
+      50% { transform: translateY(-3px) scale(1.04) rotate(-3deg); }
+      75% { transform: translateY(1px) rotate(1deg); }
       100% { transform: translateY(0) scale(1) rotate(0deg); }
     }
     
-    .anim-shake { animation: shake 0.6s ease-out; }
+    .anim-shake { animation: shake 0.4s ease-out; }
     
     /* Coiled Strike - player attacks up (toward opponent) */
     
@@ -1985,7 +1985,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-CCg_JmSM.js"></script>
+  <script type="module" crossorigin src="./assets/index-DarX-f9M.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
