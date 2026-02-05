@@ -236,7 +236,7 @@
       background: var(--panel);
       border: 1px solid var(--green);
       border-radius: 4px;
-      width: clamp(50px, 14vw, 60px);
+      width: clamp(50px, min(14vw, 10vh), 60px);
       aspect-ratio: 5 / 7;
       padding: 4px;
       font-size: 8px;
@@ -365,7 +365,7 @@
     }
     
     .card-empty {
-      width: clamp(50px, 14vw, 60px);
+      width: clamp(50px, min(14vw, 10vh), 60px);
       aspect-ratio: 5 / 7;
       border: 1px dashed var(--border);
       border-radius: 4px;
@@ -376,7 +376,7 @@
     }
     
     .card-empty.active-slot {
-      width: calc(clamp(50px, 14vw, 60px) * 2 + 3px);
+      width: calc(clamp(50px, min(14vw, 10vh), 60px) * 2 + 3px);
       aspect-ratio: 5 / 7;
       font-size: 9px;
     }
@@ -387,7 +387,7 @@
     #m-my-active .card-active,
     #m-opp-active .card-active,
     .card-active {
-      width: calc(clamp(50px, 14vw, 60px) * 2 + 3px);
+      width: calc(clamp(50px, min(14vw, 10vh), 60px) * 2 + 3px);
       aspect-ratio: 5 / 7;
     }
     
@@ -450,7 +450,7 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 4px;
-      width: clamp(50px, 14vw, 60px);
+      width: clamp(50px, min(14vw, 10vh), 60px);
       aspect-ratio: 5 / 7;
       padding: 4px;
       display: flex;
@@ -736,7 +736,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        padding: 16px;
+        padding: min(16px, 2vh);
         min-height: 0;
         overflow: hidden;
       }
@@ -798,7 +798,7 @@
       
       .d-vs {
         text-align: center;
-        padding: 10px;
+        padding: min(10px, 1.5vh);
         color: var(--muted);
         font-size: 11px;
         border-top: 1px solid var(--border);
