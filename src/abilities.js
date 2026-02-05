@@ -71,6 +71,12 @@ export function getAtkModifiers(creature, owner, enemy) {
     modifiers.push({ name: 'Rally', value: bonus, desc: `${owner.bench.length} benched` });
   }
   
+  // Rend (Bladewhisker): +10 ATK always
+  if (creature.id === 'bladewhisker') {
+    effectiveAtk += 10;
+    modifiers.push({ name: 'Rend', value: 10, desc: '+10 damage' });
+  }
+  
   // Attack bonuses (Den Mother, Predator's Mark, etc.)
   if (owner.attackBonuses?.length > 0) {
     for (const bonus of owner.attackBonuses) {
