@@ -401,3 +401,35 @@ brace: {
 | `guides/CARD-AUTHORING.md` | How to add new cards (declarative) |
 | `guides/EVENT-SYSTEM.md` | Event/trigger system details |
 
+
+### 2026-02-05 Evening — Bug Fix Sprint (v0.2.60)
+
+**19 Bugs Fixed via 5 Parallel Subagents:**
+
+**Visual/UI:**
+- Pulsefin/Duskfang ATK modifiers now show in UI
+- Opponent deck count visible
+- Graveyard modal: newest at top, scrollbar after 4
+
+**Card Effects:**
+- Grave Echo returns creatures with full HP
+- Vengeance only triggers on attack KO (not verse KO)
+- Predator's Mark no longer doubled by Pulsefin
+- Call of the Wild text says "RANDOM"
+
+**Target Selectors:**
+- Ignite, Banish, Soul Siphon all have creature selectors
+- Visual ownership indicator (green = yours, red = enemy)
+- Soul Siphon only heals if damage dealt
+
+**Combat Flow:**
+- Action lock prevents attack spam
+- 0 HP creatures properly KO'd (fixed owner detection)
+
+**AI Improvements:**
+- Uses `getEffectiveAtk()` for ability-modified creatures
+- Blood Moon self-preservation (won't suicide)
+- Predator's Mark efficiency (won't waste after attacking)
+
+**Tests:** 329 passing (+48 new tests)
+
