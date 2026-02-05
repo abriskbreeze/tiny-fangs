@@ -1,7 +1,44 @@
 /**
  * Trigger System
  * Processes declarative triggers for set verses and creature abilities
+ * 
+ * Priority Levels (1 = highest, fires first):
+ * 1 - Negate triggers (cancel other triggers)
+ * 2 - Negate action (negateAttack, negateSpell)
+ * 3 - Pre-modification (reduceDamage, shields)
+ * 4 - Standard triggers (DEFAULT)
+ * 5 - Post-event ("after X happens")
  */
+
+/**
+ * Get priority for a trigger based on its effects
+ * @param {object} trigger - Trigger definition
+ * @param {object} card - Card with effects
+ * @returns {number} Priority 1-5
+ */
+function getTriggerPriority(trigger, card) {
+  // Explicit priority takes precedence
+  if (trigger.priority !== undefined) {
+    return trigger.priority;
+  }
+
+  // Auto-detect from effects
+  if (card?.effects) {
+    for (const effect of card.effects) {
+      // Priority 1: Negate other triggers
+      if (effect.type === 'negateTrigger') return 1;
+      
+      // Priority 2: Negate attacks/spells
+      if (effect.type === 'negateAttack' || effect.type === 'negateSpell' || effect.type === 'negateKO') return 2;
+      
+      // Priority 3: Damage reduction
+      if (effect.type === 'reduceDamage') return 3;
+    }
+  }
+
+  // Default: Standard (4)
+  return 4;
+}
 
 /**
  * Check if a trigger matches an event and context
@@ -20,6 +57,7 @@ function matchesTrigger(trigger, event, context) {
   const cond = trigger.condition;
 
   // Target condition: { target: 'me.active' }
+  // 'me'/'opp' are RELATIVE to trigger owner
   if (cond.target) {
     if (cond.target === 'self') {
       // For creature abilities - check if this creature is the target
@@ -27,7 +65,21 @@ function matchesTrigger(trigger, event, context) {
     } else {
       // Parse 'me.active' or 'opp.active'
       const [owner, location] = cond.target.split('.');
-      if (context.targetOwner !== owner) return false;
+      
+      // Handle relative owner matching (me/opp relative to trigger owner)
+      let targetOwnerMatches;
+      if (owner === 'me') {
+        // 'me' means target owner should be the same as trigger owner
+        targetOwnerMatches = context.targetOwner === context.triggerOwnerKey;
+      } else if (owner === 'opp') {
+        // 'opp' means target owner should be different from trigger owner
+        targetOwnerMatches = context.targetOwner !== context.triggerOwnerKey;
+      } else {
+        // Absolute owner specified
+        targetOwnerMatches = context.targetOwner === owner;
+      }
+      
+      if (!targetOwnerMatches) return false;
       if (location && context.targetLocation !== location) return false;
     }
   }
@@ -47,17 +99,17 @@ function matchesTrigger(trigger, event, context) {
   }
 
   // Owner condition: { owner: 'me' } - relative to trigger owner
-  // Used for "when YOUR creature is KO'd" type triggers
-  // 'me' means the KO'd creature's owner should match the trigger owner
+  // Used for "when YOUR creature is KO'd" or "when YOU would lose life" triggers
+  // 'me' means the affected entity's owner should match the trigger owner
   if (cond.owner) {
-    // context.creatureOwnerKey is 'me' or 'opp' from the emitter's perspective
-    // context.triggerOwnerKey is passed during matching to compare
+    // Support both creatureOwnerKey (for KO) and ownerKey (for life loss)
+    const affectedOwnerKey = context.creatureOwnerKey || context.ownerKey;
     if (cond.owner === 'me') {
-      // Trigger owner must match KO'd creature owner
-      if (context.creatureOwnerKey !== context.triggerOwnerKey) return false;
+      // Trigger owner must match affected entity's owner
+      if (affectedOwnerKey !== context.triggerOwnerKey) return false;
     } else if (cond.owner === 'opp') {
-      // Trigger owner must NOT match KO'd creature owner
-      if (context.creatureOwnerKey === context.triggerOwnerKey) return false;
+      // Trigger owner must NOT match affected entity's owner
+      if (affectedOwnerKey === context.triggerOwnerKey) return false;
     }
   }
 
@@ -93,6 +145,23 @@ function matchesTrigger(trigger, event, context) {
     if (context.triggerOwner.bench.length >= 2) return false;
   }
 
+  // Last life condition: { lastLife: true } - context must have lastLife flag
+  if (cond.lastLife && !context.lastLife) return false;
+
+  // Self condition: { self: true } - for creature abilities, the creature with the ability
+  // must be the one being summoned/affected (context.summoned === context.self)
+  if (cond.self === true) {
+    if (!context.summoned || context.summoned !== context.self) return false;
+  }
+
+  // Swarm condition: { swarm: true } - trigger owner must have 2+ creatures total
+  // Used for Hiveling's "when summoned with 2+ creatures"
+  if (cond.swarm === true) {
+    if (!context.triggerOwner) return false;
+    const creatureCount = (context.triggerOwner.active ? 1 : 0) + context.triggerOwner.bench.length;
+    if (creatureCount < 2) return false;
+  }
+
   return true;
 }
 
@@ -118,7 +187,9 @@ function getMatchingTriggers(event, context, state) {
           type: 'setVerse',
           card: player.setVerse,
           owner: player,
-          ownerKey
+          ownerKey,
+          priority: getTriggerPriority(trigger, player.setVerse),
+          cannotBeNegated: trigger.cannotBeNegated || false
         });
       }
     }
@@ -138,9 +209,35 @@ function getMatchingTriggers(event, context, state) {
             type: 'ability',
             card: creature,
             owner: player,
-            ownerKey
+            ownerKey,
+            priority: getTriggerPriority(creature.ability.trigger, creature),
+            cannotBeNegated: creature.ability.trigger.cannotBeNegated || false
           });
         }
+      }
+    }
+  }
+
+  // Special handling for onKO: check if the KO'd creature has a death ability
+  // (creature is already in grave, so not in the loop above)
+  if (event === 'onKO' && context.creature?.ability?.trigger) {
+    const ability = context.creature.ability;
+    if (ability.trigger.event === 'onKO') {
+      // Check if trigger condition is for self (dying creature)
+      const selfCondition = ability.trigger.condition?.target === 'self';
+      if (selfCondition || !ability.trigger.condition?.target) {
+        // Find the owner
+        const ownerKey = context.creatureOwnerKey;
+        const owner = ownerKey === 'me' ? state.G.me : state.G.opp;
+        
+        matches.push({
+          type: 'deathAbility',
+          card: context.creature,
+          owner: owner,
+          ownerKey: ownerKey,
+          priority: getTriggerPriority(ability.trigger, context.creature),
+          cannotBeNegated: ability.trigger.cannotBeNegated || false
+        });
       }
     }
   }
@@ -158,6 +255,20 @@ function getMatchingTriggers(event, context, state) {
  */
 async function processTriggers(event, context, state, gameCtx) {
   const matches = getMatchingTriggers(event, context, state);
+  
+  // Sort by priority (ascending: 1 fires first)
+  // Tiebreaker: defender/non-active player first
+  const activePlayerKey = context.activePlayerKey || 'me';
+  matches.sort((a, b) => {
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority;  // Lower priority number = fires first
+    }
+    // Same priority: non-active player fires first (defender advantage)
+    if (a.ownerKey !== b.ownerKey) {
+      return a.ownerKey === activePlayerKey ? 1 : -1;
+    }
+    return 0;
+  });
   
   // Track modifications to context (e.g., damage reduction)
   let modifiedContext = { ...context, damageReduction: context.damageReduction || 0 };
@@ -177,9 +288,12 @@ async function processTriggers(event, context, state, gameCtx) {
       await gameCtx.showTriggerReveal(match.card);
     }
 
+    // Get effects - could be on card directly (set verses) or on ability (creatures)
+    const effects = match.card.effects || match.card.ability?.effects;
+
     // Execute effects if card has them
-    if (match.card.effects) {
-      for (const effect of match.card.effects) {
+    if (effects) {
+      for (const effect of effects) {
         // Handle damage reduction effect directly
         if (effect.type === 'reduceDamage') {
           modifiedContext.damageReduction += effect.amount;
@@ -235,10 +349,11 @@ async function processTriggers(event, context, state, gameCtx) {
 }
 
 // Export for ES modules
-export { matchesTrigger, getMatchingTriggers, processTriggers };
+export { getTriggerPriority, matchesTrigger, getMatchingTriggers, processTriggers };
 
 // Attach to window for browser
 if (typeof window !== 'undefined') {
+  window.getTriggerPriority = getTriggerPriority;
   window.matchesTrigger = matchesTrigger;
   window.getMatchingTriggers = getMatchingTriggers;
   window.processTriggers = processTriggers;

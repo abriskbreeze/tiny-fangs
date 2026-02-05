@@ -115,6 +115,18 @@ describe('Effects System', () => {
       
       expect(result).toEqual({ ko: false });
     });
+
+    it('resolves attacker target from context', async () => {
+      const attacker = createCreature({ curHp: 30 });
+      ctx.attacker = attacker;
+      ctx.attackerOwnerKey = 'opp';
+      
+      const { Effects } = await import('../src/effects.js');
+      const result = await Effects.damage(ctx, { target: 'attacker', amount: 15 });
+      
+      expect(attacker.curHp).toBe(15);
+      expect(result.ko).toBe(false);
+    });
   });
 
   describe('heal', () => {
@@ -311,11 +323,11 @@ describe('Effects System', () => {
   });
 
   describe('negateSpell', () => {
-    it('sets spellNegated flag', async () => {
+    it('sets negated flag', async () => {
       const { Effects } = await import('../src/effects.js');
       const result = await Effects.negateSpell(ctx);
       
-      expect(result.modifiedContext.spellNegated).toBe(true);
+      expect(result.modifiedContext.negated).toBe(true);
     });
   });
 

@@ -347,5 +347,48 @@ brace: {
 - Existing if-checks still handle actual gameplay (not migrated yet)
 - Ready for gradual migration: emit events → test → remove old checks
 
-**Tests:** 245 passing
+**Tests:** 259 passing
+
+### Priority System & Full Migration (v0.2.57)
+
+**Priority System (5 levels, 1 = highest):**
+| Priority | Purpose | Examples |
+|----------|---------|----------|
+| 1 | Negate triggers | Cancel other set verses |
+| 2 | Negate action | negateAttack, negateSpell, negateKO |
+| 3 | Pre-modification | reduceDamage, shields |
+| 4 | Standard (DEFAULT) | Most triggers |
+| 5 | Post-event | "After X happens" effects |
+
+**Tiebreaker:** Same priority → non-active player (defender) fires first.
+
+**New Effect Primitives:**
+- `negateAttack` — Attack doesn't resolve
+- `negateKO` — Creature survives (set HP to 1)
+- `negateLifeLoss` — LP not decremented
+- `destroy` — Kill creature, send to grave
+
+**All Set Verses Migrated:**
+✅ Brace, Swarm Shield (beforeDamage)
+✅ Den Mother (onKO)
+✅ Mana Drain (onCast)
+✅ Phantom Wall (beforeAttack + negateAttack)
+✅ Spike Shield (beforeAttack + damage to attacker)
+✅ Vengeance (beforeKO + negateKO + destroy)
+✅ Last Breath (beforeLifeLoss + negateLifeLoss)
+✅ Soul Trap (onSummon)
+✅ Grave Rise (onKO + summonFromGrave)
+
+**Helper Functions Added:**
+- `loseLife(player, playerKey)` — Emits beforeLifeLoss, checks lastLife
+
+**Creature Ability Migration (in progress):**
+- Summon abilities: Duskfang, Emberfang, Hiveling
+- Attack modifiers: Bladewhisker, Pulsefin, Echomask
+- Defensive: Shellkin, Thornling, Coilshell, Reflector
+- On-hit: Leechling, Hexweaver, Mireveil, Sundewqueen
+- On-KO: Gloom, Echomask death, Stormtalon
+- Special: Cindermaw, Bulwark, Broodmother
+
+**Tests:** 276 passing
 

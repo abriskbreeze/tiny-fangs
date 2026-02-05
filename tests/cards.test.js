@@ -15,7 +15,13 @@ describe('CREATURES', () => {
       expect(typeof creature.hp).toBe('number');
       expect(typeof creature.atk).toBe('number');
       expect(creature.ability).toBeTruthy();
-      expect(creature.abilityText).toBeTruthy();
+      // Support both old format (ability string + abilityText) and new declarative format (ability.name + ability.text)
+      if (typeof creature.ability === 'string') {
+        expect(creature.abilityText).toBeTruthy();
+      } else {
+        expect(creature.ability.name).toBeTruthy();
+        expect(creature.ability.text).toBeTruthy();
+      }
     }
   });
 

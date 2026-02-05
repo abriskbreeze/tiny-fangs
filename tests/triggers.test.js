@@ -90,7 +90,8 @@ describe('Triggers', () => {
       };
       const context = { 
         targetOwner: 'me',
-        targetLocation: 'active'
+        targetLocation: 'active',
+        triggerOwnerKey: 'me'  // Target owner matches trigger owner
       };
       expect(matchesTrigger(trigger, 'beforeDamage', context)).toBe(true);
     });
@@ -102,7 +103,8 @@ describe('Triggers', () => {
       };
       const context = { 
         targetOwner: 'opp',
-        targetLocation: 'active'
+        targetLocation: 'active',
+        triggerOwnerKey: 'me'  // Target is opp, trigger owner is me -> mismatch
       };
       expect(matchesTrigger(trigger, 'beforeDamage', context)).toBe(false);
     });
@@ -127,6 +129,63 @@ describe('Triggers', () => {
         self: creature
       };
       expect(matchesTrigger(trigger, 'afterAttack', context)).toBe(true);
+    });
+
+    it('matches lastLife condition when context has lastLife: true', () => {
+      const trigger = { 
+        event: 'beforeLifeLoss', 
+        condition: { owner: 'me', lastLife: true } 
+      };
+      const context = { 
+        ownerKey: 'me',
+        creatureOwnerKey: 'me',  // For owner condition matching
+        lastLife: true,
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'beforeLifeLoss', context)).toBe(true);
+    });
+
+    it('does NOT match lastLife condition when context has lastLife: false', () => {
+      const trigger = { 
+        event: 'beforeLifeLoss', 
+        condition: { owner: 'me', lastLife: true } 
+      };
+      const context = { 
+        ownerKey: 'me',
+        creatureOwnerKey: 'me',
+        lastLife: false,  // Not last life
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'beforeLifeLoss', context)).toBe(false);
+    });
+
+    it('does NOT match lastLife condition when context lacks lastLife', () => {
+      const trigger = { 
+        event: 'beforeLifeLoss', 
+        condition: { owner: 'me', lastLife: true } 
+      };
+      const context = { 
+        ownerKey: 'me',
+        creatureOwnerKey: 'me',
+        // lastLife not present
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'beforeLifeLoss', context)).toBe(false);
+    });
+
+    it('does NOT match lastLife when owner does not match', () => {
+      const trigger = { 
+        event: 'beforeLifeLoss', 
+        condition: { owner: 'me', lastLife: true } 
+      };
+      const context = { 
+        ownerKey: 'opp',
+        creatureOwnerKey: 'opp',  // Owner is opponent
+        lastLife: true,
+        triggerOwnerKey: 'me'  // But trigger belongs to 'me'
+      };
+      // owner: 'me' means trigger owner should match life-loser, but opp != me
+      expect(matchesTrigger(trigger, 'beforeLifeLoss', context)).toBe(false);
     });
   });
 
@@ -588,6 +647,509 @@ describe('Triggers', () => {
       // Verify set verse was NOT consumed
       expect(state.G.me.setVerse).not.toBeNull();
       expect(state.G.me.grave).toHaveLength(0);
+    });
+
+    it('Mana Drain negates opponent spell and gains 1 mana', async () => {
+      // Set up Mana Drain on opponent
+      const manaDrain = createSetVerse({
+        id: 'manaDrain',
+        name: 'Mana Drain',
+        triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
+        effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 1 }]
+      });
+      state.G.opp.setVerse = manaDrain;
+      state.G.opp.mana = 2; // Starting mana
+
+      // Mock spell being cast by 'me' (opponent of Mana Drain owner)
+      const spell = { id: 'fireball', name: 'Fireball' };
+      const context = { spell, casterKey: 'me' };
+
+      const gameCtx = {
+        showTriggerReveal: async () => {},
+        log: () => {}
+      };
+
+      const result = await processTriggers('onCast', context, state, gameCtx);
+
+      // Verify spell was negated
+      expect(result.negated).toBe(true);
+      // Verify opponent gained 1 mana
+      expect(state.G.opp.mana).toBe(3);
+      // Verify Mana Drain was consumed (sent to grave)
+      expect(state.G.opp.setVerse).toBeNull();
+      expect(state.G.opp.grave).toHaveLength(1);
+      expect(state.G.opp.grave[0].id).toBe('manaDrain');
+    });
+
+    it('Mana Drain does NOT trigger when owner casts a spell', async () => {
+      // Set up Mana Drain on 'me'
+      const manaDrain = createSetVerse({
+        id: 'manaDrain',
+        name: 'Mana Drain',
+        triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
+        effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 1 }]
+      });
+      state.G.me.setVerse = manaDrain;
+      state.G.me.mana = 2;
+
+      // Spell cast by 'me' (same as Mana Drain owner)
+      const spell = { id: 'fireball', name: 'Fireball' };
+      const context = { spell, casterKey: 'me' };
+
+      const gameCtx = {
+        showTriggerReveal: async () => {},
+        log: () => {}
+      };
+
+      const result = await processTriggers('onCast', context, state, gameCtx);
+
+      // Verify spell was NOT negated
+      expect(result.negated).toBeFalsy();
+      // Verify mana unchanged
+      expect(state.G.me.mana).toBe(2);
+      // Verify Mana Drain was NOT consumed
+      expect(state.G.me.setVerse).not.toBeNull();
+      expect(state.G.me.grave).toHaveLength(0);
+    });
+
+    it('Grave Rise summons 1-cost creature from grave to bench on KO', async () => {
+      // Set up a 1-cost creature in the grave
+      const deadCreature = createCreature({
+        id: 'fangpup',
+        name: 'Fangpup',
+        cost: 1,
+        hp: 20,
+        curHp: 0  // It's dead
+      });
+      state.G.me.grave = [deadCreature];
+      
+      // Set up Grave Rise with proper trigger definition
+      const graveRise = createSetVerse({
+        id: 'graveRise',
+        name: 'Grave Rise',
+        triggerDef: { 
+          event: 'onKO', 
+          condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, 
+          optional: true 
+        },
+        effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }]
+      });
+      state.G.me.setVerse = graveRise;
+      
+      // Empty bench (not full)
+      state.G.me.bench = [];
+      
+      // Some creature just got KO'd (trigger condition)
+      const koVictim = createCreature({ id: 'other', name: 'Other', cost: 2 });
+
+      const context = { 
+        creature: koVictim,
+        creatureOwnerKey: 'me',
+        targetOwner: 'me',
+        targetLocation: 'active'
+      };
+
+      // Mock gameCtx - player accepts trigger
+      const logs = [];
+      const gameCtx = {
+        promptTrigger: async () => true,
+        showTriggerReveal: async () => {},
+        log: (msg) => logs.push(msg),
+        render: () => {},
+        promptGraveSelect: async (candidates) => candidates[0], // Auto-select first
+        processEffects: async (card, ctx) => {
+          // Import and run the actual effect
+          const { processEffects } = await import('../src/effects.js');
+          return processEffects(card, ctx);
+        }
+      };
+
+      await processTriggers('onKO', context, state, gameCtx);
+
+      // Verify creature was summoned to bench
+      expect(state.G.me.bench).toHaveLength(1);
+      expect(state.G.me.bench[0].id).toBe('fangpup');
+      expect(state.G.me.bench[0].curHp).toBe(20); // HP restored
+      
+      // Verify creature was removed from grave
+      expect(state.G.me.grave.filter(c => c.id === 'fangpup')).toHaveLength(0);
+      
+      // Verify set verse was consumed (sent to grave)
+      expect(state.G.me.setVerse).toBeNull();
+      expect(state.G.me.grave.some(c => c.id === 'graveRise')).toBe(true);
+      
+      // Verify log message
+      expect(logs.some(l => l.includes('rises to bench'))).toBe(true);
+    });
+
+    it('Grave Rise does not trigger if no 1-cost creature in grave', async () => {
+      // No 1-cost creatures in grave (only a 2-cost)
+      const deadCreature = createCreature({
+        id: 'biggie',
+        name: 'Biggie',
+        cost: 2
+      });
+      state.G.me.grave = [deadCreature];
+      
+      const graveRise = createSetVerse({
+        id: 'graveRise',
+        name: 'Grave Rise',
+        triggerDef: { 
+          event: 'onKO', 
+          condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, 
+          optional: true 
+        },
+        effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }]
+      });
+      state.G.me.setVerse = graveRise;
+      state.G.me.bench = [];
+
+      const context = { 
+        creature: createCreature(),
+        creatureOwnerKey: 'me',
+        targetOwner: 'me',
+        targetLocation: 'active'
+      };
+
+      const gameCtx = {
+        promptTrigger: async () => true,
+        showTriggerReveal: async () => {},
+        log: () => {},
+        render: () => {},
+        processEffects: async () => ({ success: true, kos: [] })
+      };
+
+      await processTriggers('onKO', context, state, gameCtx);
+
+      // Grave Rise should NOT have triggered (condition not met)
+      expect(state.G.me.setVerse).not.toBeNull();
+      expect(state.G.me.bench).toHaveLength(0);
+    });
+
+    it('Grave Rise does not trigger if bench is full', async () => {
+      // 1-cost creature in grave
+      const deadCreature = createCreature({ id: 'fangpup', cost: 1 });
+      state.G.me.grave = [deadCreature];
+      
+      const graveRise = createSetVerse({
+        id: 'graveRise',
+        name: 'Grave Rise',
+        triggerDef: { 
+          event: 'onKO', 
+          condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, 
+          optional: true 
+        },
+        effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }]
+      });
+      state.G.me.setVerse = graveRise;
+      
+      // Full bench (2 creatures)
+      state.G.me.bench = [createCreature(), createCreature()];
+
+      const context = { 
+        creature: createCreature(),
+        creatureOwnerKey: 'me',
+        targetOwner: 'me',
+        targetLocation: 'active'
+      };
+
+      const gameCtx = {
+        promptTrigger: async () => true,
+        showTriggerReveal: async () => {},
+        log: () => {},
+        render: () => {},
+        processEffects: async () => ({ success: true, kos: [] })
+      };
+
+      await processTriggers('onKO', context, state, gameCtx);
+
+      // Grave Rise should NOT have triggered (bench full)
+      expect(state.G.me.setVerse).not.toBeNull();
+      expect(state.G.me.bench).toHaveLength(2);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // VENGEANCE / BEFORE KO EVENT TESTS
+  // ═══════════════════════════════════════════════════════════════
+  
+  describe('Vengeance (beforeKO event)', () => {
+    let processTriggers;
+
+    beforeEach(async () => {
+      const module = await import('../src/triggers.js');
+      processTriggers = module.processTriggers;
+    });
+
+    it('beforeKO event matches when target is me.active and trigger owner matches target owner', () => {
+      // Player's creature is being KO'd, player has Vengeance
+      const vengeance = createSetVerse({
+        id: 'vengeance',
+        name: 'Vengeance',
+        triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true, priority: 2 },
+        effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }]
+      });
+      state.G.me.setVerse = vengeance;
+      state.G.me.active = createCreature({ curHp: 0 });  // Would be KO'd
+
+      const context = { 
+        target: state.G.me.active,
+        targetOwner: 'me',  // Player's creature is target
+        targetLocation: 'active',
+        attacker: createCreature({ name: 'Enemy Attacker' }),
+        attackerOwner: state.G.opp,
+        attackerOwnerKey: 'opp',
+        activePlayerKey: 'opp'
+      };
+
+      const matches = getMatchingTriggers('beforeKO', context, state);
+      
+      expect(matches).toHaveLength(1);
+      expect(matches[0].card.id).toBe('vengeance');
+    });
+
+    it('beforeKO event does NOT match when target owner differs from trigger owner', () => {
+      // Opponent's creature is being KO'd, player has Vengeance
+      // Vengeance should NOT trigger for opponent's creature
+      const vengeance = createSetVerse({
+        id: 'vengeance',
+        name: 'Vengeance',
+        triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true, priority: 2 },
+        effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }]
+      });
+      state.G.me.setVerse = vengeance;  // Player has vengeance
+      state.G.opp.active = createCreature({ curHp: 0 });  // But opp's creature is dying
+
+      const context = { 
+        target: state.G.opp.active,
+        targetOwner: 'opp',  // Opponent's creature is target
+        targetLocation: 'active',
+        attacker: createCreature({ name: 'Player Attacker' }),
+        attackerOwner: state.G.me,
+        attackerOwnerKey: 'me',
+        activePlayerKey: 'me'
+      };
+
+      const matches = getMatchingTriggers('beforeKO', context, state);
+      
+      // No matches - player's vengeance shouldn't trigger for opp's creature
+      expect(matches).toHaveLength(0);
+    });
+
+    it('Vengeance negates KO and sets koNegated in context', async () => {
+      const vengeance = createSetVerse({
+        id: 'vengeance',
+        name: 'Vengeance',
+        triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true, priority: 2 },
+        effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }]
+      });
+      state.G.me.setVerse = vengeance;
+      
+      const dyingCreature = createCreature({ name: 'My Creature', curHp: 0 });
+      state.G.me.active = dyingCreature;
+      
+      const attacker = createCreature({ name: 'Enemy Attacker' });
+      state.G.opp.active = attacker;
+      state.G.opp.grave = [];
+
+      const context = { 
+        target: dyingCreature,
+        targetOwner: 'me',
+        targetLocation: 'active',
+        attacker: attacker,
+        attackerOwner: state.G.opp,
+        attackerOwnerKey: 'opp',
+        activePlayerKey: 'opp'
+      };
+
+      const result = await processTriggers('beforeKO', context, state, {
+        promptTrigger: async () => true,  // Always trigger
+        showTriggerReveal: async () => {},
+        log: () => {},
+        render: () => {},
+        processEffects: async (card, ctx) => {
+          const { processEffects: pe } = await import('../src/effects.js');
+          return await pe(card, ctx);
+        }
+      });
+
+      // KO should be negated
+      expect(result.koNegated).toBe(true);
+      
+      // Creature should survive with 1 HP
+      expect(dyingCreature.curHp).toBe(1);
+      
+      // Attacker should be destroyed (sent to grave, active nulled)
+      expect(state.G.opp.active).toBeNull();
+      expect(state.G.opp.grave).toContainEqual(attacker);
+      
+      // Set verse should be consumed
+      expect(state.G.me.setVerse).toBeNull();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // PRIORITY SYSTEM TESTS
+  // ═══════════════════════════════════════════════════════════════
+  
+  describe('Priority System', () => {
+    let getTriggerPriority, processTriggers;
+
+    beforeEach(async () => {
+      const module = await import('../src/triggers.js');
+      getTriggerPriority = module.getTriggerPriority;
+      processTriggers = module.processTriggers;
+    });
+
+    it('getTriggerPriority returns explicit priority when set', () => {
+      const trigger = { event: 'beforeDamage', priority: 2 };
+      expect(getTriggerPriority(trigger, {})).toBe(2);
+    });
+
+    it('getTriggerPriority auto-detects priority 2 for negateSpell', () => {
+      const trigger = { event: 'onCast' };
+      const card = { effects: [{ type: 'negateSpell' }] };
+      expect(getTriggerPriority(trigger, card)).toBe(2);
+    });
+
+    it('getTriggerPriority auto-detects priority 2 for negateAttack', () => {
+      const trigger = { event: 'beforeAttack' };
+      const card = { effects: [{ type: 'negateAttack' }] };
+      expect(getTriggerPriority(trigger, card)).toBe(2);
+    });
+
+    it('getTriggerPriority auto-detects priority 3 for reduceDamage', () => {
+      const trigger = { event: 'beforeDamage' };
+      const card = { effects: [{ type: 'reduceDamage', amount: 15 }] };
+      expect(getTriggerPriority(trigger, card)).toBe(3);
+    });
+
+    it('getTriggerPriority defaults to 4 for standard triggers', () => {
+      const trigger = { event: 'onKO' };
+      const card = { effects: [{ type: 'atkBonus', amount: 10 }] };
+      expect(getTriggerPriority(trigger, card)).toBe(4);
+    });
+
+    it('getMatchingTriggers includes priority in matches', () => {
+      const braceVerse = createSetVerse({
+        id: 'brace',
+        name: 'Brace',
+        triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' } },
+        effects: [{ type: 'reduceDamage', amount: 15 }]
+      });
+      state.G.me.setVerse = braceVerse;
+      state.G.me.active = createCreature();
+
+      const context = { 
+        targetOwner: 'me', 
+        targetLocation: 'active',
+        damage: 30 
+      };
+
+      const matches = getMatchingTriggers('beforeDamage', context, state);
+      
+      expect(matches).toHaveLength(1);
+      expect(matches[0].priority).toBe(3);  // Auto-detected from reduceDamage
+    });
+
+    it('processTriggers fires priority 2 before priority 4', async () => {
+      const executionOrder = [];
+      
+      // Set up two verses: one with negate (priority 2), one standard (priority 4)
+      const negateVerse = createSetVerse({
+        id: 'manaDrain',
+        name: 'Mana Drain',
+        triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
+        effects: [{ type: 'negateSpell' }]
+      });
+      state.G.me.setVerse = negateVerse;
+
+      const standardVerse = createSetVerse({
+        id: 'standard',
+        name: 'Standard Trigger',
+        triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
+        effects: [{ type: 'draw', count: 1 }]
+      });
+      state.G.opp.setVerse = standardVerse;
+
+      const context = { 
+        casterKey: 'opp',
+        verse: { name: 'Fireball' }
+      };
+
+      const gameCtx = {
+        log: (msg) => {
+          executionOrder.push(msg);
+        }
+      };
+
+      await processTriggers('onCast', context, state, gameCtx);
+
+      // Mana Drain (priority 2) should fire first
+      expect(executionOrder[0]).toContain('Mana Drain');
+    });
+
+    it('same priority triggers: non-active player fires first', async () => {
+      const executionOrder = [];
+      
+      // Both players have priority 4 triggers
+      const meVerse = createSetVerse({
+        id: 'myTrigger',
+        name: 'My Trigger',
+        triggerDef: { event: 'onKO', condition: { owner: 'me' } },
+        effects: [{ type: 'draw', count: 1 }]
+      });
+      state.G.me.setVerse = meVerse;
+
+      const oppVerse = createSetVerse({
+        id: 'oppTrigger',
+        name: 'Opp Trigger',
+        triggerDef: { event: 'onKO', condition: { owner: 'opp' } },  // 'opp' from opp's POV = my creature
+        effects: [{ type: 'draw', count: 1 }]
+      });
+      state.G.opp.setVerse = oppVerse;
+
+      const context = { 
+        creatureOwnerKey: 'me',
+        targetOwner: 'me',
+        activePlayerKey: 'me'  // Player 'me' is the active player
+      };
+
+      // Track which triggers fire
+      const fired = [];
+      const gameCtx = {
+        processEffects: async (card) => {
+          fired.push(card.name);
+          return { success: true };
+        }
+      };
+
+      await processTriggers('onKO', context, state, gameCtx);
+
+      // Opp's trigger should fire first (defender/non-active advantage)
+      expect(fired[0]).toBe('Opp Trigger');
+      expect(fired[1]).toBe('My Trigger');
+    });
+
+    it('cannotBeNegated flag is included in matches', () => {
+      const unstoppableVerse = createSetVerse({
+        id: 'unstoppable',
+        name: 'Unstoppable',
+        triggerDef: { event: 'beforeDamage', cannotBeNegated: true },
+        effects: [{ type: 'reduceDamage', amount: 20 }]
+      });
+      state.G.me.setVerse = unstoppableVerse;
+      state.G.me.active = createCreature();
+
+      const context = { 
+        targetOwner: 'me', 
+        targetLocation: 'active'
+      };
+
+      const matches = getMatchingTriggers('beforeDamage', context, state);
+      
+      expect(matches).toHaveLength(1);
+      expect(matches[0].cannotBeNegated).toBe(true);
     });
   });
 });

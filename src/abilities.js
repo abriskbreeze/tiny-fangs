@@ -32,6 +32,16 @@ export function getEffectiveAtk(creature, owner, enemy) {
     atk += owner.bench.length * 10;
   }
   
+  // Rend (Bladewhisker): +10 ATK always
+  if (creature.id === 'bladewhisker') {
+    atk += 10;
+  }
+  
+  // Reflection (Echomask): ATK equals enemy creature's ATK
+  if (creature.id === 'echomask' && enemy?.active) {
+    atk = enemy.active.atk;
+  }
+  
   return atk;
 }
 
@@ -77,6 +87,12 @@ export function getAtkModifiers(creature, owner, enemy) {
     modifiers.push({ name: 'Rend', value: 10, desc: '+10 damage' });
   }
   
+  // Reflection (Echomask): ATK equals enemy creature's ATK
+  if (creature.id === 'echomask' && enemy?.active) {
+    effectiveAtk = enemy.active.atk;
+    modifiers.push({ name: 'Reflection', value: enemy.active.atk - baseAtk, desc: `Mirror ${enemy.active.name}` });
+  }
+  
   // Attack bonuses (Den Mother, Predator's Mark, etc.)
   if (owner.attackBonuses?.length > 0) {
     for (const bonus of owner.attackBonuses) {
@@ -91,6 +107,7 @@ export function getAtkModifiers(creature, owner, enemy) {
 /**
  * Calculate damage reduction for a creature (creature abilities only, not set verses)
  * Set verses (Brace, Swarm Shield) are handled separately for optional triggers
+ * NOTE: Creatures with declarative ability.trigger are handled by the trigger system
  */
 export function getEffectiveDamageReduction(creature, owner, includeSetVerses = false) {
   let reduction = 0;
@@ -107,25 +124,12 @@ export function getEffectiveDamageReduction(creature, owner, includeSetVerses = 
   }
   
   // === Shell Pack damage reduction ===
+  // NOTE: Pebbleback, Ironhide, Shellkin now use declarative triggers (ability.trigger)
+  // Their damage reduction is handled by processTriggers('beforeDamage', ...)
   
-  // Sturdy (Pebbleback): always -5 damage
-  if (creature.id === 'pebbleback') {
-    reduction += 5;
-  }
-  
-  // Iron Skin (Ironhide): always -10 damage
-  if (creature.id === 'ironhide') {
-    reduction += 10;
-  }
-  
-  // Juggernaut (Titanback): always -15 damage
+  // Juggernaut (Titanback): always -15 damage (not yet migrated to declarative)
   if (creature.id === 'titanback') {
     reduction += 15;
-  }
-  
-  // Harden (Shellkin): -10 damage on first hit each turn
-  if (creature.id === 'shellkin' && !creature.hardenUsed) {
-    reduction += 10;
   }
   
   return reduction;
@@ -144,6 +148,7 @@ export function getSetVerseReduction(owner) {
 /**
  * Get list of active damage reduction effects (for logging)
  * Set verses excluded by default (handled separately for optional triggers)
+ * NOTE: Creatures with declarative triggers log via the trigger system
  */
 export function getDamageReductionSources(creature, owner, includeSetVerses = false) {
   const sources = [];
@@ -152,17 +157,10 @@ export function getDamageReductionSources(creature, owner, includeSetVerses = fa
     sources.push({ name: 'Den Guard', value: 10 });
   }
   // Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
-  if (creature.id === 'pebbleback') {
-    sources.push({ name: 'Sturdy', value: 5 });
-  }
-  if (creature.id === 'ironhide') {
-    sources.push({ name: 'Iron Skin', value: 10 });
-  }
+  // NOTE: Pebbleback, Ironhide, Shellkin now use declarative triggers - logged by trigger system
+  
   if (creature.id === 'titanback') {
     sources.push({ name: 'Juggernaut', value: 15 });
-  }
-  if (creature.id === 'shellkin' && !creature.hardenUsed) {
-    sources.push({ name: 'Harden', value: 10 });
   }
   
   return sources;
@@ -170,26 +168,13 @@ export function getDamageReductionSources(creature, owner, includeSetVerses = fa
 
 /**
  * Get retaliation damage (damage dealt back to attacker)
+ * NOTE: Thornling, Coilshell, Reflector now use declarative triggers (afterAttack)
+ * This function is kept for backward compatibility but returns 0 for migrated creatures
  */
 export function getRetaliationDamage(defender) {
-  let damage = 0;
-  
-  // Thorns (Thornling): 10 damage back
-  if (defender.id === 'thornling') {
-    damage += 10;
-  }
-  
-  // Recoil (Coilshell): 10 damage back
-  if (defender.id === 'coilshell') {
-    damage += 10;
-  }
-  
-  // Mirror Shell (Reflector): 15 damage back
-  if (defender.id === 'reflector') {
-    damage += 15;
-  }
-  
-  return damage;
+  // All retaliation creatures now use declarative ability.trigger
+  // Handled by processTriggers('afterAttack', ...)
+  return 0;
 }
 
 /**

@@ -4,51 +4,107 @@
 
 export const CREATURES = {
   whisper: { id:'whisper', name:'Whisper', subtitle:'Shadow Ermine', cost:1, hp:30, atk:20,
-    ability:'Elusive', abilityText:'Cannot be targeted by Set Verses the turn it is summoned.',
+    ability: {
+      name: 'Elusive',
+      text: 'Cannot be targeted by Set Verses the turn it is summoned.',
+      procedural: true  // Handled via summonedThisTurn flag check
+    },
     flavor:'"A flicker in the corner of your eye."',
     art:' /\\_/\\\n(  ·.·)\n > ~ <' },
   thornling: { id:'thornling', name:'Thornling', subtitle:'Bramble Sprite', cost:1, hp:40, atk:10,
-    ability:'Thorns', abilityText:'Attackers take 10 damage.',
+    ability: {
+      name: 'Thorns',
+      text: 'Attackers take 10 damage.',
+      trigger: { event: 'afterAttack', condition: { defender: 'self' } },
+      effects: [{ type: 'damage', target: 'attacker', amount: 10 }]
+    },
     flavor:'"It doesn\'t chase. It waits."',
     art:' 🌿ί\n(●oο)\n \\|/' },
   cindermaw: { id:'cindermaw', name:'Cindermaw', subtitle:'Ember Shrew', cost:2, hp:30, atk:30,
-    ability:'Frenzy', abilityText:'Attacks twice, but takes 10 self-damage.',
+    ability: {
+      name: 'Frenzy',
+      text: 'Attacks twice, but takes 10 self-damage.',
+      procedural: true  // Handled in doAttack() - modifies attack flow
+    },
     flavor:'"Burns fast. Burns everything."',
     art:'  ~~\n=(Φ ω Φ)=\n  \\|/' },
   gloom: { id:'gloom', name:'Gloom', subtitle:'Void Mite', cost:1, hp:20, atk:20,
-    ability:'Fade', abilityText:'When KO\'d, opponent discards 1 random card.',
+    ability: {
+      name: 'Fade',
+      text: 'When KO\'d, opponent discards 1 random card.',
+      trigger: { event: 'onKO', condition: { target: 'self' } },
+      effects: [{ type: 'discard', target: 'opp', count: 1, random: true }]
+    },
     flavor:'"It takes something with it."',
     art:'  ┌─┐\n  │░│\n  └┬┘' },
   bladewhisker: { id:'bladewhisker', name:'Bladewhisker', subtitle:'Steel Weasel', cost:2, hp:40, atk:30,
-    ability:'Rend', abilityText:'Attacks deal +10 damage.',
+    ability: {
+      name: 'Rend',
+      text: 'Attacks deal +10 damage.',
+      passive: { type: 'atkBonus', amount: 10 }  // Passive modifier, always active
+    },
     flavor:'"Forged in forgotten wars."',
     art:' /\\_╱\\\n<(⚔ ⚔)>\n  ╲═╱' },
   mireveil: { id:'mireveil', name:'Mireveil', subtitle:'Swamp Phantom', cost:3, hp:50, atk:20,
-    ability:'Bog Grasp', abilityText:'Enemy creature cannot retreat next turn.',
+    ability: {
+      name: 'Bog Grasp',
+      text: 'Enemy creature cannot retreat next turn.',
+      trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } },
+      effects: [{ type: 'setStatus', target: 'defender', status: 'trapped' }]
+    },
     flavor:'"The water remembers your name."',
     art:'  ,~,\n (o o)\n/| |\\' },
   pulsefin: { id:'pulsefin', name:'Pulsefin', subtitle:'Abyssal Shrimp', cost:2, hp:40, atk:30,
-    ability:'Sonic Strike', abilityText:'First attack each game deals double damage.',
+    ability: {
+      name: 'Sonic Strike',
+      text: 'First attack each game deals double damage.',
+      procedural: true  // Handled via firstAtk flag in doAttack()
+    },
     flavor:'"One perfect strike."',
     art:' >(°□°)>\n  ├──┤\n  /| |\\' },
   hexweaver: { id:'hexweaver', name:'Hexweaver', subtitle:'Curse Spider', cost:2, hp:40, atk:20,
-    ability:'Venom Thread', abilityText:'On hit, enemy takes 10 at end of each turn.',
+    ability: {
+      name: 'Venom Thread',
+      text: 'On hit, enemy takes 10 at end of each turn.',
+      trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } },
+      effects: [{ type: 'setStatus', target: 'defender', status: 'poison' }]
+    },
     flavor:'"The web is already complete."',
     art:' /\\╱\\/\\\n(◉ _ ◉)\n /|\\|/|\\' },
   duskfang: { id:'duskfang', name:'Duskfang', subtitle:'Twilight Wolf', cost:3, hp:60, atk:40,
-    ability:'Pack Call', abilityText:'When summoned, +20 ATK if you have a creature in graveyard.',
+    ability: {
+      name: 'Pack Call',
+      text: 'When summoned, +20 ATK if you have a creature in graveyard.',
+      trigger: { event: 'onSummon', condition: { self: true } },
+      effects: [{ type: 'atkBonus', amount: 20, condition: 'me.grave.hasCreature' }]
+    },
     flavor:'"It hunts with ghosts."',
     art:'  /\\_/\\\n (❂ ω ❂)\n  /| |\\' },
   sundewqueen: { id:'sundewqueen', name:'Sundew Queen', subtitle:'Carnivorous Monarch', cost:4, hp:70, atk:30,
-    ability:'Digest', abilityText:'When it KO\'s a creature, heal 30 HP.',
+    ability: {
+      name: 'Digest',
+      text: 'When it KO\'s a creature, heal 30 HP.',
+      trigger: { event: 'afterAttack', condition: { attacker: 'self', causedKO: true } },
+      effects: [{ type: 'healSelf', amount: 30 }]
+    },
     flavor:'"She feeds on ambition."',
     art:' .:*::.\n(  ♛  )\n  ╲|╱' },
   stormtalon: { id:'stormtalon', name:'Stormtalon', subtitle:'Thunder Raptor', cost:4, hp:50, atk:50,
-    ability:'Chain Lightning', abilityText:'On KO, deal 20 damage to the next creature that enters.',
+    ability: {
+      name: 'Chain Lightning',
+      text: 'On KO, deal 20 damage to the next creature that enters.',
+      trigger: { event: 'onKO', condition: { target: 'self' } },
+      effects: [{ type: 'setFlag', target: 'opp', flag: 'chainLightning', value: 20 }]
+    },
     flavor:'"The sky remembers its anger."',
     art:'  ╱╲\n <(⚡)>\n  /╲' },
   echomask: { id:'echomask', name:'Echomask', subtitle:'Mirror Fiend', cost:4, hp:40, atk:0,
-    ability:'Reflection', abilityText:'ATK equals enemy creature\'s ATK. When KO\'d, enemy loses 1 life.',
+    ability: {
+      name: 'Reflection',
+      text: 'ATK equals enemy creature\'s ATK. When KO\'d, enemy loses 1 life.',
+      trigger: { event: 'onKO', condition: { target: 'self' } },
+      effects: [{ type: 'loseLifeOpp', count: 1 }]
+    },
     flavor:'"It wears your face."',
     art:' .-----.\n(  ???  )\n `-----\'' },
   
@@ -56,79 +112,159 @@ export const CREATURES = {
   
   // Shadow Pack additions
   shadePup: { id:'shadePup', name:'Shade Pup', subtitle:'Lone Shadow', cost:1, hp:25, atk:15,
-    ability:'Orphan', abilityText:'+15 ATK while you have no bench creatures.',
+    ability: {
+      name: 'Orphan',
+      text: '+15 ATK while you have no bench creatures.',
+      passive: { type: 'atkBonus', amount: 15, condition: 'me.bench.empty' }
+    },
     flavor:'"Stronger alone."',
     art:'  /\\_/\\\n (;_;)\n  / \\' },
   
   // Fang Pack additions  
   emberfang: { id:'emberfang', name:'Emberfang', subtitle:'Spark Ferret', cost:1, hp:25, atk:25,
-    ability:'Spark', abilityText:'When summoned, deal 5 damage to enemy creature.',
+    ability: {
+      name: 'Spark',
+      text: 'When summoned, deal 5 damage to enemy creature.',
+      trigger: { event: 'onSummon', condition: { self: true } },
+      effects: [{ type: 'damage', target: 'opp.active', amount: 5, condition: 'opp.active' }]
+    },
     flavor:'"First blood."',
     art:'  ~火~\n=(ΦωΦ)=\n  \\|/' },
   
   // Venom Pack additions
   leechling: { id:'leechling', name:'Leechling', subtitle:'Blood Mite', cost:1, hp:20, atk:15,
-    ability:'Drain', abilityText:'Heal HP equal to damage dealt.',
+    ability: {
+      name: 'Drain',
+      text: 'Heal HP equal to damage dealt.',
+      trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true } },
+      effects: [{ type: 'healSelf', amount: 'damageDealt' }]
+    },
     flavor:'"It gives nothing back."',
     art:'  ┌○┐\n  │▓│\n  └─┘' },
   
   // Swarm Pack (new)
   fangpup: { id:'fangpup', name:'Fangpup', subtitle:'Pack Whelp', cost:1, hp:25, atk:20,
-    ability:'Pack Bond', abilityText:'+10 ATK for each other creature you control.',
+    ability: {
+      name: 'Pack Bond',
+      text: '+10 ATK for each other creature you control.',
+      passive: { type: 'atkBonus', amount: 'packCount * 10' }
+    },
     flavor:'"Never alone."',
     art:'  /\\_/\\\n (^ω^)\n  ┘ └' },
   hiveling: { id:'hiveling', name:'Hiveling', subtitle:'Swarm Drone', cost:1, hp:20, atk:20,
-    ability:'Swarm', abilityText:'When summoned with 2+ creatures, draw 1 card.',
+    ability: {
+      name: 'Swarm',
+      text: 'When summoned with 2+ creatures, draw 1 card.',
+      trigger: { event: 'onSummon', condition: { self: true, swarm: true } },
+      effects: [{ type: 'draw', count: 1 }]
+    },
     flavor:'"One of many."',
     art:'  ╱▽╲\n <(●)>\n  /│\\' },
   skitter: { id:'skitter', name:'Skitter', subtitle:'Panic Mouse', cost:1, hp:30, atk:15,
-    ability:'Scurry', abilityText:'When damaged, may swap with bench creature (free).',
+    ability: {
+      name: 'Scurry',
+      text: 'When damaged, may swap with bench creature (free).',
+      trigger: { event: 'afterDamage', condition: { target: 'self', survived: true } },
+      effects: [{ type: 'swapWithBench', target: 'self' }],
+      procedural: true  // Handled by shouldScurryTrigger/executeScurry - swap effect not yet implemented
+    },
     flavor:'"Too fast to catch."',
     art:'  ○\n ◐│◑\n  /\\' },
   piranix: { id:'piranix', name:'Piranix', subtitle:'Blood Fin', cost:2, hp:35, atk:25,
-    ability:'Feeding Frenzy', abilityText:'+15 ATK if enemy creature is below half HP.',
+    ability: {
+      name: 'Feeding Frenzy',
+      text: '+15 ATK if enemy creature is below half HP.',
+      passive: { type: 'atkBonus', amount: 15, condition: 'opp.active.belowHalf' }
+    },
     flavor:'"It smells weakness."',
     art:' ><(((°>' },
   hollowfox: { id:'hollowfox', name:'Hollowfox', subtitle:'Den Guardian', cost:2, hp:40, atk:25,
-    ability:'Den Guard', abilityText:'While you have bench creatures, take -10 damage.',
+    ability: {
+      name: 'Den Guard',
+      text: 'While you have bench creatures, take -10 damage.',
+      passive: { type: 'damageReduction', amount: 10, condition: 'me.bench.notEmpty' }
+    },
     flavor:'"The pack comes first."',
     art:'  /\\_/\\\n (◕ᴥ◕)\n ◢███◣' },
   alpha: { id:'alpha', name:'Alpha', subtitle:'Pack Leader', cost:3, hp:55, atk:35,
-    ability:'Rally', abilityText:'Your bench creatures can assist attacks (+10 each).',
+    ability: {
+      name: 'Rally',
+      text: 'Your bench creatures can assist attacks (+10 each).',
+      procedural: true  // Handled in damage calculation - complex bench synergy
+    },
     flavor:'"They follow without question."',
     art:'  ∧___∧\n (▀ ͜͞ʖ▀)\n /|███|\\' },
   broodmother: { id:'broodmother', name:'Broodmother', subtitle:'Hive Queen', cost:4, hp:60, atk:20,
-    ability:'Spawn', abilityText:'End of your turn, summon a 10/10 Antling to bench (max 2).',
+    ability: {
+      name: 'Spawn',
+      text: 'End of your turn, summon a 10/10 Antling to bench (max 2).',
+      trigger: { event: 'turnEnd', condition: { self: 'active' } },
+      effects: [{ type: 'summonToken', token: 'antling', location: 'bench', maxBench: 2 }],
+      procedural: true  // Handled by applySpawn - summonToken effect not yet implemented
+    },
     flavor:'"The swarm is eternal."',
     art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },
   
   // Shell Pack (defensive theme)
   shellkin: { id:'shellkin', name:'Shellkin', subtitle:'Armored Pup', cost:1, hp:20, atk:10,
-    ability:'Harden', abilityText:'Negates first 10 damage each turn from any source.',
+    ability: {
+      name: 'Harden',
+      text: 'Negates first 10 damage each turn from any source.',
+      trigger: { event: 'beforeDamage', condition: { target: 'self' } },
+      effects: [{ type: 'reduceDamage', amount: 10, perTurn: true }]
+    },
     flavor:'"Curl up. Stay safe."',
     art:'  ╭──╮\n (◕‿◕)\n  ╰┬─╯' },
   pebbleback: { id:'pebbleback', name:'Pebbleback', subtitle:'Stone Beetle', cost:1, hp:30, atk:20,
-    ability:'Sturdy', abilityText:'Always takes -5 damage from attacks.',
+    ability: {
+      name: 'Sturdy',
+      text: 'Always takes -5 damage from attacks.',
+      trigger: { event: 'beforeDamage', condition: { target: 'self' } },
+      effects: [{ type: 'reduceDamage', amount: 5 }]
+    },
     flavor:'"Small stones endure."',
     art:'  ┌▓▓┐\n  │◎◎│\n  └──┘' },
   ironhide: { id:'ironhide', name:'Ironhide', subtitle:'Metal Armadillo', cost:2, hp:50, atk:20,
-    ability:'Iron Skin', abilityText:'Always takes -10 damage from attacks.',
+    ability: {
+      name: 'Iron Skin',
+      text: 'Always takes -10 damage from attacks.',
+      trigger: { event: 'beforeDamage', condition: { target: 'self' } },
+      effects: [{ type: 'reduceDamage', amount: 10 }]
+    },
     flavor:'"Nothing gets through."',
     art:'  ╔═══╗\n <(●_●)>\n  ╚═══╝' },
   coilshell: { id:'coilshell', name:'Coilshell', subtitle:'Spike Snail', cost:2, hp:45, atk:25,
-    ability:'Recoil', abilityText:'When damaged, deal 10 back to attacker.',
+    ability: {
+      name: 'Recoil',
+      text: 'When damaged, deal 10 back to attacker.',
+      trigger: { event: 'afterAttack', condition: { defender: 'self' } },
+      effects: [{ type: 'damage', target: 'attacker', amount: 10 }]
+    },
     flavor:'"Touch and regret."',
     art:'   @@@\n  /◎ ◎\\\n ~~~~~~' },
   bulwark: { id:'bulwark', name:'Bulwark', subtitle:'Living Wall', cost:3, hp:70, atk:15,
-    ability:'Fortress', abilityText:'Survives lethal hit with 1 HP (once per game).',
+    ability: {
+      name: 'Fortress',
+      text: 'Survives lethal hit with 1 HP (once per game).',
+      procedural: true  // Handled in damage resolution - lethal prevention
+    },
     flavor:'"I will not fall."',
     art:' ╔═════╗\n ║█████║\n ╚═════╝' },
   reflector: { id:'reflector', name:'Reflector', subtitle:'Mirror Crab', cost:3, hp:45, atk:30,
-    ability:'Mirror Shell', abilityText:'When hit, deal 15 damage back to attacker.',
+    ability: {
+      name: 'Mirror Shell',
+      text: 'When hit, deal 15 damage back to attacker.',
+      trigger: { event: 'afterAttack', condition: { defender: 'self' } },
+      effects: [{ type: 'damage', target: 'attacker', amount: 15 }]
+    },
     flavor:'"Your strength becomes mine."',
     art:'  ╱◇◇╲\n <(◊_◊)>\n  ╲──╱' },
   titanback: { id:'titanback', name:'Titanback', subtitle:'Ancient Tortoise', cost:4, hp:85, atk:25,
-    ability:'Juggernaut', abilityText:'Takes -15 damage. When KO\'d, deal 25 to enemy creature.',
+    ability: {
+      name: 'Juggernaut',
+      text: 'Takes -15 damage. When KO\'d, deal 25 to enemy creature.',
+      procedural: true  // Handled in damage calc + onKO - dual ability
+    },
     flavor:'"Mountains move slowly."',
     art:' ╔══════╗\n(  ◉  ◉  )\n ╚══════╝' },
 };
@@ -172,7 +308,9 @@ export const VERSES = {
     ] },
   bloodMoon: { id:'bloodMoon', name:'Blood Moon', type:'cast', cost:2,
     text:'All creatures take 20 damage.',
-    customHandler: true },  // Complex AoE with capture-then-process KO handling
+    effects: [
+      { type: 'aoeAll', amount: 20 }
+    ] },
   secondWind: { id:'secondWind', name:'Second Wind', type:'cast', cost:2,
     text:'Heal your active creature 40 HP.',
     effects: [
@@ -181,16 +319,16 @@ export const VERSES = {
   // Set Verses (with declarative triggers for future migration)
   phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
     trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.',
-    triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true },
-    customHandler: true },  // Complex: negates attack + deals damage
+    triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true, priority: 2 },
+    effects: [{ type: 'negateAttack' }, { type: 'damage', target: 'attacker', amount: 10 }] },
   soulTrap: { id:'soulTrap', name:'Soul Trap', type:'set', cost:2,
     trigger:'When opponent summons', text:'That creature enters with -20 HP.',
     triggerDef: { event: 'onSummon', condition: { owner: 'opp' } },
     effects: [{ type: 'damage', target: 'summoned', amount: 20 }] },
   vengeance: { id:'vengeance', name:'Vengeance', type:'set', cost:2,
     trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.',
-    triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true },
-    customHandler: true },  // Complex: negates KO + destroys attacker
+    triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true, priority: 2 },
+    effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }] },
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
     trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.',
     triggerDef: { event: 'onKO', condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, optional: true },
@@ -201,8 +339,8 @@ export const VERSES = {
     effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 1 }] },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
     trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.',
-    triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true } },
-    customHandler: true },  // Complex: once per game tracking
+    triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true }, priority: 2 },
+    effects: [{ type: 'negateLifeLoss' }] },
   
   // === NEW VERSES ===
   
@@ -227,7 +365,11 @@ export const VERSES = {
   sacrifice: { id:'sacrifice', name:'Sacrifice', type:'cast', cost:0,
     text:'KO one of your creatures. Draw 2 cards.',
     requiresSelection: true,
-    customHandler: true },  // Complex - triggers Den Mother, Grave Rise, death abilities
+    selection: { type: 'ownCreature', prompt: 'Choose creature to sacrifice' },
+    effects: [
+      { type: 'koSelected' },
+      { type: 'draw', count: 2 }
+    ] },
   denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
     trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.',
     triggerDef: { event: 'onKO', condition: { owner: 'me' }, optional: true },

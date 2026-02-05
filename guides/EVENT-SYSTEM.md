@@ -1,10 +1,22 @@
 # Event System Architecture
 
-**Status:** Foundation complete, gradual migration in progress
+**Status:** Priority system complete, migrations in progress
 
 ## Overview
 
-The event system enables declarative triggers for set verses and creature abilities.
+The event system enables declarative triggers for set verses and creature abilities with a 5-level priority system.
+
+## Priority Levels
+
+| Priority | Purpose | Examples |
+|----------|---------|----------|
+| 1 | Negate triggers | Cancel other set verses |
+| 2 | Negate action | negateAttack, negateSpell, negateKO |
+| 3 | Pre-modification | reduceDamage, shields |
+| 4 | Standard (DEFAULT) | Most triggers |
+| 5 | Post-event | "After X happens" effects |
+
+**Tiebreaker:** Same priority → non-active player (defender) fires first.
 
 ## Components
 
@@ -12,21 +24,22 @@ The event system enables declarative triggers for set verses and creature abilit
 Event emitter with on/off/once/emit/clear methods.
 
 ### Trigger Processor (`src/triggers.js`)
+- `getTriggerPriority(trigger, card)` — Get priority (auto-detect or explicit)
 - `matchesTrigger(trigger, event, context)` — Check if trigger matches
-- `getMatchingTriggers(event, context, state)` — Find all matching triggers
-- `processTriggers(event, context, state, gameCtx)` — Execute triggers
+- `getMatchingTriggers(event, context, state)` — Find all matching triggers (with priority)
+- `processTriggers(event, context, state, gameCtx)` — Execute triggers in priority order
 
 ## Event Types
 
 | Event | When Emitted | Context |
 |-------|--------------|---------|
-| `beforeAttack` | Before attack resolves | attacker, defender |
-| `afterAttack` | After attack damage | attacker, defender, damage |
-| `beforeDamage` | Before damage applied | target, source, amount |
-| `afterDamage` | After damage applied | target, source, amount, ko |
-| `onKO` | When creature KO'd | creature, owner, killer? |
-| `onSummon` | When creature enters | creature, owner |
-| `onCast` | When cast verse played | verse, caster |
+| `beforeAttack` | Before attack resolves | attacker, defender, attackerOwnerKey |
+| `beforeDamage` | Before damage applied | target, targetOwner, targetLocation |
+| `beforeKO` | Before creature KO'd | target, attacker, attackerOwnerKey |
+| `beforeLifeLoss` | Before LP decremented | owner, lastLife |
+| `onKO` | When creature KO'd | creature, creatureOwnerKey |
+| `onSummon` | When creature enters | summoned, summonerKey |
+| `onCast` | When cast verse played | verse, casterKey |
 
 ## Trigger Definition Format
 
@@ -34,20 +47,35 @@ Event emitter with on/off/once/emit/clear methods.
 {
   event: 'beforeDamage',
   condition: { target: 'me.active' },
-  optional: true  // Player can choose to trigger
+  optional: true,           // Player can choose to trigger
+  priority: 3,              // Optional - auto-detected from effects
+  cannotBeNegated: true     // Optional - immune to negate-trigger effects
 }
 ```
 
+## Effect Primitives
+
+| Effect | Description | Auto-Priority |
+|--------|-------------|---------------|
+| `negateAttack` | Attack doesn't deal damage | 2 |
+| `negateSpell` | Spell doesn't resolve | 2 |
+| `negateKO` | Creature survives | 2 |
+| `negateLifeLoss` | LP not decremented | 2 |
+| `reduceDamage` | Lower incoming damage | 3 |
+| `damage` | Deal damage | — |
+| `destroy` | Kill creature (to grave) | — |
+| `atkBonus` | Buff next attack | — |
+| `gainMana` | Add mana | — |
+
 ## Current Status
 
-- ✅ Event emitter built and tested
-- ✅ Trigger processor built and tested
-- ✅ All set verses have `triggerDef` data
-- ⏳ Actual event emissions not yet added to game flow
-- ⏳ Existing if-checks still handle triggers
+- ✅ Priority system implemented and tested
+- ✅ Effect primitives for negate/reduce/destroy
+- ✅ Brace, Swarm Shield, Den Mother, Mana Drain migrated
+- ⏳ Phantom Wall, Vengeance, Last Breath, Spike Shield in progress
 
 ## Migration Strategy
 
-1. When adding NEW triggers → use event system
+1. When adding NEW triggers → use event system with priority
 2. When touching existing trigger code → migrate to events
-3. Gradual replacement, not big-bang rewrite
+3. Complex handlers (negateAttack, negateKO) need game flow integration

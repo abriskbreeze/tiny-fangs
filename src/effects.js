@@ -10,6 +10,16 @@
 function resolveTarget(ctx, targetStr) {
   if (!targetStr) return null;
   
+  // Special target: 'attacker' - the attacking creature (from attack context)
+  if (targetStr === 'attacker') {
+    return ctx.attacker;
+  }
+  
+  // Special target: 'defender' - the defending creature (from attack context)
+  if (targetStr === 'defender') {
+    return ctx.defender;
+  }
+  
   // Special target: 'summoned' - the creature just summoned (from trigger context)
   if (targetStr === 'summoned') {
     return ctx.summoned;
@@ -25,6 +35,14 @@ function resolveTarget(ctx, targetStr) {
 // Helper: evaluate condition string
 function evalCondition(condition, ctx) {
   if (!condition) return true;
+  
+  // Complex condition: 'me.grave.hasCreature' - check if grave has creatures
+  if (condition === 'me.grave.hasCreature') {
+    return ctx.me?.grave?.some(c => c.cardType === 'creature') || false;
+  }
+  if (condition === 'opp.grave.hasCreature') {
+    return ctx.opp?.grave?.some(c => c.cardType === 'creature') || false;
+  }
   
   // Simple existence check: 'opp.active' -> ctx.opp.active exists
   const target = resolveTarget(ctx, condition);
@@ -45,16 +63,37 @@ const Effects = {
     
     // Animation (if available)
     if (typeof Anim !== 'undefined') {
-      const [owner] = target.split('.');
+      let owner;
+      if (target === 'attacker') {
+        owner = ctx.attackerOwnerKey;
+      } else if (target === 'summoned') {
+        // Summoned creature - use the summoning player key from context
+        owner = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
+      } else {
+        [owner] = target.split('.');
+      }
       await Anim.damage(owner, amount);
     }
     
     const isKo = creature.curHp <= 0;
+    
+    // Determine owner object
+    let owner;
+    if (target === 'summoned') {
+      // For summoned, use context to determine owner
+      const ownerKey = ctx.summoningPlayer || ctx.creatureOwnerKey;
+      owner = ownerKey === 'me' ? ctx.me : ctx.opp;
+    } else if (target === 'attacker') {
+      owner = ctx.attackerOwner;
+    } else {
+      owner = target.startsWith('me') ? ctx.me : ctx.opp;
+    }
+    
     return { 
       ko: isKo, 
       target,
       creature,
-      owner: target.startsWith('me') ? ctx.me : ctx.opp
+      owner
     };
   },
 
@@ -71,6 +110,45 @@ const Effects = {
       const [owner] = target.split('.');
       Anim.heal(owner, amount);
     }
+  },
+
+  /**
+   * Heal the triggering creature (self)
+   * Used for on-hit abilities like Drain, Digest
+   * @param {number|string} amount - Fixed number or 'damageDealt' for dynamic
+   */
+  async healSelf(ctx, { amount }) {
+    // Get the creature that triggered this ability
+    const creature = ctx.self || ctx.attacker;
+    if (!creature) return { healed: 0 };
+    
+    // Resolve dynamic amount
+    let healAmount = amount;
+    if (amount === 'damageDealt') {
+      healAmount = ctx.damageDealt || 0;
+    }
+    
+    // Don't heal more than missing HP
+    const maxHeal = creature.hp - creature.curHp;
+    const actualHeal = Math.min(healAmount, maxHeal);
+    
+    if (actualHeal <= 0) return { healed: 0 };
+    
+    creature.curHp += actualHeal;
+    
+    // Animation
+    if (typeof Anim !== 'undefined') {
+      const ownerKey = ctx.attackerOwnerKey || 'me';
+      Anim.heal(ownerKey, actualHeal);
+    }
+    
+    // Log
+    if (ctx.log) {
+      const abilityName = ctx.self?.ability?.name || 'Heal';
+      ctx.log(`${abilityName}! +${actualHeal} HP`, 'heal');
+    }
+    
+    return { healed: actualHeal };
   },
 
   /**
@@ -135,12 +213,36 @@ const Effects = {
 
   /**
    * Set a status flag on creature
+   * Handles special cases like poison (creature.status + owner.poisoned)
    */
   async setStatus(ctx, { target, status }) {
     const creature = resolveTarget(ctx, target);
     if (!creature) return;
     
-    creature[status] = true;
+    // Determine owner for status flags
+    let owner = null;
+    if (target === 'defender') {
+      owner = ctx.defenderOwner;
+    } else if (target === 'attacker') {
+      owner = ctx.attackerOwner;
+    } else if (target.startsWith('me.')) {
+      owner = ctx.me;
+    } else if (target.startsWith('opp.')) {
+      owner = ctx.opp;
+    }
+    
+    // Handle poison status specially
+    if (status === 'poison') {
+      creature.status = 'poison';
+      if (owner) owner.poisoned = true;
+      if (ctx.log) ctx.log('Poisoned!');
+    } else if (status === 'trapped') {
+      creature.status = 'trapped';
+      if (ctx.log) ctx.log('Trapped! Cannot retreat');
+    } else {
+      // Generic status flag
+      creature[status] = true;
+    }
   },
 
   /**
@@ -188,9 +290,11 @@ const Effects = {
 
   /**
    * Set a flag on player
+   * @param {string} target - 'me' or 'opp' (default: 'me')
    */
-  async setFlag(ctx, { flag, value }) {
-    ctx.me[flag] = value;
+  async setFlag(ctx, { flag, value, target }) {
+    const player = target === 'opp' ? ctx.opp : ctx.me;
+    player[flag] = value;
   },
 
   /**
@@ -277,6 +381,60 @@ const Effects = {
   },
 
   /**
+   * KO the selected creature (for Sacrifice)
+   * Handles both active and bench creatures
+   * Returns info for caller to process death abilities and triggers
+   */
+  async koSelected(ctx) {
+    if (!ctx.selected) return { ko: false };
+    
+    const { creature, location, idx } = ctx.selected;
+    const owner = ctx.me;
+    const ownerKey = 'me'; // Sacrifice is always your own creature
+    
+    // Animation
+    if (typeof Anim !== 'undefined') {
+      if (location === 'active') {
+        await Anim.ko('me');
+      }
+      // Bench KO animation could be added here
+    }
+    
+    // Remove from field
+    if (location === 'active') {
+      owner.active = null;
+    } else if (location === 'bench') {
+      const benchIdx = owner.bench.indexOf(creature);
+      if (benchIdx !== -1) {
+        owner.bench.splice(benchIdx, 1);
+      }
+    }
+    
+    // Add to graveyard
+    owner.grave.push(creature);
+    
+    // Log
+    if (ctx.log) {
+      ctx.log(`Sacrificed ${creature.name}`, 'dmg');
+    }
+    
+    return { 
+      ko: true, 
+      creature, 
+      owner,
+      ownerKey,
+      location,
+      needsReplacement: location === 'active' && owner.bench.length > 0,
+      // Signal that this is a self-sacrifice (no attacker)
+      isSacrifice: true,
+      modifiedContext: {
+        sacrificedCreature: creature,
+        sacrificeLocation: location
+      }
+    };
+  },
+
+  /**
    * Reduce incoming damage (for triggers)
    * Modifies ctx.damageReduction
    */
@@ -289,8 +447,83 @@ const Effects = {
    * Negate a spell (for Mana Drain)
    */
   async negateSpell(ctx) {
-    ctx.spellNegated = true;
-    return { modifiedContext: { spellNegated: true } };
+    ctx.negated = true;
+    return { modifiedContext: { negated: true } };
+  },
+
+  /**
+   * Negate an attack (for Phantom Wall)
+   * Attack doesn't resolve - no damage dealt
+   */
+  async negateAttack(ctx) {
+    ctx.attackNegated = true;
+    return { modifiedContext: { attackNegated: true } };
+  },
+
+  /**
+   * Negate a KO (for Vengeance)
+   * Creature survives with current HP (or 1 HP)
+   */
+  async negateKO(ctx) {
+    ctx.koNegated = true;
+    // If creature would be KO'd, set to 1 HP
+    if (ctx.target && ctx.target.curHp <= 0) {
+      ctx.target.curHp = 1;
+    }
+    return { modifiedContext: { koNegated: true } };
+  },
+
+  /**
+   * Negate life loss (for Last Breath)
+   * Player doesn't lose the life point
+   */
+  async negateLifeLoss(ctx) {
+    ctx.lifeLossNegated = true;
+    return { modifiedContext: { lifeLossNegated: true } };
+  },
+
+  /**
+   * Destroy a creature (send to grave)
+   * @param {string} target - 'attacker', 'me.active', 'opp.active'
+   */
+  async destroy(ctx, { target }) {
+    let creature, owner, ownerKey;
+    
+    if (target === 'attacker') {
+      creature = ctx.attacker;
+      owner = ctx.attackerOwner;
+      ownerKey = ctx.attackerOwnerKey;
+    } else {
+      const [ownerStr, location] = target.split('.');
+      ownerKey = ownerStr;
+      owner = ctx[ownerStr];
+      creature = owner?.[location];
+    }
+    
+    if (!creature || !owner) return { destroyed: false };
+    
+    // Animation
+    if (typeof Anim !== 'undefined') {
+      await Anim.ko(ownerKey);
+    }
+    
+    // Send to grave
+    owner.grave.push(creature);
+    owner.active = null;
+    
+    return { 
+      destroyed: true, 
+      creature, 
+      owner,
+      ownerKey,
+      needsReplacement: true,
+      modifiedContext: { 
+        destroyed: true,
+        destroyedOwner: owner,
+        destroyedOwnerKey: ownerKey,
+        needsReplacement: true 
+      }
+    };
   },
 
   /**
@@ -323,6 +556,41 @@ const Effects = {
     }
     
     return { summoned: true, creature: summon };
+  },
+
+  /**
+   * Discard cards from hand
+   * @param {string} target - 'opp' or 'me'
+   * @param {number} count - Number of cards to discard
+   * @param {boolean} random - If true, discard random cards
+   */
+  async discard(ctx, { target, count, random }) {
+    const player = target === 'opp' ? ctx.opp : ctx.me;
+    if (!player.hand.length) return { discarded: 0 };
+    
+    let discarded = 0;
+    for (let i = 0; i < count && player.hand.length > 0; i++) {
+      const idx = random ? Math.floor(Math.random() * player.hand.length) : 0;
+      const card = player.hand.splice(idx, 1)[0];
+      player.grave.push(card);
+      discarded++;
+    }
+    
+    return { discarded };
+  },
+
+  /**
+   * Make opponent lose life points
+   */
+  async loseLifeOpp(ctx, { count }) {
+    ctx.opp.lp -= count;
+    
+    if (typeof Anim !== 'undefined') {
+      const oppKey = ctx.me === ctx.state?.G?.me ? 'opp' : 'me';
+      Anim.lpDamage(oppKey, count);
+    }
+    
+    return { lifeLost: count };
   },
 
   /**
@@ -392,10 +660,11 @@ const Effects = {
  * Process all effects for a card
  * @param {object} card - Card with effects array
  * @param {object} ctx - Context with state, me, opp, selected
- * @returns {{ success: boolean, kos: array }}
+ * @returns {{ success: boolean, kos: array, modifiedContext: object }}
  */
 async function processEffects(card, ctx) {
   const kos = [];
+  let modifiedContext = {};
   
   for (const effect of card.effects || []) {
     // Check condition
@@ -412,6 +681,11 @@ async function processEffects(card, ctx) {
     
     const result = await effectFn(ctx, effect);
     
+    // Collect modifiedContext from effects
+    if (result?.modifiedContext) {
+      modifiedContext = { ...modifiedContext, ...result.modifiedContext };
+    }
+    
     // Collect KO results
     if (result?.ko) {
       kos.push({
@@ -422,7 +696,7 @@ async function processEffects(card, ctx) {
     }
   }
   
-  return { success: true, kos };
+  return { success: true, kos, modifiedContext };
 }
 
 // Export for ES modules (tests)

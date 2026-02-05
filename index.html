@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.56</title>
+  <title>TINY FANGS v0.2.57</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2000,7 +2000,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.52 • Card Battler</p>
+    <p class="sub">v0.2.57 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2115,7 +2115,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.52</div>
+      <div class="logo">TINY FANGS v0.2.57</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2382,6 +2382,41 @@
       // Check if creature was KO'd
       const ko = creature.curHp <= 0;
       return { ko };
+    }
+    
+    /**
+     * Lose life with beforeLifeLoss trigger check (Last Breath)
+     * @param {object} player - The player losing life
+     * @param {string} playerKey - 'me' or 'opp'
+     * @returns {object} { negated: boolean } - whether life loss was negated
+     */
+    async function loseLife(player, playerKey) {
+      // Check if this would be the last life point
+      if (player.lp === 1) {
+        const beforeLifeLossCtx = await processTriggers('beforeLifeLoss', {
+          owner: player,
+          ownerKey: playerKey,
+          creatureOwnerKey: playerKey,  // For owner condition matching
+          lastLife: true,
+          triggerOwnerKey: playerKey
+        }, state, {
+          showTriggerReveal,
+          log,
+          processEffects: async (card, ctx) => {
+            return await processEffects(card, ctx);
+          }
+        });
+        
+        if (beforeLifeLossCtx.lifeLossNegated) {
+          log('Last Breath saved you!', 'heal');
+          await Anim.versePopup('Last Breath');
+          return { negated: true };
+        }
+      }
+      
+      // Normal LP loss
+      player.lp -= 1;
+      return { negated: false };
     }
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
@@ -3198,7 +3233,7 @@
             <div class="stat"><div class="label">HP</div><div class="val ${hpClass}">${hpVal}</div></div>
             <div class="stat"><div class="label">ATK</div><div class="val ${atkClass}" title="${atkTooltip}">${atkVal}</div></div>
           </div>
-          <div class="ability-box"><div class="ability-name">${card.ability}</div><div class="ability-text">${card.abilityText}</div></div>
+          <div class="ability-box"><div class="ability-name">${card.ability?.name || card.ability}</div><div class="ability-text">${card.ability?.text || card.abilityText}</div></div>
           <div class="flavor">${card.flavor}</div>
           <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
         `;
@@ -3458,14 +3493,173 @@
           selected: selectionResult,
           // Pass game functions for effects to use
           draw: () => draw(state.G.me),
-          log
+          log,
+          render
         };
         const result = await processEffects(c, ctx);
         
-        // Handle KOs from effects
+        // Helper: Process death abilities for a creature
+        async function processDeathAbilities(creature, owner, ownerKey) {
+          const enemy = owner === state.G.me ? state.G.opp : state.G.me;
+          const enemyKey = ownerKey === 'me' ? 'opp' : 'me';
+          
+          // Gloom Fade - enemy discards
+          if (creature.id === 'gloom' && enemy.hand.length) {
+            const discardIdx = Math.floor(Math.random() * enemy.hand.length);
+            enemy.grave.push(enemy.hand.splice(discardIdx, 1)[0]);
+            log('Fade: enemy discarded', 'mana');
+          }
+          
+          // Echomask death damage
+          if (creature.id === 'echomask') {
+            const shatterResult = await loseLife(enemy, enemyKey);
+            if (!shatterResult.negated) {
+              log('Shatter! Enemy loses a life!', 'dmg');
+              await Anim.lpDamage(enemyKey, 1);
+              checkWin();
+            }
+          }
+          
+          // Stormtalon Chain Lightning
+          if (creature.id === 'stormtalon') {
+            enemy.chainLightning = 20;
+            log('Chain Lightning armed!', 'mana');
+          }
+          
+          // Titanback death effect
+          if (creature.id === 'titanback' && enemy.active) {
+            log(`Titanback's Juggernaut! ${enemy.active.name} takes 25 damage!`, 'dmg');
+            const titanKo = applyDamage(enemy.active, 25);
+            await Anim.damage(enemyKey, 25);
+            if (titanKo) {
+              await Anim.ko(enemyKey);
+              await ko(enemy.active, enemy);
+            }
+          }
+        }
+        
+        // Helper: Process bench creature KO
+        async function processBenchKO(creature, owner, ownerKey) {
+          log(`${creature.name} KO'd!`, 'dmg');
+          
+          // Remove from bench if still there (might already be removed by effect)
+          const idx = owner.bench.indexOf(creature);
+          if (idx !== -1) {
+            owner.bench.splice(idx, 1);
+          }
+          
+          // Add to grave if not already there
+          if (!owner.grave.includes(creature)) {
+            owner.grave.push(creature);
+          }
+          
+          // Fire onKO event
+          await processTriggers('onKO', {
+            creature,
+            creatureOwnerKey: ownerKey,
+            targetOwner: ownerKey,
+            targetLocation: 'bench'
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            render,
+            promptGraveSelect: async (candidates) => {
+              const isPlayer = owner === state.G.me;
+              if (!isPlayer || candidates.length === 1) return candidates[0];
+              return new Promise(resolve => {
+                showModal('Grave Rise - Choose creature to revive', candidates.map(c => ({
+                  name: c.name,
+                  sub: `${c.hp} HP / ${c.atk} ATK`,
+                  action: () => { closeModal(); resolve(c); }
+                })), { noCancel: true });
+              });
+            },
+            processEffects: async (card, ctx) => {
+              const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+              return await processEffects(card, effectCtx);
+            }
+          });
+          
+          // Process death abilities
+          await processDeathAbilities(creature, owner, ownerKey);
+        }
+        
+        // Handle KOs from aoeAll and other damage effects
         for (const koInfo of result.kos || []) {
-          await Anim.ko(koInfo.target.startsWith('opp') ? 'opp' : 'me');
-          await ko(koInfo.creature, koInfo.owner);
+          const ownerKey = koInfo.target.startsWith('opp') ? 'opp' : 'me';
+          
+          if (koInfo.isBench) {
+            // Bench KO - process manually
+            await processBenchKO(koInfo.creature, koInfo.owner, ownerKey);
+          } else {
+            // Active KO - use existing ko() function
+            await Anim.ko(ownerKey);
+            await ko(koInfo.creature, koInfo.owner);
+          }
+        }
+        
+        // Handle koSelected results (for Sacrifice)
+        if (result.modifiedContext?.sacrificedCreature) {
+          const creature = result.modifiedContext.sacrificedCreature;
+          const location = result.modifiedContext.sacrificeLocation;
+          const owner = state.G.me;
+          
+          // Fire onKO event
+          await processTriggers('onKO', {
+            creature,
+            creatureOwnerKey: 'me',
+            targetOwner: 'me',
+            targetLocation: location
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            render,
+            promptGraveSelect: async (candidates) => {
+              if (candidates.length === 1) return candidates[0];
+              return new Promise(resolve => {
+                showModal('Grave Rise - Choose creature to revive', candidates.map(c => ({
+                  name: c.name,
+                  sub: `${c.hp} HP / ${c.atk} ATK`,
+                  action: () => { closeModal(); resolve(c); }
+                })), { noCancel: true });
+              });
+            },
+            processEffects: async (card, ctx) => {
+              return await processEffects(card, ctx);
+            }
+          });
+          
+          // Process death abilities
+          await processDeathAbilities(creature, owner, 'me');
+          
+          // Handle replacement if active was sacrificed
+          if (location === 'active' && owner.bench.length > 0) {
+            await pause(300);
+            if (owner.bench.length === 1) {
+              owner.active = owner.bench.shift();
+              log(`Sent out ${owner.active.name}`);
+              render();
+              await Anim.benchToActive('me');
+            } else {
+              // Multiple bench - let player choose
+              await new Promise(innerResolve => {
+                showModal('Choose replacement', owner.bench.map(bc => ({
+                  name: bc.name,
+                  sub: `${bc.curHp}/${bc.hp} HP`,
+                  action: () => {
+                    closeModal();
+                    const benchIdx = owner.bench.findIndex(x => x.uid === bc.uid);
+                    owner.active = owner.bench.splice(benchIdx, 1)[0];
+                    log(`Sent out ${owner.active.name}`);
+                    render();
+                    Anim.benchToActive('me').then(innerResolve);
+                  }
+                })), { noCancel: true });
+              });
+            }
+          }
         }
         
         // Special post-effect handling
@@ -3479,6 +3673,9 @@
           log(`Rival sent out ${state.G.opp.active.name}`);
           render();
           await Anim.benchToActive('opp');
+        }
+        if (c.id === 'bloodMoon') {
+          log('Blood Moon! All creatures take 20 damage!', 'dmg');
         }
         
         render();
@@ -3500,13 +3697,18 @@
             Anim.heal('me', 10);
           }
           break;
-        case 'darkPact':
+        case 'darkPact': {
           draw(state.G.me); draw(state.G.me);
-          state.G.me.lp -= 1;
-          log('Drew 2, lost a life!', 'dmg');
-          Anim.lpDamage('me', 1);
-          checkWin();
+          const pactResult = await loseLife(state.G.me, 'me');
+          if (!pactResult.negated) {
+            log('Drew 2, lost a life!', 'dmg');
+            Anim.lpDamage('me', 1);
+            checkWin();
+          } else {
+            log('Drew 2 cards!', 'mana');
+          }
           break;
+        }
         case 'graveEcho':
           // Selection already done before mana spend
           if (selectionResult) {
@@ -3724,41 +3926,20 @@
             promptTrigger,
             showTriggerReveal,
             log,
+            render,
+            promptGraveSelect: async (candidates) => {
+              return new Promise(resolve => {
+                showModal('Grave Rise - Choose creature to revive', candidates.map(c => ({
+                  name: c.name,
+                  sub: `${c.hp} HP / ${c.atk} ATK`,
+                  action: () => { closeModal(); resolve(c); }
+                })), { noCancel: true });
+              });
+            },
             processEffects: async (card, ctx) => {
-              const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
-              return await processEffects(card, effectCtx);
+              return await processEffects(card, ctx);
             }
           });
-          
-          // Grave Rise - summon 1-cost from grave to bench (optional trigger)
-          if (state.G.me.setVerse?.id === 'graveRise') {
-            const oneCost = state.G.me.grave.filter(gc => gc.cardType === 'creature' && gc.cost === 1);
-            if (oneCost.length && state.G.me.bench.length < 2) {
-              const shouldTrigger = await promptTrigger(state.G.me, state.G.me.setVerse, {});
-              if (shouldTrigger) {
-                await showTriggerReveal(state.G.me.setVerse);
-                log('Grave Rise triggered!', 'heal');
-                let revived = oneCost[0];
-                if (oneCost.length > 1) {
-                  revived = await new Promise(innerResolve => {
-                    showModal('Grave Rise - Choose creature to revive', oneCost.map(gc => ({
-                      name: gc.name,
-                      sub: `${gc.hp} HP / ${gc.atk} ATK`,
-                      action: () => { closeModal(); innerResolve(gc); }
-                    })), { noCancel: true });
-                  });
-                }
-                revived.curHp = revived.hp;
-                state.G.me.grave = state.G.me.grave.filter(x => x.uid !== revived.uid);
-                state.G.me.bench.push(revived);
-                log(`${revived.name} rises to bench!`);
-                render();
-                await Anim.summonBench('me', state.G.me.bench.length - 1);
-                state.G.me.grave.push(state.G.me.setVerse);
-                state.G.me.setVerse = null;
-              }
-            }
-          }
           
           // Gloom Fade - enemy discards
           if (victim.id === 'gloom') {
@@ -3771,10 +3952,12 @@
           
           // Echomask death damage
           if (victim.id === 'echomask') {
-            state.G.opp.lp -= 1;
-            log('Shatter! Enemy loses a life!', 'dmg');
-            await Anim.lpDamage('opp', 1);
-            checkWin();
+            const shatterResult = await loseLife(state.G.opp, 'opp');
+            if (!shatterResult.negated) {
+              log('Shatter! Enemy loses a life!', 'dmg');
+              await Anim.lpDamage('opp', 1);
+              checkWin();
+            }
           }
           
           // Stormtalon Chain Lightning
@@ -3905,33 +4088,29 @@
       
       try {
         const attacker = state.G.me.active;
+        const defender = state.G.opp.active;
         
-        // Check opponent's Phantom Wall (optional trigger)
-        if (state.G.opp.setVerse?.id === 'phantomWall') {
-          const shouldTrigger = await promptTrigger(state.G.opp, state.G.opp.setVerse, { attacker });
-          if (shouldTrigger) {
-            // Show attack animation FIRST for visual feedback
-            if (state.G.opp.active) {
-              await Anim.attack('me', 'opp', 0); // Attack anim, no damage shown
-            } else {
-              await Anim.attackDirect('me');
-            }
-            // Then trigger Phantom Wall
-            await showTriggerReveal(state.G.opp.setVerse);
-            log('Phantom Wall triggered!', 'dmg');
-            const phantomKo = applyDamage(attacker, 10);
-            log(`${attacker.name} takes 10 damage!`, 'dmg');
-            await Anim.damage('me', 10);
-            state.G.opp.grave.push(state.G.opp.setVerse);
-            state.G.opp.setVerse = null;
-            if (phantomKo) { await Anim.ko('me'); await ko(attacker, state.G.me); }
-            await Anim.negateX();
-            log('Attack negated!');
-            state.G.hasAttacked = true; // C3: Mark attack attempted
-            render();
-            highlightEndTurn(true);
-            return;
-          }
+        // Emit beforeAttack event for trigger system (Phantom Wall, etc.)
+        const beforeAttackCtx = await processTriggers('beforeAttack', {
+          attacker,
+          attackerOwner: state.G.me,
+          attackerOwnerKey: 'me',
+          defender,
+          defenderOwner: state.G.opp,
+          defenderOwnerKey: 'opp',
+          activePlayerKey: 'me'
+        }, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log
+        });
+        
+        if (beforeAttackCtx.attackNegated) {
+          log('Attack negated!');
+          state.G.hasAttacked = true;
+          render();
+          highlightEndTurn(true);
+          return;
         }
         
         // B2: Cindermaw Frenzy - attacks TWICE (2 hearts on direct attack)
@@ -3945,10 +4124,12 @@
           
           for (let i = 0; i < attackCount; i++) {
             await Anim.attackDirect('me');
-            state.G.opp.lp -= 1;
-            log(`Direct attack! Rival loses a life!`, 'dmg');
-            await Anim.lpDamage('opp', 1);
-            checkWin();
+            const lpResult = await loseLife(state.G.opp, 'opp');
+            if (!lpResult.negated) {
+              log(`Direct attack! Rival loses a life!`, 'dmg');
+              await Anim.lpDamage('opp', 1);
+              checkWin();
+            }
             if (state.G.winner) break;
             if (i < attackCount - 1) await Anim.wait(200); // Brief pause between hits
           }
@@ -4451,15 +4632,14 @@
       log(`Rival cast ${card.name}`);
       await showCastReveal(card);
       
-      // Mana Drain check
-      if (player.setVerse?.id === 'manaDrain') {
-        await showTriggerReveal(player.setVerse);
-        log('Mana Drain triggered!', 'dmg');
-        player.mana = Math.min(5, player.mana + 1);
-        player.grave.push(player.setVerse);
-        player.setVerse = null;
+      // Emit onCast event - check for spell negation (e.g., player's Mana Drain)
+      const castContext = { spell: card, casterKey: 'opp' };
+      const gameCtx = { showTriggerReveal, log, processEffects };
+      const castResult = await processTriggers('onCast', castContext, state, gameCtx);
+      
+      if (castResult.negated) {
         await Anim.negateX();
-        log(`${card.name} negated! You gain 1 mana.`);
+        log(`${card.name} negated!`);
         render();
         return;
       }
@@ -4492,13 +4672,18 @@
             if (ko) { await Anim.ko('me'); await ko(player.active, player); }
           }
           break;
-        case 'darkPact':
+        case 'darkPact': {
           draw(ai); draw(ai);
-          ai.lp -= 1;
-          log('Rival drew 2, lost a life!', 'dmg');
-          await Anim.lpDamage('opp', 1);
-          checkWin();
+          const aiPactResult = await loseLife(ai, 'opp');
+          if (!aiPactResult.negated) {
+            log('Rival drew 2, lost a life!', 'dmg');
+            await Anim.lpDamage('opp', 1);
+            checkWin();
+          } else {
+            log('Rival drew 2 cards!', 'mana');
+          }
           break;
+        }
         case 'secondWind':
           if (ai.active) {
             ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 40);
@@ -4698,10 +4883,12 @@
               log('Fade: you discarded', 'dmg');
             }
             if (victim.id === 'echomask') {
-              player.lp -= 1;
-              log('Shatter! You lose a life!', 'dmg');
-              await Anim.lpDamage('me', 1);
-              checkWin();
+              const shatterResult = await loseLife(player, 'me');
+              if (!shatterResult.negated) {
+                log('Shatter! You lose a life!', 'dmg');
+                await Anim.lpDamage('me', 1);
+                checkWin();
+              }
             }
             if (victim.id === 'stormtalon') {
               player.chainLightning = 20;
@@ -4793,10 +4980,12 @@
       // Direct attack (no defender)
       if (!player.active) {
         await Anim.attackDirect('opp');
-        player.lp -= 1;
-        log('Direct attack! You lose a life!', 'dmg');
-        await Anim.lpDamage('me', 1);
-        checkWin();
+        const lpResult = await loseLife(player, 'me');
+        if (!lpResult.negated) {
+          log('Direct attack! You lose a life!', 'dmg');
+          await Anim.lpDamage('me', 1);
+          checkWin();
+        }
         render();
         return;
       }
@@ -5128,15 +5317,14 @@
             log(`Rival cast ${cast.name}`);
             await showCastReveal(cast);
             
-            // Check player's Mana Drain
-            if (state.G.me.setVerse?.id === 'manaDrain') {
-              await showTriggerReveal(state.G.me.setVerse);
-              log('Mana Drain triggered!', 'dmg');
-              state.G.me.mana = Math.min(5, state.G.me.mana + 1);
-              state.G.me.grave.push(state.G.me.setVerse);
-              state.G.me.setVerse = null;
+            // Emit onCast event - check for spell negation (e.g., player's Mana Drain)
+            const castContext = { spell: cast, casterKey: 'opp' };
+            const gameCtx = { showTriggerReveal, log, processEffects };
+            const castResult = await processTriggers('onCast', castContext, state, gameCtx);
+            
+            if (castResult.negated) {
               await Anim.negateX();
-              log(`${cast.name} negated! You gain 1 mana.`);
+              log(`${cast.name} negated!`);
               render();
               continue;
             }
@@ -5169,13 +5357,18 @@
                   if (igniteKo) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
                 }
                 break;
-              case 'darkPact':
+              case 'darkPact': {
                 draw(ai); draw(ai);
-                ai.lp -= 1;
-                log('Rival drew 2, lost a life!', 'dmg');
-                await Anim.lpDamage('opp', 1);
-                checkWin();
+                const aiPactResult = await loseLife(ai, 'opp');
+                if (!aiPactResult.negated) {
+                  log('Rival drew 2, lost a life!', 'dmg');
+                  await Anim.lpDamage('opp', 1);
+                  checkWin();
+                } else {
+                  log('Rival drew 2 cards!', 'mana');
+                }
                 break;
+              }
               case 'secondWind':
                 if (ai.active) {
                   ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 40);
@@ -5475,28 +5668,52 @@
     }
     
     async function ko(creature, owner, attacker = null, attackerOwner = null) {
-      // Vengeance check - only during combat with an attacker (optional trigger)
-      if (attacker && owner.setVerse?.id === 'vengeance') {
-        const shouldTrigger = await promptTrigger(owner, owner.setVerse, { attacker });
-        if (shouldTrigger) {
-          await showTriggerReveal(owner.setVerse);
-          log('Vengeance triggered!', 'dmg');
-          creature.curHp = 1; // Survive with 1 HP
-          owner.grave.push(owner.setVerse);
-          owner.setVerse = null;
-          log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
-          await Anim.ko(attackerOwner === state.G.me ? 'me' : 'opp');
-          // KO the attacker instead (without triggering another Vengeance)
-          attackerOwner.grave.push(attacker);
-          if (attackerOwner.active?.uid === attacker.uid) {
-            attackerOwner.active = null;
-            if (attackerOwner.bench.length) {
-              attackerOwner.active = attackerOwner.bench.shift();
-              log(`${attackerOwner === state.G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
+      const ownerKey = owner === state.G.me ? 'me' : 'opp';
+      
+      // Emit beforeKO event for triggers like Vengeance
+      // Only emit if there's an attacker (combat KO)
+      if (attacker && attackerOwner) {
+        const attackerOwnerKey = attackerOwner === state.G.me ? 'me' : 'opp';
+        const beforeKOCtx = await processTriggers('beforeKO', {
+          target: creature,
+          targetOwner: ownerKey,
+          targetLocation: 'active',
+          attacker: attacker,
+          attackerOwner: attackerOwner,
+          attackerOwnerKey: attackerOwnerKey,
+          activePlayerKey: attackerOwnerKey  // Attacker's turn
+        }, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log,
+          render,
+          processEffects: async (card, ctx) => {
+            return await processEffects(card, ctx);
+          }
+        });
+        
+        // If KO was negated (e.g., Vengeance), handle attacker replacement and return
+        if (beforeKOCtx.koNegated) {
+          // Log the survival and destruction
+          if (beforeKOCtx.destroyed) {
+            log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
+          } else {
+            log(`${creature.name} survives!`, 'heal');
+          }
+          
+          // Handle attacker's replacement if destroyed by destroy effect
+          if (beforeKOCtx.needsReplacement && beforeKOCtx.destroyedOwner) {
+            const destroyedOwner = beforeKOCtx.destroyedOwner;
+            const destroyedOwnerKey = beforeKOCtx.destroyedOwnerKey;
+            
+            if (destroyedOwner.bench.length > 0) {
+              destroyedOwner.active = destroyedOwner.bench.shift();
+              log(`${destroyedOwnerKey === 'me' ? 'You' : 'Rival'} sent out ${destroyedOwner.active.name}`);
               render();
-              await Anim.benchToActive(attackerOwner === state.G.me ? 'me' : 'opp');
+              await Anim.benchToActive(destroyedOwnerKey);
             }
           }
+          
           checkWin();
           render();
           return;
@@ -5523,8 +5740,7 @@
         }
       }
       
-      // Emit onKO event for trigger system (Den Mother, future KO triggers)
-      const ownerKey = owner === state.G.me ? 'me' : 'opp';
+      // Emit onKO event for trigger system (Den Mother, Grave Rise, etc.)
       await processTriggers('onKO', {
         creature,
         creatureOwnerKey: ownerKey,
@@ -5534,56 +5750,24 @@
         promptTrigger,
         showTriggerReveal,
         log,
+        render,
+        promptGraveSelect: async (candidates) => {
+          // AI always picks first, player chooses if multiple
+          if (!isPlayer || candidates.length === 1) {
+            return candidates[0];
+          }
+          return new Promise(resolve => {
+            showModal('Grave Rise - Choose creature to revive', candidates.map(c => ({
+              name: c.name,
+              sub: `${c.hp} HP / ${c.atk} ATK`,
+              action: () => { closeModal(); resolve(c); }
+            })), { noCancel: true });
+          });
+        },
         processEffects: async (card, ctx) => {
-          const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
-          return await processEffects(card, effectCtx);
+          return await processEffects(card, ctx);
         }
       });
-      
-      // Grave Rise - summon 1-cost creature from grave (optional trigger)
-      if (owner.setVerse?.id === 'graveRise') {
-        const oneCost = owner.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
-        if (oneCost.length && (!owner.active || owner.bench.length < 2)) {
-          const shouldTrigger = await promptTrigger(owner, owner.setVerse, {});
-          if (shouldTrigger) {
-            await showTriggerReveal(owner.setVerse);
-            log('Grave Rise triggered!', 'heal');
-            
-            let revived;
-            
-            if (isPlayer && oneCost.length > 1) {
-              // Player has choice
-              revived = await new Promise(resolve => {
-                showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
-                  name: c.name,
-                  sub: `${c.hp} HP / ${c.atk} ATK`,
-                  action: () => {
-                    closeModal();
-                    resolve(c);
-                  }
-                })));
-              });
-            } else {
-              revived = oneCost[0];
-            }
-            
-            revived.curHp = revived.hp; // Restore HP
-            owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
-            
-            // Always summon to bench first (active slot selection happens after all triggers)
-            if (owner.bench.length < 2) {
-              const benchIdx = owner.bench.length;
-              owner.bench.push(revived);
-              log(`${revived.name} rises to bench!`);
-              render();
-              await Anim.summonBench(isPlayer ? 'me' : 'opp', benchIdx);
-            }
-            
-            owner.grave.push(owner.setVerse);
-            owner.setVerse = null;
-          }
-        }
-      }
       
       // Gloom Fade
       if (creature.id === 'gloom') {
@@ -5598,10 +5782,13 @@
       // Echomask death damage (1 life)
       if (creature.id === 'echomask') {
         const enemy = owner === state.G.me ? state.G.opp : state.G.me;
-        enemy.lp -= 1;
-        log('Shatter! Enemy loses a life!', 'dmg');
-        Anim.lpDamage(owner === state.G.me ? 'opp' : 'me', 1);
-        checkWin();
+        const enemyKey = owner === state.G.me ? 'opp' : 'me';
+        const shatterResult = await loseLife(enemy, enemyKey);
+        if (!shatterResult.negated) {
+          log('Shatter! Enemy loses a life!', 'dmg');
+          Anim.lpDamage(enemyKey, 1);
+          checkWin();
+        }
       }
       
       // Stormtalon Chain Lightning

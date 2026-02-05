@@ -45,7 +45,11 @@ describe('Emberfang - Spark ability', () => {
 
   it('exists in CREATURES', () => {
     expect(CREATURES.emberfang).toBeDefined();
-    expect(CREATURES.emberfang.ability).toBe('Spark');
+    // Support both old format (string) and new declarative format (object with name)
+    const abilityName = typeof CREATURES.emberfang.ability === 'string' 
+      ? CREATURES.emberfang.ability 
+      : CREATURES.emberfang.ability.name;
+    expect(abilityName).toBe('Spark');
   });
 
   it('has correct stats (1 cost, 25 HP, 25 ATK)', () => {
@@ -59,9 +63,12 @@ describe('Emberfang - Spark ability', () => {
     const enemy = mockCreature('whisper', { curHp: 30 });
     state.G.opp.active = enemy;
     
-    // Simulate Spark trigger
+    // Simulate Spark trigger - support both old and new ability formats
+    const abilityName = typeof CREATURES.emberfang.ability === 'string' 
+      ? CREATURES.emberfang.ability 
+      : CREATURES.emberfang.ability.name;
     const sparkDamage = 5;
-    if (CREATURES.emberfang.ability === 'Spark') {
+    if (abilityName === 'Spark') {
       applyDamage(enemy, sparkDamage);
     }
     
@@ -107,7 +114,11 @@ describe('Shade Pup - Orphan ability', () => {
 
   it('exists in CREATURES', () => {
     expect(CREATURES.shadePup).toBeDefined();
-    expect(CREATURES.shadePup.ability).toBe('Orphan');
+    // Support both old format (string) and new declarative format (object with name)
+    const abilityName = typeof CREATURES.shadePup.ability === 'string' 
+      ? CREATURES.shadePup.ability 
+      : CREATURES.shadePup.ability.name;
+    expect(abilityName).toBe('Orphan');
   });
 
   it('has correct base stats (1 cost, 25 HP, 15 ATK)', () => {
@@ -154,7 +165,11 @@ describe('Leechling - Drain ability', () => {
 
   it('exists in CREATURES', () => {
     expect(CREATURES.leechling).toBeDefined();
-    expect(CREATURES.leechling.ability).toBe('Drain');
+    // Support both old format (string) and new declarative format (object with name)
+    const abilityName = typeof CREATURES.leechling.ability === 'string' 
+      ? CREATURES.leechling.ability 
+      : CREATURES.leechling.ability.name;
+    expect(abilityName).toBe('Drain');
   });
 
   it('has correct stats (1 cost, 20 HP, 15 ATK)', () => {
@@ -197,7 +212,11 @@ describe('Leechling - Drain ability', () => {
 describe('Swarm Pack - New Deck', () => {
   it('Fangpup exists with Pack Bond', () => {
     expect(CREATURES.fangpup).toBeDefined();
-    expect(CREATURES.fangpup.ability).toBe('Pack Bond');
+    // Support both old format (string) and new declarative format (object with name)
+    const abilityName = typeof CREATURES.fangpup.ability === 'string' 
+      ? CREATURES.fangpup.ability 
+      : CREATURES.fangpup.ability.name;
+    expect(abilityName).toBe('Pack Bond');
   });
 
   it('Fangpup gets +10 ATK per other creature', () => {
