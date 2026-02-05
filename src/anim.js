@@ -123,7 +123,7 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // On hit (2/3 through attack animation = 400ms)
+      // On hit (100ms into attack)
       setTimeout(() => {
         // Screen flash for impact
         this.screenFlash('red');
@@ -132,7 +132,7 @@ export const Anim = {
         this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
         // Floating damage
         this.floatText(`-${damage}`, 'damage', defEl);
-      }, 400);
+      }, 100);
       
       // Resolve after full sequence
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
@@ -147,10 +147,10 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // Screen flash at 2/3 through
+      // Screen flash at 100ms
       setTimeout(() => {
         this.screenFlash('red');
-      }, 400);
+      }, 100);
       
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
     });
