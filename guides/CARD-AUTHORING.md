@@ -276,7 +276,7 @@ gloom: {
 
 ### Complex/Procedural Abilities
 
-For abilities that modify game flow (can't be declarative):
+Some abilities can't be expressed declaratively because they modify game flow:
 
 ```js
 cindermaw: {
@@ -290,6 +290,51 @@ cindermaw: {
   }
 }
 ```
+
+**⚠️ Procedural abilities require code changes in `index.html`.**
+
+#### Current Procedural Abilities (8 total)
+
+| Creature | Ability | Why Procedural |
+|----------|---------|----------------|
+| Whisper | Elusive | Modifies targeting rules |
+| Cindermaw | Frenzy | Attacks twice (modifies attack loop) |
+| Pulsefin | Sonic Strike | First attack flag + double damage |
+| Skitter | Scurry | Requires player choice on damage |
+| Alpha | Rally | Bench creatures assist attacks |
+| Broodmother | Spawn | Summons tokens at turn end |
+| Bulwark | Fortress | One-time lethal prevention flag |
+| Titanback | Juggernaut | Dual ability (reduction + death damage) |
+
+#### Adding a New Procedural Ability
+
+1. Mark the ability in `src/cards.js`:
+   ```js
+   ability: { name: '...', text: '...', procedural: true }
+   ```
+
+2. Find the relevant location in `index.html`:
+   - Attack modifiers → `doAttack()` function
+   - Turn end effects → `endTurn()` function
+   - Death effects → `ko()` function
+   - Summon effects → `summonCreature()` function
+
+3. Add a hardcoded check:
+   ```js
+   if (creature.id === 'yourCreature') {
+     // custom behavior
+   }
+   ```
+
+4. **Add tests** in the appropriate test file
+
+#### Migration Path
+
+We're working toward fully declarative abilities. Future effect types:
+- `attackTwice` (for Frenzy)
+- `summonToken` (for Spawn)
+- `surviveLethal` (for Fortress)
+- `swapWithBench` (for Scurry)
 
 ---
 
