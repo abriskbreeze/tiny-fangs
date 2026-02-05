@@ -103,8 +103,8 @@ export const CREATURES = {
     art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },
   
   // Shell Pack (defensive theme)
-  shellkin: { id:'shellkin', name:'Shellkin', subtitle:'Armored Pup', cost:1, hp:35, atk:15,
-    ability:'Harden', abilityText:'Takes -10 damage from the first attack each turn.',
+  shellkin: { id:'shellkin', name:'Shellkin', subtitle:'Armored Pup', cost:1, hp:20, atk:10,
+    ability:'Harden', abilityText:'Negates first 10 damage each turn from any source.',
     flavor:'"Curl up. Stay safe."',
     art:'  ╭──╮\n (◕‿◕)\n  ╰┬─╯' },
   pebbleback: { id:'pebbleback', name:'Pebbleback', subtitle:'Stone Beetle', cost:1, hp:30, atk:20,
