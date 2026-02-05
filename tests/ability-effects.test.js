@@ -271,13 +271,15 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     });
   });
 
-  it('reduces damage by 15 when has bench', () => {
+  it('reduces damage by 15 when has bench (with includeSetVerses)', () => {
     const creature = mockCreature('whisper');
     state.G.me.active = creature;
     state.G.me.bench = [mockCreature('gloom')];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    expect(getEffectiveDamageReduction(creature, state.G.me)).toBe(15);
+    // Set verses are now optional triggers, so must explicitly include
+    expect(getEffectiveDamageReduction(creature, state.G.me, true)).toBe(15);
+    expect(getEffectiveDamageReduction(creature, state.G.me, false)).toBe(0);
   });
 
   it('no reduction when bench is empty', () => {
@@ -286,7 +288,7 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     state.G.me.bench = [];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    expect(getEffectiveDamageReduction(creature, state.G.me)).toBe(0);
+    expect(getEffectiveDamageReduction(creature, state.G.me, true)).toBe(0);
   });
 
   it('stacks with Den Guard (Hollowfox)', () => {
@@ -295,8 +297,10 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     state.G.me.bench = [mockCreature('whisper')];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    // Hollowfox Den Guard (10) + Swarm Shield (15) = 25
-    expect(getEffectiveDamageReduction(hollowfox, state.G.me)).toBe(25);
+    // Hollowfox Den Guard (10) + Swarm Shield (15) = 25 (when set verses included)
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me, true)).toBe(25);
+    // Without set verses, only Den Guard = 10
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me, false)).toBe(10);
   });
 });
 

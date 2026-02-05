@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.49</title>
+  <title>TINY FANGS v0.2.50</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2000,7 +2000,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.49 • Card Battler</p>
+    <p class="sub">v0.2.50 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2115,7 +2115,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.49</div>
+      <div class="logo">TINY FANGS v0.2.50</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2341,6 +2341,7 @@
       getEffectiveAtk,
       getAtkModifiers,
       getEffectiveDamageReduction,
+      getSetVerseReduction,
       getDamageReductionSources,
       getRetaliationDamage,
       applyDrain,
@@ -3812,29 +3813,32 @@
       try {
         const attacker = state.G.me.active;
         
-        // Check opponent's Phantom Wall
+        // Check opponent's Phantom Wall (optional trigger)
         if (state.G.opp.setVerse?.id === 'phantomWall') {
-          // Show attack animation FIRST for visual feedback
-          if (state.G.opp.active) {
-            await Anim.attack('me', 'opp', 0); // Attack anim, no damage shown
-          } else {
-            await Anim.attackDirect('me');
+          const shouldTrigger = await promptTrigger(state.G.opp, state.G.opp.setVerse, { attacker });
+          if (shouldTrigger) {
+            // Show attack animation FIRST for visual feedback
+            if (state.G.opp.active) {
+              await Anim.attack('me', 'opp', 0); // Attack anim, no damage shown
+            } else {
+              await Anim.attackDirect('me');
+            }
+            // Then trigger Phantom Wall
+            await showTriggerReveal(state.G.opp.setVerse);
+            log('Phantom Wall triggered!', 'dmg');
+            const phantomKo = applyDamage(attacker, 10);
+            log(`${attacker.name} takes 10 damage!`, 'dmg');
+            await Anim.damage('me', 10);
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+            if (phantomKo) { await Anim.ko('me'); await ko(attacker, state.G.me); }
+            await Anim.negateX();
+            log('Attack negated!');
+            state.G.hasAttacked = true; // C3: Mark attack attempted
+            render();
+            highlightEndTurn(true);
+            return;
           }
-          // Then trigger Phantom Wall
-          await showTriggerReveal(state.G.opp.setVerse);
-          log('Phantom Wall triggered!', 'dmg');
-          const phantomKo = applyDamage(attacker, 10);
-          log(`${attacker.name} takes 10 damage!`, 'dmg');
-          await Anim.damage('me', 10);
-          state.G.opp.grave.push(state.G.opp.setVerse);
-          state.G.opp.setVerse = null;
-          if (phantomKo) { await Anim.ko('me'); await ko(attacker, state.G.me); }
-          await Anim.negateX();
-          log('Attack negated!');
-          state.G.hasAttacked = true; // C3: Mark attack attempted
-          render();
-          highlightEndTurn(true);
-          return;
         }
         
         // B2: Cindermaw Frenzy - attacks TWICE (2 hearts on direct attack)
@@ -3903,24 +3907,27 @@
           log('Frenzy! Attacks twice!', 'dmg');
         }
         
-        // Spike Shield priority check - if it would KO attacker, negate attack entirely
+        // Spike Shield priority check - if it would KO attacker, offer to negate attack entirely
         if (state.G.opp.setVerse?.id === 'spikeShield' && attacker.curHp <= 15) {
-          await Anim.attack('me', 'opp', 0); // Show attack animation
-          await showTriggerReveal(state.G.opp.setVerse);
-          log('Spike Shield! -15 to attacker', 'dmg');
-          state.G.opp.grave.push(state.G.opp.setVerse);
-          state.G.opp.setVerse = null;
-          const spikeKo = applyDamage(attacker, 15);
-          await Anim.damage('me', 15);
-          if (spikeKo) {
-            await Anim.ko('me');
-            await ko(attacker, state.G.me);
-            log('Attack negated!', 'mana');
+          const shouldTrigger = await promptTrigger(state.G.opp, state.G.opp.setVerse, { attacker });
+          if (shouldTrigger) {
+            await Anim.attack('me', 'opp', 0); // Show attack animation
+            await showTriggerReveal(state.G.opp.setVerse);
+            log('Spike Shield! -15 to attacker', 'dmg');
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+            const spikeKo = applyDamage(attacker, 15);
+            await Anim.damage('me', 15);
+            if (spikeKo) {
+              await Anim.ko('me');
+              await ko(attacker, state.G.me);
+              log('Attack negated!', 'mana');
+            }
+            state.G.hasAttacked = true;
+            render();
+            highlightEndTurn(true);
+            return;
           }
-          state.G.hasAttacked = true;
-          render();
-          highlightEndTurn(true);
-          return;
         }
         
         // B2: Attack loop - Cindermaw attacks twice, others once
@@ -3936,23 +3943,33 @@
           if (hit > 0 && attacker.id === 'bladewhisker') dmg += 10;
           if (hit > 0 && attacker.id === 'echomask') dmg = state.G.opp.active.atk;
           
-          // Apply damage reduction (Den Guard, Swarm Shield, Shell Pack abilities)
-          const reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp);
+          // Apply damage reduction (creature abilities only first)
+          let reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp, false);
+          
+          // Check for set verse reduction (optional trigger)
+          const setVerseReduction = getSetVerseReduction(state.G.opp);
+          let triggeredSetVerse = false;
+          if (setVerseReduction && hit === 0) {
+            const shouldTrigger = await promptTrigger(state.G.opp, setVerseReduction.verse, { 
+              attacker, defender: state.G.opp.active, damage: dmg 
+            });
+            if (shouldTrigger) {
+              reduction += setVerseReduction.reduction;
+              triggeredSetVerse = true;
+            }
+          }
+          
           if (reduction > 0) {
             dmg = Math.max(0, dmg - reduction);
             if (hit === 0) { // Only log once
-              const sources = getDamageReductionSources(state.G.opp.active, state.G.opp);
+              const sources = getDamageReductionSources(state.G.opp.active, state.G.opp, false);
               for (const src of sources) {
                 log(`${src.name}! -${src.value} damage`, 'heal');
               }
-              // Consume set verses that trigger
-              if (state.G.opp.setVerse?.id === 'swarmShield' && state.G.opp.bench.length > 0) {
-                await showTriggerReveal(state.G.opp.setVerse);
-                state.G.opp.grave.push(state.G.opp.setVerse);
-                state.G.opp.setVerse = null;
-              }
-              if (state.G.opp.setVerse?.id === 'brace') {
-                await showTriggerReveal(state.G.opp.setVerse);
+              // Consume triggered set verse
+              if (triggeredSetVerse && setVerseReduction) {
+                await showTriggerReveal(setVerseReduction.verse);
+                log(`${setVerseReduction.verse.name}! -${setVerseReduction.reduction} damage`, 'heal');
                 state.G.opp.grave.push(state.G.opp.setVerse);
                 state.G.opp.setVerse = null;
               }
@@ -4037,15 +4054,18 @@
           if (retKo) await ko(state.G.me.active, state.G.me);
         }
         
-        // Spike Shield set verse - deal 15 back to attacker
+        // Spike Shield set verse - deal 15 back to attacker (optional)
         if (state.G.opp.setVerse?.id === 'spikeShield' && state.G.me.active && state.G.me.active.curHp > 0) {
-          await showTriggerReveal(state.G.opp.setVerse);
-          log('Spike Shield! -15 to attacker', 'dmg');
-          state.G.opp.grave.push(state.G.opp.setVerse);
-          state.G.opp.setVerse = null;
-          const spikeKo = applyDamage(state.G.me.active, 15);
-          await Anim.damage('me', 15);
-          if (spikeKo) await ko(state.G.me.active, state.G.me);
+          const shouldTrigger = await promptTrigger(state.G.opp, state.G.opp.setVerse, { attacker: state.G.me.active });
+          if (shouldTrigger) {
+            await showTriggerReveal(state.G.opp.setVerse);
+            log('Spike Shield! -15 to attacker', 'dmg');
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+            const spikeKo = applyDamage(state.G.me.active, 15);
+            await Anim.damage('me', 15);
+            if (spikeKo) await ko(state.G.me.active, state.G.me);
+          }
         }
         
         // Hexweaver poison - only if defender survived
@@ -4637,30 +4657,33 @@
     async function executeAiAttack(ai, player, pause) {
       if (!ai.active) return;
       
-      // Phantom Wall check - triggers on ALL attacks (including direct)
+      // Phantom Wall check - triggers on ALL attacks (optional trigger)
       if (player.setVerse?.id === 'phantomWall') {
-        // Show attack animation FIRST for visual feedback
-        if (player.active) {
-          await Anim.attack('opp', 'me', 0); // Attack anim, no damage shown
-        } else {
-          await Anim.attackDirect('opp');
+        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker: ai.active });
+        if (shouldTrigger) {
+          // Show attack animation FIRST for visual feedback
+          if (player.active) {
+            await Anim.attack('opp', 'me', 0); // Attack anim, no damage shown
+          } else {
+            await Anim.attackDirect('opp');
+          }
+          // Then trigger Phantom Wall
+          await showTriggerReveal(player.setVerse);
+          log('Phantom Wall triggered!', 'dmg');
+          const phantomKo = applyDamage(ai.active, 10);
+          log(`${ai.active.name} takes 10 damage!`, 'dmg');
+          await Anim.damage('opp', 10);
+          player.grave.push(player.setVerse);
+          player.setVerse = null;
+          if (phantomKo) {
+            await Anim.ko('opp');
+            await ko(ai.active, ai);
+          }
+          await Anim.negateX();
+          log('Attack negated!');
+          render();
+          return;
         }
-        // Then trigger Phantom Wall
-        await showTriggerReveal(player.setVerse);
-        log('Phantom Wall triggered!', 'dmg');
-        const phantomKo = applyDamage(ai.active, 10);
-        log(`${ai.active.name} takes 10 damage!`, 'dmg');
-        await Anim.damage('opp', 10);
-        player.grave.push(player.setVerse);
-        player.setVerse = null;
-        if (phantomKo) {
-          await Anim.ko('opp');
-          await ko(ai.active, ai);
-        }
-        await Anim.negateX();
-        log('Attack negated!');
-        render();
-        return;
       }
       
       // Direct attack (no defender)
@@ -4696,21 +4719,31 @@
         log('Frenzy! Double damage!', 'dmg');
       }
       
-      // Damage reduction (Shell Pack abilities, set verses)
-      const reduction = getEffectiveDamageReduction(player.active, player);
+      // Damage reduction (creature abilities first)
+      let reduction = getEffectiveDamageReduction(player.active, player, false);
+      
+      // Check for set verse reduction (optional trigger)
+      const setVerseReduction = getSetVerseReduction(player);
+      let triggeredSetVerse = false;
+      if (setVerseReduction) {
+        const shouldTrigger = await promptTrigger(player, setVerseReduction.verse, { 
+          attacker: ai.active, defender: player.active, damage: dmg 
+        });
+        if (shouldTrigger) {
+          reduction += setVerseReduction.reduction;
+          triggeredSetVerse = true;
+        }
+      }
+      
       if (reduction > 0) {
         dmg = Math.max(0, dmg - reduction);
-        const sources = getDamageReductionSources(player.active, player);
+        const sources = getDamageReductionSources(player.active, player, false);
         for (const src of sources) {
           log(`${src.name}! -${src.value} damage`, 'heal');
         }
-        if (player.setVerse?.id === 'swarmShield' && player.bench.length > 0) {
-          await showTriggerReveal(player.setVerse);
-          player.grave.push(player.setVerse);
-          player.setVerse = null;
-        }
-        if (player.setVerse?.id === 'brace') {
-          await showTriggerReveal(player.setVerse);
+        if (triggeredSetVerse && setVerseReduction) {
+          await showTriggerReveal(setVerseReduction.verse);
+          log(`${setVerseReduction.verse.name}! -${setVerseReduction.reduction} damage`, 'heal');
           player.grave.push(player.setVerse);
           player.setVerse = null;
         }
@@ -4729,22 +4762,25 @@
       
       const attacker = ai.active;
       
-      // Spike Shield priority check - if it would KO attacker, negate attack entirely
+      // Spike Shield priority check - if it would KO attacker, offer to negate attack (optional)
       if (player.setVerse?.id === 'spikeShield' && attacker.curHp <= 15) {
-        await Anim.attack('opp', 'me', 0); // Show attack animation
-        await showTriggerReveal(player.setVerse);
-        log('Spike Shield! -15 to attacker', 'dmg');
-        player.grave.push(player.setVerse);
-        player.setVerse = null;
-        const spikeKo = applyDamage(attacker, 15);
-        await Anim.damage('opp', 15);
-        if (spikeKo) {
-          await Anim.ko('opp');
-          await ko(attacker, ai);
-          log('Attack negated!', 'mana');
+        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker });
+        if (shouldTrigger) {
+          await Anim.attack('opp', 'me', 0); // Show attack animation
+          await showTriggerReveal(player.setVerse);
+          log('Spike Shield! -15 to attacker', 'dmg');
+          player.grave.push(player.setVerse);
+          player.setVerse = null;
+          const spikeKo = applyDamage(attacker, 15);
+          await Anim.damage('opp', 15);
+          if (spikeKo) {
+            await Anim.ko('opp');
+            await ko(attacker, ai);
+            log('Attack negated!', 'mana');
+          }
+          render();
+          return;
         }
-        render();
-        return;
       }
       
       log(`${attacker.name} attacks for ${dmg}!`);
@@ -4796,15 +4832,18 @@
         }
       }
       
-      // Spike Shield set verse
+      // Spike Shield set verse (optional trigger)
       if (player.setVerse?.id === 'spikeShield' && attacker && attacker.curHp > 0) {
-        await showTriggerReveal(player.setVerse);
-        log('Spike Shield! -15 to attacker', 'dmg');
-        player.grave.push(player.setVerse);
-        player.setVerse = null;
-        const spikeKo = applyDamage(attacker, 15);
-        await Anim.damage('opp', 15);
-        if (spikeKo) await ko(attacker, ai);
+        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker });
+        if (shouldTrigger) {
+          await showTriggerReveal(player.setVerse);
+          log('Spike Shield! -15 to attacker', 'dmg');
+          player.grave.push(player.setVerse);
+          player.setVerse = null;
+          const spikeKo = applyDamage(attacker, 15);
+          await Anim.damage('opp', 15);
+          if (spikeKo) await ko(attacker, ai);
+        }
       }
       
       if (!playerKo) {
@@ -5342,29 +5381,32 @@
     }
     
     async function ko(creature, owner, attacker = null, attackerOwner = null) {
-      // Vengeance check - only during combat with an attacker
+      // Vengeance check - only during combat with an attacker (optional trigger)
       if (attacker && owner.setVerse?.id === 'vengeance') {
-        await showTriggerReveal(owner.setVerse);
-        log('Vengeance triggered!', 'dmg');
-        creature.curHp = 1; // Survive with 1 HP
-        owner.grave.push(owner.setVerse);
-        owner.setVerse = null;
-        log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
-        await Anim.ko(attackerOwner === state.G.me ? 'me' : 'opp');
-        // KO the attacker instead (without triggering another Vengeance)
-        attackerOwner.grave.push(attacker);
-        if (attackerOwner.active?.uid === attacker.uid) {
-          attackerOwner.active = null;
-          if (attackerOwner.bench.length) {
-            attackerOwner.active = attackerOwner.bench.shift();
-            log(`${attackerOwner === state.G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
-            render();
-            await Anim.benchToActive(attackerOwner === state.G.me ? 'me' : 'opp');
+        const shouldTrigger = await promptTrigger(owner, owner.setVerse, { attacker });
+        if (shouldTrigger) {
+          await showTriggerReveal(owner.setVerse);
+          log('Vengeance triggered!', 'dmg');
+          creature.curHp = 1; // Survive with 1 HP
+          owner.grave.push(owner.setVerse);
+          owner.setVerse = null;
+          log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
+          await Anim.ko(attackerOwner === state.G.me ? 'me' : 'opp');
+          // KO the attacker instead (without triggering another Vengeance)
+          attackerOwner.grave.push(attacker);
+          if (attackerOwner.active?.uid === attacker.uid) {
+            attackerOwner.active = null;
+            if (attackerOwner.bench.length) {
+              attackerOwner.active = attackerOwner.bench.shift();
+              log(`${attackerOwner === state.G.me ? 'You' : 'Rival'} sent out ${attackerOwner.active.name}`);
+              render();
+              await Anim.benchToActive(attackerOwner === state.G.me ? 'me' : 'opp');
+            }
           }
+          checkWin();
+          render();
+          return;
         }
-        checkWin();
-        render();
-        return;
       }
       
       log(`${creature.name} KO'd!`, 'dmg');
@@ -5387,54 +5429,61 @@
         }
       }
       
-      // Den Mother - next attack deals +10 bonus damage
+      // Den Mother - next attack deals +10 bonus damage (optional trigger)
       if (owner.setVerse?.id === 'denMother') {
-        await showTriggerReveal(owner.setVerse);
-        owner.attackBonuses.push({ source: 'Den Mother', value: 10 });
-        log('Den Mother! Next attack +10 damage', 'mana');
-        owner.grave.push(owner.setVerse);
-        owner.setVerse = null;
+        const shouldTrigger = await promptTrigger(owner, owner.setVerse, {});
+        if (shouldTrigger) {
+          await showTriggerReveal(owner.setVerse);
+          owner.attackBonuses.push({ source: 'Den Mother', value: 10 });
+          log('Den Mother! Next attack +10 damage', 'mana');
+          owner.grave.push(owner.setVerse);
+          owner.setVerse = null;
+        }
       }
       
-      // Grave Rise - summon 1-cost creature from grave
+      // Grave Rise - summon 1-cost creature from grave (optional trigger)
       if (owner.setVerse?.id === 'graveRise') {
-        await showTriggerReveal(owner.setVerse);
         const oneCost = owner.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
-        if (oneCost.length) {
-          log('Grave Rise triggered!', 'heal');
-          
-          let revived;
-          
-          if (isPlayer && oneCost.length > 1) {
-            // Player has choice
-            revived = await new Promise(resolve => {
-              showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
-                name: c.name,
-                sub: `${c.hp} HP / ${c.atk} ATK`,
-                action: () => {
-                  closeModal();
-                  resolve(c);
-                }
-              })));
-            });
-          } else {
-            revived = oneCost[0];
-          }
-          
-          revived.curHp = revived.hp; // Restore HP
-          owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
-          
-          // Always summon to bench first (active slot selection happens after all triggers)
-          if (owner.bench.length < 2) {
-            const benchIdx = owner.bench.length;
-            owner.bench.push(revived);
-            log(`${revived.name} rises to bench!`);
-            render();
-            await Anim.summonBench(isPlayer ? 'me' : 'opp', benchIdx);
+        if (oneCost.length && (!owner.active || owner.bench.length < 2)) {
+          const shouldTrigger = await promptTrigger(owner, owner.setVerse, {});
+          if (shouldTrigger) {
+            await showTriggerReveal(owner.setVerse);
+            log('Grave Rise triggered!', 'heal');
+            
+            let revived;
+            
+            if (isPlayer && oneCost.length > 1) {
+              // Player has choice
+              revived = await new Promise(resolve => {
+                showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
+                  name: c.name,
+                  sub: `${c.hp} HP / ${c.atk} ATK`,
+                  action: () => {
+                    closeModal();
+                    resolve(c);
+                  }
+                })));
+              });
+            } else {
+              revived = oneCost[0];
+            }
+            
+            revived.curHp = revived.hp; // Restore HP
+            owner.grave = owner.grave.filter(x => x.uid !== revived.uid);
+            
+            // Always summon to bench first (active slot selection happens after all triggers)
+            if (owner.bench.length < 2) {
+              const benchIdx = owner.bench.length;
+              owner.bench.push(revived);
+              log(`${revived.name} rises to bench!`);
+              render();
+              await Anim.summonBench(isPlayer ? 'me' : 'opp', benchIdx);
+            }
+            
+            owner.grave.push(owner.setVerse);
+            owner.setVerse = null;
           }
         }
-        owner.grave.push(owner.setVerse);
-        owner.setVerse = null;
       }
       
       // Gloom Fade
@@ -5562,6 +5611,77 @@
     
     function closeModal() {
       $('modal').classList.remove('open');
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // OPTIONAL SET VERSE TRIGGERS
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * Prompt player or AI to decide whether to trigger a set verse
+     * @param {Object} owner - The player who owns the set verse
+     * @param {Object} verse - The set verse card
+     * @param {Object} context - Context for AI evaluation { attacker, defender, damage }
+     * @returns {Promise<boolean>} - Whether to trigger
+     */
+    async function promptTrigger(owner, verse, context = {}) {
+      const isPlayer = owner === state.G.me;
+      
+      if (isPlayer) {
+        // Show modal prompt for player
+        return new Promise(resolve => {
+          showModal(`Trigger ${verse.name}?`, [
+            { name: 'Yes', sub: verse.text || verse.abilityText, action: () => { closeModal(); resolve(true); } },
+            { name: 'No', sub: 'Save for later', action: () => { closeModal(); resolve(false); } }
+          ], { noCancel: true });
+        });
+      } else {
+        // AI evaluation
+        return evaluateAiTrigger(owner, verse, context);
+      }
+    }
+    
+    /**
+     * AI decides whether to trigger a set verse
+     */
+    function evaluateAiTrigger(owner, verse, context) {
+      const { attacker, defender, damage } = context;
+      
+      switch (verse.id) {
+        case 'phantomWall':
+          // Always trigger - negates attack entirely
+          return true;
+          
+        case 'spikeShield':
+          // Trigger if would KO attacker or they're low HP
+          return attacker && attacker.curHp <= 20;
+          
+        case 'brace':
+        case 'swarmShield':
+          // Trigger only if it would actually save the creature from KO
+          if (!defender || !damage) return true;
+          const wouldDieWithout = damage >= defender.curHp;
+          const wouldSurviveWith = (damage - 15) < defender.curHp;
+          return wouldDieWithout && wouldSurviveWith;
+          
+        case 'vengeance':
+        case 'mirrorForce':
+          // Trigger if attacker is valuable (high ATK)
+          return attacker && attacker.atk >= 20;
+          
+        case 'denMother':
+          // Trigger if we have creatures that can use the buff
+          return owner.active || owner.bench.length > 0;
+          
+        case 'graveRise':
+          // Trigger if there's a 1-cost creature to revive and room
+          const hasTarget = owner.grave.some(c => c.cardType === 'creature' && c.cost === 1);
+          const hasRoom = !owner.active || owner.bench.length < 2;
+          return hasTarget && hasRoom;
+          
+        default:
+          return true; // Unknown verse - trigger by default
+      }
     }
     
     function passResponse() {

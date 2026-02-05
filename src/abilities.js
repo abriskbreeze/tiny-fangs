@@ -89,9 +89,10 @@ export function getAtkModifiers(creature, owner, enemy) {
 }
 
 /**
- * Calculate damage reduction for a creature
+ * Calculate damage reduction for a creature (creature abilities only, not set verses)
+ * Set verses (Brace, Swarm Shield) are handled separately for optional triggers
  */
-export function getEffectiveDamageReduction(creature, owner) {
+export function getEffectiveDamageReduction(creature, owner, includeSetVerses = false) {
   let reduction = 0;
   
   // Den Guard (Hollowfox): -10 damage when bench has creatures
@@ -99,14 +100,17 @@ export function getEffectiveDamageReduction(creature, owner) {
     reduction += 10;
   }
   
-  // Swarm Shield (set verse): -15 damage when has bench
-  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
-    reduction += 15;
-  }
-  
-  // Brace (set verse): -15 damage
-  if (owner.setVerse?.id === 'brace') {
-    reduction += 15;
+  // Set verse reductions (only if explicitly included - for backwards compat)
+  if (includeSetVerses) {
+    // Swarm Shield (set verse): -15 damage when has bench
+    if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
+      reduction += 15;
+    }
+    
+    // Brace (set verse): -15 damage
+    if (owner.setVerse?.id === 'brace') {
+      reduction += 15;
+    }
   }
   
   // === Shell Pack damage reduction ===
@@ -135,19 +139,36 @@ export function getEffectiveDamageReduction(creature, owner) {
 }
 
 /**
- * Get list of active damage reduction effects (for logging)
+ * Check if a set verse would provide damage reduction
+ * Returns { verse, reduction } or null
  */
-export function getDamageReductionSources(creature, owner) {
+export function getSetVerseReduction(owner) {
+  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
+    return { verse: owner.setVerse, reduction: 15 };
+  }
+  if (owner.setVerse?.id === 'brace') {
+    return { verse: owner.setVerse, reduction: 15 };
+  }
+  return null;
+}
+
+/**
+ * Get list of active damage reduction effects (for logging)
+ * Set verses excluded by default (handled separately for optional triggers)
+ */
+export function getDamageReductionSources(creature, owner, includeSetVerses = false) {
   const sources = [];
   
   if (creature.id === 'hollowfox' && owner.bench.length > 0) {
     sources.push({ name: 'Den Guard', value: 10 });
   }
-  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
-    sources.push({ name: 'Swarm Shield', value: 15 });
-  }
-  if (owner.setVerse?.id === 'brace') {
-    sources.push({ name: 'Brace', value: 15 });
+  if (includeSetVerses) {
+    if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
+      sources.push({ name: 'Swarm Shield', value: 15 });
+    }
+    if (owner.setVerse?.id === 'brace') {
+      sources.push({ name: 'Brace', value: 15 });
+    }
   }
   if (creature.id === 'pebbleback') {
     sources.push({ name: 'Sturdy', value: 5 });
