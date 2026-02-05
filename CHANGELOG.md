@@ -2,6 +2,47 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.2.60] - 2026-02-05
+
+### Fixed (19 bugs)
+
+**Visual/UI (4 bugs)**
+- Pulsefin ATK modifier UI now shows doubled ATK when Sonic Strike active
+- Duskfang ATK boost UI now displays +20 from Pack Call
+- Opponent deck count visible in left stats column
+- Graveyard modal: newest cards at top, scrollbar after 4 cards
+
+**Card Effects (5 bugs)**
+- Grave Echo returns creatures with full HP (was 0 HP)
+- Vengeance only triggers on attack KO (not spell/verse KO)
+- Mana Drain: caster still pays mana even when spell negated
+- Predator's Mark no longer doubled by Pulsefin (30 base × 2 = 60, +30 = 90)
+- Call of the Wild text updated: "RANDOM 1-cost creature"
+
+**Target Selectors (3 bugs)**
+- Ignite: target selector for any creature with ownership visual
+- Banish: target selector with ownership visual (yours = green, enemy = red)
+- Soul Siphon: target selector, only heals if damage was dealt
+
+**Combat Flow (4 bugs)**
+- Action lock prevents multiple attacks from rapid button clicks
+- 0 HP creatures properly KO'd after Soul Siphon (fixed owner detection)
+- AI attack behavior fixed (was stuck when creature had 0 HP but not KO'd)
+- Grave Rise summon-to-bench already working correctly (verified)
+
+**AI Behavior (3 bugs)**
+- AI uses `getEffectiveAtk()` for ability-modified creatures (Shade Pup, Pulsefin)
+- AI Blood Moon self-preservation: won't KO own creature without benefit
+- AI Predator's Mark efficiency: won't cast after attacking or when already can KO
+
+### Added
+- `showCreatureSelector()` modal with ownership labels
+- `aiSelectCreatureTarget()` for intelligent AI target selection
+- `actionLock` flag to prevent double attacks
+- 48 new tests across 4 test files
+
+---
+
 ## [0.2.59] - 2026-02-05
 
 ### Fixed
