@@ -3120,6 +3120,8 @@
         
         // Direct attack if no defender (always 1 LP)
         if (!state.G.opp.active) {
+          // Play attack animation (lunge only, no defender to shake)
+          await Anim.attackDirect('me');
           state.G.opp.lp -= 1;
           log(`Direct attack! Rival loses a life!`, 'dmg');
           Anim.lpDamage('opp', 1);
@@ -3575,6 +3577,7 @@
             render();
           } else {
             // Direct damage (no defender)
+            await Anim.attackDirect('opp');
             state.G.me.lp -= 1;
             log(`Direct attack! You lose a life!`, 'dmg');
             await Anim.lpDamage('me', 1);

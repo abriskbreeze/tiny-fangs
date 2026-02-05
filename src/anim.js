@@ -123,7 +123,7 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // On hit (after coiled strike peaks at ~50% = 300ms)
+      // On hit (2/3 through attack animation = 400ms)
       setTimeout(() => {
         // Screen flash for impact
         this.screenFlash('red');
@@ -132,9 +132,26 @@ export const Anim = {
         this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
         // Floating damage
         this.floatText(`-${damage}`, 'damage', defEl);
-      }, 300);
+      }, 400);
       
       // Resolve after full sequence
+      setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
+    });
+  },
+  
+  // Direct attack animation (no defender) - returns promise
+  attackDirect(attackerSide) {
+    return new Promise(resolve => {
+      const lungeClass = attackerSide === 'me' ? 'anim-lunge-up' : 'anim-lunge-down';
+      const atkSelector = attackerSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      
+      this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
+      
+      // Screen flash at 2/3 through
+      setTimeout(() => {
+        this.screenFlash('red');
+      }, 400);
+      
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
     });
   },
