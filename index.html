@@ -2692,6 +2692,7 @@
         firstTurn: true,
         hasAttacked: false,  // C3: Track if player attacked this turn
         hasRetreated: false, // C3: Track if player retreated this turn
+        actionLock: false,   // BUG-12: Prevent multiple attack button clicks
         aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
       };
       
@@ -3435,6 +3436,12 @@
           });
           if (!selectionResult) return; // Canceled - no mana spent
         }
+        
+        // BUG-07, BUG-08, BUG-09: anyCreature selection (Ignite, Banish, Soul Siphon)
+        if (c.selection?.type === 'anyCreature') {
+          selectionResult = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
+          if (!selectionResult) return; // Canceled - no mana spent
+        }
       }
       
       // === NOW spend mana (after selection confirmed) ===
@@ -4012,12 +4019,15 @@
     
     async function doAttack() {
       if (state.animating) return; // Block during animations
+      if (state.G.actionLock) return; // BUG-12: Prevent multiple attack clicks
       if (!state.G.me.active) return;
       
       if (state.G.firstTurn) {
         log("Can't attack on first turn!", 'dmg');
         return;
       }
+      
+      state.G.actionLock = true; // BUG-12: Lock actions during attack
       
       try {
         const attacker = state.G.me.active;
@@ -4087,20 +4097,22 @@
         // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
         let baseDmg = getEffectiveAtk(attacker, state.G.me, state.G.opp);
         
-        // Attack bonuses (Den Mother, Predator's Mark, etc.) - apply to first hit only
+        // Pulsefin Sonic Strike (first attack doubles) - BUG-11 FIX: Apply BEFORE one-shot bonuses
+        // One-shot bonuses like Predator's Mark should NOT be doubled
+        if (attacker.id === 'pulsefin' && attacker.firstAtk) {
+          baseDmg *= 2;
+          attacker.firstAtk = false;
+          log('Sonic Strike! Double damage', 'mana');
+        }
+        
+        // Attack bonuses (Den Mother, Predator's Mark, etc.) - apply AFTER ability doublers
+        // BUG-11 FIX: These one-shot bonuses are applied last, not doubled by Pulsefin
         if (state.G.me.attackBonuses.length > 0) {
           for (const bonus of state.G.me.attackBonuses) {
             baseDmg += bonus.value;
             log(`${bonus.source}! +${bonus.value} damage`, 'mana');
           }
           state.G.me.attackBonuses = []; // Consume all bonuses
-        }
-        
-        // Pulsefin Sonic Strike (first attack doubles)
-        if (attacker.id === 'pulsefin' && attacker.firstAtk) {
-          baseDmg *= 2;
-          attacker.firstAtk = false;
-          log('Sonic Strike! Double damage', 'mana');
         }
         
         if (isCindermaw) {
@@ -4307,6 +4319,8 @@
         state.G.hasAttacked = true; // C3: Still mark attack to prevent retry
         render();
         highlightEndTurn(true);
+      } finally {
+        state.G.actionLock = false; // BUG-12: Always release lock
       }
     }
     
@@ -4890,14 +4904,7 @@
       // Calculate damage (creature vs creature)
       // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
       let dmg = getEffectiveAtk(ai.active, ai, player);
-      // Attack bonuses (Den Mother, Predator's Mark, etc.)
-      if (ai.attackBonuses.length > 0) {
-        for (const bonus of ai.attackBonuses) {
-          dmg += bonus.value;
-          log(`Rival's ${bonus.source}! +${bonus.value} damage`, 'dmg');
-        }
-        ai.attackBonuses = [];
-      }
+      // Pulsefin/Cindermaw ability doublers - BUG-11 FIX: Apply BEFORE one-shot bonuses
       if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
         dmg *= 2;
         ai.active.firstAtk = false;
@@ -4906,6 +4913,14 @@
       if (ai.active.id === 'cindermaw') {
         dmg *= 2;
         log('Frenzy! Double damage!', 'dmg');
+      }
+      // Attack bonuses (Den Mother, Predator's Mark, etc.) - BUG-11 FIX: Apply AFTER doublers
+      if (ai.attackBonuses.length > 0) {
+        for (const bonus of ai.attackBonuses) {
+          dmg += bonus.value;
+          log(`Rival's ${bonus.source}! +${bonus.value} damage`, 'dmg');
+        }
+        ai.attackBonuses = [];
       }
       
       // Damage reduction (creature abilities first)
@@ -5563,6 +5578,7 @@
       
       // Emit beforeKO event for triggers like Vengeance
       // Only emit if there's an attacker (combat KO)
+      // BUG-06 FIX: Pass source: 'attack' so Vengeance only triggers on attack KO
       if (attacker && attackerOwner) {
         const attackerOwnerKey = attackerOwner === state.G.me ? 'me' : 'opp';
         const beforeKOCtx = await processTriggers('beforeKO', {
@@ -5572,7 +5588,8 @@
           attacker: attacker,
           attackerOwner: attackerOwner,
           attackerOwnerKey: attackerOwnerKey,
-          activePlayerKey: attackerOwnerKey  // Attacker's turn
+          activePlayerKey: attackerOwnerKey,  // Attacker's turn
+          source: 'attack'  // BUG-06 FIX: Mark this as attack-caused KO
         }, state, {
           promptTrigger,
           showTriggerReveal,
@@ -5762,6 +5779,108 @@
     function closeModal() {
       $('modal').classList.remove('open');
     }
+    
+    /**
+     * Show creature selector for anyCreature targeting (Ignite, Banish, Soul Siphon)
+     * Shows all creatures on field with YOURS/ENEMY ownership labels
+     * @param {string} prompt - Modal title
+     * @returns {Promise<{creature, location, ownerKey, idx?}|null>} - Selected creature or null
+     */
+    async function showCreatureSelector(prompt) {
+      const options = [];
+      
+      // YOURS section
+      if (state.G.me.active) {
+        options.push({
+          creature: state.G.me.active,
+          location: 'active',
+          ownerKey: 'me',
+          name: `[YOURS] ${state.G.me.active.name}`,
+          sub: `${state.G.me.active.curHp}/${state.G.me.active.hp} HP • Active`,
+          cssClass: 'selector-yours'
+        });
+      }
+      state.G.me.bench.forEach((cr, idx) => {
+        options.push({
+          creature: cr,
+          location: 'bench',
+          ownerKey: 'me',
+          idx,
+          name: `[YOURS] ${cr.name}`,
+          sub: `${cr.curHp}/${cr.hp} HP • Bench`,
+          cssClass: 'selector-yours'
+        });
+      });
+      
+      // ENEMY section
+      if (state.G.opp.active) {
+        options.push({
+          creature: state.G.opp.active,
+          location: 'active',
+          ownerKey: 'opp',
+          name: `[ENEMY] ${state.G.opp.active.name}`,
+          sub: `${state.G.opp.active.curHp}/${state.G.opp.active.hp} HP • Active`,
+          cssClass: 'selector-enemy'
+        });
+      }
+      state.G.opp.bench.forEach((cr, idx) => {
+        options.push({
+          creature: cr,
+          location: 'bench',
+          ownerKey: 'opp',
+          idx,
+          name: `[ENEMY] ${cr.name}`,
+          sub: `${cr.curHp}/${cr.hp} HP • Bench`,
+          cssClass: 'selector-enemy'
+        });
+      });
+      
+      // No valid targets
+      if (options.length === 0) {
+        showModal(prompt, [{
+          name: 'No creatures on field!',
+          sub: 'The battlefield is empty...',
+          action: () => closeModal()
+        }]);
+        return null;
+      }
+      
+      // Show selector modal with ownership styling
+      return new Promise(resolve => {
+        $('modal-title').textContent = prompt;
+        $('modal-opts').innerHTML = options.map((opt, i) => `
+          <div class="option ${opt.cssClass}" onclick="creatureSelectorAction(${i})">
+            <div class="name">${opt.name}</div>
+            <div class="sub">${opt.sub}</div>
+          </div>
+        `).join('');
+        window._creatureSelectorOptions = options;
+        window._creatureSelectorResolve = resolve;
+        const cancelBtn = $('modal').querySelector('.cancel');
+        if (cancelBtn) {
+          cancelBtn.style.display = '';
+          cancelBtn.onclick = () => {
+            closeModal();
+            resolve(null);
+          };
+        }
+        $('modal').classList.add('open');
+      });
+    }
+    
+    function creatureSelectorAction(i) {
+      if (window._creatureSelectorOptions && window._creatureSelectorOptions[i]) {
+        const opt = window._creatureSelectorOptions[i];
+        closeModal();
+        window._creatureSelectorResolve({
+          creature: opt.creature,
+          location: opt.location,
+          ownerKey: opt.ownerKey,
+          idx: opt.idx
+        });
+      }
+    }
+    window.creatureSelectorAction = creatureSelectorAction;
     
     // ═══════════════════════════════════════════════════════════════
     // OPTIONAL SET VERSE TRIGGERS
