@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.40</title>
+  <title>TINY FANGS v0.2.41</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1984,7 +1984,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.40 • Card Battler</p>
+    <p class="sub">v0.2.41 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2099,7 +2099,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.40</div>
+      <div class="logo">TINY FANGS v0.2.41</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3388,29 +3388,54 @@
             }
           }
           break;
-        case 'bloodMoon':
+        case 'bloodMoon': {
           // C1: Blood Moon damages ALL creatures (active + bench) on BOTH sides
           log('Blood Moon! All creatures take 20 damage!', 'dmg');
           
-          // Damage player's active
-          if (state.G.me.active) { 
-            const moonKoMe = applyDamage(state.G.me.active, 20);
-            await Anim.damage('me', 20);
-            if (moonKoMe) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
-          }
-          // Damage player's bench (animate all first, then process KOs)
-          for (let i = 0; i < state.G.me.bench.length; i++) {
+          // OPTION A: Capture all targets BEFORE any damage/KO processing
+          const bmTargets = {
+            meActive: state.G.me.active,
+            meBench: [...state.G.me.bench],
+            oppActive: state.G.opp.active,
+            oppBench: [...state.G.opp.bench]
+          };
+          
+          // Phase 1: Animate all damage
+          if (bmTargets.meActive) await Anim.damage('me', 20);
+          for (let i = 0; i < bmTargets.meBench.length; i++) {
             await Anim.benchDamage('me', i, 20);
           }
-          for (let i = state.G.me.bench.length - 1; i >= 0; i--) {
-            const benchCreature = state.G.me.bench[i];
-            const benchKo = applyDamage(benchCreature, 20);
-            log(`${benchCreature.name} (bench) -20`, 'dmg');
-            if (benchKo) {
-              log(`${benchCreature.name} KO'd!`, 'dmg');
-              state.G.me.grave.push(benchCreature);
-              state.G.me.bench.splice(i, 1);
-              // C2: Trigger KO effects for benched creatures too (Den Mother, etc.)
+          if (bmTargets.oppActive) await Anim.damage('opp', 20);
+          for (let i = 0; i < bmTargets.oppBench.length; i++) {
+            await Anim.benchDamage('opp', i, 20);
+          }
+          
+          // Phase 2: Apply damage to all captured targets (no KO processing yet)
+          const bmKos = { meActive: false, meBench: [], oppActive: false, oppBench: [] };
+          if (bmTargets.meActive) {
+            bmKos.meActive = applyDamage(bmTargets.meActive, 20);
+          }
+          for (const bc of bmTargets.meBench) {
+            const ko = applyDamage(bc, 20);
+            log(`${bc.name} (bench) -20`, 'dmg');
+            bmKos.meBench.push({ creature: bc, ko });
+          }
+          if (bmTargets.oppActive) {
+            bmKos.oppActive = applyDamage(bmTargets.oppActive, 20);
+          }
+          for (const bc of bmTargets.oppBench) {
+            const ko = applyDamage(bc, 20);
+            log(`${bc.name} (bench) -20`, 'dmg');
+            bmKos.oppBench.push({ creature: bc, ko });
+          }
+          
+          // Phase 3: Process all KOs (bench first, then active)
+          for (const { creature, ko: isKo } of bmKos.meBench) {
+            if (isKo) {
+              log(`${creature.name} KO'd!`, 'dmg');
+              state.G.me.grave.push(creature);
+              const idx = state.G.me.bench.indexOf(creature);
+              if (idx !== -1) state.G.me.bench.splice(idx, 1);
               if (state.G.me.setVerse?.id === 'denMother') {
                 await showTriggerReveal(state.G.me.setVerse);
                 state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
@@ -3420,26 +3445,12 @@
               }
             }
           }
-          
-          // Damage opponent's active
-          if (state.G.opp.active) { 
-            const moonKoOpp = applyDamage(state.G.opp.active, 20);
-            await Anim.damage('opp', 20);
-            if (moonKoOpp) { await Anim.ko('opp'); await ko(state.G.opp.active, state.G.opp); }
-          }
-          // Damage opponent's bench (animate all first, then process KOs)
-          for (let i = 0; i < state.G.opp.bench.length; i++) {
-            await Anim.benchDamage('opp', i, 20);
-          }
-          for (let i = state.G.opp.bench.length - 1; i >= 0; i--) {
-            const benchCreature = state.G.opp.bench[i];
-            const benchKo = applyDamage(benchCreature, 20);
-            log(`${benchCreature.name} (bench) -20`, 'dmg');
-            if (benchKo) {
-              log(`${benchCreature.name} KO'd!`, 'dmg');
-              state.G.opp.grave.push(benchCreature);
-              state.G.opp.bench.splice(i, 1);
-              // C2: Trigger KO effects for opponent's benched creatures too
+          for (const { creature, ko: isKo } of bmKos.oppBench) {
+            if (isKo) {
+              log(`${creature.name} KO'd!`, 'dmg');
+              state.G.opp.grave.push(creature);
+              const idx = state.G.opp.bench.indexOf(creature);
+              if (idx !== -1) state.G.opp.bench.splice(idx, 1);
               if (state.G.opp.setVerse?.id === 'denMother') {
                 await showTriggerReveal(state.G.opp.setVerse);
                 state.G.opp.attackBonuses.push({ source: 'Den Mother', value: 10 });
@@ -3449,8 +3460,13 @@
               }
             }
           }
+          // Active KOs last (so bench swaps happen after bench damage is done)
+          if (bmKos.meActive) { await Anim.ko('me'); await ko(bmTargets.meActive, state.G.me); }
+          if (bmKos.oppActive) { await Anim.ko('opp'); await ko(bmTargets.oppActive, state.G.opp); }
+          
           render();
           break;
+        }
         case 'secondWind':
           if (state.G.me.active) {
             state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 40);
@@ -4316,28 +4332,54 @@
             }
           }
           break;
-        case 'bloodMoon':
+        case 'bloodMoon': {
           // C1: Blood Moon damages ALL creatures (active + bench) on BOTH sides
           log('Blood Moon! All creatures take 20 damage!', 'dmg');
           
-          // Damage AI's active
-          if (ai.active) {
-            const koAi = applyDamage(ai.active, 20);
-            await Anim.damage('opp', 20);
-            if (koAi) { await Anim.ko('opp'); await ko(ai.active, ai); }
-          }
-          // Damage AI's bench (animate all first, then process KOs)
-          for (let i = 0; i < ai.bench.length; i++) {
+          // OPTION A: Capture all targets BEFORE any damage/KO processing
+          const bmTargets = {
+            aiActive: ai.active,
+            aiBench: [...ai.bench],
+            playerActive: player.active,
+            playerBench: [...player.bench]
+          };
+          
+          // Phase 1: Animate all damage
+          if (bmTargets.aiActive) await Anim.damage('opp', 20);
+          for (let i = 0; i < bmTargets.aiBench.length; i++) {
             await Anim.benchDamage('opp', i, 20);
           }
-          for (let i = ai.bench.length - 1; i >= 0; i--) {
-            const benchCreature = ai.bench[i];
-            const benchKo = applyDamage(benchCreature, 20);
-            log(`${benchCreature.name} (bench) -20`, 'dmg');
-            if (benchKo) {
-              log(`${benchCreature.name} KO'd!`, 'dmg');
-              ai.grave.push(benchCreature);
-              ai.bench.splice(i, 1);
+          if (bmTargets.playerActive) await Anim.damage('me', 20);
+          for (let i = 0; i < bmTargets.playerBench.length; i++) {
+            await Anim.benchDamage('me', i, 20);
+          }
+          
+          // Phase 2: Apply damage to all captured targets
+          const bmKos = { aiActive: false, aiBench: [], playerActive: false, playerBench: [] };
+          if (bmTargets.aiActive) {
+            bmKos.aiActive = applyDamage(bmTargets.aiActive, 20);
+          }
+          for (const bc of bmTargets.aiBench) {
+            const isKo = applyDamage(bc, 20);
+            log(`${bc.name} (bench) -20`, 'dmg');
+            bmKos.aiBench.push({ creature: bc, ko: isKo });
+          }
+          if (bmTargets.playerActive) {
+            bmKos.playerActive = applyDamage(bmTargets.playerActive, 20);
+          }
+          for (const bc of bmTargets.playerBench) {
+            const isKo = applyDamage(bc, 20);
+            log(`${bc.name} (bench) -20`, 'dmg');
+            bmKos.playerBench.push({ creature: bc, ko: isKo });
+          }
+          
+          // Phase 3: Process all KOs (bench first, then active)
+          for (const { creature, ko: isKo } of bmKos.aiBench) {
+            if (isKo) {
+              log(`${creature.name} KO'd!`, 'dmg');
+              ai.grave.push(creature);
+              const idx = ai.bench.indexOf(creature);
+              if (idx !== -1) ai.bench.splice(idx, 1);
               if (ai.setVerse?.id === 'denMother') {
                 await showTriggerReveal(ai.setVerse);
                 ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
@@ -4347,25 +4389,12 @@
               }
             }
           }
-          
-          // Damage player's active
-          if (player.active) {
-            const koPlayer = applyDamage(player.active, 20);
-            await Anim.damage('me', 20);
-            if (koPlayer) { await Anim.ko('me'); await ko(player.active, player); }
-          }
-          // Damage player's bench (animate all first, then process KOs)
-          for (let i = 0; i < player.bench.length; i++) {
-            await Anim.benchDamage('me', i, 20);
-          }
-          for (let i = player.bench.length - 1; i >= 0; i--) {
-            const benchCreature = player.bench[i];
-            const benchKo = applyDamage(benchCreature, 20);
-            log(`${benchCreature.name} (bench) -20`, 'dmg');
-            if (benchKo) {
-              log(`${benchCreature.name} KO'd!`, 'dmg');
-              player.grave.push(benchCreature);
-              player.bench.splice(i, 1);
+          for (const { creature, ko: isKo } of bmKos.playerBench) {
+            if (isKo) {
+              log(`${creature.name} KO'd!`, 'dmg');
+              player.grave.push(creature);
+              const idx = player.bench.indexOf(creature);
+              if (idx !== -1) player.bench.splice(idx, 1);
               if (player.setVerse?.id === 'denMother') {
                 await showTriggerReveal(player.setVerse);
                 player.attackBonuses.push({ source: 'Den Mother', value: 10 });
@@ -4375,8 +4404,13 @@
               }
             }
           }
+          // Active KOs last
+          if (bmKos.aiActive) { await Anim.ko('opp'); await ko(bmTargets.aiActive, ai); }
+          if (bmKos.playerActive) { await Anim.ko('me'); await ko(bmTargets.playerActive, player); }
+          
           render();
           break;
+        }
         case 'packTactics':
           const count = (ai.active ? 1 : 0) + ai.bench.length;
           const drawCount = Math.min(count, 3);
@@ -4933,41 +4967,71 @@
                   }
                 }
                 break;
-              case 'bloodMoon':
+              case 'bloodMoon': {
                 // C1: Blood Moon damages ALL creatures (active + bench)
                 log('Blood Moon! All creatures take 20 damage!', 'dmg');
-                if (ai.active) {
-                  const moonKoAi = applyDamage(ai.active, 20);
-                  await Anim.damage('opp', 20);
-                  if (moonKoAi) { await Anim.ko('opp'); await ko(ai.active, ai); }
-                }
-                // Animate AI bench damage
-                for (let i = 0; i < ai.bench.length; i++) {
+                
+                // OPTION A: Capture all targets BEFORE any damage/KO processing
+                const bmTargets = {
+                  aiActive: ai.active,
+                  aiBench: [...ai.bench],
+                  playerActive: state.G.me.active,
+                  playerBench: [...state.G.me.bench]
+                };
+                
+                // Phase 1: Animate all damage
+                if (bmTargets.aiActive) await Anim.damage('opp', 20);
+                for (let i = 0; i < bmTargets.aiBench.length; i++) {
                   await Anim.benchDamage('opp', i, 20);
                 }
-                for (let i = ai.bench.length - 1; i >= 0; i--) {
-                  const bc = ai.bench[i];
-                  const bko = applyDamage(bc, 20);
-                  log(`${bc.name} (bench) -20`, 'dmg');
-                  if (bko) { ai.grave.push(bc); ai.bench.splice(i, 1); }
-                }
-                if (state.G.me.active) {
-                  const moonKoMe = applyDamage(state.G.me.active, 20);
-                  await Anim.damage('me', 20);
-                  if (moonKoMe) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
-                }
-                // Animate player bench damage
-                for (let i = 0; i < state.G.me.bench.length; i++) {
+                if (bmTargets.playerActive) await Anim.damage('me', 20);
+                for (let i = 0; i < bmTargets.playerBench.length; i++) {
                   await Anim.benchDamage('me', i, 20);
                 }
-                for (let i = state.G.me.bench.length - 1; i >= 0; i--) {
-                  const bc = state.G.me.bench[i];
-                  const bko = applyDamage(bc, 20);
-                  log(`${bc.name} (bench) -20`, 'dmg');
-                  if (bko) { state.G.me.grave.push(bc); state.G.me.bench.splice(i, 1); }
+                
+                // Phase 2: Apply damage to all captured targets
+                const bmKos = { aiActive: false, aiBench: [], playerActive: false, playerBench: [] };
+                if (bmTargets.aiActive) {
+                  bmKos.aiActive = applyDamage(bmTargets.aiActive, 20);
                 }
+                for (const bc of bmTargets.aiBench) {
+                  const isKo = applyDamage(bc, 20);
+                  log(`${bc.name} (bench) -20`, 'dmg');
+                  bmKos.aiBench.push({ creature: bc, ko: isKo });
+                }
+                if (bmTargets.playerActive) {
+                  bmKos.playerActive = applyDamage(bmTargets.playerActive, 20);
+                }
+                for (const bc of bmTargets.playerBench) {
+                  const isKo = applyDamage(bc, 20);
+                  log(`${bc.name} (bench) -20`, 'dmg');
+                  bmKos.playerBench.push({ creature: bc, ko: isKo });
+                }
+                
+                // Phase 3: Process all KOs (bench first, then active)
+                for (const { creature, ko: isKo } of bmKos.aiBench) {
+                  if (isKo) {
+                    log(`${creature.name} KO'd!`, 'dmg');
+                    ai.grave.push(creature);
+                    const idx = ai.bench.indexOf(creature);
+                    if (idx !== -1) ai.bench.splice(idx, 1);
+                  }
+                }
+                for (const { creature, ko: isKo } of bmKos.playerBench) {
+                  if (isKo) {
+                    log(`${creature.name} KO'd!`, 'dmg');
+                    state.G.me.grave.push(creature);
+                    const idx = state.G.me.bench.indexOf(creature);
+                    if (idx !== -1) state.G.me.bench.splice(idx, 1);
+                  }
+                }
+                // Active KOs last
+                if (bmKos.aiActive) { await Anim.ko('opp'); await ko(bmTargets.aiActive, ai); }
+                if (bmKos.playerActive) { await Anim.ko('me'); await ko(bmTargets.playerActive, state.G.me); }
+                
                 render();
                 break;
+              }
               case 'packTactics':
                 const count = (ai.active ? 1 : 0) + ai.bench.length;
                 const drawCount = Math.min(count, 3);
