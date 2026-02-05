@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.42</title>
+  <title>TINY FANGS v0.2.43</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1685,6 +1685,22 @@
     .anim-lunge-down { animation: lunge-down 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
     .anim-lunge-up { animation: lunge-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
     
+    /* End Turn button highlight after attack */
+    @keyframes end-turn-pulse {
+      0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 200, 100, 0);
+      }
+      50% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 12px rgba(255, 200, 100, 0.7);
+      }
+    }
+    .end-turn-highlight {
+      animation: end-turn-pulse 1.2s ease-in-out infinite;
+      border-color: #f5c542 !important;
+    }
+    
     /* Summon (card slam) - MORE DRAMATIC */
     @keyframes card-summon {
       0% { 
@@ -1984,7 +2000,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.42 • Card Battler</p>
+    <p class="sub">v0.2.43 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2099,7 +2115,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.42</div>
+      <div class="logo">TINY FANGS v0.2.43</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2538,6 +2554,50 @@
       }
       
       overlay.remove();
+    }
+    
+    async function playTurnEndAnimation() {
+      state.animating = true;
+      
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      const display = document.createElement('pre');
+      display.style.cssText = 'color:var(--text);font-size:28px;text-align:center;font-family:monospace;line-height:1.2;transition:transform 0.15s ease-out;';
+      overlay.appendChild(display);
+      document.body.appendChild(overlay);
+      
+      // TURN END animation frames (similar style to BEGIN)
+      const frames = [
+        { text: "│                           │\n│                           │\n│                           │", delay: 50 },
+        { text: " │                         │\n─┼─T───────────────────D───┼─\n │                         │", delay: 60 },
+        { text: "  │                       │\n──┼──T─────────────D──────┼──\n  │        RN             │", delay: 60 },
+        { text: "   │                     │\n───┼───T───────────D─────┼───\n   │       RN EN          │", delay: 60 },
+        { text: "    │                   │\n────┼────T─────────D────┼────\n    │      RN EN         │", delay: 60 },
+        { text: "     │                 │\n─────┼────TURN END─────┼─────\n     │                 │", delay: 80 },
+        { text: "TURN END", delay: 120, scale: 1.2 },
+        { text: "TURN END", delay: 400, scale: 1.4 },
+      ];
+      
+      for (const frame of frames) {
+        display.textContent = frame.text;
+        display.style.transform = `scale(${frame.scale || 1})`;
+        await Anim.wait(frame.delay);
+      }
+      
+      overlay.remove();
+      state.animating = false;
+    }
+    
+    function highlightEndTurn(show = true) {
+      const mBtn = $('m-btn-end');
+      const dBtn = $('d-btn-end');
+      if (show) {
+        mBtn?.classList.add('end-turn-highlight');
+        dBtn?.classList.add('end-turn-highlight');
+      } else {
+        mBtn?.classList.remove('end-turn-highlight');
+        dBtn?.classList.remove('end-turn-highlight');
+      }
     }
     
     async function startGame(deckId, playerFirst = true) {
@@ -3147,6 +3207,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     function doSummon() {
+      if (state.animating) return; // Block during animations
       const creatures = state.G.me.hand.filter(c => c.cardType === 'creature');
       if (!creatures.length) return;
       
@@ -3244,6 +3305,7 @@
     }
     
     function doCast() {
+      if (state.animating) return; // Block during animations
       const casts = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
       if (!casts.length) return;
       
@@ -3695,6 +3757,7 @@
     }
     
     function doSet() {
+      if (state.animating) return; // Block during animations
       if (state.G.me.setVerse) {
         log('Already have a set verse!');
         return;
@@ -3729,6 +3792,7 @@
     }
     
     async function doAttack() {
+      if (state.animating) return; // Block during animations
       if (!state.G.me.active) return;
       
       if (state.G.firstTurn) {
@@ -3990,15 +4054,18 @@
         
         state.G.hasAttacked = true; // C3: Mark attack done (can still cast/set verses)
         render();
+        highlightEndTurn(true); // Prompt player to end turn
       } catch (err) {
         console.error('Attack error:', err);
         log('(Attack error)', 'dmg');
         state.G.hasAttacked = true; // C3: Still mark attack to prevent retry
         render();
+        highlightEndTurn(true);
       }
     }
     
     function doRetreat() {
+      if (state.animating) return; // Block during animations
       if (!state.G.me.active || !state.G.me.bench.length) return;
       if (state.G.me.active.status === 'trapped') {
         log('Cannot retreat - trapped!', 'dmg');
@@ -4022,8 +4089,12 @@
       })));
     }
     
-    function endTurn() {
+    async function endTurn() {
       if (state.G.winner) return;
+      if (state.animating) return; // Block during animations
+      
+      // Clear END TURN highlight
+      highlightEndTurn(false);
       
       // Poison damage
       if (state.G.me.active && state.G.me.active.status === 'poison') {
@@ -4049,6 +4120,9 @@
       if (state.G.me.maxMana < 5) state.G.me.maxMana++;
       
       render();
+      
+      // TURN END animation
+      await playTurnEndAnimation();
       
       // AI turn
       setTimeout(aiTurn, 600);
@@ -4131,6 +4205,7 @@
       
       // Transition to player turn
       await pause();
+      await playTurnEndAnimation();
       if (!state.G.winner) startPlayerTurn();
     }
     
@@ -5137,6 +5212,7 @@
       
       // Transition to player turn
       await pause();
+      await playTurnEndAnimation();
       if (!state.G.winner) startPlayerTurn();
     }
     
