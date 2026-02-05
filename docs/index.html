@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.30</title>
+  <title>TINY FANGS v0.2.54</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1328,6 +1328,42 @@
       line-height: 1.4;
     }
     
+    .difficulty-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    
+    .diff-label {
+      font-size: 11px;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    
+    .diff-btn {
+      padding: 6px 16px;
+      font-size: 11px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .diff-btn:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+    
+    .diff-btn.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+    
     /* Result Screen */
     
     .result {
@@ -1704,6 +1740,24 @@
     
     .anim-lunge-up { animation: lunge-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
     
+    /* End Turn button highlight after attack */
+    
+    @keyframes end-turn-pulse {
+      0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 200, 100, 0);
+      }
+      50% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 12px rgba(255, 200, 100, 0.7);
+      }
+    }
+    
+    .end-turn-highlight {
+      animation: end-turn-pulse 1.2s ease-in-out infinite;
+      border-color: #f5c542 !important;
+    }
+    
     /* Summon (card slam) - MORE DRAMATIC */
     
     @keyframes card-summon {
@@ -2034,7 +2088,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-Dp_N6liC.js"></script>
+  <script type="module" crossorigin src="./assets/index-DjncERt-.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -2042,7 +2096,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.30 • Card Battler</p>
+    <p class="sub">v0.2.52 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2070,6 +2124,11 @@
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
       </button>
+    </div>
+    <div class="difficulty-toggle">
+      <span class="diff-label">AI:</span>
+      <button id="diff-pup" class="diff-btn" onclick="setDifficulty(1)">Pup</button>
+      <button id="diff-hunter" class="diff-btn active" onclick="setDifficulty(2)">Hunter</button>
     </div>
   </div>
   
@@ -2152,7 +2211,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.30</div>
+      <div class="logo">TINY FANGS v0.2.52</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
