@@ -126,9 +126,11 @@
       100% { transform: translateY(0) scale(1) rotate(0deg); }
     }
     @keyframes coiled-hit {
-      0%, 45% { transform: translateY(0) scale(1); }
-      55% { transform: translateY(6px) scale(0.88) rotate(-5deg); filter: brightness(1.6); }
-      70% { transform: translateY(-4px) scale(1.05); }
+      0%, 45% { transform: translateY(0) scale(1) rotate(0deg); }
+      52% { transform: translateY(4px) scale(0.9) rotate(-8deg); filter: brightness(1.6); }
+      60% { transform: translateY(6px) scale(0.88) rotate(5deg); }
+      72% { transform: translateY(-3px) scale(1.04) rotate(-3deg); }
+      85% { transform: translateY(1px) rotate(1deg); }
       100% { transform: translateY(0) scale(1) rotate(0deg); }
     }
     .demo1 .card.player.anim { animation: coiled-strike 0.6s cubic-bezier(0.22, 0.61, 0.36, 1); }
