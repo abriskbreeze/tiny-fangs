@@ -413,6 +413,13 @@
       gap: 2px;
     }
     
+    .card-empty.grave-slot.has-grave {
+      border-style: solid;
+      border-color: var(--muted);
+      color: var(--muted);
+      background: var(--panel);
+    }
+    
     /* Hand */
     .m-hand {
       background: var(--panel);
@@ -1921,7 +1928,7 @@
     <div class="m-battle">
       <div class="m-field-half opp">
         <div class="m-active-row" style="width: 100%; justify-content: space-between;">
-          <div class="card-empty grave-slot" onclick="showGraveyard('opp')">☠ <span id="m-opp-grave-ct">0</span></div>
+          <div class="card-empty grave-slot" id="m-opp-grave-slot" onclick="showGraveyard('opp')">☠ <span id="m-opp-grave-ct">0</span></div>
           <div class="m-opp-right-group" style="display: flex; gap: 6px; align-items: flex-start;">
             <div class="card-empty set-slot" id="m-opp-set">NO SET</div>
             <div class="m-bench-wrap">
@@ -1945,7 +1952,7 @@
             </div>
             <div class="card-empty set-slot" id="m-my-set">NO SET</div>
           </div>
-          <div class="card-empty grave-slot" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
+          <div class="card-empty grave-slot" id="m-my-grave-slot" onclick="showGraveyard('me')">☠ <span id="m-my-grave-ct">0</span></div>
         </div>
       </div>
     </div>
@@ -2486,6 +2493,8 @@
       $('d-opp-grave').textContent = state.G.opp.grave.length;
       $('m-my-grave-ct').textContent = state.G.me.grave.length;
       $('m-opp-grave-ct').textContent = state.G.opp.grave.length;
+      $('m-my-grave-slot').classList.toggle('has-grave', state.G.me.grave.length > 0);
+      $('m-opp-grave-slot').classList.toggle('has-grave', state.G.opp.grave.length > 0);
       $('d-set-verse').textContent = state.G.me.setVerse ? '✓' : '-';
       
       // Set Verses
