@@ -6,15 +6,15 @@ import { $ } from './state.js';
 
 // Animation timing constants (keep in sync with CSS)
 export const ANIM_TIMING = {
-  SHAKE: 300,
-  LUNGE: 300,
+  SHAKE: 600,
+  LUNGE: 600,
   SUMMON: 500,
   KO: 400,
   FLASH: 300,
   VERSE_POPUP: 700,
   NEGATE: 500,
   FLOAT_TEXT: 800,
-  ATTACK_SEQUENCE: 450, // lunge + hit
+  ATTACK_SEQUENCE: 700, // coiled strike + hit reaction
   AI_PAUSE: 1400,       // pause between AI actions for readability (increased)
   TRIGGER_REVEAL: 5000, // how long to show triggered set verse (doubled from 2500)
 };
@@ -123,16 +123,16 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // On hit (after lunge peaks)
+      // On hit (after coiled strike peaks at ~50% = 300ms)
       setTimeout(() => {
         // Screen flash for impact
         this.screenFlash('red');
-        // Shake defender
+        // Shake defender (tilt wobble)
         this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
         this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
         // Floating damage
         this.floatText(`-${damage}`, 'damage', defEl);
-      }, 140);
+      }, 300);
       
       // Resolve after full sequence
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);

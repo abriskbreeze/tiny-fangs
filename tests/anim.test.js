@@ -3,15 +3,15 @@ import { ANIM_TIMING, Anim } from '../src/anim.js';
 
 describe('ANIM_TIMING', () => {
   it('has all required timing constants', () => {
-    expect(ANIM_TIMING.SHAKE).toBe(300);
-    expect(ANIM_TIMING.LUNGE).toBe(300);
+    expect(ANIM_TIMING.SHAKE).toBe(600);
+    expect(ANIM_TIMING.LUNGE).toBe(600);
     expect(ANIM_TIMING.SUMMON).toBe(500);
     expect(ANIM_TIMING.KO).toBe(400);
     expect(ANIM_TIMING.FLASH).toBe(300);
     expect(ANIM_TIMING.VERSE_POPUP).toBe(700);
     expect(ANIM_TIMING.NEGATE).toBe(500);
     expect(ANIM_TIMING.FLOAT_TEXT).toBe(800);
-    expect(ANIM_TIMING.ATTACK_SEQUENCE).toBe(450);
+    expect(ANIM_TIMING.ATTACK_SEQUENCE).toBe(700);
     expect(ANIM_TIMING.AI_PAUSE).toBe(1400);
     expect(ANIM_TIMING.TRIGGER_REVEAL).toBe(5000);
   });
