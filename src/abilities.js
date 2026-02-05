@@ -42,6 +42,18 @@ export function getEffectiveAtk(creature, owner, enemy) {
     atk = enemy.active.atk;
   }
   
+  // Sonic Strike (Pulsefin): Double ATK on first attack
+  if (creature.id === 'pulsefin' && creature.firstAtk) {
+    atk += creature.atk; // Double the base ATK
+  }
+  
+  // Attack bonuses on creature (Duskfang Pack Call, etc.)
+  if (creature.atkBonuses?.length > 0) {
+    for (const bonus of creature.atkBonuses) {
+      atk += bonus.value;
+    }
+  }
+  
   return atk;
 }
 
@@ -93,11 +105,25 @@ export function getAtkModifiers(creature, owner, enemy) {
     modifiers.push({ name: 'Reflection', value: enemy.active.atk - baseAtk, desc: `Mirror ${enemy.active.name}` });
   }
   
-  // Attack bonuses (Den Mother, Predator's Mark, etc.)
+  // Sonic Strike (Pulsefin): Double ATK on first attack
+  if (creature.id === 'pulsefin' && creature.firstAtk) {
+    effectiveAtk += baseAtk; // Double the base ATK
+    modifiers.push({ name: 'Sonic Strike', value: baseAtk, desc: 'First attack doubled' });
+  }
+  
+  // Attack bonuses on owner (Den Mother, Predator's Mark, etc.)
   if (owner.attackBonuses?.length > 0) {
     for (const bonus of owner.attackBonuses) {
       effectiveAtk += bonus.value;
       modifiers.push({ name: bonus.source, value: bonus.value, desc: 'Next attack' });
+    }
+  }
+  
+  // Attack bonuses on creature (Duskfang Pack Call, etc.)
+  if (creature.atkBonuses?.length > 0) {
+    for (const bonus of creature.atkBonuses) {
+      effectiveAtk += bonus.value;
+      modifiers.push({ name: bonus.source, value: bonus.value, desc: 'Creature buff' });
     }
   }
   

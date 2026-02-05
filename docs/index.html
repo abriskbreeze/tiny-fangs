@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.57</title>
+  <title>TINY FANGS v0.2.59</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1238,6 +1238,13 @@
       margin-top: 6px;
     }
     
+    /* Graveyard modal scrollbar after 4 cards */
+    
+    #modal-opts {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    
     /* Response Prompt */
     
     .response-modal .modal-box {
@@ -2088,7 +2095,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-Dmlxql5J.js"></script>
+  <script type="module" crossorigin src="./assets/index-CKGRNs-p.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -2096,7 +2103,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.57 • Card Battler</p>
+    <p class="sub">v0.2.59 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2211,7 +2218,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.57</div>
+      <div class="logo">TINY FANGS v0.2.59</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2229,6 +2236,7 @@
               <div class="val" id="d-opp-lp">♥♥♥</div>
             </div>
             <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Deck</div><div class="val" id="d-opp-deck">20</div></div>
               <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
               <div class="d-stat-sm clickable" onclick="showGraveyard('opp')"><div class="label">Grave</div><div class="val" id="d-opp-grave">0</div></div>
             </div>

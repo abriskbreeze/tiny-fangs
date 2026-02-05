@@ -1201,6 +1201,12 @@
       margin-top: 6px;
     }
     
+    /* Graveyard modal scrollbar after 4 cards */
+    #modal-opts {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    
     /* Response Prompt */
     .response-modal .modal-box {
       border-color: var(--purple);
@@ -2133,6 +2139,7 @@
               <div class="val" id="d-opp-lp">♥♥♥</div>
             </div>
             <div class="d-stat-row">
+              <div class="d-stat-sm"><div class="label">Deck</div><div class="val" id="d-opp-deck">20</div></div>
               <div class="d-stat-sm"><div class="label">Hand</div><div class="val" id="d-opp-hand">5</div></div>
               <div class="d-stat-sm clickable" onclick="showGraveyard('opp')"><div class="label">Grave</div><div class="val" id="d-opp-grave">0</div></div>
             </div>
@@ -2748,6 +2755,7 @@
       // Stats
       $('d-deck').textContent = state.G.me.deck.length;
       $('d-grave').textContent = state.G.me.grave.length;
+      $('d-opp-deck').textContent = state.G.opp.deck.length;
       $('d-opp-hand').textContent = state.G.opp.hand.length;
       $('d-opp-grave').textContent = state.G.opp.grave.length;
       $('m-my-grave-ct').textContent = state.G.me.grave.length;
@@ -5858,7 +5866,8 @@
         return;
       }
       
-      const options = player.grave.map(c => ({
+      // Reverse order to show newest cards first
+      const options = [...player.grave].reverse().map(c => ({
         name: c.name,
         sub: c.cardType === 'creature' 
           ? `${c.hp} HP / ${c.atk} ATK • Cost ${c.cost}` 

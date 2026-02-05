@@ -272,10 +272,12 @@ export const CREATURES = {
 export const VERSES = {
   // Cast Verses (with declarative effects)
   soulSiphon: { id:'soulSiphon', name:'Soul Siphon', type:'cast', cost:2,
-    text:'Deal 20 damage to enemy creature. Heal your creature 10.',
+    text:'Deal 20 damage to any creature. Heal your creature 10 if damage was dealt.',
+    requiresSelection: true,
+    selection: { type: 'anyCreature', prompt: 'Choose a creature to drain' },
     effects: [
-      { type: 'damage', target: 'opp.active', amount: 20, condition: 'opp.active' },
-      { type: 'heal', target: 'me.active', amount: 10, condition: 'me.active' }
+      { type: 'damage', target: 'selected', amount: 20 },
+      { type: 'heal', target: 'me.active', amount: 10, condition: 'damageWasDealt' }
     ] },
   darkPact: { id:'darkPact', name:'Dark Pact', type:'cast', cost:1,
     text:'Draw 2 cards. Lose 1 life.',
@@ -302,9 +304,11 @@ export const VERSES = {
       { type: 'atkBonus', amount: 30, source: "Predator's Mark" }
     ] },
   banish: { id:'banish', name:'Banish', type:'cast', cost:3,
-    text:'Destroy enemy creature. Remove from game.',
+    text:'Destroy any creature. Remove from game.',
+    requiresSelection: true,
+    selection: { type: 'anyCreature', prompt: 'Choose a creature to banish' },
     effects: [
-      { type: 'banish', target: 'opp.active' }
+      { type: 'banish', target: 'selected' }
     ] },
   bloodMoon: { id:'bloodMoon', name:'Blood Moon', type:'cast', cost:2,
     text:'All creatures take 20 damage.',
@@ -326,8 +330,8 @@ export const VERSES = {
     triggerDef: { event: 'onSummon', condition: { owner: 'opp' } },
     effects: [{ type: 'damage', target: 'summoned', amount: 20 }] },
   vengeance: { id:'vengeance', name:'Vengeance', type:'set', cost:2,
-    trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.',
-    triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true, priority: 2 },
+    trigger:'When your creature would be KO\'d by attack', text:'Negate KO. Destroy attacker instead.',
+    triggerDef: { event: 'beforeKO', condition: { target: 'me.active', source: 'attack' }, optional: true, priority: 2 },
     effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }] },
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
     trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.',
@@ -346,9 +350,11 @@ export const VERSES = {
   
   // Fang Pack addition
   ignite: { id:'ignite', name:'Ignite', type:'cast', cost:1,
-    text:'Deal 15 damage to enemy creature.',
+    text:'Deal 15 damage to any creature.',
+    requiresSelection: true,
+    selection: { type: 'anyCreature', prompt: 'Choose a creature to ignite' },
     effects: [
-      { type: 'damage', target: 'opp.active', amount: 15, condition: 'opp.active' }
+      { type: 'damage', target: 'selected', amount: 15 }
     ] },
   
   // Swarm Pack verses

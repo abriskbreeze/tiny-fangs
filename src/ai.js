@@ -7,6 +7,8 @@
  * 3. Alpha — 1-ply lookahead
  */
 
+import { getEffectiveAtk } from './abilities.js';
+
 /**
  * Generate all legal moves for a player
  * @param {Object} player - The AI player state
@@ -103,18 +105,24 @@ export function scoreMove(move, ai, player) {
 function scoreSummonActive(card, ai, player) {
   let score = 100; // High base - having an active is critical
   
+  // Create a mock creature to calculate effective ATK after summon
+  const mockCreature = { ...card, curHp: card.hp };
+  // Calculate effective ATK this creature would have (BUG-16 fix)
+  const effectiveAtk = getEffectiveAtk(mockCreature, ai, player);
+  
   // Prefer creatures that can survive enemy attack
   if (player.active) {
-    if (card.hp > player.active.atk) {
+    const enemyAtk = getEffectiveAtk(player.active, player, ai);
+    if (card.hp > enemyAtk) {
       score += 30; // Can survive at least one hit
     }
-    if (card.atk >= player.active.curHp) {
+    if (effectiveAtk >= player.active.curHp) {
       score += 40; // Can KO enemy
     }
   }
   
-  // Value stats
-  score += card.atk * 0.5;
+  // Value stats (use effective ATK for valuation)
+  score += effectiveAtk * 0.5;
   score += card.hp * 0.3;
   
   // Prefer lower cost when options are similar (save mana)
@@ -192,8 +200,19 @@ function scoreCast(card, ai, player) {
       return 40 + missing;
       
     case 'predatorsMark':
-      // +30 next attack — need to be able to attack
+      // +30 next attack — need to be able to attack (BUG-18 fix)
       if (!ai.active || !player.active) return -100;
+      
+      // Don't cast if we already attacked this turn (can't use it)
+      if (ai.hasAttackedThisTurn) return -50;
+      
+      // Don't cast if we already have overwhelming advantage (can already KO)
+      const myAtk = getEffectiveAtk(ai.active, ai, player);
+      if (myAtk >= player.active.curHp) return 10; // Already can KO, low priority
+      
+      // Higher priority if the +30 would enable a KO
+      if (myAtk + 30 >= player.active.curHp) return 85;
+      
       return 70;
       
     case 'banish':
@@ -203,15 +222,28 @@ function scoreCast(card, ai, player) {
       return 60 + player.active.atk * 0.5;
       
     case 'bloodMoon':
-      // 20 damage to all — need net positive
+      // 20 damage to all — need net positive (BUG-17 fix)
+      
+      // Don't cast if it would KO our active but not theirs
+      if (ai.active?.curHp <= 20 && player.active?.curHp > 20) {
+        return -100;
+      }
+      
+      // Don't cast if we'd lose our only creature while they have backup
+      if (ai.active?.curHp <= 20 && ai.bench.length === 0) {
+        return -100;
+      }
+      
       const aiDmg = ai.active ? Math.min(20, ai.active.curHp) : 0;
       const playerDmg = player.active ? Math.min(20, player.active.curHp) : 0;
       const netDmg = playerDmg - aiDmg;
-      if (netDmg <= 0) return -50;
+      
       // Bonus if it would KO their active but not ours
       if (player.active?.curHp <= 20 && (!ai.active || ai.active.curHp > 20)) {
         return 90;
       }
+      
+      if (netDmg <= 0) return -50;
       return 30 + netDmg * 2;
       
     case 'packTactics':
@@ -300,11 +332,14 @@ function scoreAttack(ai, player) {
   
   let score = 50; // Base attack value
   
-  // Calculate damage we'd deal
-  let dmg = ai.active.atk;
-  if (ai.active.id === 'bladewhisker') dmg += 10;
+  // Calculate damage we'd deal using ability-aware ATK (BUG-16 fix)
+  let dmg = getEffectiveAtk(ai.active, ai, player);
+  
+  // Pulsefin First Strike doubles damage on first attack
   if (ai.active.id === 'pulsefin' && ai.active.firstAtk) dmg *= 2;
+  // Cindermaw Rampage doubles damage
   if (ai.active.id === 'cindermaw') dmg *= 2;
+  
   // Attack bonuses (Den Mother, Predator's Mark, etc.)
   if (ai.attackBonuses?.length > 0) {
     for (const bonus of ai.attackBonuses) {
@@ -318,7 +353,7 @@ function scoreAttack(ai, player) {
   }
   
   // Risk assessment - would we die on counterattack?
-  const counterDmg = player.active.atk;
+  const counterDmg = getEffectiveAtk(player.active, player, ai);
   if (counterDmg >= ai.active.curHp) {
     score -= 30; // We might die
   }

@@ -10,6 +10,12 @@
 function resolveTarget(ctx, targetStr) {
   if (!targetStr) return null;
   
+  // Special target: 'selected' - creature from target selector
+  if (targetStr === 'selected') {
+    // ctx.selected should be { creature, location, ownerKey, idx? }
+    return ctx.selected?.creature || null;
+  }
+  
   // Special target: 'attacker' - the attacking creature (from attack context)
   if (targetStr === 'attacker') {
     return ctx.attacker;
@@ -36,6 +42,11 @@ function resolveTarget(ctx, targetStr) {
 function evalCondition(condition, ctx) {
   if (!condition) return true;
   
+  // Special condition: 'damageWasDealt' - for Soul Siphon conditional heal
+  if (condition === 'damageWasDealt') {
+    return ctx.damageWasDealt === true;
+  }
+  
   // Complex condition: 'me.grave.hasCreature' - check if grave has creatures
   if (condition === 'me.grave.hasCreature') {
     return ctx.me?.grave?.some(c => c.cardType === 'creature') || false;
@@ -61,25 +72,35 @@ const Effects = {
     
     creature.curHp -= amount;
     
+    // Track that damage was dealt (for conditional healing like Soul Siphon)
+    ctx.damageWasDealt = true;
+    
     // Animation (if available)
     if (typeof Anim !== 'undefined') {
-      let owner;
-      if (target === 'attacker') {
-        owner = ctx.attackerOwnerKey;
+      let ownerKey;
+      if (target === 'selected') {
+        // Use owner key from selection context
+        ownerKey = ctx.selected?.ownerKey || 'opp';
+      } else if (target === 'attacker') {
+        ownerKey = ctx.attackerOwnerKey;
       } else if (target === 'summoned') {
         // Summoned creature - use the summoning player key from context
-        owner = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
+        ownerKey = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
       } else {
-        [owner] = target.split('.');
+        [ownerKey] = target.split('.');
       }
-      await Anim.damage(owner, amount);
+      await Anim.damage(ownerKey, amount);
     }
     
     const isKo = creature.curHp <= 0;
     
     // Determine owner object
     let owner;
-    if (target === 'summoned') {
+    if (target === 'selected') {
+      // For selected, use owner key from context
+      const ownerKey = ctx.selected?.ownerKey || 'opp';
+      owner = ownerKey === 'me' ? ctx.me : ctx.opp;
+    } else if (target === 'summoned') {
       // For summoned, use context to determine owner
       const ownerKey = ctx.summoningPlayer || ctx.creatureOwnerKey;
       owner = ownerKey === 'me' ? ctx.me : ctx.opp;
@@ -93,7 +114,8 @@ const Effects = {
       ko: isKo, 
       target,
       creature,
-      owner
+      owner,
+      ownerKey: ctx.selected?.ownerKey
     };
   },
 
@@ -282,6 +304,12 @@ const Effects = {
     const idx = fromArray.findIndex(c => c.uid === card.uid);
     if (idx !== -1) {
       fromArray.splice(idx, 1);
+    }
+    
+    // BUG-05 FIX: Reset HP when returning creature to hand
+    // When a creature returns to hand (e.g., Grave Echo), it should have full HP
+    if (toZone === 'hand' && card.hp !== undefined) {
+      card.curHp = card.hp;
     }
     
     // Add to destination

@@ -113,6 +113,10 @@ function matchesTrigger(trigger, event, context) {
   // causedKO: { causedKO: true } - attack must have KO'd the defender
   if (cond.causedKO === true && !context.causedKO) return false;
 
+  // Source condition: { source: 'attack' } - KO must come from attack, not verse
+  // BUG-06 FIX: Vengeance should only trigger on attack KO
+  if (cond.source && context.source !== cond.source) return false;
+
   // Owner condition: { owner: 'me' } - relative to trigger owner
   // Used for "when YOUR creature is KO'd" or "when YOU would lose life" triggers
   // 'me' means the affected entity's owner should match the trigger owner

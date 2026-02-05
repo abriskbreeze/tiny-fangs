@@ -329,3 +329,146 @@ describe('getScoredMoves', () => {
     expect(typeof scored[0].score).toBe('number');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// BUG-16: AI should use getEffectiveAtk() for ability-modified creatures
+// ═══════════════════════════════════════════════════════════════
+
+describe('BUG-16: AI uses ability-modified ATK', () => {
+  it('scoreAttack uses Shade Pup Orphan bonus (+15 when bench empty)', () => {
+    // Shade Pup: base 15 ATK, +15 with Orphan = 30 effective
+    const aiActive = mockCreature('shadePup', { atk: 15, curHp: 40, hp: 40 });
+    const playerActive = mockCreature('enemy', { atk: 20, curHp: 25, hp: 40 });
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] }); // Empty bench = Orphan active
+    const player = mockPlayer({ active: playerActive });
+    
+    // With Orphan (30 ATK), AI can KO the 25 HP enemy
+    const score = scoreMove({ type: 'attack' }, ai, player);
+    
+    // Should score high because effective ATK (30) >= enemy HP (25) = KO
+    expect(score).toBeGreaterThan(80); // KO bonus should apply
+  });
+  
+  it('scoreAttack uses Pulsefin First Strike double damage', () => {
+    const aiActive = mockCreature('pulsefin', { atk: 30, curHp: 40, hp: 40, firstAtk: true });
+    const playerActive = mockCreature('enemy', { atk: 20, curHp: 50, hp: 50 });
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] });
+    const player = mockPlayer({ active: playerActive });
+    
+    // Pulsefin with firstAtk: 30 * 2 = 60, can KO 50 HP enemy
+    const score = scoreMove({ type: 'attack' }, ai, player);
+    expect(score).toBeGreaterThan(80); // Should detect KO
+  });
+  
+  it('scoreSummonActive considers ability modifiers when checking KO potential', () => {
+    // Shade Pup would have 30 effective ATK (15 + 15 Orphan) if summoned with empty bench
+    const shadePup = mockCreature('shadePup', { atk: 15, hp: 40, cost: 1 });
+    const playerActive = mockCreature('enemy', { atk: 20, curHp: 28, hp: 40 });
+    
+    const ai = mockPlayer({ bench: [] }); // Will have empty bench after summon
+    const player = mockPlayer({ active: playerActive });
+    
+    // Shade Pup can KO 28 HP enemy with Orphan (30 ATK)
+    const score = scoreMove({ type: 'summon-active', card: shadePup }, ai, player);
+    
+    // Should get KO bonus (30 ATK >= 28 HP)
+    expect(score).toBeGreaterThan(130); // 100 base + 40 KO bonus
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// BUG-17: AI Blood Moon kills own creature when no benefit
+// ═══════════════════════════════════════════════════════════════
+
+describe('BUG-17: AI Blood Moon self-preservation', () => {
+  it('scores Blood Moon negative when it would KO our active but not theirs', () => {
+    const aiActive = mockCreature('ai', { curHp: 15, hp: 40 }); // Would die to 20 damage
+    const playerActive = mockCreature('player', { curHp: 50, hp: 50 }); // Survives easily
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] });
+    const player = mockPlayer({ active: playerActive });
+    const bloodMoon = mockVerse('bloodMoon', 'cast', 2);
+    
+    const score = scoreMove({ type: 'cast', card: bloodMoon }, ai, player);
+    expect(score).toBeLessThan(0); // Should NOT cast this
+  });
+  
+  it('scores Blood Moon negative when we lose our only creature', () => {
+    const aiActive = mockCreature('ai', { curHp: 20, hp: 40 }); // Would die exactly
+    const playerActive = mockCreature('player', { curHp: 20, hp: 40 }); // Also dies
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] }); // No backup!
+    const player = mockPlayer({ active: playerActive, bench: [mockCreature('backup')] });
+    
+    const bloodMoon = mockVerse('bloodMoon', 'cast', 2);
+    
+    const score = scoreMove({ type: 'cast', card: bloodMoon }, ai, player);
+    expect(score).toBeLessThan(0); // Trade is bad when we have no bench
+  });
+  
+  it('scores Blood Moon positive when it KOs theirs but not ours', () => {
+    const aiActive = mockCreature('ai', { curHp: 50, hp: 50 }); // Survives
+    const playerActive = mockCreature('player', { curHp: 18, hp: 40 }); // Dies
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] });
+    const player = mockPlayer({ active: playerActive });
+    const bloodMoon = mockVerse('bloodMoon', 'cast', 2);
+    
+    const score = scoreMove({ type: 'cast', card: bloodMoon }, ai, player);
+    expect(score).toBeGreaterThan(50); // Good trade
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// BUG-18: AI wastes Predator's Mark
+// ═══════════════════════════════════════════════════════════════
+
+describe('BUG-18: AI Predator\'s Mark efficiency', () => {
+  it('scores Predator\'s Mark low when AI can already KO', () => {
+    const aiActive = mockCreature('ai', { atk: 50, curHp: 40, hp: 40 });
+    const playerActive = mockCreature('player', { atk: 20, curHp: 30, hp: 40 });
+    
+    const ai = mockPlayer({ active: aiActive, bench: [] });
+    const player = mockPlayer({ active: playerActive });
+    const predatorsMark = mockVerse('predatorsMark', 'cast', 1);
+    
+    // AI already has 50 ATK vs 30 HP - can KO without buff
+    const score = scoreMove({ type: 'cast', card: predatorsMark }, ai, player);
+    expect(score).toBeLessThan(30); // Low priority, don't waste it
+  });
+  
+  it('scores Predator\'s Mark negative when AI already attacked this turn', () => {
+    const aiActive = mockCreature('ai', { atk: 30, curHp: 40, hp: 40 });
+    const playerActive = mockCreature('player', { atk: 20, curHp: 50, hp: 50 });
+    
+    const ai = mockPlayer({ 
+      active: aiActive, 
+      bench: [],
+      hasAttackedThisTurn: true // Already attacked!
+    });
+    const player = mockPlayer({ active: playerActive });
+    const predatorsMark = mockVerse('predatorsMark', 'cast', 1);
+    
+    const score = scoreMove({ type: 'cast', card: predatorsMark }, ai, player);
+    expect(score).toBeLessThan(0); // Useless this turn
+  });
+  
+  it('scores Predator\'s Mark high when it enables a KO', () => {
+    const aiActive = mockCreature('ai', { atk: 25, curHp: 40, hp: 40 });
+    const playerActive = mockCreature('player', { atk: 20, curHp: 50, hp: 50 });
+    
+    const ai = mockPlayer({ 
+      active: aiActive, 
+      bench: [],
+      hasAttackedThisTurn: false
+    });
+    const player = mockPlayer({ active: playerActive });
+    const predatorsMark = mockVerse('predatorsMark', 'cast', 1);
+    
+    // 25 + 30 = 55 ATK, can KO 50 HP enemy
+    const score = scoreMove({ type: 'cast', card: predatorsMark }, ai, player);
+    expect(score).toBeGreaterThan(50); // Good use
+  });
+});
