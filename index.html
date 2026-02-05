@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.59</title>
+  <title>TINY FANGS v0.2.60</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1189,6 +1189,22 @@
       color: var(--dim);
     }
     
+    /* Creature selector ownership indicators (BUG-07, 08, 09) */
+    .modal-box .option.selector-yours {
+      border-left: 3px solid #4a9;
+      padding-left: 10px;
+    }
+    .modal-box .option.selector-yours .name {
+      color: #4a9;
+    }
+    .modal-box .option.selector-enemy {
+      border-left: 3px solid #c55;
+      padding-left: 10px;
+    }
+    .modal-box .option.selector-enemy .name {
+      color: #c55;
+    }
+    
     .modal-box .cancel {
       width: 100%;
       padding: 10px;
@@ -2006,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.59 • Card Battler</p>
+    <p class="sub">v0.2.60 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2121,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.59</div>
+      <div class="logo">TINY FANGS v0.2.60</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3394,6 +3410,20 @@
         }
       }
       
+      // Pre-check for anyCreature selection - need creatures on field
+      if (c.selection?.type === 'anyCreature') {
+        const hasCreatures = state.G.me.active || state.G.me.bench.length > 0 || 
+                            state.G.opp.active || state.G.opp.bench.length > 0;
+        if (!hasCreatures) {
+          showModal(c.name, [{
+            name: 'No creatures on the battlefield!',
+            sub: 'No valid targets...',
+            action: () => closeModal()
+          }]);
+          return; // Don't spend mana
+        }
+      }
+      
       // === SELECTION CARDS: Get selection BEFORE spending mana ===
       let selectionResult = null;
       
@@ -3550,7 +3580,8 @@
         
         // Handle KOs from aoeAll and other damage effects
         for (const koInfo of result.kos || []) {
-          const ownerKey = koInfo.target.startsWith('opp') ? 'opp' : 'me';
+          // BUG-13 FIX: Use koInfo.owner to determine ownerKey (handles 'selected' targets)
+          const ownerKey = koInfo.owner === state.G.opp ? 'opp' : 'me';
           
           if (koInfo.isBench) {
             // Bench KO - process manually
@@ -4550,6 +4581,42 @@
     }
     
     /**
+     * AI selects a creature target for anyCreature selection cards
+     * Returns { creature, location, ownerKey, idx? } or null
+     */
+    function aiSelectCreatureTarget(card, ai, player) {
+      // For damage/banish cards, AI should target player's creatures
+      // Priority: active first (most threatening), then bench
+      
+      // Target player's active if available
+      if (player.active) {
+        return {
+          creature: player.active,
+          location: 'active',
+          ownerKey: 'me'  // 'me' from player's perspective (target is player)
+        };
+      }
+      
+      // Target player's strongest bench creature
+      if (player.bench.length > 0) {
+        // Pick creature with highest ATK (most threatening)
+        const sorted = [...player.bench].sort((a, b) => b.atk - a.atk);
+        const target = sorted[0];
+        const idx = player.bench.findIndex(c => c.uid === target.uid);
+        return {
+          creature: target,
+          location: 'bench',
+          ownerKey: 'me',
+          idx
+        };
+      }
+      
+      // No player creatures - could target own creatures for special strategies
+      // but usually AI shouldn't do this
+      return null;
+    }
+    
+    /**
      * AI casts a verse (extracted for reuse)
      */
     async function aiCastVerse(card, ai, player, pause) {
@@ -4579,26 +4646,32 @@
           log('Rival +2 mana', 'mana');
           break;
         case 'soulSiphon':
-          if (player.active) {
-            const ko = applyDamage(player.active, 20);
-            log('You -20', 'dmg');
-            await Anim.damage('me', 20);
-            if (ko) { await Anim.ko('me'); await ko(player.active, player); }
-          }
-          if (ai.active) {
-            ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 10);
-            log('Rival +10', 'heal');
-            Anim.heal('opp', 10);
+        case 'ignite': {
+          // Use declarative effects with AI target selection
+          const target = aiSelectCreatureTarget(card, ai, player);
+          if (target) {
+            const ctx = {
+              state,
+              me: ai,     // AI is 'me' from its perspective
+              opp: player,
+              selected: target,
+              draw: () => draw(ai),
+              log,
+              render
+            };
+            const result = await processEffects(card, ctx);
+            
+            // Handle KOs
+            for (const koInfo of result.kos || []) {
+              const ownerKey = koInfo.ownerKey || (koInfo.owner === player ? 'me' : 'opp');
+              if (!koInfo.isBench) {
+                await Anim.ko(ownerKey);
+                await ko(koInfo.creature, koInfo.owner);
+              }
+            }
           }
           break;
-        case 'ignite':
-          if (player.active) {
-            const ko = applyDamage(player.active, 15);
-            log('Ignite! You -15', 'dmg');
-            await Anim.damage('me', 15);
-            if (ko) { await Anim.ko('me'); await ko(player.active, player); }
-          }
-          break;
+        }
         case 'darkPact': {
           draw(ai); draw(ai);
           const aiPactResult = await loseLife(ai, 'opp');
@@ -4622,14 +4695,23 @@
           ai.attackBonuses.push({ source: "Predator's Mark", value: 30 });
           log("Rival's Predator's Mark! Next attack +30");
           break;
-        case 'banish':
-          if (player.active) {
-            log(`Banished ${player.active.name}!`, 'dmg');
-            await Anim.ko('me');
-            player.active = null;
-            render();
-            // Bench replacement for player
-            if (player.bench.length > 0) {
+        case 'banish': {
+          // Use declarative effects with AI target selection
+          const target = aiSelectCreatureTarget(card, ai, player);
+          if (target) {
+            log(`Banished ${target.creature.name}!`, 'dmg');
+            const ctx = {
+              state,
+              me: ai,
+              opp: player,
+              selected: target,
+              log,
+              render
+            };
+            const result = await processEffects(card, ctx);
+            
+            // Handle replacement if player's active was banished
+            if (result.modifiedContext?.needsReplacement && target.ownerKey === 'me' && player.bench.length > 0) {
               await Anim.wait(300);
               if (player.bench.length === 1) {
                 player.active = player.bench.shift();
@@ -4655,6 +4737,7 @@
             }
           }
           break;
+        }
         case 'bloodMoon': {
           // C1: Blood Moon damages ALL creatures (active + bench) on BOTH sides
           log('Blood Moon! All creatures take 20 damage!', 'dmg');
