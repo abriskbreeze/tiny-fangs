@@ -101,12 +101,9 @@ export function getEffectiveDamageReduction(creature, owner, includeSetVerses = 
   }
   
   // Set verse reductions (only if explicitly included - for backwards compat)
-  // Note: Brace now uses event-driven triggers (see triggers.js)
+  // Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
   if (includeSetVerses) {
-    // Swarm Shield (set verse): -15 damage when has bench
-    if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
-      reduction += 15;
-    }
+    // All set verse damage reduction now handled by trigger system
   }
   
   // === Shell Pack damage reduction ===
@@ -137,12 +134,10 @@ export function getEffectiveDamageReduction(creature, owner, includeSetVerses = 
 /**
  * Check if a set verse would provide damage reduction
  * Returns { verse, reduction } or null
- * Note: Brace now uses event-driven triggers (see triggers.js)
+ * Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
  */
 export function getSetVerseReduction(owner) {
-  if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
-    return { verse: owner.setVerse, reduction: 15 };
-  }
+  // All damage-reducing set verses now use event-driven triggers
   return null;
 }
 
@@ -156,12 +151,7 @@ export function getDamageReductionSources(creature, owner, includeSetVerses = fa
   if (creature.id === 'hollowfox' && owner.bench.length > 0) {
     sources.push({ name: 'Den Guard', value: 10 });
   }
-  // Note: Brace now uses event-driven triggers (see triggers.js)
-  if (includeSetVerses) {
-    if (owner.setVerse?.id === 'swarmShield' && owner.bench.length > 0) {
-      sources.push({ name: 'Swarm Shield', value: 15 });
-    }
-  }
+  // Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
   if (creature.id === 'pebbleback') {
     sources.push({ name: 'Sturdy', value: 5 });
   }

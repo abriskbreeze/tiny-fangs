@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.55</title>
+  <title>TINY FANGS v0.2.56</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -3078,20 +3078,14 @@
       state.G.me.hand = state.G.me.hand.filter(c => c.uid !== card.uid);
       
       switch (zone.type) {
-        case 'summon-active':
-          // Check Soul Trap
-          if (state.G.opp.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(state.G.opp.setVerse);
-            log('Soul Trap triggered!', 'dmg');
-            const trapKo = applyDamage(card, 20);
-            state.G.opp.grave.push(state.G.opp.setVerse);
-            state.G.opp.setVerse = null;
-            if (trapKo) {
-              log(`${card.name} destroyed by trap!`, 'dmg');
-              state.G.me.grave.push(card);
-              render();
-              return;
-            }
+        case 'summon-active': {
+          // Emit onSummon event for triggers (Soul Trap, etc.)
+          const summonResult = await emitOnSummon(card, 'me');
+          if (summonResult.ko) {
+            log(`${card.name} destroyed by trap!`, 'dmg');
+            state.G.me.grave.push(card);
+            render();
+            return;
           }
           state.G.me.active = card;
           log(`Summoned ${card.name}`);
@@ -3105,21 +3099,16 @@
           render();
           await Anim.summon('me');
           break;
+        }
           
-        case 'summon-bench':
-          // Check Soul Trap
-          if (state.G.opp.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(state.G.opp.setVerse);
-            log('Soul Trap triggered!', 'dmg');
-            const trapKo = applyDamage(card, 20);
-            state.G.opp.grave.push(state.G.opp.setVerse);
-            state.G.opp.setVerse = null;
-            if (trapKo) {
-              log(`${card.name} destroyed by trap!`, 'dmg');
-              state.G.me.grave.push(card);
-              render();
-              return;
-            }
+        case 'summon-bench': {
+          // Emit onSummon event for triggers (Soul Trap, etc.)
+          const summonResult = await emitOnSummon(card, 'me');
+          if (summonResult.ko) {
+            log(`${card.name} destroyed by trap!`, 'dmg');
+            state.G.me.grave.push(card);
+            render();
+            return;
           }
           const benchIdx = state.G.me.bench.length;
           state.G.me.bench.push(card);
@@ -3127,6 +3116,7 @@
           render();
           await Anim.summonBench('me', benchIdx);
           break;
+        }
           
         case 'set-verse':
           state.G.me.setVerse = card;
@@ -3268,19 +3258,13 @@
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       
-      // Check opponent Soul Trap
-      if (state.G.opp.setVerse?.id === 'soulTrap') {
-        await showTriggerReveal(state.G.opp.setVerse);
-        log('Soul Trap triggered!', 'dmg');
-        const soulTrapKo = applyDamage(c, 20);
-        state.G.opp.grave.push(state.G.opp.setVerse);
-        state.G.opp.setVerse = null;
-        if (soulTrapKo) {
-          log(`${c.name} destroyed by trap!`, 'dmg');
-          state.G.me.grave.push(c);
-          render();
-          return;
-        }
+      // Emit onSummon event for triggers (Soul Trap, etc.)
+      const summonResult = await emitOnSummon(c, 'me');
+      if (summonResult.ko) {
+        log(`${c.name} destroyed by trap!`, 'dmg');
+        state.G.me.grave.push(c);
+        render();
+        return;
       }
       
       if (!state.G.me.active) {
@@ -3360,21 +3344,6 @@
       
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
-        return;
-      }
-      
-      // Check opponent Mana Drain
-      if (state.G.opp.setVerse?.id === 'manaDrain') {
-        await showTriggerReveal(state.G.opp.setVerse);
-        log('Mana Drain triggered!', 'dmg');
-        state.G.opp.mana = Math.min(5, state.G.opp.mana + 1);
-        state.G.opp.grave.push(state.G.opp.setVerse);
-        state.G.opp.setVerse = null;
-        state.G.me.grave.push(c);
-        state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
-        await Anim.negateX();
-        log(`${c.name} negated! Rival gains 1 mana.`);
-        render();
         return;
       }
       
@@ -3463,6 +3432,22 @@
       
       log(`Cast ${c.name}`);
       await showCastReveal(c);
+      
+      // === EMIT onCast EVENT - Check for spell negation (e.g., Mana Drain) ===
+      const castContext = { spell: c, casterKey: 'me' };
+      const gameCtx = {
+        showTriggerReveal,
+        log,
+        processEffects
+      };
+      const castResult = await processTriggers('onCast', castContext, state, gameCtx);
+      
+      if (castResult.negated) {
+        await Anim.negateX();
+        log(`${c.name} negated!`);
+        render();
+        return;
+      }
       
       // === DECLARATIVE EFFECTS: Use processEffects if card has effects array ===
       if (c.effects) {
@@ -3729,18 +3714,21 @@
           }
           state.G.me.grave.push(victim);
           
-          // C2: Trigger "When creature KO'd" effects (Den Mother, Grave Rise, creature death abilities)
-          // Den Mother - next attack +10 (optional trigger)
-          if (state.G.me.setVerse?.id === 'denMother') {
-            const shouldTrigger = await promptTrigger(state.G.me, state.G.me.setVerse, {});
-            if (shouldTrigger) {
-              await showTriggerReveal(state.G.me.setVerse);
-              state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
-              log('Den Mother! Next attack +10 damage', 'mana');
-              state.G.me.grave.push(state.G.me.setVerse);
-              state.G.me.setVerse = null;
+          // C2: Trigger "When creature KO'd" effects via event system
+          await processTriggers('onKO', {
+            creature: victim,
+            creatureOwnerKey: 'me',
+            targetOwner: 'me',
+            targetLocation: selectionResult.location
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            processEffects: async (card, ctx) => {
+              const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+              return await processEffects(card, effectCtx);
             }
-          }
+          });
           
           // Grave Rise - summon 1-cost from grave to bench (optional trigger)
           if (state.G.me.setVerse?.id === 'graveRise') {
@@ -4379,18 +4367,12 @@
           ai.mana -= card.cost;
           ai.hand = ai.hand.filter(c => c.uid !== card.uid);
           
-          // Soul Trap check
-          if (player.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(player.setVerse);
-            log('Soul Trap triggered!', 'dmg');
-            const trapKo = applyDamage(card, 20);
-            player.grave.push(player.setVerse);
-            player.setVerse = null;
-            if (trapKo) {
-              log(`${card.name} destroyed by trap!`, 'dmg');
-              ai.grave.push(card);
-              return;
-            }
+          // Emit onSummon event for triggers (Soul Trap, etc.)
+          const summonResult = await emitOnSummon(card, 'opp');
+          if (summonResult.ko) {
+            log(`${card.name} destroyed by trap!`, 'dmg');
+            ai.grave.push(card);
+            return;
           }
           
           ai.active = card;
@@ -4412,18 +4394,12 @@
           ai.mana -= card.cost;
           ai.hand = ai.hand.filter(c => c.uid !== card.uid);
           
-          // Soul Trap check
-          if (player.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(player.setVerse);
-            log('Soul Trap triggered!', 'dmg');
-            const trapKo = applyDamage(card, 20);
-            player.grave.push(player.setVerse);
-            player.setVerse = null;
-            if (trapKo) {
-              log(`${card.name} destroyed by trap!`, 'dmg');
-              ai.grave.push(card);
-              return;
-            }
+          // Emit onSummon event for triggers (Soul Trap, etc.)
+          const summonResult = await emitOnSummon(card, 'opp');
+          if (summonResult.ko) {
+            log(`${card.name} destroyed by trap!`, 'dmg');
+            ai.grave.push(card);
+            return;
           }
           
           const benchIdx = ai.bench.length;
@@ -4615,13 +4591,21 @@
               ai.grave.push(creature);
               const idx = ai.bench.indexOf(creature);
               if (idx !== -1) ai.bench.splice(idx, 1);
-              if (ai.setVerse?.id === 'denMother') {
-                await showTriggerReveal(ai.setVerse);
-                ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                log('Rival Den Mother! +10 damage', 'mana');
-                ai.grave.push(ai.setVerse);
-                ai.setVerse = null;
-              }
+              // Emit onKO event for trigger system (ai = opp from state perspective)
+              await processTriggers('onKO', {
+                creature,
+                creatureOwnerKey: 'opp',
+                targetOwner: 'opp',
+                targetLocation: 'bench'
+              }, state, {
+                promptTrigger,
+                showTriggerReveal,
+                log,
+                processEffects: async (card, ctx) => {
+                  const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                  return await processEffects(card, effectCtx);
+                }
+              });
             }
           }
           for (const { creature, ko: isKo } of bmKos.playerBench) {
@@ -4630,13 +4614,21 @@
               player.grave.push(creature);
               const idx = player.bench.indexOf(creature);
               if (idx !== -1) player.bench.splice(idx, 1);
-              if (player.setVerse?.id === 'denMother') {
-                await showTriggerReveal(player.setVerse);
-                player.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                log('Den Mother! +10 damage', 'mana');
-                player.grave.push(player.setVerse);
-                player.setVerse = null;
-              }
+              // Emit onKO event for trigger system (player = me from state perspective)
+              await processTriggers('onKO', {
+                creature,
+                creatureOwnerKey: 'me',
+                targetOwner: 'me',
+                targetLocation: 'bench'
+              }, state, {
+                promptTrigger,
+                showTriggerReveal,
+                log,
+                processEffects: async (card, ctx) => {
+                  const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                  return await processEffects(card, effectCtx);
+                }
+              });
             }
           }
           // Active KOs last
@@ -4685,14 +4677,21 @@
             ai.grave.push(victim);
             log(`Rival sacrificed ${victim.name}`, 'dmg');
             
-            // C2: Trigger KO effects for AI sacrifice
-            if (ai.setVerse?.id === 'denMother') {
-              await showTriggerReveal(ai.setVerse);
-              ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
-              log('Rival Den Mother! +10 damage', 'mana');
-              ai.grave.push(ai.setVerse);
-              ai.setVerse = null;
-            }
+            // C2: Trigger KO effects for AI sacrifice via event system
+            await processTriggers('onKO', {
+              creature: victim,
+              creatureOwnerKey: 'opp',
+              targetOwner: 'opp',
+              targetLocation: 'bench'
+            }, state, {
+              promptTrigger,
+              showTriggerReveal,
+              log,
+              processEffects: async (card, ctx) => {
+                const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                return await processEffects(card, effectCtx);
+              }
+            });
             if (victim.id === 'gloom' && player.hand.length) {
               const idx = Math.floor(Math.random() * player.hand.length);
               player.grave.push(player.hand.splice(idx, 1)[0]);
@@ -5013,25 +5012,14 @@
             ai.mana -= pick.cost;
             ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
             
-            // Player's Soul Trap check
-            if (state.G.me.setVerse?.id === 'soulTrap') {
-              await showTriggerReveal(state.G.me.setVerse);
-              log('Soul Trap triggered!', 'dmg');
-              const aiTrapKo = applyDamage(pick, 20);
-              state.G.me.grave.push(state.G.me.setVerse);
-              state.G.me.setVerse = null;
-              if (aiTrapKo) {
-                log(`${pick.name} destroyed by trap!`, 'dmg');
-                ai.grave.push(pick);
-              } else {
-                ai.active = pick;
-                log(`Rival summoned ${pick.name} (wounded)`);
-                render();
-                await Anim.summon('opp');
-              }
+            // Emit onSummon event for triggers (Soul Trap, etc.)
+            const summonResult = await emitOnSummon(pick, 'opp');
+            if (summonResult.ko) {
+              log(`${pick.name} destroyed by trap!`, 'dmg');
+              ai.grave.push(pick);
             } else {
               ai.active = pick;
-              log(`Rival summoned ${pick.name}`);
+              log(`Rival summoned ${pick.name}${pick.curHp < pick.hp ? ' (wounded)' : ''}`);
               render();
               await Anim.summon('opp');
             }
@@ -5054,20 +5042,14 @@
           ai.mana -= pick.cost;
           ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
           
-          // Player's Soul Trap check
-          if (state.G.me.setVerse?.id === 'soulTrap') {
-            await showTriggerReveal(state.G.me.setVerse);
-            log('Soul Trap triggered!', 'dmg');
-            const benchTrapKo = applyDamage(pick, 20);
-            state.G.me.grave.push(state.G.me.setVerse);
-            state.G.me.setVerse = null;
-            if (benchTrapKo) {
-              log(`${pick.name} destroyed by trap!`, 'dmg');
-              ai.grave.push(pick);
-              render();
-              await pause();
-              continue;
-            }
+          // Emit onSummon event for triggers (Soul Trap, etc.)
+          const summonResult = await emitOnSummon(pick, 'opp');
+          if (summonResult.ko) {
+            log(`${pick.name} destroyed by trap!`, 'dmg');
+            ai.grave.push(pick);
+            render();
+            await pause();
+            continue;
           }
           const benchIdx = ai.bench.length;
           ai.bench.push(pick);
@@ -5343,14 +5325,21 @@
                   const victim = ai.bench.shift();
                   ai.grave.push(victim);
                   log(`Rival sacrificed ${victim.name}`, 'dmg');
-                  // C2: Trigger KO effects
-                  if (ai.setVerse?.id === 'denMother') {
-                    await showTriggerReveal(ai.setVerse);
-                    ai.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                    log('Rival Den Mother! +10 damage', 'mana');
-                    ai.grave.push(ai.setVerse);
-                    ai.setVerse = null;
-                  }
+                  // C2: Trigger KO effects via event system
+                  await processTriggers('onKO', {
+                    creature: victim,
+                    creatureOwnerKey: 'opp',
+                    targetOwner: 'opp',
+                    targetLocation: 'bench'
+                  }, state, {
+                    promptTrigger,
+                    showTriggerReveal,
+                    log,
+                    processEffects: async (card, ctx) => {
+                      const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                      return await processEffects(card, effectCtx);
+                    }
+                  });
                   if (victim.id === 'gloom' && state.G.me.hand.length) {
                     const idx = Math.floor(Math.random() * state.G.me.hand.length);
                     state.G.me.grave.push(state.G.me.hand.splice(idx, 1)[0]);

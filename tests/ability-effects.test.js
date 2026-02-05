@@ -260,7 +260,10 @@ describe('checkSwarm() - Hiveling Draw', () => {
   });
 });
 
-describe('Swarm Shield - Set Verse Damage Reduction', () => {
+describe('Swarm Shield - Set Verse (now event-driven)', () => {
+  // NOTE: Swarm Shield now uses event-driven triggers (see triggers.test.js)
+  // These tests verify that getEffectiveDamageReduction no longer handles it
+  
   beforeEach(() => {
     clearGame();
     setGame({
@@ -271,18 +274,18 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     });
   });
 
-  it('reduces damage by 15 when has bench (with includeSetVerses)', () => {
+  it('is NOT handled by getEffectiveDamageReduction (uses trigger system)', () => {
     const creature = mockCreature('whisper');
     state.G.me.active = creature;
     state.G.me.bench = [mockCreature('gloom')];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    // Set verses are now optional triggers, so must explicitly include
-    expect(getEffectiveDamageReduction(creature, state.G.me, true)).toBe(15);
+    // Swarm Shield now uses event-driven triggers, so no reduction via this function
+    expect(getEffectiveDamageReduction(creature, state.G.me, true)).toBe(0);
     expect(getEffectiveDamageReduction(creature, state.G.me, false)).toBe(0);
   });
 
-  it('no reduction when bench is empty', () => {
+  it('no reduction when bench is empty (via ability system)', () => {
     const creature = mockCreature('whisper');
     state.G.me.active = creature;
     state.G.me.bench = [];
@@ -291,15 +294,14 @@ describe('Swarm Shield - Set Verse Damage Reduction', () => {
     expect(getEffectiveDamageReduction(creature, state.G.me, true)).toBe(0);
   });
 
-  it('stacks with Den Guard (Hollowfox)', () => {
+  it('Den Guard (Hollowfox) still works independently', () => {
     const hollowfox = mockCreature('hollowfox');
     state.G.me.active = hollowfox;
     state.G.me.bench = [mockCreature('whisper')];
     state.G.me.setVerse = { id: 'swarmShield' };
     
-    // Hollowfox Den Guard (10) + Swarm Shield (15) = 25 (when set verses included)
-    expect(getEffectiveDamageReduction(hollowfox, state.G.me, true)).toBe(25);
-    // Without set verses, only Den Guard = 10
+    // Only Den Guard (10) - Swarm Shield now uses trigger system
+    expect(getEffectiveDamageReduction(hollowfox, state.G.me, true)).toBe(10);
     expect(getEffectiveDamageReduction(hollowfox, state.G.me, false)).toBe(10);
   });
 });

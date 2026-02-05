@@ -323,6 +323,68 @@ const Effects = {
     }
     
     return { summoned: true, creature: summon };
+  },
+
+  /**
+   * Summon creature from graveyard
+   * @param {object} filter - { cost: number } - filter by cost
+   * @param {string} location - 'bench' (default, respects bench limit)
+   */
+  async summonFromGrave(ctx, { filter, location = 'bench' }) {
+    // Check bench capacity
+    if (location === 'bench' && ctx.me.bench.length >= 2) {
+      return { summoned: false, reason: 'bench_full' };
+    }
+
+    // Filter grave for valid targets
+    let candidates = ctx.me.grave.filter(c => c.cardType === 'creature');
+    
+    if (filter?.cost !== undefined) {
+      candidates = candidates.filter(c => c.cost === filter.cost);
+    }
+    
+    if (candidates.length === 0) return { summoned: false, reason: 'no_targets' };
+    
+    // Select creature (prompt if multiple, auto-select if one)
+    let selected;
+    if (candidates.length === 1) {
+      selected = candidates[0];
+    } else if (ctx.promptGraveSelect) {
+      // Browser: prompt player to choose
+      selected = await ctx.promptGraveSelect(candidates);
+    } else {
+      // Test/AI: pick first (or random)
+      selected = candidates[0];
+    }
+    
+    if (!selected) return { summoned: false, reason: 'cancelled' };
+    
+    // Restore HP
+    selected.curHp = selected.hp;
+    
+    // Remove from grave
+    ctx.me.grave = ctx.me.grave.filter(c => c.uid !== selected.uid);
+    
+    // Determine owner key for animations
+    const ownerKey = ctx.me === ctx.state?.G?.me ? 'me' : 'opp';
+    
+    // Summon to bench
+    if (location === 'bench') {
+      const benchIdx = ctx.me.bench.length;
+      ctx.me.bench.push(selected);
+      
+      if (ctx.log) {
+        ctx.log(`${selected.name} rises to bench!`);
+      }
+      if (ctx.render) {
+        ctx.render();
+      }
+      if (typeof Anim !== 'undefined') {
+        await Anim.summonBench(ownerKey, benchIdx);
+      }
+    }
+    
+    return { summoned: true, creature: selected };
   }
 };
 

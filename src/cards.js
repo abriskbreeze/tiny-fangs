@@ -193,8 +193,8 @@ export const VERSES = {
     customHandler: true },  // Complex: negates KO + destroys attacker
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
     trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.',
-    triggerDef: { event: 'onKO', condition: { owner: 'me' }, optional: true },
-    customHandler: true },  // Complex: selection from grave
+    triggerDef: { event: 'onKO', condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, optional: true },
+    effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }] },
   manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
     trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.',
     triggerDef: { event: 'onCast', condition: { caster: 'opp' } },

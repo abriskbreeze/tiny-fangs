@@ -61,6 +61,38 @@ function matchesTrigger(trigger, event, context) {
     }
   }
 
+  // hasBench condition: { hasBench: true } - trigger owner must have bench creatures
+  // context.triggerOwner is the player who owns the trigger
+  if (cond.hasBench === true) {
+    if (!context.triggerOwner || context.triggerOwner.bench.length === 0) return false;
+  }
+
+  // Caster condition: { caster: 'opp' } - relative to trigger owner
+  // Used for "when OPPONENT casts a spell" triggers (e.g., Mana Drain)
+  if (cond.caster) {
+    // context.casterKey is 'me' or 'opp' from the emitter's perspective
+    // triggerOwnerKey tells us who owns the trigger
+    if (cond.caster === 'opp') {
+      // Caster must be opponent of trigger owner
+      if (context.casterKey === context.triggerOwnerKey) return false;
+    } else if (cond.caster === 'me') {
+      // Caster must be the trigger owner
+      if (context.casterKey !== context.triggerOwnerKey) return false;
+    }
+  }
+
+  // Grave conditions - requires triggerOwner player context
+  if (cond.hasOneCostInGrave && context.triggerOwner) {
+    const hasOneCost = context.triggerOwner.grave.some(
+      c => c.cardType === 'creature' && c.cost === 1
+    );
+    if (!hasOneCost) return false;
+  }
+
+  if (cond.benchNotFull && context.triggerOwner) {
+    if (context.triggerOwner.bench.length >= 2) return false;
+  }
+
   return true;
 }
 
@@ -79,8 +111,8 @@ function getMatchingTriggers(event, context, state) {
     // Check triggerDef first (from card definitions), then trigger (for test mocks)
     const trigger = player.setVerse?.triggerDef || player.setVerse?.trigger;
     if (trigger) {
-      // Add triggerOwnerKey to context for owner condition matching
-      const ctxWithOwner = { ...context, triggerOwnerKey: ownerKey };
+      // Add triggerOwnerKey and triggerOwner to context for condition matching
+      const ctxWithOwner = { ...context, triggerOwnerKey: ownerKey, triggerOwner: player };
       if (matchesTrigger(trigger, event, ctxWithOwner)) {
         matches.push({
           type: 'setVerse',
@@ -156,12 +188,30 @@ async function processTriggers(event, context, state, gameCtx) {
             gameCtx.log(`${match.card.name}! -${effect.amount} damage`, 'heal');
           }
         }
+        // Handle spell negation (for Mana Drain)
+        else if (effect.type === 'negateSpell') {
+          modifiedContext.negated = true;
+          modifiedContext.triggeredCard = match.card;
+          if (gameCtx.log) {
+            gameCtx.log(`${match.card.name} triggered!`, 'dmg');
+          }
+        }
+        // Handle mana gain (for Mana Drain)
+        else if (effect.type === 'gainMana') {
+          match.owner.mana = Math.min(5, match.owner.mana + effect.amount);
+          if (gameCtx.log) {
+            gameCtx.log(`${match.ownerKey === 'me' ? 'You' : 'Rival'} gained ${effect.amount} mana`);
+          }
+        }
         // Other effects handled by processEffects
         else if (gameCtx.processEffects) {
           const effectCtx = {
             state,
             me: match.owner,
             opp: match.owner === state.G.me ? state.G.opp : state.G.me,
+            log: gameCtx.log,
+            render: gameCtx.render,
+            promptGraveSelect: gameCtx.promptGraveSelect,
             ...modifiedContext
           };
           const result = await gameCtx.processEffects(match.card, effectCtx);
