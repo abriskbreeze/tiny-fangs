@@ -270,3 +270,49 @@ When animation class is added but `render()` is called before animation complete
 3. **Check all return paths**: Early returns can skip important side effects
 4. **DRY helpers**: Use shared functions (getEffectiveAtk) instead of inline duplication
 
+
+### 2026-02-05 Late Afternoon — Effect System Refactor (v0.2.53)
+
+**New Module: `src/effects.js`**
+- Declarative effect system for cast verses
+- Cards define `effects: []` array, processor handles execution
+- 14 effect primitives: damage, heal, draw, loseLife, gainMana, atkBonus, setStatus, cureStatus, moveCard, setFlag, banish, summon, aoeAll
+- 27 unit tests for effects
+
+**Migrated Cards (14 of 16):**
+- Simple: shellArmor, secondWind, manaSurge, predatorsMark, fortify, unbreakable
+- Conditional: soulSiphon, ignite, darkPact, regenerate
+- Selection: graveEcho
+- Computed: packTactics (creatureCount draw), callOfTheWild (summon)
+- Banish: banish (with replacement handling)
+
+**Still Using Switch (2):**
+- `bloodMoon` — Complex AoE with capture-then-process, Den Mother triggers for bench KOs
+- `sacrifice` — Triggers Den Mother, Grave Rise, creature death abilities (Gloom, Echomask, Stormtalon)
+- Marked with `customHandler: true` in cards.js
+
+**Architecture:**
+```js
+// Card definition
+soulSiphon: {
+  effects: [
+    { type: 'damage', target: 'opp.active', amount: 20, condition: 'opp.active' },
+    { type: 'heal', target: 'me.active', amount: 10, condition: 'me.active' }
+  ]
+}
+
+// Processor handles: conditions, animations, KO collection
+const result = await processEffects(card, ctx);
+for (const koInfo of result.kos) { await ko(...); }
+```
+
+**Benefits:**
+- New simple cards = data only, no code changes
+- Centralized effect logic
+- Easier testing (effect primitives are isolated)
+
+**Future Work:**
+- Set verse triggers could use similar declarative system
+- Creature abilities could be migrated
+- bloodMoon/sacrifice could be migrated with enhanced KO handling
+

@@ -134,24 +134,50 @@ export const CREATURES = {
 };
 
 export const VERSES = {
-  // Cast Verses
+  // Cast Verses (with declarative effects)
   soulSiphon: { id:'soulSiphon', name:'Soul Siphon', type:'cast', cost:2,
-    text:'Deal 20 damage to enemy creature. Heal your creature 10.' },
+    text:'Deal 20 damage to enemy creature. Heal your creature 10.',
+    effects: [
+      { type: 'damage', target: 'opp.active', amount: 20, condition: 'opp.active' },
+      { type: 'heal', target: 'me.active', amount: 10, condition: 'me.active' }
+    ] },
   darkPact: { id:'darkPact', name:'Dark Pact', type:'cast', cost:1,
-    text:'Draw 2 cards. Lose 1 life.' },
+    text:'Draw 2 cards. Lose 1 life.',
+    effects: [
+      { type: 'draw', count: 2 },
+      { type: 'loseLife', count: 1 }
+    ] },
   graveEcho: { id:'graveEcho', name:'Grave Echo', type:'cast', cost:3,
     text:'Return a creature from your graveyard to your hand.',
-    requiresSelection: true },
+    requiresSelection: true,
+    selection: { type: 'graveCreature', prompt: 'Choose creature to return' },
+    effects: [
+      { type: 'moveCard', from: 'me.grave', to: 'me.hand', target: 'selected' }
+    ] },
   manaSurge: { id:'manaSurge', name:'Mana Surge', type:'cast', cost:0,
-    text:'Gain 2 mana this turn. Once per game.' },
+    text:'Gain 2 mana this turn. Once per game.',
+    effects: [
+      { type: 'gainMana', amount: 2 },
+      { type: 'setFlag', flag: 'usedManaSurge', value: true }
+    ] },
   predatorsMark: { id:'predatorsMark', name:"Predator's Mark", type:'cast', cost:2,
-    text:'Your creature\'s next attack deals +30 damage.' },
+    text:'Your creature\'s next attack deals +30 damage.',
+    effects: [
+      { type: 'atkBonus', amount: 30, source: "Predator's Mark" }
+    ] },
   banish: { id:'banish', name:'Banish', type:'cast', cost:3,
-    text:'Destroy enemy creature. Remove from game.' },
+    text:'Destroy enemy creature. Remove from game.',
+    effects: [
+      { type: 'banish', target: 'opp.active' }
+    ] },
   bloodMoon: { id:'bloodMoon', name:'Blood Moon', type:'cast', cost:2,
-    text:'All creatures take 20 damage.' },
+    text:'All creatures take 20 damage.',
+    customHandler: true },  // Complex AoE with capture-then-process KO handling
   secondWind: { id:'secondWind', name:'Second Wind', type:'cast', cost:2,
-    text:'Heal your active creature 40 HP.' },
+    text:'Heal your active creature 40 HP.',
+    effects: [
+      { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' }
+    ] },
   // Set Verses
   phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
     trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.' },
@@ -170,16 +196,26 @@ export const VERSES = {
   
   // Fang Pack addition
   ignite: { id:'ignite', name:'Ignite', type:'cast', cost:1,
-    text:'Deal 15 damage to enemy creature.' },
+    text:'Deal 15 damage to enemy creature.',
+    effects: [
+      { type: 'damage', target: 'opp.active', amount: 15, condition: 'opp.active' }
+    ] },
   
   // Swarm Pack verses
   packTactics: { id:'packTactics', name:'Pack Tactics', type:'cast', cost:1,
-    text:'Draw 1 card for each creature you control (max 3).' },
+    text:'Draw 1 card for each creature you control (max 3).',
+    effects: [
+      { type: 'draw', count: 'creatureCount', max: 3 }
+    ] },
   callOfTheWild: { id:'callOfTheWild', name:'Call of the Wild', type:'cast', cost:2,
-    text:'Summon a 1-cost creature from your deck to bench.' },
+    text:'Summon a 1-cost creature from your deck to bench.',
+    effects: [
+      { type: 'summon', filter: { cost: 1 }, location: 'bench' }
+    ] },
   sacrifice: { id:'sacrifice', name:'Sacrifice', type:'cast', cost:0,
     text:'KO one of your creatures. Draw 2 cards.',
-    requiresSelection: true },
+    requiresSelection: true,
+    customHandler: true },  // Complex - triggers Den Mother, Grave Rise, death abilities
   denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
     trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.' },
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
@@ -187,17 +223,30 @@ export const VERSES = {
   
   // Shell Pack verses
   shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,
-    text:'Heal your creature 25 HP.' },
+    text:'Heal your creature 25 HP.',
+    effects: [
+      { type: 'heal', target: 'me.active', amount: 25, condition: 'me.active' }
+    ] },
   brace: { id:'brace', name:'Brace', type:'set', cost:1,
     trigger:'When opponent attacks', text:'Reduce damage by 15.' },
   spikeShield: { id:'spikeShield', name:'Spike Shield', type:'set', cost:2,
     trigger:'When opponent attacks', text:'Deal 15 damage to their creature.' },
   regenerate: { id:'regenerate', name:'Regenerate', type:'cast', cost:2,
-    text:'Heal your creature 40 HP. Cure poison.' },
+    text:'Heal your creature 40 HP. Cure poison.',
+    effects: [
+      { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' },
+      { type: 'cureStatus', target: 'me.active', status: 'poison' }
+    ] },
   fortify: { id:'fortify', name:'Fortify', type:'cast', cost:2,
-    text:'Your creature survives the next lethal hit with 1 HP.' },
+    text:'Your creature survives the next lethal hit with 1 HP.',
+    effects: [
+      { type: 'setStatus', target: 'me.active', status: 'fortified' }
+    ] },
   unbreakable: { id:'unbreakable', name:'Unbreakable', type:'cast', cost:3,
-    text:'Prevent the next instance of damage to your creature.' },
+    text:'Prevent the next instance of damage to your creature.',
+    effects: [
+      { type: 'setStatus', target: 'me.active', status: 'shielded' }
+    ] },
 };
 
 export const DECKS = {

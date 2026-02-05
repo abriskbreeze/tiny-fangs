@@ -2,6 +2,8 @@
 
 > 40 unique cards across 4 themed packs
 
+**Adding new cards?** See [docs/CARD-AUTHORING.md](docs/CARD-AUTHORING.md) for the implementation guide.
+
 ---
 
 ## 🌑 SHADOW PACK

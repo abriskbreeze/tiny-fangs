@@ -2351,6 +2351,7 @@
       shouldScurryTrigger,
       executeScurry
     } from './src/abilities.js';
+    import { Effects, processEffects } from './src/effects.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
@@ -3432,7 +3433,43 @@
       log(`Cast ${c.name}`);
       await showCastReveal(c);
       
-      // Execute effect
+      // === DECLARATIVE EFFECTS: Use processEffects if card has effects array ===
+      if (c.effects) {
+        const ctx = { 
+          state, 
+          me: state.G.me, 
+          opp: state.G.opp,
+          selected: selectionResult,
+          // Pass game functions for effects to use
+          draw: () => draw(state.G.me),
+          log
+        };
+        const result = await processEffects(c, ctx);
+        
+        // Handle KOs from effects
+        for (const koInfo of result.kos || []) {
+          await Anim.ko(koInfo.target.startsWith('opp') ? 'opp' : 'me');
+          await ko(koInfo.creature, koInfo.owner);
+        }
+        
+        // Special post-effect handling
+        if (c.id === 'darkPact') {
+          checkWin();  // Check win after life loss
+        }
+        if (c.id === 'banish' && state.G.opp.bench.length > 0 && !state.G.opp.active) {
+          // Opponent sends out replacement after banish
+          await Anim.wait(300);
+          state.G.opp.active = state.G.opp.bench.shift();
+          log(`Rival sent out ${state.G.opp.active.name}`);
+          render();
+          await Anim.benchToActive('opp');
+        }
+        
+        render();
+        return;
+      }
+      
+      // === FALLBACK: Legacy switch for un-migrated cards ===
       switch(c.id) {
         case 'soulSiphon':
           if (state.G.opp.active) {
