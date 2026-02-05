@@ -2,7 +2,7 @@
 
 > 40 unique cards across 4 themed packs
 
-**Adding new cards?** See [docs/CARD-AUTHORING.md](docs/CARD-AUTHORING.md) for the implementation guide.
+**Adding new cards?** See [guides/CARD-AUTHORING.md](guides/CARD-AUTHORING.md) for the implementation guide.
 
 ---
 
