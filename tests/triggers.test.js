@@ -1153,3 +1153,70 @@ describe('Triggers', () => {
     });
   });
 });
+
+// ============================================
+// afterAttack Event Tests (standalone)
+// ============================================
+import { matchesTrigger as matchesTriggerFn } from '../src/triggers.js';
+
+describe('afterAttack event (standalone)', () => {
+  it('should match thornling trigger when defending', () => {
+    const trigger = { event: 'afterAttack', condition: { defender: 'self' } };
+    const thornling = { id: 'thornling', name: 'Thornling' };
+    const context = {
+      defender: thornling,
+      self: thornling,  // Same object reference
+      attacker: { id: 'fangpup', name: 'Fangpup' }
+    };
+    expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(true);
+  });
+
+  it('should not match thornling trigger when attacking', () => {
+    const trigger = { event: 'afterAttack', condition: { defender: 'self' } };
+    const thornling = { id: 'thornling', name: 'Thornling' };
+    const context = {
+      defender: { id: 'fangpup', name: 'Fangpup' },
+      self: thornling,
+      attacker: thornling
+    };
+    expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(false);
+  });
+
+  it('should match hexweaver trigger when attacking and dealing damage', () => {
+    const trigger = { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } };
+    const hexweaver = { id: 'hexweaver', name: 'Hexweaver' };
+    const context = {
+      attacker: hexweaver,
+      self: hexweaver,  // Same object reference
+      defender: { id: 'fangpup', name: 'Fangpup' },
+      didDamage: true,
+      defenderAlive: true
+    };
+    expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(true);
+  });
+
+  it('should not match hexweaver when defender KOd', () => {
+    const trigger = { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } };
+    const hexweaver = { id: 'hexweaver', name: 'Hexweaver' };
+    const context = {
+      attacker: hexweaver,
+      self: hexweaver,
+      defender: { id: 'fangpup', name: 'Fangpup' },
+      didDamage: true,
+      defenderAlive: false  // KO'd!
+    };
+    expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(false);
+  });
+
+  it('should match sundewqueen trigger when causing KO', () => {
+    const trigger = { event: 'afterAttack', condition: { attacker: 'self', causedKO: true } };
+    const sundewqueen = { id: 'sundewqueen', name: 'Sundew Queen' };
+    const context = {
+      attacker: sundewqueen,
+      self: sundewqueen,  // Same object reference
+      defender: { id: 'fangpup', name: 'Fangpup' },
+      causedKO: true
+    };
+    expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(true);
+  });
+});

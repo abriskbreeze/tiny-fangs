@@ -2341,10 +2341,8 @@
       getEffectiveAtk,
       getAtkModifiers,
       getEffectiveDamageReduction,
-      getSetVerseReduction,
+      getSetVerseReduction,  // Returns null - set verses use event triggers now
       getDamageReductionSources,
-      getRetaliationDamage,
-      applyDrain,
       applySpark,
       checkSwarm,
       applySpawn,
@@ -3499,34 +3497,13 @@
         const result = await processEffects(c, ctx);
         
         // Helper: Process death abilities for a creature
+        // NOTE: Most death abilities now handled by onKO triggers (gloom, echomask, stormtalon)
+        // Only procedural abilities remain here
         async function processDeathAbilities(creature, owner, ownerKey) {
           const enemy = owner === state.G.me ? state.G.opp : state.G.me;
           const enemyKey = ownerKey === 'me' ? 'opp' : 'me';
           
-          // Gloom Fade - enemy discards
-          if (creature.id === 'gloom' && enemy.hand.length) {
-            const discardIdx = Math.floor(Math.random() * enemy.hand.length);
-            enemy.grave.push(enemy.hand.splice(discardIdx, 1)[0]);
-            log('Fade: enemy discarded', 'mana');
-          }
-          
-          // Echomask death damage
-          if (creature.id === 'echomask') {
-            const shatterResult = await loseLife(enemy, enemyKey);
-            if (!shatterResult.negated) {
-              log('Shatter! Enemy loses a life!', 'dmg');
-              await Anim.lpDamage(enemyKey, 1);
-              checkWin();
-            }
-          }
-          
-          // Stormtalon Chain Lightning
-          if (creature.id === 'stormtalon') {
-            enemy.chainLightning = 20;
-            log('Chain Lightning armed!', 'mana');
-          }
-          
-          // Titanback death effect
+          // Titanback death effect (procedural - dual ability with damage reduction)
           if (creature.id === 'titanback' && enemy.active) {
             log(`Titanback's Juggernaut! ${enemy.active.name} takes 25 damage!`, 'dmg');
             const titanKo = applyDamage(enemy.active, 25);
@@ -3941,30 +3918,7 @@
             }
           });
           
-          // Gloom Fade - enemy discards
-          if (victim.id === 'gloom') {
-            if (state.G.opp.hand.length) {
-              const discardIdx = Math.floor(Math.random() * state.G.opp.hand.length);
-              state.G.opp.grave.push(state.G.opp.hand.splice(discardIdx, 1)[0]);
-              log('Fade: enemy discarded', 'mana');
-            }
-          }
-          
-          // Echomask death damage
-          if (victim.id === 'echomask') {
-            const shatterResult = await loseLife(state.G.opp, 'opp');
-            if (!shatterResult.negated) {
-              log('Shatter! Enemy loses a life!', 'dmg');
-              await Anim.lpDamage('opp', 1);
-              checkWin();
-            }
-          }
-          
-          // Stormtalon Chain Lightning
-          if (victim.id === 'stormtalon') {
-            state.G.opp.chainLightning = 20;
-            log('Chain Lightning armed!', 'mana');
-          }
+          // NOTE: Death abilities (gloom, echomask, stormtalon) now handled by onKO triggers above
           
           // Draw 2 cards
           draw(state.G.me); draw(state.G.me);
@@ -4150,11 +4104,9 @@
         
         // defender already defined above
         
-        // Calculate base damage with ability modifiers (Orphan, Pack Bond, Feeding Frenzy, Rally)
+        // Calculate base damage with ability modifiers
+        // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
         let baseDmg = getEffectiveAtk(attacker, state.G.me, state.G.opp);
-        
-        // Bladewhisker Rend
-        if (attacker.id === 'bladewhisker') baseDmg += 10;
         
         // Attack bonuses (Den Mother, Predator's Mark, etc.) - apply to first hit only
         if (state.G.me.attackBonuses.length > 0) {
@@ -4170,11 +4122,6 @@
           baseDmg *= 2;
           attacker.firstAtk = false;
           log('Sonic Strike! Double damage', 'mana');
-        }
-        
-        // Echomask Reflection
-        if (attacker.id === 'echomask') {
-          baseDmg = defender.atk;
         }
         
         if (isCindermaw) {
@@ -4213,9 +4160,8 @@
           if (!state.G.opp.active) break; // Defender might be replaced
           
           // Recalculate damage for second hit (no Den Mother/Predator's Mark bonus)
+          // getEffectiveAtk handles bladewhisker/echomask modifiers
           let dmg = hit === 0 ? baseDmg : getEffectiveAtk(attacker, state.G.me, state.G.opp);
-          if (hit > 0 && attacker.id === 'bladewhisker') dmg += 10;
-          if (hit > 0 && attacker.id === 'echomask') dmg = state.G.opp.active.atk;
           
           // Emit beforeDamage event for trigger system (first hit only for set verses)
           let triggerReduction = 0;
@@ -4290,14 +4236,7 @@
           totalDamageDealt += dmg;
           log(`${state.G.opp.active.name} takes ${dmg}`, 'dmg');
           
-          // Leechling Drain - heal equal to damage dealt (each hit)
-          if (attacker.id === 'leechling' && !defenderKo) {
-            const healed = applyDrain(attacker, dmg);
-            if (healed > 0) {
-              log(`Drain! +${healed} HP`, 'heal');
-              Anim.heal('me', healed);
-            }
-          }
+          // NOTE: Leechling Drain now handled by afterAttack trigger (heals total damage)
           
           // Brief pause between Cindermaw hits
           if (isCindermaw && hit < attackCount - 1 && !defenderKo) {
@@ -4313,22 +4252,44 @@
           if (frenzyKo) await ko(attacker, state.G.me);
         }
         
-        // Retaliation damage (Thornling, Coilshell, Reflector, Spike Shield)
-        const retaliationDmg = getRetaliationDamage(defender);
-        if (retaliationDmg > 0 && state.G.me.active && state.G.me.active.curHp > 0) {
-          const retKo = applyDamage(state.G.me.active, retaliationDmg);
-          if (defender.id === 'thornling') {
-            log('Thorns! -10 to attacker', 'dmg');
-          } else if (defender.id === 'coilshell') {
-            log('Recoil! -10 to attacker', 'dmg');
-          } else if (defender.id === 'reflector') {
-            log('Mirror Shell! -15 to attacker', 'dmg');
-          }
-          await Anim.damage('me', retaliationDmg);
-          if (retKo) await ko(state.G.me.active, state.G.me);
+        // === afterAttack Event ===
+        // Fire for ALL abilities that trigger on attack completion
+        // Handles: retaliation (thornling, coilshell, reflector), 
+        //          post-attack effects (hexweaver, mireveil, leechling, sundewqueen)
+        if (state.G.me.active) {
+          const afterAttackContext = {
+            attacker: state.G.me.active,
+            attackerOwner: 'me',
+            attackerOwnerKey: 'me',
+            defender,
+            defenderOwner: 'opp',
+            defenderOwnerKey: 'opp',
+            didDamage: totalDamageDealt > 0,
+            defenderAlive: !defenderKo,
+            causedKO: defenderKo,
+            damageDealt: totalDamageDealt,
+            activePlayerKey: 'me'
+          };
+          await processTriggers('afterAttack', afterAttackContext, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            render,
+            processEffects: async (card, ctx) => {
+              const effectCtx = {
+                ...ctx,
+                ...afterAttackContext,
+                me: ctx.me,
+                opp: ctx.opp,
+                state
+              };
+              return await processEffects(card, effectCtx);
+            }
+          });
         }
         
         // Spike Shield set verse - deal 15 back to attacker (optional)
+        // NOTE: Spike Shield uses beforeAttack trigger, this is fallback for post-attack usage
         if (state.G.opp.setVerse?.id === 'spikeShield' && state.G.me.active && state.G.me.active.curHp > 0) {
           const shouldTrigger = await promptTrigger(state.G.opp, state.G.opp.setVerse, { attacker: state.G.me.active });
           if (shouldTrigger) {
@@ -4342,19 +4303,6 @@
           }
         }
         
-        // Hexweaver poison - only if defender survived
-        if (state.G.me.active?.id === 'hexweaver' && !defenderKo) {
-          defender.status = 'poison';
-          state.G.opp.poisoned = true;
-          log('Poisoned!');
-        }
-        
-        // Mireveil Bog Grasp
-        if (state.G.me.active?.id === 'mireveil' && !defenderKo) {
-          defender.status = 'trapped';
-          log('Trapped! Cannot retreat');
-        }
-        
         // Skitter Scurry - auto-swap with bench after taking damage
         if (!defenderKo && shouldScurryTrigger(defender, state.G.opp)) {
           if (executeScurry(state.G.opp)) {
@@ -4366,13 +4314,7 @@
         
         // Check KO
         if (defenderKo) {
-          // Sundew Queen Digest
-          if (state.G.me.active?.id === 'sundewqueen') {
-            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 30);
-            log('Digest! +30 HP', 'heal');
-            Anim.heal('me', 30);
-          }
-          
+          // NOTE: Sundew Queen Digest now handled by afterAttack event trigger
           await Anim.ko('opp');
           await ko(defender, state.G.opp, state.G.me.active, state.G.me);
         }
@@ -4468,7 +4410,6 @@
     async function aiTurnHunter() {
       if (state.G.winner) return;
       
-      console.log('[AI] Turn starting (Hunter)...');
       const ai = state.G.opp;
       const player = state.G.me;
       const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
@@ -4499,16 +4440,13 @@
           const canAttack = !state.G.firstTurn && !aiHasAttacked;
           const scoredMoves = getScoredMoves(ai, player, canAttack);
           
-          console.log('[AI Hunter] Moves:', scoredMoves.map(m => `${m.type}:${m.score}`).join(', '));
           
           const best = pickBestMove(scoredMoves, 10);
           
           if (!best || best.type === 'pass') {
-            console.log('[AI Hunter] Passing');
             break;
           }
           
-          console.log('[AI Hunter] Executing:', best.type, best.card?.name || '');
           
           // Execute the chosen move
           await executeAiMove(best, ai, player, pause);
@@ -4877,23 +4815,7 @@
                 return await processEffects(card, effectCtx);
               }
             });
-            if (victim.id === 'gloom' && player.hand.length) {
-              const idx = Math.floor(Math.random() * player.hand.length);
-              player.grave.push(player.hand.splice(idx, 1)[0]);
-              log('Fade: you discarded', 'dmg');
-            }
-            if (victim.id === 'echomask') {
-              const shatterResult = await loseLife(player, 'me');
-              if (!shatterResult.negated) {
-                log('Shatter! You lose a life!', 'dmg');
-                await Anim.lpDamage('me', 1);
-                checkWin();
-              }
-            }
-            if (victim.id === 'stormtalon') {
-              player.chainLightning = 20;
-              log('Chain Lightning armed!', 'mana');
-            }
+            // NOTE: Death abilities (gloom, echomask, stormtalon) handled by onKO triggers above
             
             draw(ai); draw(ai);
             log('Rival drew 2', 'mana');
@@ -4990,10 +4912,9 @@
         return;
       }
       
-      // Calculate damage (creature vs creature) - use getEffectiveAtk for ability modifiers
+      // Calculate damage (creature vs creature)
+      // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
       let dmg = getEffectiveAtk(ai.active, ai, player);
-      if (ai.active.id === 'bladewhisker') dmg += 10;
-      if (ai.active.id === 'echomask' && player.active) dmg = player.active.atk;
       // Attack bonuses (Den Mother, Predator's Mark, etc.)
       if (ai.attackBonuses.length > 0) {
         for (const bonus of ai.attackBonuses) {
@@ -5108,24 +5029,42 @@
         }
       }
       
-      // Retaliation damage (Thornling, Coilshell, Reflector)
-      if (player.active && attacker && attacker.curHp > 0) {
-        const retDmg = getRetaliationDamage(player.active);
-        if (retDmg > 0) {
-          const retKo = applyDamage(attacker, retDmg);
-          if (player.active.id === 'thornling') {
-            log('Thorns! -10 to attacker', 'dmg');
-          } else if (player.active.id === 'coilshell') {
-            log('Recoil! -10 to attacker', 'dmg');
-          } else if (player.active.id === 'reflector') {
-            log('Mirror Shell! -15 to attacker', 'dmg');
+      // === afterAttack Event (AI attack) ===
+      // Fire for ALL abilities that trigger on attack completion
+      // NOTE: For AI attacks, ai=opp and player=me from state perspective
+      if (attacker && attacker.curHp > 0) {
+        const afterAttackContext = {
+          attacker,
+          attackerOwner: 'opp',
+          attackerOwnerKey: 'opp',
+          defender: player.active,
+          defenderOwner: 'me',
+          defenderOwnerKey: 'me',
+          didDamage: dmg > 0,
+          defenderAlive: !playerKo,
+          causedKO: playerKo,
+          damageDealt: dmg,
+          activePlayerKey: 'opp'  // AI is the active player
+        };
+        await processTriggers('afterAttack', afterAttackContext, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log,
+          render,
+          processEffects: async (card, ctx) => {
+            const effectCtx = {
+              ...ctx,
+              ...afterAttackContext,
+              me: player,  // From AI perspective: 'me' = defender = player
+              opp: ai,     // From AI perspective: 'opp' = attacker = ai
+              state
+            };
+            return await processEffects(card, effectCtx);
           }
-          await Anim.damage('opp', retDmg);
-          if (retKo) await ko(attacker, ai);
-        }
+        });
       }
       
-      // Spike Shield set verse (optional trigger)
+      // Spike Shield set verse (optional trigger - fallback)
       if (player.setVerse?.id === 'spikeShield' && attacker && attacker.curHp > 0) {
         const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker });
         if (shouldTrigger) {
@@ -5139,23 +5078,10 @@
         }
       }
       
-      if (!playerKo) {
-        // Status effects
-        if (attacker.id === 'hexweaver') {
-          player.active.status = 'poison';
-          log('Poisoned!');
-        }
-        if (attacker.id === 'mireveil') {
-          player.active.status = 'trapped';
-          log('Trapped! Cannot retreat');
-        }
-      } else {
-        // Player KO'd
-        if (attacker.id === 'sundewqueen') {
-          attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
-          log('Digest! +30 HP', 'heal');
-          await Anim.heal('opp', 30);
-        }
+      // NOTE: Status effects (hexweaver poison, mireveil trap) now handled by afterAttack triggers
+      // NOTE: Sundew Queen Digest now handled by afterAttack triggers
+      
+      if (playerKo) {
         await Anim.ko('me');
         await ko(player.active, player, attacker, ai);
       }
@@ -5172,7 +5098,6 @@
       }
       
       // === PUP AI (Difficulty 1) - Original fixed-order logic ===
-      console.log('[AI] Turn starting (Pup)...');
       const ai = state.G.opp;
       const pause = () => Anim.wait(ANIM_TIMING.AI_PAUSE);
       
@@ -5533,11 +5458,7 @@
                       return await processEffects(card, effectCtx);
                     }
                   });
-                  if (victim.id === 'gloom' && state.G.me.hand.length) {
-                    const idx = Math.floor(Math.random() * state.G.me.hand.length);
-                    state.G.me.grave.push(state.G.me.hand.splice(idx, 1)[0]);
-                    log('Fade: you discarded', 'dmg');
-                  }
+                  // NOTE: Death abilities (gloom) handled by onKO triggers above
                   draw(ai); draw(ai);
                   log('Rival drew 2', 'mana');
                 }
@@ -5625,7 +5546,6 @@
         state.G.myTurn = true;
         log('Your turn', 'mana');
         render();
-        console.log('[GAME] Player turn started successfully');
       } catch (err) {
         console.error('[GAME] Player turn start error:', err);
         state.G.myTurn = true; // Force it anyway
@@ -5635,7 +5555,6 @@
     
     // Emergency player turn start
     function forcePlayerTurn() {
-      console.log('[GAME] Forcing player turn...');
       state.G._aiFailsafe = null;
       
       if (state.G.winner) return;
@@ -5769,34 +5688,7 @@
         }
       });
       
-      // Gloom Fade
-      if (creature.id === 'gloom') {
-        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
-        if (enemy.hand.length) {
-          const idx = Math.floor(Math.random() * enemy.hand.length);
-          enemy.grave.push(enemy.hand.splice(idx, 1)[0]);
-          log('Fade: enemy discarded', 'mana');
-        }
-      }
-      
-      // Echomask death damage (1 life)
-      if (creature.id === 'echomask') {
-        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
-        const enemyKey = owner === state.G.me ? 'opp' : 'me';
-        const shatterResult = await loseLife(enemy, enemyKey);
-        if (!shatterResult.negated) {
-          log('Shatter! Enemy loses a life!', 'dmg');
-          Anim.lpDamage(enemyKey, 1);
-          checkWin();
-        }
-      }
-      
-      // Stormtalon Chain Lightning
-      if (creature.id === 'stormtalon') {
-        const enemy = owner === state.G.me ? state.G.opp : state.G.me;
-        enemy.chainLightning = 20;
-        log('Chain Lightning armed!', 'mana');
-      }
+      // NOTE: Death abilities (gloom, echomask, stormtalon) now handled by onKO triggers above
       
       // Replace from bench - player chooses if multiple, AI auto-selects
       if (owner.bench.length > 0) {

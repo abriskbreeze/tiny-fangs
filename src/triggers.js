@@ -84,9 +84,14 @@ function matchesTrigger(trigger, event, context) {
     }
   }
 
-  // Attacker condition: { attacker: 'opp' }
+  // Attacker condition: { attacker: 'opp' } or { attacker: 'self' }
   if (cond.attacker) {
-    if (context.attackerOwner !== cond.attacker) return false;
+    if (cond.attacker === 'self') {
+      // The creature with this ability must be the attacker
+      if (context.attacker !== context.self) return false;
+    } else {
+      if (context.attackerOwner !== cond.attacker) return false;
+    }
   }
 
   // Defender condition: { defender: 'self' }
@@ -97,6 +102,16 @@ function matchesTrigger(trigger, event, context) {
       if (context.defenderOwner !== cond.defender) return false;
     }
   }
+
+  // afterAttack conditions
+  // didDamage: { didDamage: true } - attack must have dealt damage
+  if (cond.didDamage === true && !context.didDamage) return false;
+  
+  // defenderAlive: { defenderAlive: true } - defender must have survived
+  if (cond.defenderAlive === true && context.defenderAlive === false) return false;
+  
+  // causedKO: { causedKO: true } - attack must have KO'd the defender
+  if (cond.causedKO === true && !context.causedKO) return false;
 
   // Owner condition: { owner: 'me' } - relative to trigger owner
   // Used for "when YOUR creature is KO'd" or "when YOU would lose life" triggers
