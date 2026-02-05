@@ -46,6 +46,21 @@ function matchesTrigger(trigger, event, context) {
     }
   }
 
+  // Owner condition: { owner: 'me' } - relative to trigger owner
+  // Used for "when YOUR creature is KO'd" type triggers
+  // 'me' means the KO'd creature's owner should match the trigger owner
+  if (cond.owner) {
+    // context.creatureOwnerKey is 'me' or 'opp' from the emitter's perspective
+    // context.triggerOwnerKey is passed during matching to compare
+    if (cond.owner === 'me') {
+      // Trigger owner must match KO'd creature owner
+      if (context.creatureOwnerKey !== context.triggerOwnerKey) return false;
+    } else if (cond.owner === 'opp') {
+      // Trigger owner must NOT match KO'd creature owner
+      if (context.creatureOwnerKey === context.triggerOwnerKey) return false;
+    }
+  }
+
   return true;
 }
 
@@ -61,8 +76,12 @@ function getMatchingTriggers(event, context, state) {
 
   // Check set verses for both players
   for (const [ownerKey, player] of [['me', state.G.me], ['opp', state.G.opp]]) {
-    if (player.setVerse?.trigger) {
-      if (matchesTrigger(player.setVerse.trigger, event, context)) {
+    // Check triggerDef first (from card definitions), then trigger (for test mocks)
+    const trigger = player.setVerse?.triggerDef || player.setVerse?.trigger;
+    if (trigger) {
+      // Add triggerOwnerKey to context for owner condition matching
+      const ctxWithOwner = { ...context, triggerOwnerKey: ownerKey };
+      if (matchesTrigger(trigger, event, ctxWithOwner)) {
         matches.push({
           type: 'setVerse',
           card: player.setVerse,
@@ -109,10 +128,11 @@ async function processTriggers(event, context, state, gameCtx) {
   const matches = getMatchingTriggers(event, context, state);
   
   // Track modifications to context (e.g., damage reduction)
-  let modifiedContext = { ...context };
+  let modifiedContext = { ...context, damageReduction: context.damageReduction || 0 };
 
   for (const match of matches) {
-    const trigger = match.card.trigger || match.card.ability?.trigger;
+    // Get trigger definition - check triggerDef first (card definitions), then trigger/ability.trigger
+    const trigger = match.card.triggerDef || match.card.trigger || match.card.ability?.trigger;
 
     // Handle optional triggers (player choice)
     if (trigger.optional && gameCtx.promptTrigger) {
@@ -126,18 +146,31 @@ async function processTriggers(event, context, state, gameCtx) {
     }
 
     // Execute effects if card has them
-    if (match.card.effects && gameCtx.processEffects) {
-      const effectCtx = {
-        state,
-        me: match.owner,
-        opp: match.owner === state.G.me ? state.G.opp : state.G.me,
-        ...modifiedContext
-      };
-      const result = await gameCtx.processEffects(match.card, effectCtx);
-      
-      // Merge any modifications (damage reduction, etc.)
-      if (result.modifiedContext) {
-        modifiedContext = { ...modifiedContext, ...result.modifiedContext };
+    if (match.card.effects) {
+      for (const effect of match.card.effects) {
+        // Handle damage reduction effect directly
+        if (effect.type === 'reduceDamage') {
+          modifiedContext.damageReduction += effect.amount;
+          modifiedContext.triggeredCard = match.card;
+          if (gameCtx.log) {
+            gameCtx.log(`${match.card.name}! -${effect.amount} damage`, 'heal');
+          }
+        }
+        // Other effects handled by processEffects
+        else if (gameCtx.processEffects) {
+          const effectCtx = {
+            state,
+            me: match.owner,
+            opp: match.owner === state.G.me ? state.G.opp : state.G.me,
+            ...modifiedContext
+          };
+          const result = await gameCtx.processEffects(match.card, effectCtx);
+          
+          // Merge any modifications
+          if (result?.modifiedContext) {
+            modifiedContext = { ...modifiedContext, ...result.modifiedContext };
+          }
+        }
       }
     }
 

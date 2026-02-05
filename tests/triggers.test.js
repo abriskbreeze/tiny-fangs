@@ -244,4 +244,83 @@ describe('Triggers', () => {
       expect(matches).toHaveLength(0);
     });
   });
+
+  describe('processTriggers', () => {
+    let processTriggers;
+
+    beforeEach(async () => {
+      const module = await import('../src/triggers.js');
+      processTriggers = module.processTriggers;
+    });
+
+    it('Brace reduces damage by 15 via damageReduction context', async () => {
+      // Set up Brace with triggerDef (as defined in cards.js)
+      const brace = createSetVerse({
+        id: 'brace',
+        name: 'Brace',
+        triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' }, optional: true },
+        effects: [{ type: 'reduceDamage', amount: 15 }]
+      });
+      state.G.me.setVerse = brace;
+      state.G.me.active = createCreature();
+
+      const context = { 
+        targetOwner: 'me', 
+        targetLocation: 'active',
+        target: state.G.me.active,
+        damage: 30,
+        damageReduction: 0
+      };
+
+      // Mock gameCtx - player chooses to trigger
+      const gameCtx = {
+        promptTrigger: async () => true,
+        showTriggerReveal: async () => {},
+        log: () => {}
+      };
+
+      const result = await processTriggers('beforeDamage', context, state, gameCtx);
+
+      // Verify damage reduction was applied
+      expect(result.damageReduction).toBe(15);
+      // Verify set verse was consumed (sent to grave)
+      expect(state.G.me.setVerse).toBeNull();
+      expect(state.G.me.grave).toHaveLength(1);
+      expect(state.G.me.grave[0].id).toBe('brace');
+    });
+
+    it('Brace is optional - does not reduce if player declines', async () => {
+      const brace = createSetVerse({
+        id: 'brace',
+        name: 'Brace',
+        triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' }, optional: true },
+        effects: [{ type: 'reduceDamage', amount: 15 }]
+      });
+      state.G.me.setVerse = brace;
+      state.G.me.active = createCreature();
+
+      const context = { 
+        targetOwner: 'me', 
+        targetLocation: 'active',
+        target: state.G.me.active,
+        damage: 30,
+        damageReduction: 0
+      };
+
+      // Mock gameCtx - player DECLINES trigger
+      const gameCtx = {
+        promptTrigger: async () => false,
+        showTriggerReveal: async () => {},
+        log: () => {}
+      };
+
+      const result = await processTriggers('beforeDamage', context, state, gameCtx);
+
+      // Verify NO damage reduction
+      expect(result.damageReduction).toBe(0);
+      // Verify set verse was NOT consumed
+      expect(state.G.me.setVerse).not.toBeNull();
+      expect(state.G.me.grave).toHaveLength(0);
+    });
+  });
 });

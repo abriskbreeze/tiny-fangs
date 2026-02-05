@@ -10,6 +10,11 @@
 function resolveTarget(ctx, targetStr) {
   if (!targetStr) return null;
   
+  // Special target: 'summoned' - the creature just summoned (from trigger context)
+  if (targetStr === 'summoned') {
+    return ctx.summoned;
+  }
+  
   const [owner, location] = targetStr.split('.');
   const ownerObj = ctx[owner]; // 'me' or 'opp'
   

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.54</title>
+  <title>TINY FANGS v0.2.55</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2355,6 +2355,35 @@
     import { GameEvents } from './src/events.js';
     import { matchesTrigger, getMatchingTriggers, processTriggers } from './src/triggers.js';
     
+    // ═══════════════════════════════════════════════════════════════
+    // SUMMON EVENT HELPER
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * Emit onSummon event and process triggers (e.g., Soul Trap)
+     * @param {object} creature - The creature being summoned
+     * @param {string} summoningPlayerKey - 'me' or 'opp' (who is summoning)
+     * @returns {object} { ko: boolean } - whether creature was KO'd by trigger
+     */
+    async function emitOnSummon(creature, summoningPlayerKey) {
+      const ctx = await processTriggers('onSummon', {
+        summoned: creature,
+        creatureOwnerKey: summoningPlayerKey,
+        summoningPlayer: summoningPlayerKey
+      }, state, {
+        showTriggerReveal,
+        log,
+        processEffects: async (card, effectCtx) => {
+          // Add summoned creature to effect context
+          return await processEffects(card, { ...effectCtx, summoned: creature });
+        }
+      });
+      
+      // Check if creature was KO'd
+      const ko = creature.curHp <= 0;
+      return { ko };
+    }
+    
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
     // Selected difficulty (before game starts)
@@ -3578,13 +3607,21 @@
               state.G.me.grave.push(creature);
               const idx = state.G.me.bench.indexOf(creature);
               if (idx !== -1) state.G.me.bench.splice(idx, 1);
-              if (state.G.me.setVerse?.id === 'denMother') {
-                await showTriggerReveal(state.G.me.setVerse);
-                state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                log('Den Mother! Next attack +10 damage', 'mana');
-                state.G.me.grave.push(state.G.me.setVerse);
-                state.G.me.setVerse = null;
-              }
+              // Emit onKO event for trigger system
+              await processTriggers('onKO', {
+                creature,
+                creatureOwnerKey: 'me',
+                targetOwner: 'me',
+                targetLocation: 'bench'
+              }, state, {
+                promptTrigger,
+                showTriggerReveal,
+                log,
+                processEffects: async (card, ctx) => {
+                  const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                  return await processEffects(card, effectCtx);
+                }
+              });
             }
           }
           for (const { creature, ko: isKo } of bmKos.oppBench) {
@@ -3593,13 +3630,21 @@
               state.G.opp.grave.push(creature);
               const idx = state.G.opp.bench.indexOf(creature);
               if (idx !== -1) state.G.opp.bench.splice(idx, 1);
-              if (state.G.opp.setVerse?.id === 'denMother') {
-                await showTriggerReveal(state.G.opp.setVerse);
-                state.G.opp.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                log('Rival Den Mother! Next attack +10 damage', 'mana');
-                state.G.opp.grave.push(state.G.opp.setVerse);
-                state.G.opp.setVerse = null;
-              }
+              // Emit onKO event for trigger system
+              await processTriggers('onKO', {
+                creature,
+                creatureOwnerKey: 'opp',
+                targetOwner: 'opp',
+                targetLocation: 'bench'
+              }, state, {
+                promptTrigger,
+                showTriggerReveal,
+                log,
+                processEffects: async (card, ctx) => {
+                  const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+                  return await processEffects(card, effectCtx);
+                }
+              });
             }
           }
           // Active KOs last (so bench swaps happen after bench damage is done)
@@ -4003,21 +4048,28 @@
           if (hit > 0 && attacker.id === 'bladewhisker') dmg += 10;
           if (hit > 0 && attacker.id === 'echomask') dmg = state.G.opp.active.atk;
           
-          // Apply damage reduction (creature abilities only first)
-          let reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp, false);
-          
-          // Check for set verse reduction (optional trigger)
-          const setVerseReduction = getSetVerseReduction(state.G.opp);
-          let triggeredSetVerse = false;
-          if (setVerseReduction && hit === 0) {
-            const shouldTrigger = await promptTrigger(state.G.opp, setVerseReduction.verse, { 
-              attacker, defender: state.G.opp.active, damage: dmg 
+          // Emit beforeDamage event for trigger system (first hit only for set verses)
+          let triggerReduction = 0;
+          if (hit === 0) {
+            const beforeDamageCtx = await processTriggers('beforeDamage', {
+              targetOwner: 'opp',
+              targetLocation: 'active',
+              target: state.G.opp.active,
+              attacker,
+              defender: state.G.opp.active,
+              damage: dmg,
+              damageReduction: 0
+            }, state, {
+              promptTrigger,
+              showTriggerReveal,
+              log
             });
-            if (shouldTrigger) {
-              reduction += setVerseReduction.reduction;
-              triggeredSetVerse = true;
-            }
+            triggerReduction = beforeDamageCtx.damageReduction || 0;
           }
+          
+          // Apply damage reduction (creature abilities + trigger system)
+          let reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp, false);
+          reduction += triggerReduction;
           
           if (reduction > 0) {
             dmg = Math.max(0, dmg - reduction);
@@ -4025,13 +4077,6 @@
               const sources = getDamageReductionSources(state.G.opp.active, state.G.opp, false);
               for (const src of sources) {
                 log(`${src.name}! -${src.value} damage`, 'heal');
-              }
-              // Consume triggered set verse
-              if (triggeredSetVerse && setVerseReduction) {
-                await showTriggerReveal(setVerseReduction.verse);
-                log(`${setVerseReduction.verse.name}! -${setVerseReduction.reduction} damage`, 'heal');
-                state.G.opp.grave.push(state.G.opp.setVerse);
-                state.G.opp.setVerse = null;
               }
               // Mark Harden as used this turn
               if (state.G.opp.active.id === 'shellkin') {
@@ -5489,17 +5534,22 @@
         }
       }
       
-      // Den Mother - next attack deals +10 bonus damage (optional trigger)
-      if (owner.setVerse?.id === 'denMother') {
-        const shouldTrigger = await promptTrigger(owner, owner.setVerse, {});
-        if (shouldTrigger) {
-          await showTriggerReveal(owner.setVerse);
-          owner.attackBonuses.push({ source: 'Den Mother', value: 10 });
-          log('Den Mother! Next attack +10 damage', 'mana');
-          owner.grave.push(owner.setVerse);
-          owner.setVerse = null;
+      // Emit onKO event for trigger system (Den Mother, future KO triggers)
+      const ownerKey = owner === state.G.me ? 'me' : 'opp';
+      await processTriggers('onKO', {
+        creature,
+        creatureOwnerKey: ownerKey,
+        targetOwner: ownerKey,
+        targetLocation: 'active'
+      }, state, {
+        promptTrigger,
+        showTriggerReveal,
+        log,
+        processEffects: async (card, ctx) => {
+          const effectCtx = { ...ctx, me: ctx.owner, opp: ctx.owner === state.G.me ? state.G.opp : state.G.me };
+          return await processEffects(card, effectCtx);
         }
-      }
+      });
       
       // Grave Rise - summon 1-cost creature from grave (optional trigger)
       if (owner.setVerse?.id === 'graveRise') {
