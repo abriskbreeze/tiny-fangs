@@ -2,6 +2,38 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.2.59] - 2026-02-05
+
+### Fixed
+- **Double ability bugs** — 3 creatures were applying effects twice:
+  - Duskfang: was getting +40 ATK instead of +20
+  - Emberfang: was dealing 10 damage instead of 5
+  - Hiveling: was drawing 2 cards instead of 1
+- Root cause: hardcoded summon logic ran AFTER onSummon triggers fired
+
+### Removed
+- Dead import: `applySpark` (now handled by onSummon trigger)
+- 6 more hardcoded checks (29 remaining, down from 67 original)
+
+---
+
+## [0.2.58] - 2026-02-05
+
+### Added
+- **`afterAttack` event** for combat triggers
+  - Retaliation: thornling, coilshell, reflector
+  - Status effects: hexweaver (poison), mireveil (trap)
+  - Healing: leechling (drain), sundewqueen (digest)
+
+### Removed
+- 32 redundant `.id ===` checks (67 → 35)
+- Death ability hardcodes (gloom, echomask, stormtalon) — now use onKO triggers
+- ATK modifier hardcodes — now consolidated in `getEffectiveAtk()`
+- Debug console.logs from AI code
+- Dead imports: `getRetaliationDamage`, `applyDrain`
+
+---
+
 ## [0.2.57] - 2026-02-05
 
 ### Added
