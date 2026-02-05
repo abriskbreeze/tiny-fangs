@@ -274,8 +274,6 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 4px;
-      width: clamp(80px, 24vw, 100px);
-      aspect-ratio: 5 / 7;
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
@@ -379,15 +377,18 @@
     
     .card-empty.active-slot {
       width: calc(clamp(50px, 14vw, 60px) * 2 + 3px);
+      aspect-ratio: 5 / 7;
       font-size: 9px;
     }
     
-    /* Active cards sized to match height of 2 stacked bench cards */
+    /* Active cards sized to match active-slot placeholder exactly */
     #m-my-active .card-mini,
     #m-opp-active .card-mini,
     #m-my-active .card-active,
-    #m-opp-active .card-active {
+    #m-opp-active .card-active,
+    .card-active {
       width: calc(clamp(50px, 14vw, 60px) * 2 + 3px);
+      aspect-ratio: 5 / 7;
     }
     
     /* Mobile active card art - bigger since card is bigger */
@@ -609,10 +610,11 @@
         flex: 1;
         display: grid;
         grid-template-columns: 200px 1fr 200px;
-        grid-template-rows: 1fr auto;
+        grid-template-rows: minmax(0, 1fr) auto;
         gap: 12px;
         padding: 12px 20px;
         min-height: 0;
+        overflow: hidden;
       }
       
       /* Left Panel */
@@ -718,6 +720,7 @@
         background: var(--panel);
         border: 1px solid var(--border);
         min-height: 0;
+        overflow: hidden;
       }
       
       .d-battle .d-panel-hdr {
