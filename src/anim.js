@@ -153,7 +153,10 @@ export const Anim = {
   damage(side, amount, targetEl) {
     return new Promise(resolve => {
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE);
+      // Same hit effects as attack: screen flash, tilt wobble, red flash
+      this.screenFlash('red');
+      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+      this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH);
       this.floatText(`-${amount}`, 'damage', targetEl || this.getCardEl(null, side));
       setTimeout(resolve, ANIM_TIMING.SHAKE);
     });
