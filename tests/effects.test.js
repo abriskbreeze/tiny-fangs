@@ -292,6 +292,33 @@ describe('Effects System', () => {
     });
   });
 
+  describe('reduceDamage', () => {
+    it('adds to damageReduction in context', async () => {
+      const { Effects } = await import('../src/effects.js');
+      const result = await Effects.reduceDamage(ctx, { amount: 15 });
+      
+      expect(result.modifiedContext.damageReduction).toBe(15);
+    });
+
+    it('accumulates multiple reductions', async () => {
+      ctx.damageReduction = 10;
+      
+      const { Effects } = await import('../src/effects.js');
+      const result = await Effects.reduceDamage(ctx, { amount: 15 });
+      
+      expect(result.modifiedContext.damageReduction).toBe(25);
+    });
+  });
+
+  describe('negateSpell', () => {
+    it('sets spellNegated flag', async () => {
+      const { Effects } = await import('../src/effects.js');
+      const result = await Effects.negateSpell(ctx);
+      
+      expect(result.modifiedContext.spellNegated).toBe(true);
+    });
+  });
+
   describe('aoeAll', () => {
     it('damages all creatures on both sides', async () => {
       ctx.me.active = createCreature({ curHp: 30 });

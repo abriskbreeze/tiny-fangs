@@ -178,19 +178,31 @@ export const VERSES = {
     effects: [
       { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' }
     ] },
-  // Set Verses
+  // Set Verses (with declarative triggers for future migration)
   phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
-    trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.' },
+    trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.',
+    triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true },
+    customHandler: true },  // Complex: negates attack + deals damage
   soulTrap: { id:'soulTrap', name:'Soul Trap', type:'set', cost:2,
-    trigger:'When opponent summons', text:'That creature enters with -20 HP.' },
+    trigger:'When opponent summons', text:'That creature enters with -20 HP.',
+    triggerDef: { event: 'onSummon', condition: { owner: 'opp' } },
+    effects: [{ type: 'damage', target: 'summoned', amount: 20 }] },
   vengeance: { id:'vengeance', name:'Vengeance', type:'set', cost:2,
-    trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.' },
+    trigger:'When your creature would be KO\'d', text:'Negate KO. Destroy attacker instead.',
+    triggerDef: { event: 'beforeKO', condition: { target: 'me.active' }, optional: true },
+    customHandler: true },  // Complex: negates KO + destroys attacker
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
-    trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.' },
+    trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.',
+    triggerDef: { event: 'onKO', condition: { owner: 'me' }, optional: true },
+    customHandler: true },  // Complex: selection from grave
   manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
-    trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.' },
+    trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.',
+    triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
+    effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 1 }] },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
-    trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.' },
+    trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.',
+    triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true } },
+    customHandler: true },  // Complex: once per game tracking
   
   // === NEW VERSES ===
   
@@ -217,9 +229,13 @@ export const VERSES = {
     requiresSelection: true,
     customHandler: true },  // Complex - triggers Den Mother, Grave Rise, death abilities
   denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
-    trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.' },
+    trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.',
+    triggerDef: { event: 'onKO', condition: { owner: 'me' }, optional: true },
+    effects: [{ type: 'atkBonus', amount: 10, source: 'Den Mother' }] },
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
-    trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.' },
+    trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.',
+    triggerDef: { event: 'beforeDamage', condition: { target: 'me.active', hasBench: true }, optional: true },
+    effects: [{ type: 'reduceDamage', amount: 15 }] },
   
   // Shell Pack verses
   shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,
@@ -228,9 +244,13 @@ export const VERSES = {
       { type: 'heal', target: 'me.active', amount: 25, condition: 'me.active' }
     ] },
   brace: { id:'brace', name:'Brace', type:'set', cost:1,
-    trigger:'When opponent attacks', text:'Reduce damage by 15.' },
+    trigger:'When opponent attacks', text:'Reduce damage by 15.',
+    triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' }, optional: true },
+    effects: [{ type: 'reduceDamage', amount: 15 }] },
   spikeShield: { id:'spikeShield', name:'Spike Shield', type:'set', cost:2,
-    trigger:'When opponent attacks', text:'Deal 15 damage to their creature.' },
+    trigger:'When opponent attacks', text:'Deal 15 damage to their creature.',
+    triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true },
+    effects: [{ type: 'damage', target: 'attacker', amount: 15 }] },
   regenerate: { id:'regenerate', name:'Regenerate', type:'cast', cost:2,
     text:'Heal your creature 40 HP. Cure poison.',
     effects: [

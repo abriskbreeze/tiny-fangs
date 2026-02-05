@@ -272,6 +272,23 @@ const Effects = {
   },
 
   /**
+   * Reduce incoming damage (for triggers)
+   * Modifies ctx.damageReduction
+   */
+  async reduceDamage(ctx, { amount }) {
+    ctx.damageReduction = (ctx.damageReduction || 0) + amount;
+    return { modifiedContext: { damageReduction: ctx.damageReduction } };
+  },
+
+  /**
+   * Negate a spell (for Mana Drain)
+   */
+  async negateSpell(ctx) {
+    ctx.spellNegated = true;
+    return { modifiedContext: { spellNegated: true } };
+  },
+
+  /**
    * Summon creature from deck
    */
   async summon(ctx, { filter, location }) {

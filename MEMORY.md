@@ -316,3 +316,36 @@ for (const koInfo of result.kos) { await ko(...); }
 - Creature abilities could be migrated
 - bloodMoon/sacrifice could be migrated with enhanced KO handling
 
+
+### 2026-02-05 Evening — Event System Foundation (v0.2.54)
+
+**New Modules:**
+- `src/events.js` — GameEvents emitter (on, off, once, emit, clear)
+- `src/triggers.js` — Trigger processor (matchesTrigger, getMatchingTriggers, processTriggers)
+
+**Trigger Definitions Added to Cards:**
+All set verses now have `triggerDef` with structured event/condition/optional:
+- phantomWall, soulTrap, vengeance, graveRise, manaDrain, lastBreath
+- brace, spikeShield, denMother, swarmShield
+
+**New Effect Primitives:**
+- `reduceDamage` — For damage reduction triggers
+- `negateSpell` — For Mana Drain
+
+**Architecture:**
+```js
+// Set verse with trigger definition
+brace: {
+  triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' }, optional: true },
+  effects: [{ type: 'reduceDamage', amount: 15 }]
+}
+```
+
+**Status:**
+- Event system built and tested (13 event tests, 12 trigger tests)
+- Trigger definitions added to all set verses (data only)
+- Existing if-checks still handle actual gameplay (not migrated yet)
+- Ready for gradual migration: emit events → test → remove old checks
+
+**Tests:** 245 passing
+

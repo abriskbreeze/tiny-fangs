@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.53</title>
+  <title>TINY FANGS v0.2.54</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2352,6 +2352,8 @@
       executeScurry
     } from './src/abilities.js';
     import { Effects, processEffects } from './src/effects.js';
+    import { GameEvents } from './src/events.js';
+    import { matchesTrigger, getMatchingTriggers, processTriggers } from './src/triggers.js';
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
     
