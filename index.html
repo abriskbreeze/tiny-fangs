@@ -927,7 +927,7 @@
         gap: 3px;
         font-size: 10px;
         color: var(--dim);
-        max-height: 80px;
+        flex: 1;
         overflow-y: auto;
       }
       
@@ -2072,7 +2072,7 @@
         </div>
         <div class="d-panel d-log-panel" style="flex:1; min-height:0;">
           <div class="d-panel-hdr">Battle Log</div>
-          <div class="d-panel-body">
+          <div class="d-panel-body" style="display:flex; flex-direction:column;">
             <div id="d-log" class="d-log-entries"></div>
           </div>
         </div>
