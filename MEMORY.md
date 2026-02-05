@@ -150,3 +150,53 @@ Major milestones:
 - **Fix**: Added `await` to player attack: `await Anim.attack("me", "opp", dmg);`
 - **Lesson**: When animation is fire-and-forget but DOM gets re-rendered, the animation class disappears
 
+
+### 2026-02-04 Night Session — Animation Polish (v0.2.14 → v0.2.21)
+
+**Coiled Strike Attack Animation (v0.2.14)**
+- Pullback coil (tilt 12°) → hold tension → explosive release
+- Hit reaction: tilt wobble (-8° → +5° → -3° → settle)
+
+**Bug Fixes (v0.2.15-v0.2.21)**
+- v0.2.15: Player attack animation not playing — `render()` removed class before animation played. Fix: `await Anim.attack()`
+- v0.2.16: KO animation + hit reaction timing — same render() issue, shake had 45% delay
+- v0.2.17: Added `attackDirect()` for direct LP attacks, hit timing tuned
+- v0.2.18: Rival set verse animation missing — `Anim.setVerse("opp")` was never called
+- v0.2.19-v0.2.20: Hit timing adjustments (400ms → 100ms → 0ms)
+- v0.2.21: Non-combat damage now has full hit effects (screen flash, tilt wobble, red flash)
+
+**Key Pattern Learned**
+When animation class is added but `render()` is called before animation completes, the class gets removed. Solution: `await` the animation before continuing.
+
+
+### 2026-02-04 Late Night — AI + Drag-to-Play (v0.2.22 → v0.2.29)
+
+**v0.2.22: AI Cast Verse Phase**
+- AI now casts verses (Soul Siphon, Ignite, Dark Pact, etc.)
+- Logic: evaluate each cast verse, decide if beneficial, cast if yes
+- Added after bench phase, before set verse phase in AI turn
+
+**v0.2.23-v0.2.25: Banish Fixes**
+- Bug: Banish didn't trigger opponent bench replacement
+- Root cause: `ko()` handles replacement, but Banish just set `active = null`
+- Fix: Added bench-to-active swap + KO animation after Banish
+- v0.2.25: Fixed `pause` being out of scope in player's castVerse (used `Anim.wait(300)` instead)
+
+**v0.2.26-v0.2.29: Drag-to-Play System**
+- Hold card (no movement) → zoom preview
+- Drag card (>15px) → card follows finger
+- Drop on field → plays card automatically:
+  - Creatures: active slot if empty, else bench
+  - Cast verses: cast immediately
+  - Set verses: set to slot
+- Key fixes:
+  - v0.2.27: `touch-action: none` + `preventDefault` to stop scroll hijack
+  - v0.2.27: Unaffordable cards drag but show grey/red over field
+  - v0.2.28: Simplified to one big "field" drop zone
+  - v0.2.29: Turn check - can't play cards when not your turn
+
+**Pattern: Mobile Touch Handling**
+- Use `touch-action: none` on draggable elements
+- Call `e.preventDefault()` in pointer handlers to prevent scroll
+- Track affordability separately from drag ability (visual feedback vs action)
+

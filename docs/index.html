@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.21</title>
+  <title>TINY FANGS v0.2.29</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -497,6 +497,46 @@
     .hand-card.verse-cast { border-color: var(--gold); }
     
     .hand-card.verse-set { border-color: var(--purple); }
+    
+    /* Drag-to-play drop zones */
+    
+    .drop-target {
+      outline: 2px dashed var(--green);
+      outline-offset: -2px;
+      animation: drop-pulse 1s ease-in-out infinite;
+    }
+    
+    .drop-hover {
+      outline: 3px solid var(--green);
+      background: rgba(34, 197, 94, 0.1) !important;
+    }
+    
+    .d-field.drop-target, .d-field.drop-hover {
+      border-radius: 8px;
+    }
+    
+    @keyframes drop-pulse {
+      0%, 100% { outline-color: var(--green); }
+      50% { outline-color: rgba(34, 197, 94, 0.4); }
+    }
+    
+    .hand-card.dragging {
+      border: 2px solid var(--blue);
+      background: var(--panel);
+    }
+    
+    .hand-card.dragging.unaffordable {
+      opacity: 0.5;
+      border-color: var(--red);
+      filter: grayscale(0.8);
+    }
+    
+    /* Prevent touch scrolling on hand cards */
+    
+    .hand-card, .d-hand-card {
+      touch-action: none;
+      user-select: none;
+    }
     
     .hand-card .cost-pip {
       font-size: 10px;
@@ -1985,7 +2025,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-DzfCaS_U.js"></script>
+  <script type="module" crossorigin src="./assets/index-BhewSmTK.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -1993,7 +2033,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.21 • Card Battler</p>
+    <p class="sub">v0.2.29 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2098,7 +2138,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.21</div>
+      <div class="logo">TINY FANGS v0.2.29</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>

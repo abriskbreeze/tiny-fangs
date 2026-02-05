@@ -96,13 +96,13 @@ export function renderHandCard(c, vertical, selectedCardUid) {
   const typeLabel = c.cardType === 'creature' ? 'Creature' : (c.type === 'cast' ? 'Cast' : 'Set');
   
   if (vertical) {
-    return `<div class="d-hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+    return `<div class="d-hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}', event)" onpointerup="cardRelease()" onpointerleave="cardRelease()">
       <div class="cost">${c.cost}</div>
       <div class="info"><div class="name">${c.name}</div><div class="type">${typeLabel}</div></div>
     </div>`;
   }
   
-  return `<div class="hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}')" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
+  return `<div class="hand-card ${typeClass} ${sel}" onclick="selectCard('${c.uid}', event)" onpointerdown="cardPress('${c.uid}', event)" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="cost-pip">${c.cost}</div>
     <div class="name">${c.name}</div>
     <div class="type">${typeLabel}</div>

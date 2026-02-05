@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.21</title>
+  <title>TINY FANGS v0.2.29</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -472,6 +472,39 @@
     .hand-card.creature { border-color: var(--green); }
     .hand-card.verse-cast { border-color: var(--gold); }
     .hand-card.verse-set { border-color: var(--purple); }
+    
+    /* Drag-to-play drop zones */
+    .drop-target {
+      outline: 2px dashed var(--green);
+      outline-offset: -2px;
+      animation: drop-pulse 1s ease-in-out infinite;
+    }
+    .drop-hover {
+      outline: 3px solid var(--green);
+      background: rgba(34, 197, 94, 0.1) !important;
+    }
+    .d-field.drop-target, .d-field.drop-hover {
+      border-radius: 8px;
+    }
+    @keyframes drop-pulse {
+      0%, 100% { outline-color: var(--green); }
+      50% { outline-color: rgba(34, 197, 94, 0.4); }
+    }
+    .hand-card.dragging {
+      border: 2px solid var(--blue);
+      background: var(--panel);
+    }
+    .hand-card.dragging.unaffordable {
+      opacity: 0.5;
+      border-color: var(--red);
+      filter: grayscale(0.8);
+    }
+    
+    /* Prevent touch scrolling on hand cards */
+    .hand-card, .d-hand-card {
+      touch-action: none;
+      user-select: none;
+    }
     
     .hand-card .cost-pip {
       font-size: 10px;
@@ -1907,7 +1940,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.21 • Card Battler</p>
+    <p class="sub">v0.2.29 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2012,7 +2045,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.21</div>
+      <div class="logo">TINY FANGS v0.2.29</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2592,15 +2625,327 @@
       render();
     }
     
-    function cardPress(uid) {
-      state.longPressTimer = setTimeout(() => showCardDetail(uid), 400);
+    // Drag-to-play system
+    const DRAG_THRESHOLD = 15;
+    
+    function cardPress(uid, e) {
+      const card = state.G.me.hand.find(c => c.uid === uid);
+      if (!card) return;
+      
+      // Prevent touch scrolling
+      if (e.cancelable) e.preventDefault();
+      
+      // Get pointer position
+      const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+      const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+      
+      // Track if card is affordable
+      const canAfford = card.cost <= state.G.me.mana;
+      
+      // Initialize drag state
+      state.drag = {
+        active: false,
+        card: card,
+        uid: uid,
+        startX: clientX,
+        startY: clientY,
+        currentX: clientX,
+        currentY: clientY,
+        canAfford: canAfford,
+        el: null
+      };
+      
+      // Long press timer for zoom preview
+      state.longPressTimer = setTimeout(() => {
+        if (state.drag && !state.drag.active) {
+          showCardDetail(uid);
+          state.drag = null;
+        }
+      }, 400);
+      
+      // Add move/up listeners
+      document.addEventListener('pointermove', onDragMove);
+      document.addEventListener('pointerup', onDragEnd);
+      document.addEventListener('pointercancel', onDragEnd);
     }
     
-    function cardRelease() {
+    function onDragMove(e) {
+      if (!state.drag) return;
+      
+      // Prevent scrolling during drag
+      if (e.cancelable) e.preventDefault();
+      
+      const clientX = e.clientX ?? 0;
+      const clientY = e.clientY ?? 0;
+      state.drag.currentX = clientX;
+      state.drag.currentY = clientY;
+      
+      const dx = clientX - state.drag.startX;
+      const dy = clientY - state.drag.startY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      // Check if we should enter drag mode
+      if (!state.drag.active && dist > DRAG_THRESHOLD) {
+        // Cancel long press
+        if (state.longPressTimer) {
+          clearTimeout(state.longPressTimer);
+          state.longPressTimer = null;
+        }
+        
+        state.drag.active = true;
+        createDragElement();
+        if (state.drag.canAfford) {
+          highlightDropZones();
+        }
+      }
+      
+      // Update drag element position
+      if (state.drag?.active && state.drag.el) {
+        state.drag.el.style.left = (clientX - 40) + 'px';
+        state.drag.el.style.top = (clientY - 50) + 'px';
+        
+        // Update affordability visual based on position
+        const overField = isOverField(clientX, clientY);
+        state.drag.el.classList.toggle('unaffordable', !state.drag.canAfford && overField);
+        
+        if (state.drag.canAfford) {
+          updateDropZoneHighlights(clientX, clientY);
+        }
+      }
+    }
+    
+    function isOverField(x, y) {
+      const isMobile = window.innerWidth < 900;
+      // Check if over the battlefield area (not the hand)
+      const fieldEl = isMobile 
+        ? document.querySelector('.m-field-half.you') 
+        : document.querySelector('.d-field');
+      if (!fieldEl) return false;
+      const rect = fieldEl.getBoundingClientRect();
+      return y <= rect.bottom; // Over field if above the bottom of field
+    }
+    
+    function onDragEnd(e) {
+      document.removeEventListener('pointermove', onDragMove);
+      document.removeEventListener('pointerup', onDragEnd);
+      document.removeEventListener('pointercancel', onDragEnd);
+      
       if (state.longPressTimer) {
         clearTimeout(state.longPressTimer);
         state.longPressTimer = null;
       }
+      
+      if (state.drag?.active) {
+        const clientX = e.clientX ?? state.drag.currentX;
+        const clientY = e.clientY ?? state.drag.currentY;
+        
+        // Only execute drop if affordable
+        if (state.drag.canAfford) {
+          const zone = detectDropZone(clientX, clientY);
+          if (zone) {
+            executeDrop(state.drag.card, zone);
+          }
+        }
+        
+        // Clean up
+        if (state.drag.el) {
+          state.drag.el.remove();
+        }
+        clearDropZoneHighlights();
+      }
+      
+      state.drag = null;
+    }
+    
+    function cardRelease() {
+      // Legacy - now handled by onDragEnd
+      if (state.longPressTimer) {
+        clearTimeout(state.longPressTimer);
+        state.longPressTimer = null;
+      }
+    }
+    
+    function createDragElement() {
+      const card = state.drag.card;
+      const typeClass = card.cardType === 'creature' ? 'creature' : (card.type === 'cast' ? 'verse-cast' : 'verse-set');
+      const typeLabel = card.cardType === 'creature' ? 'Creature' : (card.type === 'cast' ? 'Cast' : 'Set');
+      
+      const el = document.createElement('div');
+      el.className = `hand-card ${typeClass} dragging`;
+      el.innerHTML = `
+        <div class="cost-pip">${card.cost}</div>
+        <div class="name">${card.name}</div>
+        <div class="type">${typeLabel}</div>
+      `;
+      el.style.cssText = `
+        position: fixed;
+        z-index: 9999;
+        pointer-events: none;
+        transform: scale(0.9);
+        opacity: 0.9;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        left: ${state.drag.currentX - 40}px;
+        top: ${state.drag.currentY - 50}px;
+      `;
+      document.body.appendChild(el);
+      state.drag.el = el;
+    }
+    
+    function getFieldElement() {
+      const isMobile = window.innerWidth < 900;
+      return isMobile 
+        ? document.querySelector('#mobile .m-field-half.you')?.parentElement || document.querySelector('#mobile')
+        : document.querySelector('.d-field');
+    }
+    
+    function canPlayCard(card) {
+      // Check if card can be played at all
+      if (card.cardType === 'creature') {
+        // Need empty active OR room on bench
+        return !state.G.me.active || state.G.me.bench.length < 2;
+      } else if (card.type === 'cast') {
+        return true; // Cast verses can always be attempted
+      } else if (card.type === 'set') {
+        return !state.G.me.setVerse; // Need empty set slot
+      }
+      return false;
+    }
+    
+    function getPlayType(card) {
+      // Determine what happens when this card is played
+      if (card.cardType === 'creature') {
+        if (!state.G.me.active) return 'summon-active';
+        if (state.G.me.bench.length < 2) return 'summon-bench';
+        return null;
+      } else if (card.type === 'cast') {
+        return 'cast';
+      } else if (card.type === 'set') {
+        if (!state.G.me.setVerse) return 'set-verse';
+        return null;
+      }
+      return null;
+    }
+    
+    function highlightDropZones() {
+      const card = state.drag?.card;
+      if (!card || !canPlayCard(card)) return;
+      
+      const fieldEl = getFieldElement();
+      if (fieldEl) fieldEl.classList.add('drop-target');
+    }
+    
+    function clearDropZoneHighlights() {
+      document.querySelectorAll('.drop-target, .drop-hover').forEach(el => {
+        el.classList.remove('drop-target', 'drop-hover');
+      });
+    }
+    
+    function updateDropZoneHighlights(x, y) {
+      const card = state.drag?.card;
+      if (!card || !canPlayCard(card)) return;
+      
+      const fieldEl = getFieldElement();
+      if (!fieldEl) return;
+      
+      const rect = fieldEl.getBoundingClientRect();
+      const isOver = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      fieldEl.classList.toggle('drop-hover', isOver);
+    }
+    
+    function detectDropZone(x, y) {
+      const card = state.drag?.card;
+      if (!card) return null;
+      
+      const playType = getPlayType(card);
+      if (!playType) return null;
+      
+      const fieldEl = getFieldElement();
+      if (!fieldEl) return null;
+      
+      const rect = fieldEl.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return { type: playType };
+      }
+      return null;
+    }
+    
+    async function executeDrop(card, zone) {
+      // Can only play cards on your turn
+      if (!state.G.myTurn) {
+        log("Not your turn!", 'dmg');
+        return;
+      }
+      
+      // Cast verses use castVerse() which handles mana/hand itself
+      if (zone.type === 'cast') {
+        await castVerse(card);
+        return;
+      }
+      
+      // For other types, deduct mana and remove from hand
+      state.G.me.mana -= card.cost;
+      state.G.me.hand = state.G.me.hand.filter(c => c.uid !== card.uid);
+      
+      switch (zone.type) {
+        case 'summon-active':
+          // Check Soul Trap
+          if (state.G.opp.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(state.G.opp.setVerse);
+            log('Soul Trap triggered!', 'dmg');
+            const trapKo = applyDamage(card, 20);
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+            if (trapKo) {
+              log(`${card.name} destroyed by trap!`, 'dmg');
+              state.G.me.grave.push(card);
+              render();
+              return;
+            }
+          }
+          state.G.me.active = card;
+          log(`Summoned ${card.name}`);
+          
+          // Duskfang ability
+          if (card.id === 'duskfang' && state.G.me.grave.some(c => c.cardType === 'creature')) {
+            card.atk += 20;
+            log('Pack Call: +20 ATK', 'mana');
+          }
+          
+          render();
+          await Anim.summon('me');
+          break;
+          
+        case 'summon-bench':
+          // Check Soul Trap
+          if (state.G.opp.setVerse?.id === 'soulTrap') {
+            await showTriggerReveal(state.G.opp.setVerse);
+            log('Soul Trap triggered!', 'dmg');
+            const trapKo = applyDamage(card, 20);
+            state.G.opp.grave.push(state.G.opp.setVerse);
+            state.G.opp.setVerse = null;
+            if (trapKo) {
+              log(`${card.name} destroyed by trap!`, 'dmg');
+              state.G.me.grave.push(card);
+              render();
+              return;
+            }
+          }
+          const benchIdx = state.G.me.bench.length;
+          state.G.me.bench.push(card);
+          log(`Benched ${card.name}`);
+          render();
+          await Anim.summonBench('me', benchIdx);
+          break;
+          
+        case 'set-verse':
+          state.G.me.setVerse = card;
+          log(`Set ${card.name}`);
+          render();
+          await Anim.setVerse('me');
+          break;
+      }
+      
+      render();
     }
     
     function setVersePress() {
@@ -2912,8 +3257,19 @@
         case 'banish':
           if (state.G.opp.active) {
             log(`Banished ${state.G.opp.active.name}`, 'dmg');
+            await Anim.ko('opp');
             state.G.opp.active = null;
             // Don't go to grave - removed from game
+            render();
+            
+            // Opponent bench replacement (AI auto-selects)
+            if (state.G.opp.bench.length > 0) {
+              await Anim.wait(300);
+              state.G.opp.active = state.G.opp.bench.shift();
+              log(`Rival sent out ${state.G.opp.active.name}`);
+              render();
+              await Anim.benchToActive('opp');
+            }
           }
           break;
         case 'bloodMoon':
@@ -3415,6 +3771,217 @@
           log(`Rival benched ${pick.name}`);
           render();
           await Anim.summonBench('opp', benchIdx);
+        }
+        
+        // === CAST VERSE PHASE ===
+        const casts = ai.hand.filter(c => c.cardType === 'verse' && c.type === 'cast' && c.cost <= ai.mana);
+        for (const cast of casts) {
+          if (ai.mana < cast.cost) continue;
+          
+          let shouldCast = false;
+          switch(cast.id) {
+            case 'manaSurge':
+              shouldCast = !ai.usedManaSurge; // Free mana, use it
+              break;
+            case 'soulSiphon':
+              shouldCast = state.G.me.active && ai.active; // Need both actives
+              break;
+            case 'ignite':
+              shouldCast = state.G.me.active && state.G.me.active.curHp <= 15; // Can KO
+              break;
+            case 'darkPact':
+              shouldCast = ai.lp > 1 && ai.hand.length < 4; // Don't suicide
+              break;
+            case 'secondWind':
+              shouldCast = ai.active && ai.active.curHp <= ai.active.hp - 30; // Wounded
+              break;
+            case 'predatorsMark':
+              shouldCast = ai.active && state.G.me.active; // About to attack
+              break;
+            case 'banish':
+              shouldCast = state.G.me.active && state.G.me.active.atk >= 40; // High threat
+              break;
+            case 'bloodMoon':
+              const myLoss = ai.active ? Math.min(20, ai.active.curHp) : 0;
+              const theirLoss = state.G.me.active ? Math.min(20, state.G.me.active.curHp) : 0;
+              shouldCast = theirLoss > myLoss;
+              break;
+            case 'packTactics':
+              shouldCast = (ai.active ? 1 : 0) + ai.bench.length >= 2;
+              break;
+            case 'graveEcho':
+              shouldCast = ai.grave.some(c => c.cardType === 'creature');
+              break;
+            case 'callOfTheWild':
+              const hasRoom = !ai.active || ai.bench.length < 2;
+              const hasOneCost = ai.deck.some(c => c.cardType === 'creature' && c.cost === 1);
+              shouldCast = hasRoom && hasOneCost;
+              break;
+            case 'sacrifice':
+              shouldCast = ai.bench.length > 0 && ai.hand.length < 3;
+              break;
+          }
+          
+          if (shouldCast) {
+            ai.mana -= cast.cost;
+            ai.hand = ai.hand.filter(x => x.uid !== cast.uid);
+            ai.grave.push(cast);
+            log(`Rival cast ${cast.name}`);
+            await showCastReveal(cast);
+            
+            // Check player's Mana Drain
+            if (state.G.me.setVerse?.id === 'manaDrain') {
+              await showTriggerReveal(state.G.me.setVerse);
+              log('Mana Drain triggered!', 'dmg');
+              state.G.me.mana = Math.min(5, state.G.me.mana + 1);
+              state.G.me.grave.push(state.G.me.setVerse);
+              state.G.me.setVerse = null;
+              await Anim.negateX();
+              log(`${cast.name} negated! You gain 1 mana.`);
+              render();
+              continue;
+            }
+            
+            // Execute effect
+            switch(cast.id) {
+              case 'manaSurge':
+                ai.mana += 2;
+                ai.usedManaSurge = true;
+                log('Rival +2 mana', 'mana');
+                break;
+              case 'soulSiphon':
+                if (state.G.me.active) {
+                  const siphonKo = applyDamage(state.G.me.active, 20);
+                  log('You -20', 'dmg');
+                  await Anim.damage('me', 20);
+                  if (siphonKo) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
+                }
+                if (ai.active) {
+                  ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 10);
+                  log('Rival +10', 'heal');
+                  Anim.heal('opp', 10);
+                }
+                break;
+              case 'ignite':
+                if (state.G.me.active) {
+                  const igniteKo = applyDamage(state.G.me.active, 15);
+                  log('Ignite! You -15', 'dmg');
+                  await Anim.damage('me', 15);
+                  if (igniteKo) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
+                }
+                break;
+              case 'darkPact':
+                draw(ai); draw(ai);
+                ai.lp -= 1;
+                log('Rival drew 2, lost a life!', 'dmg');
+                await Anim.lpDamage('opp', 1);
+                checkWin();
+                break;
+              case 'secondWind':
+                if (ai.active) {
+                  ai.active.curHp = Math.min(ai.active.hp, ai.active.curHp + 40);
+                  log('Rival +40 HP', 'heal');
+                  Anim.heal('opp', 40);
+                }
+                break;
+              case 'predatorsMark':
+                ai.marked = true;
+                log('Rival marked you! Next attack +30');
+                break;
+              case 'banish':
+                if (state.G.me.active) {
+                  log(`Banished ${state.G.me.active.name}!`, 'dmg');
+                  await Anim.ko('me');
+                  state.G.me.active = null;
+                  render();
+                  
+                  // Player bench replacement
+                  if (state.G.me.bench.length > 0) {
+                    await pause(300);
+                    if (state.G.me.bench.length === 1) {
+                      state.G.me.active = state.G.me.bench.shift();
+                      log(`Sent out ${state.G.me.active.name}`);
+                      render();
+                      await Anim.benchToActive('me');
+                    } else {
+                      // Player chooses which bench creature
+                      await new Promise(resolve => {
+                        showModal('Choose new active creature', state.G.me.bench.map(c => ({
+                          name: c.name,
+                          sub: `${c.curHp}/${c.hp} HP / ${c.atk} ATK`,
+                          action: () => {
+                            closeModal();
+                            const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
+                            state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
+                            log(`Sent out ${state.G.me.active.name}`);
+                            render();
+                            Anim.benchToActive('me').then(resolve);
+                          }
+                        })));
+                      });
+                    }
+                  }
+                }
+                break;
+              case 'bloodMoon':
+                if (ai.active) {
+                  const moonKoAi = applyDamage(ai.active, 20);
+                  Anim.damage('opp', 20);
+                  if (moonKoAi) { await Anim.ko('opp'); await ko(ai.active, ai); }
+                }
+                if (state.G.me.active) {
+                  const moonKoMe = applyDamage(state.G.me.active, 20);
+                  await Anim.damage('me', 20);
+                  if (moonKoMe) { await Anim.ko('me'); await ko(state.G.me.active, state.G.me); }
+                }
+                log('Blood Moon! All creatures -20', 'dmg');
+                break;
+              case 'packTactics':
+                const count = (ai.active ? 1 : 0) + ai.bench.length;
+                const drawCount = Math.min(count, 3);
+                for (let i = 0; i < drawCount; i++) draw(ai);
+                log(`Rival drew ${drawCount}`, 'mana');
+                break;
+              case 'graveEcho':
+                const graveCr = ai.grave.filter(x => x.cardType === 'creature');
+                if (graveCr.length) {
+                  const pick = graveCr[0];
+                  ai.grave = ai.grave.filter(x => x.uid !== pick.uid);
+                  ai.hand.push(pick);
+                  log(`Rival returned ${pick.name}`);
+                }
+                break;
+              case 'callOfTheWild':
+                const oneCost = ai.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
+                if (oneCost.length) {
+                  const summon = oneCost[Math.floor(Math.random() * oneCost.length)];
+                  ai.deck = ai.deck.filter(x => x.uid !== summon.uid);
+                  if (!ai.active) {
+                    ai.active = summon;
+                    log(`Rival called ${summon.name}!`, 'mana');
+                    render();
+                    await Anim.summon('opp');
+                  } else {
+                    ai.bench.push(summon);
+                    log(`Rival called ${summon.name} to bench!`, 'mana');
+                    render();
+                    await Anim.summonBench('opp', ai.bench.length - 1);
+                  }
+                }
+                break;
+              case 'sacrifice':
+                if (ai.bench.length > 0) {
+                  const victim = ai.bench.shift();
+                  ai.grave.push(victim);
+                  log(`Rival sacrificed ${victim.name}`, 'dmg');
+                  draw(ai); draw(ai);
+                  log('Rival drew 2', 'mana');
+                }
+                break;
+            }
+            render();
+            await pause();
+          }
         }
         
         // === SET VERSE PHASE ===

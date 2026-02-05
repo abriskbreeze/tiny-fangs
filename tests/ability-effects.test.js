@@ -408,3 +408,4 @@ describe('Broodmother Spawn', () => {
     expect(state.G.me.bench).toHaveLength(2);
   });
 });
+
