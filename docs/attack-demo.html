@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attack Animation Mockups v2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #080b0e;
+      --panel: rgba(14, 20, 27, 0.95);
+      --border: rgba(255,255,255,0.08);
+      --text: #e4e7eb;
+      --dim: #6b7280;
+      --green: #10b981;
+      --red: #ef4444;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    h1 { text-align: center; margin-bottom: 10px; font-size: 18px; letter-spacing: 2px; }
+    .subtitle { text-align: center; color: var(--dim); margin-bottom: 30px; font-size: 12px; }
+    
+    .demos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .demo-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    
+    .demo-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .demo-desc { font-size: 9px; color: var(--dim); margin-bottom: 12px; }
+    
+    .battlefield {
+      height: 160px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      position: relative;
+    }
+    
+    .vs-line {
+      position: absolute;
+      top: 50%;
+      left: 0; right: 0;
+      text-align: center;
+      color: var(--dim);
+      font-size: 9px;
+      transform: translateY(-50%);
+      opacity: 0.5;
+    }
+    
+    .card {
+      width: 55px;
+      aspect-ratio: 5 / 7;
+      background: var(--panel);
+      border: 1px solid var(--green);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .card.enemy { border-color: var(--red); }
+    .card .name { font-size: 6px; margin-top: 2px; }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      background: var(--green);
+      border: none;
+      border-radius: 4px;
+      color: var(--bg);
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { transform: scale(0.98); }
+
+    /* ══════════════════════════════════════════════════════════
+       SIMPLE ANIMATIONS - Universal for any creature
+       ══════════════════════════════════════════════════════════ */
+    
+    /* 1. Clean Lunge - simple forward and back */
+    @keyframes clean-lunge {
+      0% { transform: translateY(0); }
+      40% { transform: translateY(-45px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes clean-hit {
+      0%, 35% { transform: translateY(0); }
+      45% { transform: translateY(5px); filter: brightness(1.5); }
+      55% { transform: translateY(-3px); }
+      100% { transform: translateY(0); }
+    }
+    .demo1 .card.player.anim { animation: clean-lunge 0.4s ease-out; }
+    .demo1 .card.enemy.anim { animation: clean-hit 0.4s ease-out; }
+
+    /* 2. Quick Jab - fast snap */
+    @keyframes quick-jab {
+      0% { transform: translateY(0); }
+      25% { transform: translateY(-35px); }
+      50% { transform: translateY(-30px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes quick-jab-hit {
+      0%, 20% { transform: translateY(0); }
+      30% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      50% { transform: translateX(-2px); }
+      100% { transform: translateY(0); }
+    }
+    .demo2 .card.player.anim { animation: quick-jab 0.3s ease-out; }
+    .demo2 .card.enemy.anim { animation: quick-jab-hit 0.3s ease-out; }
+
+    /* 3. Bounce Strike - hop up then strike */
+    @keyframes bounce-strike {
+      0% { transform: translateY(0); }
+      25% { transform: translateY(8px); }
+      50% { transform: translateY(-15px); }
+      70% { transform: translateY(-50px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes bounce-hit {
+      0%, 65% { transform: translateY(0); }
+      75% { transform: translateY(6px) scaleY(0.9); }
+      85% { transform: translateY(-4px); }
+      100% { transform: translateY(0); }
+    }
+    .demo3 .card.player.anim { animation: bounce-strike 0.45s ease-out; }
+    .demo3 .card.enemy.anim { animation: bounce-hit 0.45s ease-out; }
+
+    /* 4. Slide Push - smooth slide forward */
+    @keyframes slide-push {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-40px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes slide-push-hit {
+      0%, 45% { transform: translateY(0); }
+      55% { transform: translateY(8px); }
+      70% { transform: translateY(4px); }
+      100% { transform: translateY(0); }
+    }
+    .demo4 .card.player.anim { animation: slide-push 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .demo4 .card.enemy.anim { animation: slide-push-hit 0.5s ease-out; }
+
+    /* 5. Pulse Strike - grow then strike */
+    @keyframes pulse-strike {
+      0% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(5px) scale(1.15); }
+      60% { transform: translateY(-45px) scale(1.05); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes pulse-hit {
+      0%, 55% { transform: scale(1); }
+      65% { transform: scale(0.9); filter: brightness(1.4); }
+      80% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .demo5 .card.player.anim { animation: pulse-strike 0.5s ease-out; }
+    .demo5 .card.enemy.anim { animation: pulse-hit 0.5s ease-out; }
+
+    /* 6. Tilt Strike - lean back then forward */
+    @keyframes tilt-strike {
+      0% { transform: translateY(0) rotate(0deg); }
+      30% { transform: translateY(5px) rotate(8deg); }
+      60% { transform: translateY(-40px) rotate(-5deg); }
+      100% { transform: translateY(0) rotate(0deg); }
+    }
+    @keyframes tilt-hit {
+      0%, 55% { transform: rotate(0deg); }
+      65% { transform: rotate(-6deg) translateX(3px); }
+      80% { transform: rotate(3deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .demo6 .card.player.anim { animation: tilt-strike 0.45s ease-out; }
+    .demo6 .card.enemy.anim { animation: tilt-hit 0.45s ease-out; }
+
+    /* 7. Shake Rush - vibrate then rush */
+    @keyframes shake-rush {
+      0% { transform: translateY(0) translateX(0); }
+      10% { transform: translateY(2px) translateX(-2px); }
+      20% { transform: translateY(-2px) translateX(2px); }
+      30% { transform: translateY(2px) translateX(-2px); }
+      40% { transform: translateY(0) translateX(0); }
+      70% { transform: translateY(-50px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes shake-rush-hit {
+      0%, 65% { transform: translateY(0); }
+      75% { transform: translateY(5px) translateX(-3px); }
+      85% { transform: translateY(-2px) translateX(2px); }
+      100% { transform: translateY(0); }
+    }
+    .demo7 .card.player.anim { animation: shake-rush 0.55s ease-out; }
+    .demo7 .card.enemy.anim { animation: shake-rush-hit 0.55s ease-out; }
+
+    /* 8. Double Tap - two quick hits */
+    @keyframes double-tap {
+      0% { transform: translateY(0); }
+      20% { transform: translateY(-25px); }
+      35% { transform: translateY(-10px); }
+      55% { transform: translateY(-35px); }
+      75% { transform: translateY(-15px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes double-tap-hit {
+      0%, 15% { transform: translateY(0); }
+      25% { transform: translateX(-3px); filter: brightness(1.3); }
+      35% { transform: translateX(0); }
+      50% { transform: translateX(4px); filter: brightness(1.5); }
+      65% { transform: translateX(-2px); }
+      100% { transform: translateY(0); }
+    }
+    .demo8 .card.player.anim { animation: double-tap 0.5s ease-out; }
+    .demo8 .card.enemy.anim { animation: double-tap-hit 0.5s ease-out; }
+
+    /* 9. Pop Hit - scale pop then strike */
+    @keyframes pop-hit {
+      0% { transform: translateY(0) scale(1); }
+      20% { transform: translateY(0) scale(1.2); }
+      40% { transform: translateY(0) scale(1); }
+      65% { transform: translateY(-45px) scale(1.05); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes pop-receive {
+      0%, 60% { transform: scale(1); }
+      70% { transform: scale(0.85); filter: brightness(1.5); }
+      85% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    .demo9 .card.player.anim { animation: pop-hit 0.5s ease-out; }
+    .demo9 .card.enemy.anim { animation: pop-receive 0.5s ease-out; }
+
+    /* 10. Hop Forward - small hop */
+    @keyframes hop-forward {
+      0% { transform: translateY(0) translateX(0); }
+      30% { transform: translateY(-20px) translateX(5px); }
+      60% { transform: translateY(-45px) translateX(8px); }
+      100% { transform: translateY(0) translateX(0); }
+    }
+    @keyframes hop-hit {
+      0%, 55% { transform: translateY(0); }
+      65% { transform: translateY(4px) translateX(3px); }
+      80% { transform: translateY(-2px); }
+      100% { transform: translateY(0); }
+    }
+    .demo10 .card.player.anim { animation: hop-forward 0.4s ease-out; }
+    .demo10 .card.enemy.anim { animation: hop-hit 0.4s ease-out; }
+
+    /* 11. Slam Down - rise up then slam */
+    @keyframes slam-down {
+      0% { transform: translateY(0) scale(1); }
+      40% { transform: translateY(15px) scale(0.95); }
+      60% { transform: translateY(-55px) scale(1.1); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes slam-receive {
+      0%, 55% { transform: translateY(0) scaleY(1); }
+      70% { transform: translateY(6px) scaleY(0.85); filter: brightness(1.6); }
+      85% { transform: translateY(-4px) scaleY(1.05); }
+      100% { transform: translateY(0) scaleY(1); }
+    }
+    .demo11 .card.player.anim { animation: slam-down 0.5s ease-out; }
+    .demo11 .card.enemy.anim { animation: slam-receive 0.5s ease-out; }
+
+    /* 12. Swipe Strike - side to side approach */
+    @keyframes swipe-strike {
+      0% { transform: translateY(0) translateX(0); }
+      25% { transform: translateY(-15px) translateX(-10px); }
+      50% { transform: translateY(-35px) translateX(10px); }
+      75% { transform: translateY(-50px) translateX(0); }
+      100% { transform: translateY(0) translateX(0); }
+    }
+    @keyframes swipe-hit {
+      0%, 70% { transform: translateY(0); }
+      80% { transform: translateX(-5px) rotate(-3deg); filter: brightness(1.4); }
+      90% { transform: translateX(3px) rotate(2deg); }
+      100% { transform: translateY(0) rotate(0); }
+    }
+    .demo12 .card.player.anim { animation: swipe-strike 0.5s ease-out; }
+    .demo12 .card.enemy.anim { animation: swipe-hit 0.5s ease-out; }
+  </style>
+</head>
+<body>
+  <h1>⚔️ SIMPLE ATTACK ANIMATIONS</h1>
+  <p class="subtitle">Universal animations that work for any creature</p>
+  
+  <div class="demos">
+    <div class="demo-box demo1">
+      <div class="demo-title">1. Clean Lunge</div>
+      <div class="demo-desc">Simple forward and back</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(1)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo2">
+      <div class="demo-title">2. Quick Jab</div>
+      <div class="demo-desc">Fast snap strike</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(2)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo3">
+      <div class="demo-title">3. Bounce Strike</div>
+      <div class="demo-desc">Hop up then strike down</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(3)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo4">
+      <div class="demo-title">4. Slide Push</div>
+      <div class="demo-desc">Smooth glide forward</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(4)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo5">
+      <div class="demo-title">5. Pulse Strike</div>
+      <div class="demo-desc">Grow then strike</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(5)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo6">
+      <div class="demo-title">6. Tilt Strike</div>
+      <div class="demo-desc">Lean back then forward</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(6)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo7">
+      <div class="demo-title">7. Shake Rush</div>
+      <div class="demo-desc">Vibrate then rush</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(7)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo8">
+      <div class="demo-title">8. Double Tap</div>
+      <div class="demo-desc">Two quick hits</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(8)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo9">
+      <div class="demo-title">9. Pop Hit</div>
+      <div class="demo-desc">Scale pop then strike</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(9)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo10">
+      <div class="demo-title">10. Hop Forward</div>
+      <div class="demo-desc">Small diagonal hop</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(10)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo11">
+      <div class="demo-title">11. Slam Down</div>
+      <div class="demo-desc">Rise up then slam</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(11)">▶ Play</button>
+    </div>
+    
+    <div class="demo-box demo12">
+      <div class="demo-title">12. Swipe Strike</div>
+      <div class="demo-desc">Zigzag approach</div>
+      <div class="battlefield">
+        <div class="card enemy">👾<div class="name">ENEMY</div></div>
+        <div class="vs-line">─ vs ─</div>
+        <div class="card player">⚔<div class="name">PLAYER</div></div>
+      </div>
+      <button class="btn" onclick="play(12)">▶ Play</button>
+    </div>
+  </div>
+  
+  <script>
+    function play(n) {
+      const demo = document.querySelector(`.demo${n}`);
+      const cards = demo.querySelectorAll('.card');
+      cards.forEach(c => c.classList.remove('anim'));
+      void demo.offsetWidth;
+      cards.forEach(c => c.classList.add('anim'));
+      setTimeout(() => cards.forEach(c => c.classList.remove('anim')), 600);
+    }
+  </script>
+</body>
+</html>
