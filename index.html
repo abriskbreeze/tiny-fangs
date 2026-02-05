@@ -582,7 +582,7 @@
     
     @media (min-width: 900px) {
       .mobile { display: none; }
-      .desktop { display: flex; flex-direction: column; height: 100vh; }
+      .desktop { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
       
       .d-top {
         display: flex;
@@ -626,6 +626,8 @@
         flex-direction: column;
         gap: 12px;
         grid-row: span 2;
+        min-height: 0;
+        overflow: hidden;
       }
       
       .d-panel {
@@ -633,6 +635,8 @@
         border: 1px solid var(--border);
         display: flex;
         flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
       }
       
       .d-panel-hdr {
@@ -811,6 +815,8 @@
         flex-direction: column;
         gap: 12px;
         grid-row: span 2;
+        min-height: 0;
+        overflow: hidden;
       }
       
       .d-actions-panel { flex: 0 0 auto; }
