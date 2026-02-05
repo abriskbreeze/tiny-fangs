@@ -581,6 +581,7 @@
     }
     
     @media (min-width: 900px) {
+      html, body { height: 100vh; overflow: hidden; }
       .mobile { display: none; }
       .desktop { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
       
@@ -614,7 +615,7 @@
         gap: 12px;
         padding: 12px 20px;
         min-height: 0;
-        max-height: calc(100vh - 50px);
+        max-height: min(800px, calc(100vh - 50px));
         overflow: hidden;
         max-width: 1400px;
         margin: 0 auto;
@@ -956,11 +957,6 @@
       .d-log-entries .dmg { color: var(--red); }
       .d-log-entries .heal { color: var(--green); }
       .d-log-entries .mana { color: var(--blue); }
-    }
-    
-    /* Desktop Zoom */
-    @media (min-width: 1400px) and (min-height: 800px) {
-      body { zoom: 1.2; }
     }
     
     /* ═══════════════════════════════════════════════════
