@@ -123,16 +123,11 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // On hit (100ms into attack)
-      setTimeout(() => {
-        // Screen flash for impact
-        this.screenFlash('red');
-        // Shake defender (tilt wobble)
-        this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
-        this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
-        // Floating damage
-        this.floatText(`-${damage}`, 'damage', defEl);
-      }, 100);
+      // On hit (immediate)
+      this.screenFlash('red');
+      this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+      this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
+      this.floatText(`-${damage}`, 'damage', defEl);
       
       // Resolve after full sequence
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
@@ -147,10 +142,8 @@ export const Anim = {
       
       this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
       
-      // Screen flash at 100ms
-      setTimeout(() => {
-        this.screenFlash('red');
-      }, 100);
+      // Screen flash immediate
+      this.screenFlash('red');
       
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
     });
