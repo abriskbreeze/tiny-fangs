@@ -382,13 +382,22 @@ brace: {
 **Helper Functions Added:**
 - `loseLife(player, playerKey)` — Emits beforeLifeLoss, checks lastLife
 
-**Creature Ability Migration (in progress):**
-- Summon abilities: Duskfang, Emberfang, Hiveling
-- Attack modifiers: Bladewhisker, Pulsefin, Echomask
-- Defensive: Shellkin, Thornling, Coilshell, Reflector
-- On-hit: Leechling, Hexweaver, Mireveil, Sundewqueen
-- On-KO: Gloom, Echomask death, Stormtalon
-- Special: Cindermaw, Bulwark, Broodmother
+**All 29 Creatures Migrated:**
+- **Passive abilities:** `{ passive: { type, amount, condition } }`
+- **Triggered abilities:** `{ trigger: { event, condition }, effects: [...] }`
+- **Procedural abilities:** `{ procedural: true }` (complex game flow)
 
 **Tests:** 276 passing
+
+---
+
+## Documentation
+
+| File | Description |
+|------|-------------|
+| `README.md` | Quick start, architecture overview |
+| `CHANGELOG.md` | Full version history |
+| `docs/ARCHITECTURE.md` | Complete system documentation |
+| `guides/CARD-AUTHORING.md` | How to add new cards (declarative) |
+| `guides/EVENT-SYSTEM.md` | Event/trigger system details |
 
