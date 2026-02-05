@@ -3187,8 +3187,8 @@
         
         log(`${attacker.name} attacks for ${dmg}!`);
         
-        // Attack animation
-        Anim.attack('me', 'opp', dmg);
+        // Attack animation (must await so render() doesn't remove animation class)
+        await Anim.attack('me', 'opp', dmg);
         
         // Apply damage to defender FIRST
         const defenderKo = applyDamage(defender, dmg);
