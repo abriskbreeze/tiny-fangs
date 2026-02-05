@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.47</title>
+  <title>TINY FANGS v0.2.48</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2000,7 +2000,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.47 • Card Battler</p>
+    <p class="sub">v0.2.48 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2115,7 +2115,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.47</div>
+      <div class="logo">TINY FANGS v0.2.48</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4669,8 +4669,8 @@
         return;
       }
       
-      // Calculate damage (creature vs creature)
-      let dmg = ai.active.atk;
+      // Calculate damage (creature vs creature) - use getEffectiveAtk for ability modifiers
+      let dmg = getEffectiveAtk(ai.active, ai, player);
       if (ai.active.id === 'bladewhisker') dmg += 10;
       if (ai.active.id === 'echomask' && player.active) dmg = player.active.atk;
       // Attack bonuses (Den Mother, Predator's Mark, etc.)
