@@ -135,3 +135,10 @@ Major milestones:
 - Mobile layout polish
 - Grave Rise timing fix (root cause: operation order)
 - 165 tests passing
+
+### 2026-02-04 Evening — Attack Animation Mockups
+- Created `attack-demo.html` with 12 simple universal attack animations
+- Animations: Clean Lunge, Quick Jab, Bounce Strike, Slide Push, Pulse Strike, Tilt Strike, Shake Rush, Double Tap, Pop Hit, Hop Forward, Slam Down, Swipe Strike
+- All use pure CSS transforms (no special effects) — universal for any creature
+- Rico reviewing to pick one for implementation
+
