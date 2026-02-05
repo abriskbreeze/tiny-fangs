@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.2.51</title>
+  <title>TINY FANGS v0.2.52</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2000,7 +2000,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.2.51 • Card Battler</p>
+    <p class="sub">v0.2.52 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2115,7 +2115,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.2.51</div>
+      <div class="logo">TINY FANGS v0.2.52</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3380,6 +3380,51 @@
         }
       }
       
+      // === SELECTION CARDS: Get selection BEFORE spending mana ===
+      let selectionResult = null;
+      
+      if (c.requiresSelection) {
+        if (c.id === 'graveEcho') {
+          // Select creature from graveyard
+          const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
+          selectionResult = await new Promise(resolve => {
+            showModal('Grave Echo - Choose creature to return', graveCr.map(creature => ({
+              name: creature.name,
+              sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
+              action: () => {
+                closeModal();
+                resolve(creature);
+              }
+            })));
+          });
+          if (!selectionResult) return; // Canceled - no mana spent
+        }
+        
+        if (c.id === 'sacrifice') {
+          // Select creature to sacrifice (active or bench)
+          const sacrificeOptions = [];
+          if (state.G.me.active) {
+            sacrificeOptions.push({ creature: state.G.me.active, location: 'active', idx: -1 });
+          }
+          state.G.me.bench.forEach((cr, idx) => {
+            sacrificeOptions.push({ creature: cr, location: 'bench', idx });
+          });
+          
+          selectionResult = await new Promise(resolve => {
+            showModal('Sacrifice - Choose creature', sacrificeOptions.map(opt => ({
+              name: opt.creature.name,
+              sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
+              action: () => {
+                closeModal();
+                resolve(opt);
+              }
+            })));
+          });
+          if (!selectionResult) return; // Canceled - no mana spent
+        }
+      }
+      
+      // === NOW spend mana (after selection confirmed) ===
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       state.G.me.grave.push(c);
@@ -3410,22 +3455,12 @@
           checkWin();
           break;
         case 'graveEcho':
-          const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
-          if (graveCr.length) {
-            await new Promise(resolve => {
-              showModal('Grave Echo - Choose creature to return', graveCr.map(creature => ({
-                name: creature.name,
-                sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
-                action: () => {
-                  closeModal();
-                  state.G.me.grave = state.G.me.grave.filter(x => x.uid !== creature.uid);
-                  state.G.me.hand.push(creature);
-                  log(`Returned ${creature.name} to hand`);
-                  render();
-                  resolve();
-                }
-              })), { noCancel: true }); // Must select - mana already spent
-            });
+          // Selection already done before mana spend
+          if (selectionResult) {
+            state.G.me.grave = state.G.me.grave.filter(x => x.uid !== selectionResult.uid);
+            state.G.me.hand.push(selectionResult);
+            log(`Returned ${selectionResult.name} to hand`);
+            render();
           }
           break;
         case 'manaSurge':
@@ -3591,138 +3626,124 @@
           }
           break;
         
-        case 'sacrifice':
-          // KO one of your creatures, draw 2
-          if (!state.G.me.active && state.G.me.bench.length === 0) {
-            log('No creatures to sacrifice!', 'dmg');
+        case 'sacrifice': {
+          // Selection already done before mana spend
+          if (!selectionResult) {
+            log('No creature selected!', 'dmg');
             break;
           }
           
-          // Build list of creatures to choose from
-          const sacrificeOptions = [];
-          if (state.G.me.active) {
-            sacrificeOptions.push({ creature: state.G.me.active, location: 'active' });
-          }
-          state.G.me.bench.forEach((c, idx) => {
-            sacrificeOptions.push({ creature: c, location: 'bench', idx });
-          });
+          const victim = selectionResult.creature;
+          log(`Sacrificed ${victim.name}`, 'dmg');
           
-          await new Promise(resolve => {
-            showModal('Choose creature to sacrifice', sacrificeOptions.map(opt => ({
-              name: opt.creature.name,
-              sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
-              action: async () => {
-                closeModal();
-                const victim = opt.creature;
-                log(`Sacrificed ${victim.name}`, 'dmg');
-                
-                // Remove from field
-                if (opt.location === 'active') {
-                  state.G.me.active = null;
-                  await Anim.ko('me');
-                } else {
-                  state.G.me.bench.splice(opt.idx, 1);
+          // Remove from field
+          if (selectionResult.location === 'active') {
+            state.G.me.active = null;
+            await Anim.ko('me');
+          } else {
+            state.G.me.bench.splice(selectionResult.idx, 1);
+          }
+          state.G.me.grave.push(victim);
+          
+          // C2: Trigger "When creature KO'd" effects (Den Mother, Grave Rise, creature death abilities)
+          // Den Mother - next attack +10 (optional trigger)
+          if (state.G.me.setVerse?.id === 'denMother') {
+            const shouldTrigger = await promptTrigger(state.G.me, state.G.me.setVerse, {});
+            if (shouldTrigger) {
+              await showTriggerReveal(state.G.me.setVerse);
+              state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
+              log('Den Mother! Next attack +10 damage', 'mana');
+              state.G.me.grave.push(state.G.me.setVerse);
+              state.G.me.setVerse = null;
+            }
+          }
+          
+          // Grave Rise - summon 1-cost from grave to bench (optional trigger)
+          if (state.G.me.setVerse?.id === 'graveRise') {
+            const oneCost = state.G.me.grave.filter(gc => gc.cardType === 'creature' && gc.cost === 1);
+            if (oneCost.length && state.G.me.bench.length < 2) {
+              const shouldTrigger = await promptTrigger(state.G.me, state.G.me.setVerse, {});
+              if (shouldTrigger) {
+                await showTriggerReveal(state.G.me.setVerse);
+                log('Grave Rise triggered!', 'heal');
+                let revived = oneCost[0];
+                if (oneCost.length > 1) {
+                  revived = await new Promise(innerResolve => {
+                    showModal('Grave Rise - Choose creature to revive', oneCost.map(gc => ({
+                      name: gc.name,
+                      sub: `${gc.hp} HP / ${gc.atk} ATK`,
+                      action: () => { closeModal(); innerResolve(gc); }
+                    })), { noCancel: true });
+                  });
                 }
-                state.G.me.grave.push(victim);
-                
-                // C2: Trigger "When creature KO'd" effects (Den Mother, Grave Rise, creature death abilities)
-                // Den Mother - next attack +10
-                if (state.G.me.setVerse?.id === 'denMother') {
-                  await showTriggerReveal(state.G.me.setVerse);
-                  state.G.me.attackBonuses.push({ source: 'Den Mother', value: 10 });
-                  log('Den Mother! Next attack +10 damage', 'mana');
-                  state.G.me.grave.push(state.G.me.setVerse);
-                  state.G.me.setVerse = null;
-                }
-                
-                // Grave Rise - summon 1-cost from grave to bench
-                if (state.G.me.setVerse?.id === 'graveRise') {
-                  await showTriggerReveal(state.G.me.setVerse);
-                  const oneCost = state.G.me.grave.filter(c => c.cardType === 'creature' && c.cost === 1);
-                  if (oneCost.length) {
-                    log('Grave Rise triggered!', 'heal');
-                    let revived = oneCost[0];
-                    if (oneCost.length > 1) {
-                      revived = await new Promise(innerResolve => {
-                        showModal('Grave Rise - Choose creature to revive', oneCost.map(c => ({
-                          name: c.name,
-                          sub: `${c.hp} HP / ${c.atk} ATK`,
-                          action: () => { closeModal(); innerResolve(c); }
-                        })));
-                      });
-                    }
-                    revived.curHp = revived.hp;
-                    state.G.me.grave = state.G.me.grave.filter(x => x.uid !== revived.uid);
-                    if (state.G.me.bench.length < 2) {
-                      state.G.me.bench.push(revived);
-                      log(`${revived.name} rises to bench!`);
-                      render();
-                      await Anim.summonBench('me', state.G.me.bench.length - 1);
-                    }
-                  }
-                  state.G.me.grave.push(state.G.me.setVerse);
-                  state.G.me.setVerse = null;
-                }
-                
-                // Gloom Fade - enemy discards
-                if (victim.id === 'gloom') {
-                  if (state.G.opp.hand.length) {
-                    const idx = Math.floor(Math.random() * state.G.opp.hand.length);
-                    state.G.opp.grave.push(state.G.opp.hand.splice(idx, 1)[0]);
-                    log('Fade: enemy discarded', 'mana');
-                  }
-                }
-                
-                // Echomask death damage
-                if (victim.id === 'echomask') {
-                  state.G.opp.lp -= 1;
-                  log('Shatter! Enemy loses a life!', 'dmg');
-                  await Anim.lpDamage('opp', 1);
-                  checkWin();
-                }
-                
-                // Stormtalon Chain Lightning
-                if (victim.id === 'stormtalon') {
-                  state.G.opp.chainLightning = 20;
-                  log('Chain Lightning armed!', 'mana');
-                }
-                
-                // Draw 2 cards
-                draw(state.G.me); draw(state.G.me);
-                log('Drew 2 cards', 'mana');
+                revived.curHp = revived.hp;
+                state.G.me.grave = state.G.me.grave.filter(x => x.uid !== revived.uid);
+                state.G.me.bench.push(revived);
+                log(`${revived.name} rises to bench!`);
                 render();
-                
-                // THEN send out replacement if needed
-                if (!state.G.me.active && state.G.me.bench.length > 0) {
-                  await pause(300);
-                  if (state.G.me.bench.length === 1) {
-                    state.G.me.active = state.G.me.bench.shift();
+                await Anim.summonBench('me', state.G.me.bench.length - 1);
+                state.G.me.grave.push(state.G.me.setVerse);
+                state.G.me.setVerse = null;
+              }
+            }
+          }
+          
+          // Gloom Fade - enemy discards
+          if (victim.id === 'gloom') {
+            if (state.G.opp.hand.length) {
+              const discardIdx = Math.floor(Math.random() * state.G.opp.hand.length);
+              state.G.opp.grave.push(state.G.opp.hand.splice(discardIdx, 1)[0]);
+              log('Fade: enemy discarded', 'mana');
+            }
+          }
+          
+          // Echomask death damage
+          if (victim.id === 'echomask') {
+            state.G.opp.lp -= 1;
+            log('Shatter! Enemy loses a life!', 'dmg');
+            await Anim.lpDamage('opp', 1);
+            checkWin();
+          }
+          
+          // Stormtalon Chain Lightning
+          if (victim.id === 'stormtalon') {
+            state.G.opp.chainLightning = 20;
+            log('Chain Lightning armed!', 'mana');
+          }
+          
+          // Draw 2 cards
+          draw(state.G.me); draw(state.G.me);
+          log('Drew 2 cards', 'mana');
+          render();
+          
+          // THEN send out replacement if needed
+          if (!state.G.me.active && state.G.me.bench.length > 0) {
+            await pause(300);
+            if (state.G.me.bench.length === 1) {
+              state.G.me.active = state.G.me.bench.shift();
+              log(`Sent out ${state.G.me.active.name}`);
+              render();
+              await Anim.benchToActive('me');
+            } else {
+              // Multiple bench - let player choose
+              await new Promise(innerResolve => {
+                showModal('Choose replacement', state.G.me.bench.map(bc => ({
+                  name: bc.name,
+                  sub: `${bc.curHp}/${bc.hp} HP`,
+                  action: () => {
+                    closeModal();
+                    const benchIdx = state.G.me.bench.findIndex(x => x.uid === bc.uid);
+                    state.G.me.active = state.G.me.bench.splice(benchIdx, 1)[0];
                     log(`Sent out ${state.G.me.active.name}`);
                     render();
-                    await Anim.benchToActive('me');
-                  } else {
-                    // Multiple bench - let player choose
-                    await new Promise(innerResolve => {
-                      showModal('Choose replacement', state.G.me.bench.map(c => ({
-                        name: c.name,
-                        sub: `${c.curHp}/${c.hp} HP`,
-                        action: () => {
-                          closeModal();
-                          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
-                          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
-                          log(`Sent out ${state.G.me.active.name}`);
-                          render();
-                          Anim.benchToActive('me').then(innerResolve);
-                        }
-                      })));
-                    });
+                    Anim.benchToActive('me').then(innerResolve);
                   }
-                }
-                resolve();
-              }
-            })), { noCancel: true }); // Must select - mana already spent
-          });
+                })), { noCancel: true });
+              });
+            }
+          }
           break;
+        }
         
         // === SHELL PACK VERSES ===
         
