@@ -327,8 +327,39 @@ const Effects = {
 
   /**
    * Banish (remove from game, not to grave)
+   * Supports 'selected' target for anyCreature selection
    */
   async banish(ctx, { target }) {
+    // Handle 'selected' target from anyCreature selection
+    if (target === 'selected') {
+      if (!ctx.selected) return { banished: false };
+      
+      const { creature, location, ownerKey, idx } = ctx.selected;
+      const ownerObj = ctx[ownerKey];
+      
+      if (typeof Anim !== 'undefined') {
+        await Anim.ko(ownerKey);
+      }
+      
+      if (location === 'active') {
+        ownerObj.active = null;
+      } else if (location === 'bench') {
+        // Remove from bench by filtering out the creature
+        ownerObj.bench = ownerObj.bench.filter(c => c.uid !== creature.uid);
+      }
+      
+      // Note: does NOT go to grave - removed from game
+      return { 
+        banished: true, 
+        owner: ownerKey, 
+        needsReplacement: location === 'active' && ownerObj.bench.length > 0,
+        creature,
+        location,
+        ownerKey
+      };
+    }
+    
+    // Legacy: handle explicit target like 'opp.active'
     const [owner, location] = target.split('.');
     const ownerObj = ctx[owner];
     

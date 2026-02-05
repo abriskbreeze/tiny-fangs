@@ -364,7 +364,7 @@ export const VERSES = {
       { type: 'draw', count: 'creatureCount', max: 3 }
     ] },
   callOfTheWild: { id:'callOfTheWild', name:'Call of the Wild', type:'cast', cost:2,
-    text:'Summon a 1-cost creature from your deck to bench.',
+    text:'Summon a RANDOM 1-cost creature from your deck to bench.',
     effects: [
       { type: 'summon', filter: { cost: 1 }, location: 'bench' }
     ] },
