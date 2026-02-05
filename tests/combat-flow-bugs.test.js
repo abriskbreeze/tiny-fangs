@@ -98,6 +98,41 @@ describe('BUG-13: Soul Siphon KO handling', () => {
     expect(result.kos[0].ko).toBeUndefined(); // kos array stores creature/owner, not ko flag
     expect(result.kos[0].creature.curHp).toBeLessThanOrEqual(0);
   });
+
+  it('KO processing works with selected target (BUG-13 root cause)', async () => {
+    // The bug was: ownerKey was determined by target.startsWith('opp')
+    // But with target='selected', this always returned 'me' incorrectly
+    const ctx = {
+      me: {
+        active: { id: 'fangpup', name: 'Fangpup', hp: 30, curHp: 20, atk: 15 }
+      },
+      opp: {
+        active: { id: 'shadepup', name: 'Shade Pup', hp: 30, curHp: 15, atk: 15 }
+      },
+      selected: null
+    };
+    
+    // Set up selected target pointing to opp.active
+    ctx.selected = {
+      creature: ctx.opp.active,
+      location: 'active',
+      ownerKey: 'opp'
+    };
+
+    const card = {
+      effects: [
+        { type: 'damage', target: 'selected', amount: 20 }
+      ]
+    };
+
+    const result = await processEffects(card, ctx);
+    
+    expect(result.kos).toHaveLength(1);
+    // Verify the KO info contains correct owner reference
+    expect(result.kos[0].owner).toBe(ctx.opp);
+    expect(result.kos[0].target).toBe('selected'); // target is 'selected', not 'opp.active'
+    expect(result.kos[0].creature.curHp).toBeLessThanOrEqual(0);
+  });
 });
 
 describe('BUG-14: AI attack scoring', () => {
@@ -246,5 +281,34 @@ describe('BUG-15: Grave Rise bench summon', () => {
     expect(result.summoned).toBe(true);
     expect(promptedCandidates).toHaveLength(2);
     expect(ctx.me.bench[0].name).toBe('Shade Pup'); // Second was picked
+  });
+
+  it('Grave Rise creature should be available in replacement selection (flow test)', async () => {
+    // This tests the expected flow: 
+    // 1. Active dies
+    // 2. onKO triggers fire (Grave Rise summons to bench)
+    // 3. Player selects replacement from bench (which now includes Grave Rise creature)
+    
+    const revivedCreature = { uid: 1, id: 'fangpup', name: 'Fangpup', hp: 30, curHp: 0, atk: 15, cost: 1, cardType: 'creature' };
+    
+    const ctx = {
+      me: {
+        active: null, // Just died
+        bench: [], // Empty bench before Grave Rise
+        grave: [revivedCreature]
+      }
+    };
+
+    // Simulate Grave Rise firing
+    const result = await Effects.summonFromGrave(ctx, { filter: { cost: 1 }, location: 'bench' });
+    
+    expect(result.summoned).toBe(true);
+    
+    // Now bench has the revived creature
+    expect(ctx.me.bench).toHaveLength(1);
+    expect(ctx.me.bench[0].name).toBe('Fangpup');
+    
+    // In real game, the ko() function would now show the replacement selector
+    // with the newly summoned Grave Rise creature included
   });
 });
