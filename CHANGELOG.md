@@ -2,6 +2,27 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.6] - 2026-02-05
+
+### Added
+- **ARCHITECTURE.md** — Comprehensive system reference with ASCII diagrams:
+  - Module dependency graph
+  - Turn cycle and attack resolution flow
+  - Event system and priority documentation
+  - Effect primitives reference
+  - AI decision tree
+  - Card and ability type structures
+  - State management documentation
+
+### Removed
+- `tests/state.test.js` — Redundant with state-integration.test.js
+- `tests/game-logic.test.js` — Bug documentation, covered by game.test.js
+
+### Changed
+- Test count: 351 → 334 (removed redundant tests)
+
+---
+
 ## [0.3.5] - 2026-02-05
 
 ### Added
