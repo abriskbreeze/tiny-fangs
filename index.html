@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.2</title>
+  <title>TINY FANGS v0.3.3</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.2 • Card Battler</p>
+    <p class="sub">v0.3.3 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.2</div>
+      <div class="logo">TINY FANGS v0.3.3</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4942,53 +4942,12 @@
     async function executeAiAttack(ai, player, pause) {
       if (!ai.active) return;
       
-      // Phantom Wall check - triggers on ALL attacks (optional trigger)
-      if (player.setVerse?.id === 'phantomWall') {
-        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker: ai.active });
-        if (shouldTrigger) {
-          // Show attack animation FIRST for visual feedback
-          if (player.active) {
-            await Anim.attack('opp', 'me', 0); // Attack anim, no damage shown
-          } else {
-            await Anim.attackDirect('opp');
-          }
-          // Then trigger Phantom Wall
-          await showTriggerReveal(player.setVerse);
-          log('Phantom Wall triggered!', 'dmg');
-          const phantomKo = applyDamage(ai.active, 10);
-          log(`${ai.active.name} takes 10 damage!`, 'dmg');
-          await Anim.damage('opp', 10);
-          player.grave.push(player.setVerse);
-          player.setVerse = null;
-          if (phantomKo) {
-            await Anim.ko('opp');
-            await ko(ai.active, ai);
-          }
-          await Anim.negateX();
-          log('Attack negated!');
-          render();
-          return;
-        }
-      }
-      
-      // Direct attack (no defender)
-      if (!player.active) {
-        await Anim.attackDirect('opp');
-        const lpResult = await loseLife(player, 'me');
-        if (!lpResult.negated) {
-          log('Direct attack! You lose a life!', 'dmg');
-          await Anim.lpDamage('me', 1);
-          checkWin();
-        }
-        render();
-        return;
-      }
-      
       // Emit beforeAttack event for trigger system (Phantom Wall, Spike Shield)
+      // Must happen BEFORE direct attack check so Phantom Wall can negate direct attacks
       const beforeAttackCtx = await processTriggers('beforeAttack', {
         attacker: ai.active,
         attackerOwner: 'opp',
-        defender: player.active,
+        defender: player.active || null,
         defenderOwner: 'me'
       }, state, {
         promptTrigger,
@@ -5012,6 +4971,19 @@
       // Check if attack was negated (Phantom Wall)
       if (beforeAttackCtx.attackNegated) {
         log('Attack negated!', 'mana');
+        render();
+        return;
+      }
+      
+      // Direct attack (no defender)
+      if (!player.active) {
+        await Anim.attackDirect('opp');
+        const lpResult = await loseLife(player, 'me');
+        if (!lpResult.negated) {
+          log('Direct attack! You lose a life!', 'dmg');
+          await Anim.lpDamage('me', 1);
+          checkWin();
+        }
         render();
         return;
       }
@@ -5148,20 +5120,7 @@
         });
       }
       
-      // Spike Shield set verse (optional trigger - fallback)
-      if (player.setVerse?.id === 'spikeShield' && attacker && attacker.curHp > 0) {
-        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker });
-        if (shouldTrigger) {
-          await showTriggerReveal(player.setVerse);
-          log('Spike Shield! -15 to attacker', 'dmg');
-          player.grave.push(player.setVerse);
-          player.setVerse = null;
-          const spikeKo = applyDamage(attacker, 15);
-          await Anim.damage('opp', 15);
-          if (spikeKo) await ko(attacker, ai);
-        }
-      }
-      
+      // NOTE: Spike Shield now handled by beforeAttack trigger at top of executeAiAttack
       // NOTE: Status effects (hexweaver poison, mireveil trap) now handled by afterAttack triggers
       // NOTE: Sundew Queen Digest now handled by afterAttack triggers
       

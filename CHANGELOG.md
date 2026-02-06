@@ -2,6 +2,14 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.3] - 2026-02-05
+
+### Fixed
+- **beforeAttack trigger order** — Now fires BEFORE direct attack check, so Phantom Wall can negate direct attacks too
+- **Removed duplicate Spike Shield/Phantom Wall handlers** — AI attack path now fully uses trigger system
+
+---
+
 ## [0.3.2] - 2026-02-05
 
 ### Fixed (Root Cause Analysis)
