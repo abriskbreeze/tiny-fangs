@@ -2,7 +2,26 @@
 
 All notable changes to Tiny Fangs.
 
-## [0.4.0] - 2026-02-05
+## [0.3.11] - 2026-02-05
+
+### Fixed — attackerOwner/defenderOwner Type Mismatch
+Context fields `attackerOwner` and `defenderOwner` were inconsistently typed:
+- Player attack path: Objects (correct)
+- AI attack path: Strings (BUG)
+
+Effects expected objects for:
+- Setting `owner.poisoned = true` in setStatus
+- Returning `owner` in KO info for ko() function
+- Animation key comparison against `state.G.me`
+
+**Fixed contexts:**
+- Player afterAttack: `attackerOwner: state.G.me`, `defenderOwner: state.G.opp`
+- AI beforeAttack: `attackerOwner: ai`, `defenderOwner: player`
+- AI afterAttack: Same pattern
+
+---
+
+## [0.3.10] - 2026-02-05
 
 ### Fixed — Animation Perspective Bug (Pattern Fix)
 The `ownerKey` had two conflicting meanings:

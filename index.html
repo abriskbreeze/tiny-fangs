@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.10</title>
+  <title>TINY FANGS v0.3.11</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.10 • Card Battler</p>
+    <p class="sub">v0.3.11 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.10</div>
+      <div class="logo">TINY FANGS v0.3.11</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4314,10 +4314,10 @@
         if (state.G.me.active) {
           const afterAttackContext = {
             attacker: state.G.me.active,
-            attackerOwner: 'me',
+            attackerOwner: state.G.me,
             attackerOwnerKey: 'me',
             defender,
-            defenderOwner: 'opp',
+            defenderOwner: state.G.opp,
             defenderOwnerKey: 'opp',
             didDamage: totalDamageDealt > 0,
             defenderAlive: !defenderKo,
@@ -4995,9 +4995,11 @@
       // Must happen BEFORE direct attack check so Phantom Wall can negate direct attacks
       const beforeAttackCtx = await processTriggers('beforeAttack', {
         attacker: ai.active,
-        attackerOwner: 'opp',
+        attackerOwner: ai,
+        attackerOwnerKey: 'opp',
         defender: player.active || null,
-        defenderOwner: 'me'
+        defenderOwner: player,
+        defenderOwnerKey: 'me'
       }, state, {
         promptTrigger,
         showTriggerReveal,
@@ -5158,10 +5160,10 @@
       if (attacker && attacker.curHp > 0) {
         const afterAttackContext = {
           attacker,
-          attackerOwner: 'opp',
+          attackerOwner: ai,
           attackerOwnerKey: 'opp',
           defender: player.active,
-          defenderOwner: 'me',
+          defenderOwner: player,
           defenderOwnerKey: 'me',
           didDamage: dmg > 0,
           defenderAlive: !playerKo,
