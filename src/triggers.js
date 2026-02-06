@@ -423,6 +423,10 @@ async function processTriggers(event, context, state, gameCtx) {
             log: gameCtx.log,
             render: gameCtx.render,
             promptGraveSelect: gameCtx.promptGraveSelect,
+            card: match.card,  // The card that triggered (for ability name in atkBonus)
+            self: match.type === 'ability' || match.type === 'summonAbility' || match.type === 'survivalAbility' || match.type === 'deathAbility' 
+              ? match.card   // For creature abilities, self = the creature
+              : null,
             ...modifiedContext
           };
           const result = await gameCtx.processEffects(match.card, effectCtx);

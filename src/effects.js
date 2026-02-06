@@ -228,9 +228,17 @@ const Effects = {
 
   /**
    * Add attack bonus
+   * @param {string} target - 'self' for creature-specific buff, or undefined for owner's next attack
    */
-  async atkBonus(ctx, { amount, source }) {
-    ctx.me.attackBonuses.push({ source, value: amount });
+  async atkBonus(ctx, { amount, source, target }) {
+    if (target === 'self' && ctx.self) {
+      // Add to creature's own atkBonuses (permanent for that creature)
+      if (!ctx.self.atkBonuses) ctx.self.atkBonuses = [];
+      ctx.self.atkBonuses.push({ source: source || ctx.card?.ability?.name || 'Buff', value: amount });
+    } else {
+      // Add to owner's attackBonuses (consumed on next attack)
+      ctx.me.attackBonuses.push({ source: source || 'Buff', value: amount });
+    }
   },
 
   /**

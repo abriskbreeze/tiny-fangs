@@ -2,6 +2,19 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.7] - 2026-02-05
+
+### Fixed
+- **Duskfang Pack Call** — ATK bonus now properly targets self (permanent creature buff) instead of owner's next attack
+- `atkBonus` effect now supports `target: 'self'` for creature-specific buffs
+- Trigger processor now passes `self` and `card` to effect context for creature abilities
+
+### Technical
+- `atkBonus` effect: `target: 'self'` adds to `creature.atkBonuses[]` (permanent), no target adds to `owner.attackBonuses[]` (consumed on next attack)
+- Effect context includes `self` reference for summonAbility, survivalAbility, deathAbility trigger types
+
+---
+
 ## [0.3.6] - 2026-02-05
 
 ### Added

@@ -76,7 +76,7 @@ export const CREATURES = {
       name: 'Pack Call',
       text: 'When summoned, +20 ATK if you have a creature in graveyard.',
       trigger: { event: 'onSummon', condition: { self: true } },
-      effects: [{ type: 'atkBonus', amount: 20, condition: 'me.grave.hasCreature' }]
+      effects: [{ type: 'atkBonus', target: 'self', amount: 20, condition: 'me.grave.hasCreature' }]
     },
     flavor:'"It hunts with ghosts."',
     art:'  /\\_/\\\n (❂ ω ❂)\n  /| |\\' },
