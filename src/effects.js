@@ -725,7 +725,10 @@ async function processEffects(card, ctx) {
   const kos = [];
   let modifiedContext = {};
   
-  for (const effect of card.effects || []) {
+  // Get effects from card.effects (set verses) or card.ability?.effects (creatures)
+  const effects = card.effects || card.ability?.effects || [];
+  
+  for (const effect of effects) {
     // Check condition
     if (effect.condition && !evalCondition(effect.condition, ctx)) {
       continue;

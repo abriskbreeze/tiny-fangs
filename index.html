@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.0</title>
+  <title>TINY FANGS v0.3.1</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.0 • Card Battler</p>
+    <p class="sub">v0.3.1 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.0</div>
+      <div class="logo">TINY FANGS v0.3.1</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -5006,33 +5006,31 @@
         ai.attackBonuses = [];
       }
       
-      // Damage reduction (creature abilities first)
-      let reduction = getEffectiveDamageReduction(player.active, player, false);
+      // Emit beforeDamage event for trigger system (creature abilities like Ironhide, Shellkin, Pebbleback)
+      const beforeDamageCtx = await processTriggers('beforeDamage', {
+        targetOwner: 'me',
+        targetLocation: 'active',
+        target: player.active,
+        attacker: ai.active,
+        defender: player.active,
+        damage: dmg,
+        damageReduction: 0
+      }, state, {
+        promptTrigger,
+        showTriggerReveal,
+        log
+      });
+      let triggerReduction = beforeDamageCtx.damageReduction || 0;
       
-      // Check for set verse reduction (optional trigger)
-      const setVerseReduction = getSetVerseReduction(player);
-      let triggeredSetVerse = false;
-      if (setVerseReduction) {
-        const shouldTrigger = await promptTrigger(player, setVerseReduction.verse, { 
-          attacker: ai.active, defender: player.active, damage: dmg 
-        });
-        if (shouldTrigger) {
-          reduction += setVerseReduction.reduction;
-          triggeredSetVerse = true;
-        }
-      }
+      // Damage reduction (creature abilities that weren't migrated + trigger system results)
+      let reduction = getEffectiveDamageReduction(player.active, player, false);
+      reduction += triggerReduction;
       
       if (reduction > 0) {
         dmg = Math.max(0, dmg - reduction);
         const sources = getDamageReductionSources(player.active, player, false);
         for (const src of sources) {
           log(`${src.name}! -${src.value} damage`, 'heal');
-        }
-        if (triggeredSetVerse && setVerseReduction) {
-          await showTriggerReveal(setVerseReduction.verse);
-          log(`${setVerseReduction.verse.name}! -${setVerseReduction.reduction} damage`, 'heal');
-          player.grave.push(player.setVerse);
-          player.setVerse = null;
         }
         // Mark Harden as used this turn
         if (player.active.id === 'shellkin') {
@@ -6112,23 +6110,36 @@
     let triggerRevealResolve = null;
     let triggerRevealTimeout = null;
     
-    function showTriggerReveal(verse) {
+    function showTriggerReveal(card) {
       return new Promise(resolve => {
         triggerRevealResolve = resolve;
+        
+        // Detect if this is a creature ability or a set verse
+        const isCreature = card.cardType === 'creature' || card.ability;
+        const typeLabel = isCreature ? 'Ability Triggered!' : 'Set Verse Triggered!';
+        
+        // Get the right fields depending on card type
+        const cardName = card.name;
+        const triggerText = isCreature 
+          ? (card.ability?.trigger?.event || 'On trigger')
+          : (card.trigger || 'On trigger');
+        const effectText = isCreature 
+          ? (card.ability?.text || 'Effect')
+          : (card.text || 'Effect');
         
         // Build content
         const content = `
           <div class="name-row">
-            <div class="name">${verse.name}</div>
-            <div class="type">Set Verse Triggered!</div>
+            <div class="name">${cardName}</div>
+            <div class="type">${typeLabel}</div>
           </div>
           <div class="trigger-condition">
             <div class="label">Trigger</div>
-            <div class="text">${verse.trigger}</div>
+            <div class="text">${triggerText}</div>
           </div>
           <div class="effect-box">
             <div class="label">Effect</div>
-            <div class="text">${verse.text}</div>
+            <div class="text">${effectText}</div>
           </div>
         `;
         

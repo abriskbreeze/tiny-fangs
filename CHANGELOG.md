@@ -2,6 +2,18 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.1] - 2026-02-05
+
+### Fixed
+- **Ironhide/Shellkin/Pebbleback damage reduction** — These creatures' `beforeDamage` triggers now work when AI attacks (was only working when player attacked)
+- **Gloom's discard effect** — `processEffects` now checks `card.ability?.effects` for creatures, not just `card.effects`
+- **"Set Verse Triggered!" for creature abilities** — `showTriggerReveal()` now shows "Ability Triggered!" for creatures and correctly displays ability text (was showing "undefined")
+
+### Added
+- 7 new tests for creature ability triggers
+
+---
+
 ## [0.3.0] - 2026-02-05
 
 ### Fixed (19 bugs)
