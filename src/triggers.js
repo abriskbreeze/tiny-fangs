@@ -261,6 +261,29 @@ function getMatchingTriggers(event, context, state) {
     }
   }
 
+  // Special handling for onSummon: check the summoned creature's own ability
+  // (creature may not be on field yet when emitOnSummon is called)
+  if (event === 'onSummon' && context.summoned?.ability?.trigger) {
+    const ability = context.summoned.ability;
+    if (ability.trigger.event === 'onSummon') {
+      // Check if trigger condition is for self (the summoned creature)
+      const selfCondition = ability.trigger.condition?.self === true;
+      if (selfCondition || !ability.trigger.condition) {
+        const ownerKey = context.creatureOwnerKey || context.summoningPlayer;
+        const owner = ownerKey === 'me' ? state.G.me : state.G.opp;
+        
+        matches.push({
+          type: 'summonAbility',
+          card: context.summoned,
+          owner: owner,
+          ownerKey: ownerKey,
+          priority: getTriggerPriority(ability.trigger, context.summoned),
+          cannotBeNegated: ability.trigger.cannotBeNegated || false
+        });
+      }
+    }
+  }
+
   return matches;
 }
 

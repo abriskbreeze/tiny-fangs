@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.1</title>
+  <title>TINY FANGS v0.3.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.1 • Card Battler</p>
+    <p class="sub">v0.3.2 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.1</div>
+      <div class="logo">TINY FANGS v0.3.2</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4984,6 +4984,38 @@
         return;
       }
       
+      // Emit beforeAttack event for trigger system (Phantom Wall, Spike Shield)
+      const beforeAttackCtx = await processTriggers('beforeAttack', {
+        attacker: ai.active,
+        attackerOwner: 'opp',
+        defender: player.active,
+        defenderOwner: 'me'
+      }, state, {
+        promptTrigger,
+        showTriggerReveal,
+        log,
+        render,
+        processEffects: async (card, ctx) => {
+          const result = await processEffects(card, { ...ctx, attacker: ai.active, defender: player.active });
+          // Handle KOs from damage effects (e.g., Phantom Wall, Spike Shield)
+          if (result?.kos?.length > 0) {
+            for (const koInfo of result.kos) {
+              const koOwnerKey = koInfo.owner === ai ? 'opp' : 'me';
+              await Anim.ko(koOwnerKey);
+              await ko(koInfo.creature, koInfo.owner);
+            }
+          }
+          return result;
+        }
+      });
+      
+      // Check if attack was negated (Phantom Wall)
+      if (beforeAttackCtx.attackNegated) {
+        log('Attack negated!', 'mana');
+        render();
+        return;
+      }
+      
       // Calculate damage (creature vs creature)
       // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
       let dmg = getEffectiveAtk(ai.active, ai, player);
@@ -5047,26 +5079,7 @@
       
       const attacker = ai.active;
       
-      // Spike Shield priority check - if it would KO attacker, offer to negate attack (optional)
-      if (player.setVerse?.id === 'spikeShield' && attacker.curHp <= 15) {
-        const shouldTrigger = await promptTrigger(player, player.setVerse, { attacker });
-        if (shouldTrigger) {
-          await Anim.attack('opp', 'me', 0); // Show attack animation
-          await showTriggerReveal(player.setVerse);
-          log('Spike Shield! -15 to attacker', 'dmg');
-          player.grave.push(player.setVerse);
-          player.setVerse = null;
-          const spikeKo = applyDamage(attacker, 15);
-          await Anim.damage('opp', 15);
-          if (spikeKo) {
-            await Anim.ko('opp');
-            await ko(attacker, ai);
-            log('Attack negated!', 'mana');
-          }
-          render();
-          return;
-        }
-      }
+      // NOTE: Spike Shield now handled by beforeAttack trigger system above
       
       log(`${attacker.name} attacks for ${dmg}!`);
       await Anim.attack('opp', 'me', dmg);

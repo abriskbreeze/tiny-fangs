@@ -2,6 +2,19 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.2] - 2026-02-05
+
+### Fixed (Root Cause Analysis)
+- **onSummon creature abilities (Duskfang, Emberfang, Hiveling)** — `getMatchingTriggers` now has special handling for `onSummon` event to check `context.summoned` creature (was only checking creatures already on field)
+- **AI attack triggers (Brace, Phantom Wall, Spike Shield)** — Added `beforeAttack` event emission to AI attack path (was completely missing)
+- **Spike Shield duplicate handling** — Removed hardcoded Spike Shield check, now fully handled by trigger system
+
+### Added
+- 2 new tests for onSummon creature abilities
+- `beforeAttack` processTriggers call in AI attack with full processEffects support
+
+---
+
 ## [0.3.1] - 2026-02-05
 
 ### Fixed

@@ -136,6 +136,60 @@ describe('processEffects - creature abilities', () => {
   });
 });
 
+describe('onSummon creature abilities', () => {
+  beforeEach(() => {
+    clearGame();
+  });
+
+  it('Duskfang onSummon trigger is found even before creature is placed on field', () => {
+    const duskfang = { ...CREATURES.duskfang, uid: 'd1', curHp: 60, cardType: 'creature' };
+    
+    setGame({
+      me: { 
+        active: null, // Duskfang NOT on field yet
+        bench: [], hand: [], deck: [], 
+        grave: [{ ...CREATURES.whisper, uid: 'w1' }],
+        setVerse: null,
+        lp: 3, mana: 5 
+      },
+      opp: { active: null, bench: [], hand: [], deck: [], grave: [], setVerse: null, lp: 3, mana: 5 }
+    });
+
+    const context = {
+      summoned: duskfang,
+      creatureOwnerKey: 'me',
+      summoningPlayer: 'me'
+    };
+
+    const matches = getMatchingTriggers('onSummon', context, state);
+    expect(matches.length).toBe(1);
+    expect(matches[0].card.id).toBe('duskfang');
+    expect(matches[0].type).toBe('summonAbility');
+  });
+
+  it('Emberfang onSummon trigger is found before placement', () => {
+    const emberfang = { ...CREATURES.emberfang, uid: 'e1', curHp: 25, cardType: 'creature' };
+    
+    setGame({
+      me: { active: null, bench: [], hand: [], deck: [], grave: [], setVerse: null, lp: 3, mana: 5 },
+      opp: { 
+        active: { ...CREATURES.whisper, uid: 'w1', curHp: 30 }, 
+        bench: [], hand: [], deck: [], grave: [], setVerse: null, lp: 3, mana: 5 
+      }
+    });
+
+    const context = {
+      summoned: emberfang,
+      creatureOwnerKey: 'me',
+      summoningPlayer: 'me'
+    };
+
+    const matches = getMatchingTriggers('onSummon', context, state);
+    expect(matches.length).toBe(1);
+    expect(matches[0].card.id).toBe('emberfang');
+  });
+});
+
 describe('Gloom death ability', () => {
   it('Gloom has onKO trigger with discard effect', () => {
     const gloom = CREATURES.gloom;
