@@ -2,7 +2,7 @@
 
 All notable changes to Tiny Fangs.
 
-## [0.2.60] - 2026-02-05
+## [0.3.0] - 2026-02-05
 
 ### Fixed (19 bugs)
 
