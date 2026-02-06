@@ -2,6 +2,26 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.5] - 2026-02-05
+
+### Added
+- **`onLethalDamage` event** — Fires when a creature's HP drops to 0 (any damage source)
+- **Bulwark migrated to trigger system** — Fortress ability now declarative
+
+### Changed
+- `self: true` condition now works for both `onSummon` (context.summoned) and `onLethalDamage` (context.creature)
+- Added `checkLethalDamage()` helper function in index.html for unified lethal damage handling
+- Replaced hardcoded Bulwark checks in player/AI attack paths with trigger system
+
+### Technical
+- `getMatchingTriggers` now has special handling for `onLethalDamage` (survivalAbility type)
+- Skips context.creature in regular creature loop to prevent double-matching
+
+### Tests
+- 3 new tests for `onLethalDamage` event handling
+
+---
+
 ## [0.3.4] - 2026-02-05
 
 ### Added - New Effect Primitives

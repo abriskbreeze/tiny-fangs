@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.4</title>
+  <title>TINY FANGS v0.3.5</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.4 • Card Battler</p>
+    <p class="sub">v0.3.5 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.4</div>
+      <div class="logo">TINY FANGS v0.3.5</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2437,6 +2437,41 @@
       // Normal LP loss
       player.lp -= 1;
       return { negated: false };
+    }
+    
+    /**
+     * Check for lethal damage triggers (Bulwark's Fortress)
+     * Called AFTER damage is applied but BEFORE ko() is called
+     * @param {object} creature - The creature that took lethal damage (curHp <= 0)
+     * @param {string} ownerKey - 'me' or 'opp'
+     * @param {string} source - 'attack' or 'verse' (for future filtering)
+     * @returns {object} { prevented: boolean } - whether KO was prevented
+     */
+    async function checkLethalDamage(creature, ownerKey, source = 'attack') {
+      const owner = ownerKey === 'me' ? state.G.me : state.G.opp;
+      
+      const lethalCtx = await processTriggers('onLethalDamage', {
+        creature,
+        creatureOwnerKey: ownerKey,
+        owner,
+        source,
+        triggerOwnerKey: ownerKey
+      }, state, {
+        showTriggerReveal,
+        log,
+        render,
+        processEffects: async (card, ctx) => {
+          return await processEffects(card, ctx);
+        }
+      });
+      
+      // Check if creature survived (setHP effect would have set curHp to 1)
+      if (creature.curHp > 0) {
+        log(`Fortress! ${creature.name} survives with 1 HP!`, 'heal');
+        return { prevented: true };
+      }
+      
+      return { prevented: false };
     }
     
     // Game state is now in state.js: state.G, state.state.selectedCard, etc.
@@ -4239,12 +4274,10 @@
           // Apply damage to defender
           defenderKo = applyDamage(state.G.opp.active, dmg);
           
-          // Fortress (Bulwark) - survive lethal with 1 HP (once per game)
-          if (defenderKo && state.G.opp.active.id === 'bulwark' && !state.G.opp.active.fortressUsed) {
-            state.G.opp.active.curHp = 1;
-            state.G.opp.active.fortressUsed = true;
-            defenderKo = false;
-            log(`Fortress! ${state.G.opp.active.name} survives with 1 HP!`, 'heal');
+          // Check for lethal damage triggers (Bulwark's Fortress, etc.)
+          if (defenderKo) {
+            const { prevented } = await checkLethalDamage(state.G.opp.active, 'opp', 'attack');
+            if (prevented) defenderKo = false;
           }
           
           // Fortify buff - survive lethal with 1 HP
@@ -5073,12 +5106,10 @@
       
       let playerKo = applyDamage(player.active, dmg);
       
-      // Fortress (Bulwark) - survive lethal with 1 HP (once per game)
-      if (playerKo && player.active.id === 'bulwark' && !player.active.fortressUsed) {
-        player.active.curHp = 1;
-        player.active.fortressUsed = true;
-        playerKo = false;
-        log(`Fortress! ${player.active.name} survives with 1 HP!`, 'heal');
+      // Check for lethal damage triggers (Bulwark's Fortress, etc.)
+      if (playerKo) {
+        const { prevented } = await checkLethalDamage(player.active, 'me', 'attack');
+        if (prevented) playerKo = false;
       }
       
       // Fortify buff - survive lethal with 1 HP

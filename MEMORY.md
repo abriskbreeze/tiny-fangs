@@ -433,3 +433,47 @@ brace: {
 
 **Tests:** 329 passing (+48 new tests)
 
+
+### 2026-02-05 Night — Creature Ability Triggers (v0.3.0 → v0.3.3)
+
+**Problem:** Creature abilities with `trigger` definitions weren't firing (Duskfang, Ironhide, Shellkin, Brace, Gloom, etc.)
+
+**Root Cause Analysis:**
+1. `processEffects` only checked `card.effects`, not `card.ability?.effects`
+2. `showTriggerReveal` only handled set verses, not creature abilities
+3. `getMatchingTriggers` didn't handle `onSummon` events (needed to check `context.summoned`)
+4. Game paths (AI attack, player attack) weren't emitting `beforeAttack`/`beforeDamage` events
+
+**Fixes Applied:**
+- v0.3.0: 19 bugs fixed via 5 parallel subagents
+- v0.3.1: `processEffects` now checks `card.ability?.effects` for creatures
+- v0.3.1: `showTriggerReveal` handles creatures: shows "Ability Triggered!" + correct text
+- v0.3.1: AI attack path: added `beforeDamage` event emission
+- v0.3.2: `getMatchingTriggers`: special handling for `onSummon` to check `context.summoned`
+- v0.3.2: AI attack path: added `beforeAttack` event emission
+- v0.3.3: Removed duplicate Phantom Wall/Spike Shield hardcoded handlers
+- v0.3.3: `beforeAttack` trigger fires BEFORE direct attack check
+
+**Key Pattern:**
+Trigger system migration requires: (1) card declares trigger, (2) game path emits event, (3) processor finds matches, (4) effect primitives handle execution.
+
+**Procedural Abilities Still Hardcoded:**
+- Broodmother (`turnEnd` → summonToken)
+- Skitter (`afterDamage` → swapWithBench)
+- Cindermaw, Pulsefin (modify attack flow)
+- Bulwark (`preventLethal`)
+
+**Missing Effect Primitives:**
+- `summonToken` — Create 1/10 Larva token
+- `swapWithBench` — Move creature to bench, needs UI
+- `preventLethal` — Survive KO at 1 HP
+
+**Tests:** 338 passing
+
+**Next Steps:**
+1. Manual test at http://localhost:3004
+2. Verify Duskfang/Emberfang/Hiveling onSummon abilities
+3. Test Ironhide/Shellkin/Pebbleback damage reduction
+4. Test Brace/Phantom Wall/Spike Shield set verse triggers
+5. Test Gloom discard effect on KO
+

@@ -244,7 +244,11 @@ export const CREATURES = {
     ability: {
       name: 'Fortress',
       text: 'Survives lethal hit with 1 HP (once per game).',
-      procedural: true  // Handled in damage resolution - lethal prevention
+      trigger: { event: 'onLethalDamage', condition: { self: true, notUsed: 'fortressUsed' } },
+      effects: [
+        { type: 'setHP', target: 'self', amount: 1 },
+        { type: 'markUsed', flag: 'fortressUsed' }
+      ]
     },
     flavor:'"I will not fall."',
     art:' ╔═════╗\n ║█████║\n ╚═════╝' },

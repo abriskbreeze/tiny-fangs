@@ -168,9 +168,13 @@ function matchesTrigger(trigger, event, context) {
   if (cond.lastLife && !context.lastLife) return false;
 
   // Self condition: { self: true } - for creature abilities, the creature with the ability
-  // must be the one being summoned/affected (context.summoned === context.self)
+  // must be the one being affected. Works for:
+  // - onSummon: context.summoned === context.self
+  // - onLethalDamage: context.creature === context.self
+  // - other events with a creature context
   if (cond.self === true) {
-    if (!context.summoned || context.summoned !== context.self) return false;
+    const affected = context.summoned || context.creature;
+    if (!affected || affected !== context.self) return false;
   }
 
   // Self position condition: { self: 'active' } - creature must be in active slot
@@ -183,6 +187,10 @@ function matchesTrigger(trigger, event, context) {
   // Survived condition: { survived: true } - target must have survived damage
   // Used for Skitter's "when damaged" trigger (only if not KO'd)
   if (cond.survived === true && context.survived !== true) return false;
+
+  // notUsed condition: { notUsed: 'flagName' } - creature must not have used this ability
+  // Used for Bulwark's "once per game" Fortress ability
+  if (cond.notUsed && context.self?.[cond.notUsed]) return false;
 
   // Swarm condition: { swarm: true } - trigger owner must have 2+ creatures total
   // Used for Hiveling's "when summoned with 2+ creatures"
@@ -230,6 +238,10 @@ function getMatchingTriggers(event, context, state) {
     const creatures = [player.active, ...player.bench].filter(Boolean);
     
     for (const creature of creatures) {
+      // Skip creatures that will be handled by special event processing below
+      // (e.g., onLethalDamage for the creature taking lethal damage)
+      if (event === 'onLethalDamage' && creature === context.creature) continue;
+      
       if (creature.ability?.trigger) {
         // Add 'self' and 'triggerOwner' references for creature abilities
         const ctxWithSelf = { ...context, self: creature, triggerOwner: player, triggerOwnerKey: ownerKey };
@@ -291,6 +303,38 @@ function getMatchingTriggers(event, context, state) {
           priority: getTriggerPriority(ability.trigger, context.summoned),
           cannotBeNegated: ability.trigger.cannotBeNegated || false
         });
+      }
+    }
+  }
+
+  // Special handling for onLethalDamage: check if the creature being damaged has a survival ability
+  // (similar to onKO - check the creature that would be KO'd)
+  if (event === 'onLethalDamage' && context.creature?.ability?.trigger) {
+    const ability = context.creature.ability;
+    if (ability.trigger.event === 'onLethalDamage') {
+      // Check if trigger condition is for self (the creature taking lethal damage)
+      const selfCondition = ability.trigger.condition?.self === true;
+      if (selfCondition || !ability.trigger.condition?.target) {
+        const ownerKey = context.creatureOwnerKey;
+        const owner = ownerKey === 'me' ? state.G.me : state.G.opp;
+        
+        // Add 'self' reference for condition checking (notUsed flag check)
+        const ctxWithSelf = { ...context, self: context.creature, triggerOwner: owner, triggerOwnerKey: ownerKey };
+        
+        // Check notUsed condition manually here since we need self reference
+        const notUsedFlag = ability.trigger.condition?.notUsed;
+        if (notUsedFlag && context.creature[notUsedFlag]) {
+          // Flag already used, skip this trigger
+        } else if (matchesTrigger(ability.trigger, event, ctxWithSelf)) {
+          matches.push({
+            type: 'survivalAbility',
+            card: context.creature,
+            owner: owner,
+            ownerKey: ownerKey,
+            priority: getTriggerPriority(ability.trigger, context.creature),
+            cannotBeNegated: ability.trigger.cannotBeNegated || false
+          });
+        }
       }
     }
   }

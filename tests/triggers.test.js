@@ -1220,3 +1220,132 @@ describe('afterAttack event (standalone)', () => {
     expect(matchesTriggerFn(trigger, 'afterAttack', context)).toBe(true);
   });
 });
+
+
+// ═══════════════════════════════════════════════════════════════
+// onLethalDamage EVENT TESTS (Bulwark's Fortress)
+// ═══════════════════════════════════════════════════════════════
+
+describe('onLethalDamage event', () => {
+  let getMatchingTriggers;
+  
+  beforeEach(async () => {
+    const module = await import('../src/triggers.js');
+    getMatchingTriggers = module.getMatchingTriggers;
+  });
+
+  it('finds Bulwark survival ability when taking lethal damage', () => {
+    const state = {
+      G: {
+        me: {
+          active: {
+            id: 'bulwark',
+            name: 'Bulwark',
+            curHp: 0,
+            hp: 70,
+            ability: {
+              name: 'Fortress',
+              trigger: { event: 'onLethalDamage', condition: { self: true, notUsed: 'fortressUsed' } },
+              effects: [
+                { type: 'setHP', target: 'self', amount: 1 },
+                { type: 'markUsed', flag: 'fortressUsed' }
+              ]
+            }
+          },
+          bench: [],
+          setVerse: null
+        },
+        opp: {
+          active: null,
+          bench: [],
+          setVerse: null
+        }
+      }
+    };
+    
+    const matches = getMatchingTriggers('onLethalDamage', {
+      creature: state.G.me.active,
+      creatureOwnerKey: 'me',
+      source: 'attack'
+    }, state);
+    
+    expect(matches).toHaveLength(1);
+    expect(matches[0].type).toBe('survivalAbility');
+    expect(matches[0].card.id).toBe('bulwark');
+    expect(matches[0].ownerKey).toBe('me');
+  });
+
+  it('does NOT trigger if fortressUsed flag is set', () => {
+    const state = {
+      G: {
+        me: {
+          active: {
+            id: 'bulwark',
+            name: 'Bulwark',
+            curHp: 0,
+            hp: 70,
+            fortressUsed: true,  // Already used
+            ability: {
+              name: 'Fortress',
+              trigger: { event: 'onLethalDamage', condition: { self: true, notUsed: 'fortressUsed' } },
+              effects: [
+                { type: 'setHP', target: 'self', amount: 1 },
+                { type: 'markUsed', flag: 'fortressUsed' }
+              ]
+            }
+          },
+          bench: [],
+          setVerse: null
+        },
+        opp: {
+          active: null,
+          bench: [],
+          setVerse: null
+        }
+      }
+    };
+    
+    const matches = getMatchingTriggers('onLethalDamage', {
+      creature: state.G.me.active,
+      creatureOwnerKey: 'me',
+      source: 'attack'
+    }, state);
+    
+    expect(matches).toHaveLength(0);  // Should not trigger
+  });
+
+  it('does NOT trigger for non-Bulwark creatures without onLethalDamage trigger', () => {
+    const state = {
+      G: {
+        me: {
+          active: {
+            id: 'emberfang',
+            name: 'Emberfang',
+            curHp: 0,
+            hp: 35,
+            ability: {
+              name: 'Ignite',
+              trigger: { event: 'onSummon', condition: { self: true } },
+              effects: [{ type: 'damage', target: 'opp.active', amount: 10 }]
+            }
+          },
+          bench: [],
+          setVerse: null
+        },
+        opp: {
+          active: null,
+          bench: [],
+          setVerse: null
+        }
+      }
+    };
+    
+    const matches = getMatchingTriggers('onLethalDamage', {
+      creature: state.G.me.active,
+      creatureOwnerKey: 'me',
+      source: 'attack'
+    }, state);
+    
+    expect(matches).toHaveLength(0);  // No onLethalDamage trigger
+  });
+});

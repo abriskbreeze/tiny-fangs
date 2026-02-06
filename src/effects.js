@@ -827,21 +827,35 @@ const Effects = {
   },
 
   /**
-   * Prevent lethal damage (creature survives with 1 HP, once per game)
-   * Used for Bulwark's Fortress ability
+   * Set creature HP to specific value
+   * Used for Bulwark's Fortress (set to 1 HP after negating KO)
    */
-  async preventLethal(ctx, { target }) {
-    // This effect modifies the creature to prevent the NEXT lethal hit
-    // The actual prevention happens in damage resolution via a flag
-    const creature = ctx.self || ctx.me?.active;
+  async setHP(ctx, { amount }) {
+    const creature = ctx.self || ctx.target || ctx.me?.active;
     if (!creature) {
       return { applied: false, reason: 'no_creature' };
     }
 
-    // Set the fortress flag
-    creature.fortressUsed = false; // Reset so it can be used
-    creature.hasFortress = true;   // Mark as having the ability
+    creature.curHp = amount;
+    
+    if (ctx.log) {
+      ctx.log(`${creature.name} survives with ${amount} HP!`, 'heal');
+    }
 
+    return { applied: true, creature };
+  },
+
+  /**
+   * Mark a flag as used on a creature (for "once per game" abilities)
+   * Used for Bulwark's Fortress
+   */
+  async markUsed(ctx, { flag }) {
+    const creature = ctx.self || ctx.target || ctx.me?.active;
+    if (!creature) {
+      return { applied: false, reason: 'no_creature' };
+    }
+
+    creature[flag] = true;
     return { applied: true };
   }
 };
