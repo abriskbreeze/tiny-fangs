@@ -164,9 +164,8 @@ export const CREATURES = {
     ability: {
       name: 'Scurry',
       text: 'When damaged, may swap with bench creature (free).',
-      trigger: { event: 'afterDamage', condition: { target: 'self', survived: true } },
-      effects: [{ type: 'swapWithBench', target: 'self' }],
-      procedural: true  // Handled by shouldScurryTrigger/executeScurry - swap effect not yet implemented
+      trigger: { event: 'afterDamage', condition: { target: 'self', survived: true }, optional: true },
+      effects: [{ type: 'swapWithBench', target: 'self' }]
     },
     flavor:'"Too fast to catch."',
     art:'  ○\n ◐│◑\n  /\\' },
@@ -199,8 +198,7 @@ export const CREATURES = {
       name: 'Spawn',
       text: 'End of your turn, summon a 10/10 Antling to bench (max 2).',
       trigger: { event: 'turnEnd', condition: { self: 'active' } },
-      effects: [{ type: 'summonToken', token: 'antling', location: 'bench', maxBench: 2 }],
-      procedural: true  // Handled by applySpawn - summonToken effect not yet implemented
+      effects: [{ type: 'summonToken', token: 'antling', location: 'bench', maxBench: 2 }]
     },
     flavor:'"The swarm is eternal."',
     art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },

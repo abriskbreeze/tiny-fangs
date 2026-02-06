@@ -2,6 +2,30 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.4] - 2026-02-05
+
+### Added - New Effect Primitives
+- **`summonToken`** — Create token creatures (Antling for Broodmother)
+- **`swapWithBench`** — Swap active with bench creature (Skitter Scurry)
+- **`turnEnd` event** — Fires at end of player turn (Broodmother Spawn)
+- **`afterDamage` event** — Fires after creature takes damage and survives (Skitter Scurry)
+- **`survived` condition** — Match triggers only if creature survived damage
+- **`self: 'active'` condition** — Match triggers only if creature is in active slot
+
+### Migrated to Declarative System
+- ✅ **Broodmother (Spawn)** — Now uses `turnEnd` event + `summonToken` effect
+- ✅ **Skitter (Scurry)** — Now uses `afterDamage` event + `swapWithBench` effect
+
+### Still Procedural (Escape Hatches)
+- Cindermaw (Frenzy) — Modifies attack loop
+- Pulsefin (Sonic Strike) — Modifies damage calc order
+- Bulwark (Fortress) — Lethal prevention during damage resolution
+
+### Added
+- 10 new tests for new effects and events
+
+---
+
 ## [0.3.3] - 2026-02-05
 
 ### Fixed

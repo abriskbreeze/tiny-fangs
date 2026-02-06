@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.3</title>
+  <title>TINY FANGS v0.3.4</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.3 • Card Battler</p>
+    <p class="sub">v0.3.4 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.3</div>
+      <div class="logo">TINY FANGS v0.3.4</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4325,13 +4325,24 @@
           }
         }
         
-        // Skitter Scurry - auto-swap with bench after taking damage
-        if (!defenderKo && shouldScurryTrigger(defender, state.G.opp)) {
-          if (executeScurry(state.G.opp)) {
-            log('Scurry! Skitter retreats', 'mana');
-            render();
-            await Anim.benchToActive('opp');
-          }
+        // Emit afterDamage event for trigger system (Skitter Scurry, etc.)
+        // Only fires if defender survived
+        if (!defenderKo && defender) {
+          await processTriggers('afterDamage', {
+            target: defender,
+            targetOwner: 'opp',
+            targetLocation: 'active',
+            survived: true,
+            damage: totalDamageDealt
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            render,
+            processEffects: async (card, ctx) => {
+              return await processEffects(card, { ...ctx, self: defender, me: state.G.opp, opp: state.G.me, state });
+            }
+          });
         }
         
         // Check KO
@@ -4399,13 +4410,17 @@
         }
       }
       
-      // Broodmother Spawn - summon Antling at end of turn
-      if (state.G.me.active?.id === 'broodmother') {
-        const antling = applySpawn(state.G.me);
-        if (antling) {
-          log('Spawn! Antling joins the swarm', 'mana');
+      // Emit turnEnd event for trigger system (Broodmother Spawn, etc.)
+      await processTriggers('turnEnd', {
+        activePlayer: state.G.me,
+        activePlayerKey: 'me'
+      }, state, {
+        log,
+        render,
+        processEffects: async (card, ctx) => {
+          return await processEffects(card, { ...ctx, self: card, me: state.G.me, opp: state.G.opp, state });
         }
-      }
+      });
       
       state.G.myTurn = false;
       state.G.turn++;
@@ -5083,6 +5098,26 @@
           await Anim.ko('opp');
           await ko(attacker, ai);
         }
+      }
+      
+      // Emit afterDamage event for trigger system (Skitter Scurry, etc.)
+      // Only fires if defender survived
+      if (!playerKo && player.active) {
+        await processTriggers('afterDamage', {
+          target: player.active,
+          targetOwner: 'me',
+          targetLocation: 'active',
+          survived: true,
+          damage: dmg
+        }, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log,
+          render,
+          processEffects: async (card, ctx) => {
+            return await processEffects(card, { ...ctx, self: player.active, me: player, opp: ai, state });
+          }
+        });
       }
       
       // === afterAttack Event (AI attack) ===

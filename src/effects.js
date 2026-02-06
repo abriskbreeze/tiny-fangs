@@ -712,6 +712,137 @@ const Effects = {
     }
     
     return { summoned: true, creature: selected };
+  },
+
+  /**
+   * Summon a token creature to bench
+   * @param {string} token - Token type ('antling')
+   * @param {string} location - 'bench' (only bench supported)
+   * @param {number} maxBench - Max bench size (default 2)
+   */
+  async summonToken(ctx, { token, location = 'bench', maxBench = 2 }) {
+    // Check bench capacity
+    if (ctx.me.bench.length >= maxBench) {
+      return { summoned: false, reason: 'bench_full' };
+    }
+
+    // Token definitions
+    const tokens = {
+      antling: {
+        id: 'antling',
+        name: 'Antling',
+        subtitle: 'Swarm Token',
+        hp: 10,
+        curHp: 10,
+        atk: 10,
+        cost: 0,
+        cardType: 'creature',
+        ability: null,
+        uid: Math.random().toString(36).slice(2, 9),
+        isToken: true
+      }
+    };
+
+    const creature = tokens[token];
+    if (!creature) {
+      return { summoned: false, reason: 'unknown_token' };
+    }
+
+    // Create fresh copy with unique uid
+    const spawned = { ...creature, uid: Math.random().toString(36).slice(2, 9) };
+
+    // Determine owner key for animations
+    const ownerKey = ctx.me === ctx.state?.G?.me ? 'me' : 'opp';
+
+    // Add to bench
+    const benchIdx = ctx.me.bench.length;
+    ctx.me.bench.push(spawned);
+
+    if (ctx.log) {
+      ctx.log(`${spawned.name} joins the swarm!`, 'mana');
+    }
+    if (ctx.render) {
+      ctx.render();
+    }
+    if (typeof Anim !== 'undefined') {
+      await Anim.summonBench(ownerKey, benchIdx);
+    }
+
+    return { summoned: true, creature: spawned };
+  },
+
+  /**
+   * Swap active creature with a bench creature (player choice)
+   * @param {string} target - 'self' (the creature with this ability)
+   */
+  async swapWithBench(ctx, { target }) {
+    const owner = ctx.me;
+    
+    // Need bench creatures to swap with
+    if (owner.bench.length === 0) {
+      return { swapped: false, reason: 'no_bench' };
+    }
+
+    // Need active creature
+    if (!owner.active) {
+      return { swapped: false, reason: 'no_active' };
+    }
+
+    // Determine owner key for animations
+    const ownerKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
+    const isPlayer = ownerKey === 'me';
+
+    // For player: prompt which bench creature to swap with
+    // For AI/tests: auto-select first bench creature
+    let selectedBench;
+    if (isPlayer && ctx.promptBenchSelect) {
+      selectedBench = await ctx.promptBenchSelect(owner.bench);
+      if (!selectedBench) {
+        return { swapped: false, reason: 'cancelled' };
+      }
+    } else {
+      // AI: pick first bench creature
+      selectedBench = owner.bench[0];
+    }
+
+    // Perform swap
+    const current = owner.active;
+    const benchIdx = owner.bench.indexOf(selectedBench);
+    
+    owner.active = selectedBench;
+    owner.bench.splice(benchIdx, 1);
+    owner.bench.push(current);
+
+    if (ctx.log) {
+      ctx.log(`${current.name} swaps with ${selectedBench.name}!`, 'mana');
+    }
+    if (ctx.render) {
+      ctx.render();
+    }
+    if (typeof Anim !== 'undefined') {
+      await Anim.benchToActive(ownerKey);
+    }
+
+    return { swapped: true, from: current, to: selectedBench };
+  },
+
+  /**
+   * Prevent lethal damage (creature survives with 1 HP, once per game)
+   * Used for Bulwark's Fortress ability
+   */
+  async preventLethal(ctx, { target }) {
+    // This effect modifies the creature to prevent the NEXT lethal hit
+    // The actual prevention happens in damage resolution via a flag
+    const creature = ctx.self || ctx.me?.active;
+    if (!creature) {
+      return { applied: false, reason: 'no_creature' };
+    }
+
+    // Set the fortress flag
+    creature.fortressUsed = false; // Reset so it can be used
+    creature.hasFortress = true;   // Mark as having the ability
+
+    return { applied: true };
   }
 };
 

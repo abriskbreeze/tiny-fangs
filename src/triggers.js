@@ -173,6 +173,17 @@ function matchesTrigger(trigger, event, context) {
     if (!context.summoned || context.summoned !== context.self) return false;
   }
 
+  // Self position condition: { self: 'active' } - creature must be in active slot
+  // Used for Broodmother's "end of your turn" trigger
+  if (cond.self === 'active') {
+    if (!context.self || !context.triggerOwner) return false;
+    if (context.triggerOwner.active !== context.self) return false;
+  }
+
+  // Survived condition: { survived: true } - target must have survived damage
+  // Used for Skitter's "when damaged" trigger (only if not KO'd)
+  if (cond.survived === true && context.survived !== true) return false;
+
   // Swarm condition: { swarm: true } - trigger owner must have 2+ creatures total
   // Used for Hiveling's "when summoned with 2+ creatures"
   if (cond.swarm === true) {
@@ -220,8 +231,8 @@ function getMatchingTriggers(event, context, state) {
     
     for (const creature of creatures) {
       if (creature.ability?.trigger) {
-        // Add 'self' reference for creature abilities
-        const ctxWithSelf = { ...context, self: creature };
+        // Add 'self' and 'triggerOwner' references for creature abilities
+        const ctxWithSelf = { ...context, self: creature, triggerOwner: player, triggerOwnerKey: ownerKey };
         
         if (matchesTrigger(creature.ability.trigger, event, ctxWithSelf)) {
           matches.push({
