@@ -75,47 +75,39 @@ const Effects = {
     // Track that damage was dealt (for conditional healing like Soul Siphon)
     ctx.damageWasDealt = true;
     
+    // Determine owner object first (needed for animation key)
+    let owner;
+    let ctxOwnerKey; // The key relative to ctx (me=caster's side)
+    if (target === 'selected') {
+      ctxOwnerKey = ctx.selected?.ownerKey || 'opp';
+      owner = ctxOwnerKey === 'me' ? ctx.me : ctx.opp;
+    } else if (target === 'summoned') {
+      ctxOwnerKey = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
+      owner = ctxOwnerKey === 'me' ? ctx.me : ctx.opp;
+    } else if (target === 'attacker') {
+      owner = ctx.attackerOwner;
+      ctxOwnerKey = ctx.attackerOwnerKey;
+    } else {
+      [ctxOwnerKey] = target.split('.');
+      owner = target.startsWith('me') ? ctx.me : ctx.opp;
+    }
+    
     // Animation (if available)
+    // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
+    // Convert from ctx-relative key by checking against state.G
     if (typeof Anim !== 'undefined') {
-      let ownerKey;
-      if (target === 'selected') {
-        // Use owner key from selection context
-        ownerKey = ctx.selected?.ownerKey || 'opp';
-      } else if (target === 'attacker') {
-        ownerKey = ctx.attackerOwnerKey;
-      } else if (target === 'summoned') {
-        // Summoned creature - use the summoning player key from context
-        ownerKey = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
-      } else {
-        [ownerKey] = target.split('.');
-      }
-      await Anim.damage(ownerKey, amount);
+      const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
+      await Anim.damage(animKey, amount);
     }
     
     const isKo = creature.curHp <= 0;
-    
-    // Determine owner object
-    let owner;
-    if (target === 'selected') {
-      // For selected, use owner key from context
-      const ownerKey = ctx.selected?.ownerKey || 'opp';
-      owner = ownerKey === 'me' ? ctx.me : ctx.opp;
-    } else if (target === 'summoned') {
-      // For summoned, use context to determine owner
-      const ownerKey = ctx.summoningPlayer || ctx.creatureOwnerKey;
-      owner = ownerKey === 'me' ? ctx.me : ctx.opp;
-    } else if (target === 'attacker') {
-      owner = ctx.attackerOwner;
-    } else {
-      owner = target.startsWith('me') ? ctx.me : ctx.opp;
-    }
     
     return { 
       ko: isKo, 
       target,
       creature,
       owner,
-      ownerKey: ctx.selected?.ownerKey
+      ownerKey: ctxOwnerKey
     };
   },
 
@@ -345,8 +337,10 @@ const Effects = {
       const { creature, location, ownerKey, idx } = ctx.selected;
       const ownerObj = ctx[ownerKey];
       
+      // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
       if (typeof Anim !== 'undefined') {
-        await Anim.ko(ownerKey);
+        const animKey = ownerObj === ctx.state?.G?.me ? 'me' : 'opp';
+        await Anim.ko(animKey);
       }
       
       if (location === 'active') {

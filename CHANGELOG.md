@@ -2,6 +2,38 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.4.0] - 2026-02-05
+
+### Fixed — Animation Perspective Bug (Pattern Fix)
+The `ownerKey` had two conflicting meanings:
+1. **ctx resolution**: relative to caster (me=caster's side)
+2. **animations**: absolute (me=player/bottom, opp=AI/top)
+
+After the v0.3.9 fix, AI targeting returned `ownerKey: 'opp'` for ctx, but animations
+were still using this directly, causing effects to animate on the wrong side.
+
+**Root Cause Pattern:**
+```
+// AI damages player's creature
+ctx = { me: ai, opp: player }
+ownerKey: 'opp' (= player in ctx)
+
+// But animation expected:
+Anim.damage('me') for player's side (bottom)
+```
+
+**Fixes:**
+- `effects.js` damage: Calculate `animKey` from `owner === state.G.me`
+- `effects.js` banish: Same fix for ko animation
+- `index.html` KO handler: Use `koInfo.owner === state.G.me` for animation key
+
+**Verified working:**
+- `attackerOwnerKey` is set correctly as absolute (me=player, opp=AI)
+- `destroy` effect uses `attackerOwnerKey` (only used by Vengeance)
+- All hardcoded animation calls already use correct absolute keys
+
+---
+
 ## [0.3.9] - 2026-02-05
 
 ### Fixed
