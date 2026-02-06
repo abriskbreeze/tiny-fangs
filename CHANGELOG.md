@@ -2,6 +2,25 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.8] - 2026-02-05
+
+### Removed
+- Deleted 9 test files (bug-specific and redundant)
+- Test suite: 334 tests → 254 tests, 20 files → 11 files
+
+### Deleted Test Files
+- `visual-bugs.test.js` — Bug regression tests
+- `combat-flow-bugs.test.js` — Bug regression tests  
+- `bug-fixes-agent2.test.js` — Bug regression tests
+- `creature-abilities-bug.test.js` — Bug regression tests
+- `chain-lightning-summon.test.js` — Specific scenario
+- `cindermaw-frenzy.test.js` — Specific scenario
+- `new-effects.test.js` — Redundant with effects.test.js
+- `new-cards.test.js` — Redundant with cards.test.js
+- `state-integration.test.js` — Redundant
+
+---
+
 ## [0.3.7] - 2026-02-05
 
 ### Fixed
