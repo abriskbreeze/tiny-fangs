@@ -2,6 +2,16 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.3.9] - 2026-02-05
+
+### Fixed
+- **AI Banish self-targeting bug** — AI was banishing its own creatures instead of player's
+- Root cause: `aiSelectCreatureTarget` returned `ownerKey: 'me'` but AI context uses `me: ai`
+- Fix: Changed to `ownerKey: 'opp'` (player is 'opp' from AI's perspective)
+- Also fixed replacement check for banished player creatures
+
+---
+
 ## [0.3.8] - 2026-02-05
 
 ### Removed

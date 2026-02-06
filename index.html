@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.3.8</title>
+  <title>TINY FANGS v0.3.9</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2022,7 +2022,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.8 • Card Battler</p>
+    <p class="sub">v0.3.9 • Card Battler</p>
     <h2>Choose Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="showCoinFlip('shadow')">
@@ -2137,7 +2137,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.3.8</div>
+      <div class="logo">TINY FANGS v0.3.9</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4635,13 +4635,14 @@
     function aiSelectCreatureTarget(card, ai, player) {
       // For damage/banish cards, AI should target player's creatures
       // Priority: active first (most threatening), then bench
+      // NOTE: ownerKey is from AI's perspective - 'opp' means player
       
       // Target player's active if available
       if (player.active) {
         return {
           creature: player.active,
           location: 'active',
-          ownerKey: 'me'  // 'me' from player's perspective (target is player)
+          ownerKey: 'opp'  // 'opp' = player from AI's perspective
         };
       }
       
@@ -4654,13 +4655,12 @@
         return {
           creature: target,
           location: 'bench',
-          ownerKey: 'me',
+          ownerKey: 'opp',  // 'opp' = player from AI's perspective
           idx
         };
       }
       
-      // No player creatures - could target own creatures for special strategies
-      // but usually AI shouldn't do this
+      // No player creatures - don't cast targeting cards
       return null;
     }
     
@@ -4759,7 +4759,7 @@
             const result = await processEffects(card, ctx);
             
             // Handle replacement if player's active was banished
-            if (result.modifiedContext?.needsReplacement && target.ownerKey === 'me' && player.bench.length > 0) {
+            if (result.modifiedContext?.needsReplacement && target.ownerKey === 'opp' && player.bench.length > 0) {
               await Anim.wait(300);
               if (player.bench.length === 1) {
                 player.active = player.bench.shift();
