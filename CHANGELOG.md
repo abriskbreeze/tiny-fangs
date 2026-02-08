@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.43] - 2026-02-08
+
+### Changed
+- Add multiplayer Phase 1 & 2: networking module + UI (mode select, room modals, turn timer)
+
+---
+
+
 ## [0.4.42] - 2026-02-08
 
 ### Changed

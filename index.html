@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.42</title>
+  <title>TINY FANGS v0.4.43</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2292,15 +2292,461 @@
       30% { background: rgba(255, 200, 0, 0.15); }
     }
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
+    
+    /* ═══════════════════════════════════════════════════
+       MULTIPLAYER UI
+       ═══════════════════════════════════════════════════ */
+    
+    /* Mode Select Screen (before deck select) */
+    .mode-select {
+      position: fixed;
+      inset: 0;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .mode-select.hidden { display: none; }
+    
+    .mode-select h1 {
+      font-size: 18px;
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+    }
+    
+    .mode-select .sub {
+      color: var(--dim);
+      font-size: 11px;
+      margin-bottom: 32px;
+    }
+    
+    .mode-select h2 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--dim);
+      margin-bottom: 16px;
+    }
+    
+    .mode-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 260px;
+    }
+    
+    .mode-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 20px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      text-align: center;
+      cursor: pointer;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    
+    .mode-btn:hover {
+      border-color: var(--border-hi);
+    }
+    
+    .mode-btn .icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .mode-btn .name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .mode-btn .desc {
+      font-size: 9px;
+      color: var(--dim);
+    }
+    
+    /* Room Modal */
+    .room-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 350;
+      padding: 20px;
+    }
+    
+    .room-modal.open { display: flex; }
+    
+    .room-box {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 320px;
+      padding: 20px;
+    }
+    
+    .room-box h2 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    
+    .room-box .room-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .room-box button {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .room-box button:hover {
+      border-color: var(--border-hi);
+    }
+    
+    .room-view {
+      display: none;
+    }
+    
+    .room-view.active {
+      display: block;
+    }
+    
+    .room-code-display {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--blue);
+      padding: 16px;
+      text-align: center;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+    
+    .room-code-display .label {
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .room-code {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--blue);
+    }
+    
+    .room-input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    
+    .room-input::placeholder {
+      color: var(--muted);
+      text-transform: none;
+    }
+    
+    .room-input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+    
+    .error {
+      color: var(--red);
+      font-size: 10px;
+      margin-top: 8px;
+    }
+    
+    .waiting-text {
+      text-align: center;
+      color: var(--dim);
+      font-size: 10px;
+      margin-top: 12px;
+      animation: pulse-opacity 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-opacity {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    
+    /* Waiting Indicator (during game) */
+    .waiting-indicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      padding: 20px 40px;
+      z-index: 200;
+      text-align: center;
+      display: none;
+    }
+    
+    .waiting-indicator.show {
+      display: block;
+    }
+    
+    .waiting-indicator .text {
+      font-size: 11px;
+      color: var(--dim);
+      animation: pulse-opacity 1.5s ease-in-out infinite;
+    }
+    
+    /* Connection Status */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 9px;
+      z-index: 100;
+      display: none;
+    }
+    
+    .connection-status.show {
+      display: block;
+    }
+    
+    .connection-status.connected {
+      border-color: var(--green);
+      color: var(--green);
+    }
+    
+    .connection-status.disconnected {
+      border-color: var(--red);
+      color: var(--red);
+      animation: pulse-opacity 1s ease-in-out infinite;
+    }
+    
+    .connection-status::before {
+      content: '●';
+      margin-right: 6px;
+    }
+    
+    /* Disconnect Modal */
+    .disconnect-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+      padding: 20px;
+    }
+    
+    .disconnect-modal.open { display: flex; }
+    
+    .disconnect-box {
+      background: var(--panel-solid);
+      border: 1px solid var(--red);
+      width: 100%;
+      max-width: 300px;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .disconnect-box h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+    
+    .disconnect-box p {
+      font-size: 10px;
+      color: var(--dim);
+      margin-bottom: 16px;
+    }
+    
+    .countdown {
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--red);
+      margin: 16px 0;
+    }
+    
+    .disconnect-box button {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    
+    .disconnect-box button:hover {
+      border-color: var(--border-hi);
+    }
+    
+    /* Turn Timer */
+    .turn-timer {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 50;
+      display: none;
+    }
+    
+    .turn-timer.show {
+      display: block;
+    }
+    
+    .turn-timer.warning {
+      border-color: var(--red);
+      color: var(--red);
+      animation: pulse-opacity 0.5s ease-in-out infinite;
+    }
+    
+    /* Mobile adjustments */
+    @media (max-width: 900px) {
+      .connection-status {
+        top: 6px;
+        right: 6px;
+        font-size: 8px;
+        padding: 4px 8px;
+      }
+      
+      .turn-timer {
+        top: 50px;
+        font-size: 12px;
+        padding: 4px 12px;
+      }
+    }
   </style>
+  
+  <!-- PeerJS for P2P Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
   
-  <!-- SETUP -->
-  <div id="setup" class="setup">
+  <!-- MODE SELECT (shows before deck select) -->
+  <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.42 • Card Battler</p>
+    <p class="sub">v0.4.43 • Card Battler</p>
+    <h2>Choose Game Mode</h2>
+    <div class="mode-buttons">
+      <button class="mode-btn" onclick="selectMode('ai')">
+        <div class="icon">🤖</div>
+        <div class="name">Play vs AI</div>
+        <div class="desc">Practice against the computer</div>
+      </button>
+      <button class="mode-btn" onclick="selectMode('friend')">
+        <div class="icon">👥</div>
+        <div class="name">Play vs Friend</div>
+        <div class="desc">Online multiplayer with room codes</div>
+      </button>
+    </div>
+  </div>
+  
+  <!-- ROOM MODAL -->
+  <div id="room-modal" class="room-modal">
+    <div class="room-box">
+      <h2>Play vs Friend</h2>
+      
+      <!-- Initial Options -->
+      <div id="room-options" class="room-view active">
+        <div class="room-options">
+          <button id="create-room-btn" onclick="showCreateRoom()">Create Room</button>
+          <button id="join-room-btn" onclick="showJoinRoom()">Join Room</button>
+        </div>
+      </div>
+      
+      <!-- Create Room View -->
+      <div id="create-view" class="room-view">
+        <p style="text-align: center; font-size: 10px; color: var(--dim); margin-bottom: 12px;">Share this code with your friend:</p>
+        <div class="room-code-display">
+          <div class="label">Room Code</div>
+          <div class="room-code" id="room-code-text">FANGS-XXXX</div>
+        </div>
+        <button id="copy-code-btn" onclick="copyRoomCode()">Copy Code</button>
+        <div class="waiting-text">Waiting for opponent...</div>
+      </div>
+      
+      <!-- Join Room View -->
+      <div id="join-view" class="room-view">
+        <p style="text-align: center; font-size: 10px; color: var(--dim); margin-bottom: 12px;">Enter room code:</p>
+        <input type="text" id="room-input" class="room-input" placeholder="FANGS-XXXX" maxlength="10" oninput="this.value = this.value.toUpperCase()">
+        <button id="join-btn" onclick="joinRoom()">Join</button>
+        <p id="join-error" class="error hidden">Room not found</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- WAITING INDICATOR (during game) -->
+  <div id="waiting-indicator" class="waiting-indicator">
+    <div class="text" id="waiting-text">Waiting for opponent...</div>
+  </div>
+  
+  <!-- CONNECTION STATUS -->
+  <div id="connection-status" class="connection-status">
+    <span id="connection-text">Connected</span>
+  </div>
+  
+  <!-- DISCONNECT MODAL -->
+  <div id="disconnect-modal" class="disconnect-modal">
+    <div class="disconnect-box">
+      <h2>Opponent Disconnected</h2>
+      <p>Waiting for reconnection...</p>
+      <div class="countdown" id="disconnect-countdown">30</div>
+      <button id="leave-game-btn" onclick="leaveGame()">Leave Game</button>
+    </div>
+  </div>
+  
+  <!-- TURN TIMER -->
+  <div id="turn-timer" class="turn-timer">
+    <span id="timer-seconds">60</span>s
+  </div>
+  
+  <!-- SETUP -->
+  <div id="setup" class="setup hidden">
+    <h1>TINY FANGS</h1>
+    <p class="sub">v0.4.43 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2421,7 +2867,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.42</div>
+      <div class="logo">TINY FANGS v0.4.43</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2658,9 +3104,369 @@
     import { Effects, processEffects } from './src/effects.js';
     import { GameEvents } from './src/events.js';
     import { matchesTrigger, getMatchingTriggers, processTriggers } from './src/triggers.js';
+    import { multiplayer } from './src/multiplayer.js';
     
     // Expose Anim globally so effects.js can access it
     globalThis.Anim = Anim;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MULTIPLAYER MESSAGE PROTOCOL
+    // ═══════════════════════════════════════════════════════════════
+    
+    const MP_MSG = {
+      // Lobby
+      READY: 'ready',           // { type, deckId }
+      COIN_FLIP: 'coinFlip',    // { type, result, hostFirst }
+      
+      // Actions
+      ACTION: 'action',         // { type, action, cardUid, target, selection }
+      
+      // Sync
+      SYNC: 'sync',             // { type, state }
+      TRIGGER: 'trigger',       // { type, cardId, abilityName }
+      
+      // Control
+      END_TURN: 'endTurn',      // { type }
+      REMATCH: 'rematch',       // { type }
+      FORFEIT: 'forfeit',       // { type }
+    };
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MULTIPLAYER INTEGRATION
+    // ═══════════════════════════════════════════════════════════════
+    
+    let turnTimer = null;
+    
+    /**
+     * Start turn timer for multiplayer mode
+     */
+    function startTurnTimer() {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      state.G.turnTimeRemaining = 60;
+      turnTimer = setInterval(() => {
+        state.G.turnTimeRemaining--;
+        render(); // Update timer display
+        
+        if (state.G.turnTimeRemaining <= 0) {
+          clearInterval(turnTimer);
+          turnTimer = null;
+          if (state.G.myTurn) {
+            log('Time out! Turn ended automatically', 'dmg');
+            endTurn(); // Auto-end turn on timeout
+          }
+        }
+      }, 1000);
+    }
+    
+    /**
+     * Stop turn timer
+     */
+    function stopTurnTimer() {
+      if (turnTimer) {
+        clearInterval(turnTimer);
+        turnTimer = null;
+      }
+    }
+    
+    /**
+     * Sanitize player data for network transmission
+     * Hide sensitive info like opponent's hand contents, deck order
+     * @param {object} player - Player state
+     * @param {boolean} fullInfo - If true, include hand/deck (for own player)
+     */
+    function sanitizePlayer(player, fullInfo = false) {
+      const sanitized = {
+        lp: player.lp,
+        mana: player.mana,
+        maxMana: player.maxMana,
+        handCount: player.hand.length,
+        deckCount: player.deck.length,
+        graveCount: player.grave.length,
+        active: player.active ? sanitizeCard(player.active) : null,
+        bench: player.bench.map(c => sanitizeCard(c)),
+        setVerse: player.setVerse ? { uid: player.setVerse.uid, faceDown: true } : null,
+        usedManaSurge: player.usedManaSurge,
+        usedLastBreath: player.usedLastBreath,
+        attackBonuses: player.attackBonuses,
+        poisoned: player.poisoned,
+        chainLightning: player.chainLightning,
+      };
+      
+      if (fullInfo) {
+        sanitized.hand = player.hand.map(c => sanitizeCard(c));
+        sanitized.deck = player.deck.map(c => ({ uid: c.uid })); // Only UIDs for deck
+        sanitized.grave = player.grave.map(c => sanitizeCard(c));
+        if (player.setVerse) {
+          sanitized.setVerse = sanitizeCard(player.setVerse);
+        }
+      }
+      
+      return sanitized;
+    }
+    
+    /**
+     * Sanitize card data for network transmission
+     */
+    function sanitizeCard(card) {
+      return {
+        uid: card.uid,
+        id: card.id,
+        name: card.name,
+        cardType: card.cardType,
+        type: card.type,
+        cost: card.cost,
+        curHp: card.curHp,
+        hp: card.hp,
+        atk: card.atk,
+        status: card.status,
+        fortified: card.fortified,
+        // Include any other state that needs syncing
+      };
+    }
+    
+    /**
+     * Get minimal state for sync messages
+     */
+    function getMinimalState() {
+      if (!state.G) return null;
+      
+      return {
+        turn: state.G.turn,
+        myTurn: state.G.myTurn,
+        me: sanitizePlayer(state.G.me, true),  // Full info for me
+        opp: sanitizePlayer(state.G.opp, false), // Hidden info for opponent
+        log: state.G.log.slice(-20), // Last 20 log entries
+        winner: state.G.winner,
+        firstTurn: state.G.firstTurn,
+      };
+    }
+    
+    /**
+     * Apply synced state from host
+     * Guest receives this after host validates and executes actions
+     */
+    function applyStateSync(syncState) {
+      if (!state.G || state.G.mode !== 'multiplayer' || state.G.isHost) return;
+      
+      // Apply state updates
+      state.G.turn = syncState.turn;
+      state.G.myTurn = syncState.myTurn;
+      state.G.winner = syncState.winner;
+      state.G.firstTurn = syncState.firstTurn;
+      
+      // Merge state carefully - preserve local hidden info
+      mergePlayerState(state.G.me, syncState.me, true);
+      mergePlayerState(state.G.opp, syncState.opp, false);
+      
+      // Update log
+      if (syncState.log) {
+        state.G.log = syncState.log;
+      }
+      
+      render();
+    }
+    
+    /**
+     * Merge player state from sync
+     */
+    function mergePlayerState(localPlayer, syncedPlayer, isMe) {
+      localPlayer.lp = syncedPlayer.lp;
+      localPlayer.mana = syncedPlayer.mana;
+      localPlayer.maxMana = syncedPlayer.maxMana;
+      localPlayer.usedManaSurge = syncedPlayer.usedManaSurge;
+      localPlayer.usedLastBreath = syncedPlayer.usedLastBreath;
+      localPlayer.attackBonuses = syncedPlayer.attackBonuses || [];
+      localPlayer.poisoned = syncedPlayer.poisoned;
+      localPlayer.chainLightning = syncedPlayer.chainLightning;
+      
+      // Active creature
+      if (syncedPlayer.active) {
+        if (!localPlayer.active || localPlayer.active.uid !== syncedPlayer.active.uid) {
+          // New active creature - find in hand/bench/grave or create
+          localPlayer.active = findOrCreateCard(syncedPlayer.active);
+        } else {
+          // Update existing active
+          updateCardState(localPlayer.active, syncedPlayer.active);
+        }
+      } else {
+        localPlayer.active = null;
+      }
+      
+      // Bench
+      localPlayer.bench = syncedPlayer.bench.map(sc => {
+        const existing = localPlayer.bench.find(c => c.uid === sc.uid);
+        if (existing) {
+          updateCardState(existing, sc);
+          return existing;
+        }
+        return findOrCreateCard(sc);
+      });
+      
+      // Set verse
+      if (syncedPlayer.setVerse && !syncedPlayer.setVerse.faceDown) {
+        localPlayer.setVerse = findOrCreateCard(syncedPlayer.setVerse);
+      } else if (syncedPlayer.setVerse) {
+        // Face-down set verse - keep hidden
+        if (!localPlayer.setVerse) {
+          localPlayer.setVerse = { uid: syncedPlayer.setVerse.uid, faceDown: true };
+        }
+      } else {
+        localPlayer.setVerse = null;
+      }
+      
+      // Full info for own player
+      if (isMe && syncedPlayer.hand) {
+        localPlayer.hand = syncedPlayer.hand.map(sc => findOrCreateCard(sc));
+        if (syncedPlayer.grave) {
+          localPlayer.grave = syncedPlayer.grave.map(sc => findOrCreateCard(sc));
+        }
+      }
+    }
+    
+    /**
+     * Find existing card or create from synced data
+     */
+    function findOrCreateCard(syncedCard) {
+      // Try to find in all players' cards
+      const allCards = [
+        ...state.G.me.hand,
+        ...state.G.me.bench,
+        ...state.G.me.grave,
+        ...state.G.opp.hand,
+        ...state.G.opp.bench,
+        ...state.G.opp.grave,
+      ];
+      if (state.G.me.active) allCards.push(state.G.me.active);
+      if (state.G.opp.active) allCards.push(state.G.opp.active);
+      if (state.G.me.setVerse) allCards.push(state.G.me.setVerse);
+      if (state.G.opp.setVerse) allCards.push(state.G.opp.setVerse);
+      
+      const existing = allCards.find(c => c.uid === syncedCard.uid);
+      if (existing) {
+        updateCardState(existing, syncedCard);
+        return existing;
+      }
+      
+      // Create new card from template
+      const template = syncedCard.cardType === 'creature' 
+        ? CREATURES[syncedCard.id] 
+        : VERSES[syncedCard.id];
+      
+      if (!template) {
+        console.error('[MP] Unknown card:', syncedCard.id);
+        return syncedCard; // Fallback
+      }
+      
+      const newCard = { 
+        ...template, 
+        ...syncedCard,
+        cardType: syncedCard.cardType,
+      };
+      
+      return newCard;
+    }
+    
+    /**
+     * Update card state from synced data
+     */
+    function updateCardState(card, syncedCard) {
+      card.curHp = syncedCard.curHp;
+      card.status = syncedCard.status;
+      card.fortified = syncedCard.fortified;
+      // Add any other mutable state fields
+    }
+    
+    /**
+     * Multiplayer message handler
+     */
+    multiplayer.onMessage = async (msg) => {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      console.log('[MP] Received:', msg.type);
+      
+      try {
+        switch (msg.type) {
+          case MP_MSG.READY:
+            handleOpponentReady(msg);
+            break;
+            
+          case MP_MSG.COIN_FLIP:
+            handleCoinFlipResult(msg);
+            break;
+            
+          case MP_MSG.ACTION:
+            if (state.G.isHost) {
+              await validateAndExecuteAction(msg);
+            }
+            break;
+            
+          case MP_MSG.SYNC:
+            if (!state.G.isHost) {
+              applyStateSync(msg.state);
+            }
+            break;
+            
+          case MP_MSG.TRIGGER:
+            await showTriggerReveal({ name: msg.cardName, trigger: msg.trigger });
+            break;
+            
+          case MP_MSG.END_TURN:
+            if (state.G.isHost) {
+              // Validate it's opponent's turn, then process
+              if (!state.G.myTurn) {
+                await endTurn();
+              }
+            } else {
+              // Guest receives end turn sync
+              state.G.myTurn = true;
+              render();
+            }
+            break;
+            
+          case MP_MSG.FORFEIT:
+            log('Opponent forfeited!', 'dmg');
+            state.G.winner = 'You';
+            showResult(true);
+            break;
+            
+          case MP_MSG.REMATCH:
+            // TODO: Implement rematch flow
+            break;
+            
+          default:
+            console.warn('[MP] Unknown message type:', msg.type);
+        }
+      } catch (err) {
+        console.error('[MP] Message handler error:', err);
+        log('[MP Error] Failed to process message', 'dmg');
+      }
+    };
+    
+    /**
+     * Handle opponent ready message (deck selection)
+     */
+    function handleOpponentReady(msg) {
+      state.G.opponentReady = true;
+      log('Opponent ready!', 'mana');
+      // TODO: Trigger coin flip when both ready
+    }
+    
+    /**
+     * Handle coin flip result
+     */
+    function handleCoinFlipResult(msg) {
+      // TODO: Process coin flip, determine first player
+      log(`Coin flip: ${msg.result}`, 'mana');
+    }
+    
+    /**
+     * Validate and execute action from opponent (host only)
+     */
+    async function validateAndExecuteAction(msg) {
+      // TODO: Validate action is legal, execute, send sync
+      console.log('[MP Host] Validating action:', msg.action);
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // SUMMON EVENT HELPER
@@ -3215,6 +4021,10 @@
         hasRetreated: false, // C3: Track if player retreated this turn
         actionLock: false,   // BUG-12: Prevent multiple attack button clicks
         aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
+        mode: 'ai',          // 'ai' or 'multiplayer'
+        isHost: false,       // Multiplayer: are we the host?
+        opponentReady: false, // Multiplayer: has opponent selected deck?
+        turnTimeRemaining: 60, // Multiplayer: turn timer in seconds
       };
       
       state.startTime = Date.now();
@@ -3243,6 +4053,202 @@
     window.deckRelease = deckRelease;
     window.deckHover = deckHover;
     window.deckLeave = deckLeave;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MULTIPLAYER UI FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════
+    
+    let selectedMode = 'ai'; // 'ai' or 'multiplayer'
+    
+    /**
+     * Show mode select screen on page load
+     */
+    function showModeSelect() {
+      $('mode-select').classList.remove('hidden');
+      $('setup').classList.add('hidden');
+    }
+    
+    /**
+     * Handle mode selection
+     * @param {string} mode - 'ai' or 'friend'
+     */
+    function selectMode(mode) {
+      $('mode-select').classList.add('hidden');
+      
+      if (mode === 'ai') {
+        selectedMode = 'ai';
+        $('setup').classList.remove('hidden');
+      } else {
+        selectedMode = 'multiplayer';
+        showRoomModal();
+      }
+    }
+    
+    /**
+     * Show room modal for creating/joining rooms
+     */
+    function showRoomModal() {
+      $('room-modal').classList.add('open');
+      showRoomOptions();
+    }
+    
+    /**
+     * Hide room modal
+     */
+    function hideRoomModal() {
+      $('room-modal').classList.remove('open');
+    }
+    
+    /**
+     * Show initial room options (create/join)
+     */
+    function showRoomOptions() {
+      $('room-options').classList.add('active');
+      $('create-view').classList.remove('active');
+      $('join-view').classList.remove('active');
+    }
+    
+    /**
+     * Show create room view and create room
+     */
+    async function showCreateRoom() {
+      $('room-options').classList.remove('active');
+      $('create-view').classList.add('active');
+      $('join-view').classList.remove('active');
+      
+      try {
+        const code = await multiplayer.createRoom();
+        $('room-code-text').textContent = code;
+        
+        // Wait for guest to connect
+        multiplayer.onConnect = () => {
+          console.log('[UI] Opponent connected!');
+          hideRoomModal();
+          $('setup').classList.remove('hidden');
+          // Both players now select decks
+        };
+        
+        multiplayer.onError = (err) => {
+          console.error('[UI] Room error:', err);
+          alert('Failed to create room. Please try again.');
+          showRoomOptions();
+        };
+        
+      } catch (err) {
+        console.error('[UI] Failed to create room:', err);
+        alert('Failed to create room. Please try again.');
+        showRoomOptions();
+      }
+    }
+    
+    /**
+     * Show join room view
+     */
+    function showJoinRoom() {
+      $('room-options').classList.remove('active');
+      $('create-view').classList.remove('active');
+      $('join-view').classList.add('active');
+      $('room-input').value = '';
+      $('room-input').focus();
+      $('join-error').classList.add('hidden');
+    }
+    
+    /**
+     * Join a room with entered code
+     */
+    async function joinRoom() {
+      const code = $('room-input').value.trim().toUpperCase();
+      if (!code) return;
+      
+      $('join-btn').disabled = true;
+      $('join-error').classList.add('hidden');
+      
+      try {
+        await multiplayer.joinRoom(code);
+        console.log('[UI] Joined room:', code);
+        
+        multiplayer.onConnect = () => {
+          console.log('[UI] Connected to host!');
+        };
+        
+        multiplayer.onDisconnect = () => {
+          console.log('[UI] Host disconnected');
+          showDisconnectModal();
+        };
+        
+        hideRoomModal();
+        $('setup').classList.remove('hidden');
+        
+      } catch (err) {
+        console.error('[UI] Failed to join room:', err);
+        $('join-error').classList.remove('hidden');
+        $('join-btn').disabled = false;
+      }
+    }
+    
+    /**
+     * Copy room code to clipboard
+     */
+    function copyRoomCode() {
+      const code = $('room-code-text').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        $('copy-code-btn').textContent = 'Copied!';
+        setTimeout(() => {
+          $('copy-code-btn').textContent = 'Copy Code';
+        }, 2000);
+      });
+    }
+    
+    /**
+     * Show disconnect modal
+     */
+    function showDisconnectModal() {
+      $('disconnect-modal').classList.add('open');
+      let countdown = 30;
+      $('disconnect-countdown').textContent = countdown;
+      
+      const countdownTimer = setInterval(() => {
+        countdown--;
+        $('disconnect-countdown').textContent = countdown;
+        if (countdown <= 0) {
+          clearInterval(countdownTimer);
+          // Opponent forfeited
+          leaveGame();
+        }
+      }, 1000);
+    }
+    
+    /**
+     * Leave multiplayer game
+     */
+    function leaveGame() {
+      multiplayer.disconnect();
+      $('disconnect-modal').classList.remove('open');
+      location.reload();
+    }
+    
+    /**
+     * Back button from room modal
+     */
+    function backToModeSelect() {
+      hideRoomModal();
+      multiplayer.disconnect();
+      showModeSelect();
+    }
+    
+    // Expose multiplayer UI functions
+    window.selectMode = selectMode;
+    window.showCreateRoom = showCreateRoom;
+    window.showJoinRoom = showJoinRoom;
+    window.joinRoom = joinRoom;
+    window.copyRoomCode = copyRoomCode;
+    window.leaveGame = leaveGame;
+    window.backToModeSelect = backToModeSelect;
+    
+    // Show mode select on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      showModeSelect();
+    });
     
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
@@ -3851,6 +4857,23 @@
         return;
       }
       
+      // Multiplayer: Send action message
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        const summonLocation = !state.G.me.active ? 'active' : 'bench';
+        multiplayer.send({
+          type: MP_MSG.ACTION,
+          action: 'summon',
+          cardUid: c.uid,
+          target: summonLocation
+        });
+        
+        // Guest waits for host to validate and sync
+        if (!state.G.isHost) {
+          log(`Summoning ${c.name}...`, 'mana');
+          return;
+        }
+      }
+      
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       
@@ -3899,6 +4922,14 @@
       }
       
       render();
+      
+      // Multiplayer: Send state sync after summon completes (host only)
+      if (state.G.mode === 'multiplayer' && state.G.isHost) {
+        multiplayer.send({ 
+          type: MP_MSG.SYNC, 
+          state: getMinimalState() 
+        });
+      }
     }
     
     function doCast() {
@@ -3920,6 +4951,23 @@
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
+      }
+      
+      // Multiplayer: Send action message (will need selection result if applicable)
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        // Note: For now, selection happens locally then sends complete action
+        // TODO: Handle complex selections in multiplayer
+        multiplayer.send({
+          type: MP_MSG.ACTION,
+          action: 'cast',
+          cardUid: c.uid
+        });
+        
+        // Guest waits for host to validate and sync
+        if (!state.G.isHost) {
+          log(`Casting ${c.name}...`, 'mana');
+          return;
+        }
       }
       
       // Pre-check for cards that might fail
@@ -4585,6 +5633,21 @@
         return;
       }
       
+      // Multiplayer: Send action message
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        multiplayer.send({
+          type: MP_MSG.ACTION,
+          action: 'set',
+          cardUid: c.uid
+        });
+        
+        // Guest waits for host to validate and sync
+        if (!state.G.isHost) {
+          log('Setting verse...', 'mana');
+          return;
+        }
+      }
+      
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       state.G.me.setVerse = c;
@@ -4592,6 +5655,14 @@
       log('Set a verse face-down');
       render();
       Anim.setVerse('me');
+      
+      // Multiplayer: Send state sync after set verse completes (host only)
+      if (state.G.mode === 'multiplayer' && state.G.isHost) {
+        multiplayer.send({ 
+          type: MP_MSG.SYNC, 
+          state: getMinimalState() 
+        });
+      }
     }
     
     async function doAttack() {
@@ -4602,6 +5673,21 @@
       if (state.G.firstTurn) {
         log("Can't attack on first turn!", 'dmg');
         return;
+      }
+      
+      // Multiplayer: Send action message
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        multiplayer.send({
+          type: MP_MSG.ACTION,
+          action: 'attack',
+          cardUid: state.G.me.active.uid
+        });
+        
+        // Guest waits for host to validate and sync
+        if (!state.G.isHost) {
+          log('Attacking...', 'mana');
+          return;
+        }
       }
       
       state.G.actionLock = true; // BUG-12: Lock actions during attack
@@ -5002,6 +6088,14 @@
         highlightEndTurn(true);
       } finally {
         state.G.actionLock = false; // BUG-12: Always release lock
+        
+        // Multiplayer: Send state sync after action completes (host only)
+        if (state.G.mode === 'multiplayer' && state.G.isHost) {
+          multiplayer.send({ 
+            type: MP_MSG.SYNC, 
+            state: getMinimalState() 
+          });
+        }
       }
     }
     
@@ -5018,6 +6112,22 @@
         sub: `${c.curHp}/${c.hp} HP`,
         action: async () => {
           closeModal();
+          
+          // Multiplayer: Send action message
+          if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+            multiplayer.send({
+              type: MP_MSG.ACTION,
+              action: 'retreat',
+              cardUid: c.uid
+            });
+            
+            // Guest waits for host to validate and sync
+            if (!state.G.isHost) {
+              log(`Retreating to ${c.name}...`, 'mana');
+              return;
+            }
+          }
+          
           const old = state.G.me.active;
           const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
           state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
@@ -5040,6 +6150,14 @@
             }
           }
           
+          // Multiplayer: Send state sync after retreat completes (host only)
+          if (state.G.mode === 'multiplayer' && state.G.isHost) {
+            multiplayer.send({ 
+              type: MP_MSG.SYNC, 
+              state: getMinimalState() 
+            });
+          }
+          
           highlightEndTurn(true); // Prompt to end turn after retreat
         }
       })));
@@ -5048,6 +6166,12 @@
     async function endTurn() {
       if (state.G.winner) return;
       if (state.animating) return; // Block during animations
+      
+      // Multiplayer: Send END_TURN message
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        multiplayer.send({ type: MP_MSG.END_TURN });
+        stopTurnTimer();
+      }
       
       // Clear END TURN highlight
       highlightEndTurn(false);
@@ -5083,13 +6207,29 @@
       // Mana phase: gain max mana at END of turn (capped at 5)
       if (state.G.me.maxMana < 5) state.G.me.maxMana++;
       
+      // Multiplayer: Send state sync if host
+      if (state.G.mode === 'multiplayer' && state.G.isHost) {
+        multiplayer.send({ 
+          type: MP_MSG.SYNC, 
+          state: getMinimalState() 
+        });
+      }
+      
       render();
       
       // TURN END animation
       await playTurnEndAnimation();
       
-      // AI turn
-      setTimeout(aiTurn, 600);
+      // Multiplayer: Switch to opponent's turn
+      if (state.G.mode === 'multiplayer') {
+        state.G.myTurn = false;
+        log("Opponent's turn", 'mana');
+        render();
+        // No AI turn in multiplayer
+      } else {
+        // AI turn
+        setTimeout(aiTurn, 600);
+      }
     }
     
     // ═══════════════════════════════════════════════════════════════
