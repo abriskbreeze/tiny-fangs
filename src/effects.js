@@ -171,6 +171,9 @@ const Effects = {
     const creature = resolveTarget(ctx, target);
     if (!creature) return;
     
+    // Don't heal dead creatures (0 or negative HP)
+    if (creature.curHp <= 0) return;
+    
     const oldHp = creature.curHp;
     creature.curHp = Math.min(creature.hp, creature.curHp + amount);
     const actualHeal = creature.curHp - oldHp;
@@ -199,6 +202,9 @@ const Effects = {
     // Get the creature that triggered this ability
     const creature = ctx.self || ctx.attacker;
     if (!creature) return { healed: 0 };
+    
+    // Don't heal dead creatures (0 or negative HP)
+    if (creature.curHp <= 0) return { healed: 0 };
     
     // Resolve dynamic amount
     let healAmount = amount;

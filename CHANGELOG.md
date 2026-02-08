@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.31] - 2026-02-08
+
+### Changed
+- Prevent healing dead creatures - heal and healSelf now check if curHp <= 0 first
+
+---
+
+
 ## [0.4.30] - 2026-02-08
 
 ### Changed
