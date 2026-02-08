@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.38] - 2026-02-08
+
+### Changed
+- Fix bench KO animations - processBenchKO now plays benchKo animation, AI verse path now handles bench KOs
+
+---
+
+
 ## [0.4.37] - 2026-02-08
 
 ### Changed
