@@ -6958,9 +6958,11 @@
         triggerRevealTimeout = null;
       }
       $('triggerModal').classList.remove('open', 'cast', 'set', 'creature');
+      // Small delay to let close animation finish before AI continues
       if (triggerRevealResolve) {
-        triggerRevealResolve();
+        const resolve = triggerRevealResolve;
         triggerRevealResolve = null;
+        setTimeout(resolve, 300);
       }
     }
     
