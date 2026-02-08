@@ -633,6 +633,50 @@ Trigger system migration requires: (1) card declares trigger, (2) game path emit
 - Strategy overview + star creatures for each deck
 - Added to deck selector with hint text
 
-**Current Version:** v0.4.5
-**Tests:** 261 passing
+### 2026-02-08 — Multiplayer Phase 1 (v0.4.43)
+
+**P2P Multiplayer Foundation — 3 Parallel Subagents**
+
+Built complete 1v1 multiplayer infrastructure using PeerJS WebRTC:
+
+**mp-networking (src/multiplayer.js):**
+- `MultiplayerManager` class with PeerJS integration
+- Room codes: `FANGS-XXXX` format (4 uppercase letters, no I/O)
+- Methods: `createRoom()`, `joinRoom(code)`, `send(msg)`, `disconnect()`
+- Callbacks: `onConnect`, `onMessage`, `onDisconnect`, `onError`
+- Auto-regenerates room code if taken
+
+**mp-ui (index.html CSS/HTML):**
+- Mode select screen (AI vs Friend) — shows BEFORE deck select
+- Room modal with create/join views, room code display, copy button
+- Waiting indicator with pulsing animation
+- Connection status (top-right, green/red)
+- Disconnect modal with 30s countdown
+- Turn timer (60s, red at 10s warning)
+
+**mp-integration (index.html JS):**
+- Message protocol: `MP_MSG` constants (READY, COIN_FLIP, ACTION, SYNC, etc.)
+- State flags: `mode`, `isHost`, `opponentReady`, `turnTimeRemaining`
+- Action wrappers: `summonCreature`, `castVerse`, `setVerse`, `doAttack`, `doRetreat`, `endTurn`
+- State sync: `sanitizePlayer()`, `getMinimalState()`, `applyStateSync()`
+- Turn timer: `startTurnTimer()`, `stopTurnTimer()`
+- Host authority pattern: guest sends action → host validates → executes → syncs
+
+**Architecture:**
+- Host-authority model (host validates all actions)
+- Action sync (not state sync) — actions replayed, not states replaced
+- Hidden info: deck order and hand contents hidden from opponent
+- 60s turn timer with auto-end
+- 30s reconnect window
+
+**Remaining Work (Phase 2+):**
+- Coin flip sync in `startGame()`
+- Deck shuffle sync (host generates both decks)
+- `validateAndExecuteAction()` implementation
+- Complex selection sync (targeting modals)
+- Reconnection handling
+- Rematch flow
+
+**Current Version:** v0.4.43
+**Tests:** 262 passing
 
