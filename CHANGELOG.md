@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.22] - 2026-02-08
+
+### Changed
+- Fix Blood Moon KO bug - processEffects now collects kos array from aoeAll; fix deckHover reference error with optional chaining
+
+---
+
+
 ## [0.4.21] - 2026-02-08
 
 ### Changed

@@ -957,13 +957,16 @@ async function processEffects(card, ctx) {
       modifiedContext = { ...modifiedContext, ...result.modifiedContext };
     }
     
-    // Collect KO results
+    // Collect KO results (single ko or array of kos)
     if (result?.ko) {
       kos.push({
         target: result.target,
         creature: result.creature,
         owner: result.owner
       });
+    }
+    if (result?.kos) {
+      kos.push(...result.kos);
     }
   }
   
