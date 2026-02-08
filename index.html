@@ -2612,7 +2612,7 @@
         <span class="trigger-flash">⚡</span>
       </div>
       <div id="triggerContent"></div>
-      <div class="trigger-hint">tap anywhere to continue</div>
+      <div class="trigger-hint">tap or press any key</div>
     </div>
   </div>
   
@@ -6889,7 +6889,7 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap or press any key</div>';
+        $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'TRIGGERED!';
         $('triggerModal').classList.remove('cast', 'set', 'creature');
         $('triggerModal').classList.add('open', typeClass);
@@ -6921,7 +6921,7 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap or press any key</div>';
+        $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'CAST!';
         $('triggerModal').classList.remove('set', 'creature');
         $('triggerModal').classList.add('open', 'cast');
