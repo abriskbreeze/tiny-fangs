@@ -1384,6 +1384,15 @@
       line-height: 1.4;
     }
     
+    .deck-btn.random-btn {
+      border-color: var(--blue);
+      background: rgba(100,149,237,0.08);
+    }
+    
+    .deck-btn.random-btn:hover {
+      border-color: var(--text);
+    }
+    
     .difficulty-toggle {
       display: flex;
       align-items: center;
@@ -2144,7 +2153,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-DwoEg-Nd.js"></script>
+  <script type="module" crossorigin src="./assets/index-DI8k8S3H.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>
@@ -2152,33 +2161,38 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.11 • Card Battler</p>
-    <h2>Choose Deck</h2>
+    <p class="sub">v0.4.1 • Card Battler</p>
+    <h2>Choose Your Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="showCoinFlip('shadow')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shadow')">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('fang')">
+      <button class="deck-btn" onclick="selectPlayerDeck('fang')">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('venom')">
+      <button class="deck-btn" onclick="selectPlayerDeck('venom')">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('swarm')">
+      <button class="deck-btn" onclick="selectPlayerDeck('swarm')">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('shell')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shell')">
         <div class="icon">[=]</div>
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
+      </button>
+      <button class="deck-btn random-btn" onclick="selectPlayerDeck('random')">
+        <div class="icon">?</div>
+        <div class="name">Random</div>
+        <div class="desc">Surprise me!</div>
       </button>
     </div>
     <div class="difficulty-toggle">

@@ -2,6 +2,27 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.4.1] - 2026-02-07
+
+### Added
+- **Dual Deck Selector** — After choosing your deck, select the AI's deck
+- **Random Deck Option** — Both player and AI deck selectors have "Random" option
+- Player deck selector styled with blue border for Random button
+- AI deck selector modal with all 5 decks + Random
+
+### Changed
+- Game flow: Player Deck → AI Deck → Coin Flip → Game Start
+- AI no longer auto-selects random deck (player chooses)
+
+### Technical
+- `selectPlayerDeck()` — Handles player deck choice, shows AI selector
+- `showAIDeckSelector()` — Modal for AI deck selection
+- `selectAIDeck()` — Sets AI deck, proceeds to coin flip
+- `getRandomDeckId()` — Helper for random deck selection
+- 4 new tests for deck selection
+
+---
+
 ## [0.4.0] - 2026-02-07
 
 ### Major Bug Fix Release — 33 bugs fixed across 2 sprints

@@ -1332,6 +1332,14 @@
       line-height: 1.4;
     }
     
+    .deck-btn.random-btn {
+      border-color: var(--blue);
+      background: rgba(100,149,237,0.08);
+    }
+    .deck-btn.random-btn:hover {
+      border-color: var(--text);
+    }
+    
     .difficulty-toggle {
       display: flex;
       align-items: center;
@@ -2043,33 +2051,38 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.3.11 • Card Battler</p>
-    <h2>Choose Deck</h2>
+    <p class="sub">v0.4.1 • Card Battler</p>
+    <h2>Choose Your Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="showCoinFlip('shadow')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shadow')">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('fang')">
+      <button class="deck-btn" onclick="selectPlayerDeck('fang')">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('venom')">
+      <button class="deck-btn" onclick="selectPlayerDeck('venom')">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('swarm')">
+      <button class="deck-btn" onclick="selectPlayerDeck('swarm')">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
-      <button class="deck-btn" onclick="showCoinFlip('shell')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shell')">
         <div class="icon">[=]</div>
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
+      </button>
+      <button class="deck-btn random-btn" onclick="selectPlayerDeck('random')">
+        <div class="icon">?</div>
+        <div class="name">Random</div>
+        <div class="desc">Surprise me!</div>
       </button>
     </div>
     <div class="difficulty-toggle">
@@ -2560,16 +2573,66 @@
       };
     }
     
-    // Coin flip state
+    // Deck selection state
     let pendingDeckId = null;
+    let pendingAIDeckId = null;
     
-    function showCoinFlip(deckId) {
-      pendingDeckId = deckId;
+    const DECK_INFO = {
+      shadow: { icon: '(O)', name: 'Shadow', desc: 'Control & graveyard synergy' },
+      fang: { icon: '/\\', name: 'Fang', desc: 'Aggro & direct damage' },
+      venom: { icon: '*X*', name: 'Venom', desc: 'Poison & lifesteal' },
+      swarm: { icon: '}:{', name: 'Swarm', desc: 'Pack tactics & bench synergy' },
+      shell: { icon: '[=]', name: 'Shell', desc: 'Defense & damage reduction' }
+    };
+    
+    function getRandomDeckId() {
+      const deckIds = Object.keys(DECKS);
+      return deckIds[Math.floor(Math.random() * deckIds.length)];
+    }
+    
+    function selectPlayerDeck(deckId) {
+      // Resolve random selection
+      pendingDeckId = deckId === 'random' ? getRandomDeckId() : deckId;
       $('setup').classList.add('hidden');
+      showAIDeckSelector();
+    }
+    
+    function showAIDeckSelector() {
+      const options = Object.entries(DECK_INFO).map(([id, info]) => ({
+        name: `${info.icon} ${info.name}`,
+        sub: info.desc,
+        action: () => selectAIDeck(id)
+      }));
+      
+      // Add random option
+      options.push({
+        name: '? Random',
+        sub: 'Let fate decide',
+        action: () => selectAIDeck('random')
+      });
+      
+      showModal('Choose Rival Deck', options, { noCancel: true });
+    }
+    
+    function selectAIDeck(deckId) {
+      pendingAIDeckId = deckId === 'random' ? getRandomDeckId() : deckId;
+      closeModal();
+      showCoinFlipModal();
+    }
+    
+    function showCoinFlipModal() {
       showModal('Coin Flip', [
         { name: 'HEADS', sub: 'Call it!', action: () => doCoinFlip('heads') },
         { name: 'TAILS', sub: 'Call it!', action: () => doCoinFlip('tails') }
       ], { noCancel: true });
+    }
+    
+    // Legacy function for compatibility
+    function showCoinFlip(deckId) {
+      pendingDeckId = deckId;
+      pendingAIDeckId = getRandomDeckId();
+      $('setup').classList.add('hidden');
+      showCoinFlipModal();
     }
     
     async function doCoinFlip(playerCall) {
@@ -2754,8 +2817,8 @@
       // BEGIN! animation
       await playBeginAnimation();
       
-      const aiDecks = ['shadow','fang','venom','swarm','shell'];
-      const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
+      // Use pre-selected AI deck, or random if not set
+      const aiDeck = pendingAIDeckId || getRandomDeckId();
       
       state.G = {
         me: mkPlayer(deckId),
@@ -2793,6 +2856,7 @@
     // Expose functions globally for onclick handlers (module scope)
     window.startGame = startGame;
     window.showCoinFlip = showCoinFlip;
+    window.selectPlayerDeck = selectPlayerDeck;
     
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
