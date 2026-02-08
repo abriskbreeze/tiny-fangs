@@ -15,6 +15,42 @@ ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny preda
 - Font: JetBrains Mono (ASCII aesthetic, no emojis)
 - Deploy: `npm run build` → `docs/` → GH Pages
 
+---
+
+## Project Scripts & Workflows
+
+### Version Bumping
+**When:** After completing fixes/features, before pushing
+```bash
+./scripts/bump.sh 0.4.5 "Description of changes"
+```
+Updates: VERSION, package.json, README.md, index.html (title + setup screen), CHANGELOG.md
+
+### Deploying
+**When:** Ready to push changes to GitHub/live site
+```bash
+npm run deploy       # test → build → show diff (review first)
+npm run deploy:push  # test → build → commit → push (all-in-one)
+```
+
+### Bug Fix Sprints
+**When:** Rico provides a list of bugs to fix
+**Skill:** `~/clawd/skills/bugfix-sprint/SKILL.md`
+
+**Workflow:**
+1. Parse bugs into structured format with root cause questions
+2. Group by system area (triggers, UI, AI, etc.)
+3. Write plan to `tasks/todo.md`
+4. Spawn Sonnet subagents per group (`model: "sonnet"`)
+5. Monitor completion, run tests, summarize
+
+**Root Cause Questions (always ask):**
+1. Am I solving symptoms or ROOT problems?
+2. What pattern allowed this bug to exist?
+3. What breaks if we revert this fix?
+
+---
+
 ## Game Design
 
 ### Win Conditions
