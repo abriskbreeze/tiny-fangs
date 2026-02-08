@@ -396,6 +396,72 @@ Or use CDN:
 
 ## Open Questions
 
-1. **Turn timer?** Add time limit per turn to prevent stalling? (e.g., 60s)
+1. ~~**Turn timer?**~~ → Yes, 60s per turn
 
 2. **Slow connection handling?** Action timeout? Retry logic?
+
+---
+
+## Edge Cases & Solutions
+
+### Network Edge Cases
+
+| Case | Solution |
+|------|----------|
+| NAT traversal fails | Show error, suggest different network |
+| Slow connection lag | Show "Syncing..." indicator |
+| Disconnect mid-action | Pause game, start 30s reconnect timer |
+| Page refresh mid-game | Reconnect via sessionStorage state |
+
+### Game-Specific Edge Cases
+
+**Target Selection (Ignite, Banish, Soul Siphon):**
+```
+1. Player casts targeting spell
+2. Opponent sees "Opponent is choosing target..."
+3. Player selects target → sends to host
+4. Host validates → executes → syncs result
+5. Both see animation
+```
+
+**Deck Sync (Host generates both):**
+```
+1. Both players select deck IDs
+2. Host shuffles BOTH decks (uses crypto.getRandomValues)
+3. Host sends guest's shuffled deck (card order only, not contents)
+4. Cards revealed as drawn (opponent sees "Drew 1 card")
+```
+
+**Trigger Modal Sync:**
+```
+1. Host detects trigger → sends { type: 'trigger', cardId, abilityName }
+2. Both clients show modal simultaneously
+3. Modal auto-dismisses after same timeout
+4. Then effect resolves
+```
+
+**Complex Trigger Chains:**
+```
+1. Host resolves ENTIRE chain locally
+2. Host sends sequence of events to guest
+3. Guest plays back animations in order
+4. Final state sync after chain completes
+```
+
+### Abuse Prevention
+
+| Abuse | Prevention |
+|-------|------------|
+| Rage quit | Forfeit after 30s timeout |
+| Stalling | 60s turn timer, auto-end turn |
+| Modified client | Host validates ALL actions |
+| Fake actions | Reject invalid state transitions |
+
+### UI/UX Edge Cases
+
+| Case | Solution |
+|------|----------|
+| Room code taken | Auto-regenerate new code |
+| Wrong code | "Room not found" with retry |
+| Mirror match | Allowed (both pick same deck) |
+| Copy room code | One-tap copy button |
