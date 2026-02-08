@@ -126,10 +126,27 @@ const Effects = {
     if (getAnim() && finalAmount > 0) {
       const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
       
-      // For summoned creatures going to bench, use benchDamage animation
-      // The creature will be placed at the end of the bench (current length = index)
+      // Check if target is on bench (for correct animation)
+      let isBench = false;
+      let benchIndex = 0;
+      
+      // For summoned creatures going to bench
       if (target === 'summoned' && ctx.summonLocation === 'bench') {
-        const benchIndex = owner.bench?.length || 0;
+        isBench = true;
+        benchIndex = owner.bench?.length || 0;
+      }
+      // For selected creatures, check if they're on bench
+      else if (target === 'selected' && ctx.selected?.location === 'bench') {
+        isBench = true;
+        benchIndex = ctx.selected?.idx ?? owner.bench?.indexOf(creature) ?? 0;
+      }
+      // For explicit bench targets like 'opp.bench'
+      else if (target.includes('.bench')) {
+        isBench = true;
+        benchIndex = owner.bench?.indexOf(creature) ?? 0;
+      }
+      
+      if (isBench) {
         await getAnim().benchDamage(animKey, benchIndex, finalAmount);
       } else {
         await getAnim().damage(animKey, finalAmount);

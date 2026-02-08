@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.28] - 2026-02-08
+
+### Changed
+- Fix damage animations for all bench targets - selected bench creatures and explicit .bench targets now use benchDamage
+
+---
+
+
 ## [0.4.27] - 2026-02-08
 
 ### Changed
