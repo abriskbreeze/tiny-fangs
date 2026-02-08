@@ -46,7 +46,7 @@ Create/update `tasks/todo.md` with:
 - Verification checklist
 
 ### 4. Spawn Subagents
-For each group, spawn a Sonnet subagent:
+For each group, spawn a Sonnet subagent for implementation:
 ```javascript
 sessions_spawn({
   task: `## Bug Fix — Group Name
@@ -65,7 +65,7 @@ You are fixing bugs in [project] at [path].
 - Run tests after changes
 - Surgical changes only
 - Update MEMORY.md with patterns learned`,
-  model: "sonnet",
+  model: "anthropic/claude-sonnet-4-20250514",
   label: "bugfix-[group-name]"
 });
 ```

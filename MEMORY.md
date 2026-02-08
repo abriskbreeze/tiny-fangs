@@ -41,7 +41,7 @@ npm run deploy:push  # test → build → commit → push (all-in-one)
 1. Parse bugs into structured format with root cause questions
 2. Group by system area (triggers, UI, AI, etc.)
 3. Write plan to `tasks/todo.md`
-4. Spawn Sonnet subagents per group (`model: "sonnet"`)
+4. Spawn Sonnet subagents per group (`model: "anthropic/claude-sonnet-4-20250514"`)
 5. Monitor completion, run tests, summarize
 
 **Root Cause Questions (always ask):**
