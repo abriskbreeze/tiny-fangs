@@ -4,7 +4,15 @@
  * 
  * Usage (browser): Effects.damage(ctx, { target: 'opp.active', amount: 20 })
  * Usage (tests): import { Effects, processEffects } from './effects.js'
+ * 
+ * Animation Support:
+ * In browser: Anim is imported from index.html which loads anim.js and exposes it globally
+ * In tests: global.Anim is mocked (no-op promises)
+ * We use globalThis.Anim to access whichever is available.
  */
+
+// Get Anim from global scope (works in browser and tests with mock)
+const getAnim = () => globalThis.Anim;
 
 // Helper: resolve target string to actual object
 function resolveTarget(ctx, targetStr) {
@@ -115,9 +123,9 @@ const Effects = {
     // Animation (if available)
     // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
     // Convert from ctx-relative key by checking against state.G
-    if (typeof Anim !== 'undefined' && finalAmount > 0) {
+    if (getAnim() && finalAmount > 0) {
       const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
-      await Anim.damage(animKey, finalAmount);
+      await getAnim().damage(animKey, finalAmount);
     }
     
     const isKo = creature.curHp <= 0;
@@ -144,11 +152,11 @@ const Effects = {
     
     // Animation (if available)
     // Determine owner for animation key
-    if (typeof Anim !== 'undefined' && actualHeal > 0) {
+    if (getAnim() && actualHeal > 0) {
       const [ownerKey] = target.split('.');
       const owner = ownerKey === 'me' ? ctx.me : ctx.opp;
       const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
-      await Anim.heal(animKey, actualHeal);
+      await getAnim().heal(animKey, actualHeal);
     }
     
     // Log the heal if context has a log function
@@ -182,9 +190,9 @@ const Effects = {
     creature.curHp += actualHeal;
     
     // Animation
-    if (typeof Anim !== 'undefined' && actualHeal > 0) {
+    if (getAnim() && actualHeal > 0) {
       const ownerKey = ctx.attackerOwnerKey || 'me';
-      await Anim.heal(ownerKey, actualHeal);
+      await getAnim().heal(ownerKey, actualHeal);
     }
     
     // Log
@@ -233,8 +241,8 @@ const Effects = {
   async loseLife(ctx, { count }) {
     ctx.me.lp -= count;
     
-    if (typeof Anim !== 'undefined') {
-      await Anim.lpDamage('me', count);
+    if (getAnim()) {
+      await getAnim().lpDamage('me', count);
     }
   },
 
@@ -244,8 +252,8 @@ const Effects = {
   async gainMana(ctx, { amount }) {
     ctx.me.mana += amount;
     
-    if (typeof Anim !== 'undefined') {
-      await Anim.manaGain();
+    if (getAnim()) {
+      await getAnim().manaGain();
     }
   },
 
@@ -371,9 +379,9 @@ const Effects = {
       const ownerObj = ctx[ownerKey];
       
       // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
-      if (typeof Anim !== 'undefined') {
+      if (getAnim()) {
         const animKey = ownerObj === ctx.state?.G?.me ? 'me' : 'opp';
-        await Anim.ko(animKey);
+        await getAnim().ko(animKey);
       }
       
       if (location === 'active') {
@@ -401,8 +409,8 @@ const Effects = {
     const ownerObj = ctx[owner];
     
     if (location === 'active' && ownerObj.active) {
-      if (typeof Anim !== 'undefined') {
-        await Anim.ko(owner);
+      if (getAnim()) {
+        await getAnim().ko(owner);
       }
       ownerObj.active = null;
       // Note: does NOT go to grave - removed from game
@@ -429,14 +437,14 @@ const Effects = {
     };
     
     // Phase 2: Animate all damage
-    if (typeof Anim !== 'undefined') {
-      if (targets.meActive) await Anim.damage('me', amount);
+    if (getAnim()) {
+      if (targets.meActive) await getAnim().damage('me', amount);
       for (let i = 0; i < targets.meBench.length; i++) {
-        await Anim.benchDamage('me', i, amount);
+        await getAnim().benchDamage('me', i, amount);
       }
-      if (targets.oppActive) await Anim.damage('opp', amount);
+      if (targets.oppActive) await getAnim().damage('opp', amount);
       for (let i = 0; i < targets.oppBench.length; i++) {
-        await Anim.benchDamage('opp', i, amount);
+        await getAnim().benchDamage('opp', i, amount);
       }
     }
     
@@ -490,9 +498,9 @@ const Effects = {
     const ownerKey = 'me'; // Sacrifice is always your own creature
     
     // Animation
-    if (typeof Anim !== 'undefined') {
+    if (getAnim()) {
       if (location === 'active') {
-        await Anim.ko('me');
+        await getAnim().ko('me');
       }
       // Bench KO animation could be added here
     }
@@ -600,8 +608,8 @@ const Effects = {
     if (!creature || !owner) return { destroyed: false };
     
     // Animation
-    if (typeof Anim !== 'undefined') {
-      await Anim.ko(ownerKey);
+    if (getAnim()) {
+      await getAnim().ko(ownerKey);
     }
     
     // Send to grave
@@ -642,13 +650,13 @@ const Effects = {
     
     if (location === 'active' || !ctx.me.active) {
       ctx.me.active = summon;
-      if (typeof Anim !== 'undefined') {
-        await Anim.summon('me');
+      if (getAnim()) {
+        await getAnim().summon('me');
       }
     } else {
       ctx.me.bench.push(summon);
-      if (typeof Anim !== 'undefined') {
-        await Anim.summonBench('me', ctx.me.bench.length - 1);
+      if (getAnim()) {
+        await getAnim().summonBench('me', ctx.me.bench.length - 1);
       }
     }
     
@@ -682,9 +690,9 @@ const Effects = {
   async loseLifeOpp(ctx, { count }) {
     ctx.opp.lp -= count;
     
-    if (typeof Anim !== 'undefined') {
+    if (getAnim()) {
       const oppKey = ctx.me === ctx.state?.G?.me ? 'opp' : 'me';
-      await Anim.lpDamage(oppKey, count);
+      await getAnim().lpDamage(oppKey, count);
     }
     
     return { lifeLost: count };
@@ -744,8 +752,8 @@ const Effects = {
       if (ctx.render) {
         ctx.render();
       }
-      if (typeof Anim !== 'undefined') {
-        await Anim.summonBench(ownerKey, benchIdx);
+      if (getAnim()) {
+        await getAnim().summonBench(ownerKey, benchIdx);
       }
     }
     
@@ -802,8 +810,8 @@ const Effects = {
     if (ctx.render) {
       ctx.render();
     }
-    if (typeof Anim !== 'undefined') {
-      await Anim.summonBench(ownerKey, benchIdx);
+    if (getAnim()) {
+      await getAnim().summonBench(ownerKey, benchIdx);
     }
 
     return { summoned: true, creature: spawned };
@@ -857,15 +865,15 @@ const Effects = {
     if (ctx.render) {
       ctx.render();
     }
-    if (typeof Anim !== 'undefined') {
-      await Anim.benchToActive(ownerKey);
+    if (getAnim()) {
+      await getAnim().benchToActive(ownerKey);
     }
 
     // BUG-A2 FIX: Chain Lightning triggers when new creature becomes active via swap
     if (owner.chainLightning > 0 && owner.active) {
-      if (typeof Anim !== 'undefined') {
-        await Anim.wait(300);
-        await Anim.damage(ownerKey, owner.chainLightning);
+      if (getAnim()) {
+        await getAnim().wait(300);
+        await getAnim().damage(ownerKey, owner.chainLightning);
       }
       const chainDmg = owner.chainLightning;
       owner.active.curHp -= chainDmg;

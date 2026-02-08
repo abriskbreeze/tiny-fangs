@@ -84,22 +84,32 @@ function matchesTrigger(trigger, event, context) {
     }
   }
 
-  // Attacker condition: { attacker: 'opp' } or { attacker: 'self' }
+  // Attacker condition: { attacker: 'opp' }, { attacker: 'me' }, or { attacker: 'self' }
+  // 'me'/'opp' are RELATIVE to trigger owner (same pattern as target condition)
   if (cond.attacker) {
     if (cond.attacker === 'self') {
       // The creature with this ability must be the attacker
       if (context.attacker !== context.self) return false;
-    } else {
-      if (context.attackerOwner !== cond.attacker) return false;
+    } else if (cond.attacker === 'me') {
+      // Attacker should be same as trigger owner
+      if (context.attackerOwnerKey !== context.triggerOwnerKey) return false;
+    } else if (cond.attacker === 'opp') {
+      // Attacker should be different from trigger owner (opponent attacking)
+      if (context.attackerOwnerKey === context.triggerOwnerKey) return false;
     }
   }
 
-  // Defender condition: { defender: 'self' }
+  // Defender condition: { defender: 'self' }, { defender: 'me' }, or { defender: 'opp' }
+  // 'me'/'opp' are RELATIVE to trigger owner (same pattern as attacker condition)
   if (cond.defender) {
     if (cond.defender === 'self') {
       if (context.defender !== context.self) return false;
-    } else {
-      if (context.defenderOwner !== cond.defender) return false;
+    } else if (cond.defender === 'me') {
+      // Defender should be same as trigger owner
+      if (context.defenderOwnerKey !== context.triggerOwnerKey) return false;
+    } else if (cond.defender === 'opp') {
+      // Defender should be different from trigger owner
+      if (context.defenderOwnerKey === context.triggerOwnerKey) return false;
     }
   }
 

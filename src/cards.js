@@ -276,6 +276,8 @@ export const CREATURES = {
 export const VERSES = {
   // Cast Verses (with declarative effects)
   soulSiphon: { id:'soulSiphon', name:'Soul Siphon', type:'cast', cost:2,
+    art: ' ◇~◇\n<soul>\n ◇~◇',
+    flavor: 'What flows out must flow in.',
     text:'Deal 20 damage to any creature. Heal your creature 10 if damage was dealt.',
     requiresSelection: true,
     selection: { type: 'anyCreature', prompt: 'Choose a creature to drain' },
@@ -284,12 +286,16 @@ export const VERSES = {
       { type: 'heal', target: 'me.active', amount: 10, condition: 'damageWasDealt' }
     ] },
   darkPact: { id:'darkPact', name:'Dark Pact', type:'cast', cost:1,
+    art: ' ⚀⚀\n[PACT]\n ♠♠',
+    flavor: 'Power has a price. Pay it.',
     text:'Draw 2 cards. Lose 1 life.',
     effects: [
       { type: 'draw', count: 2 },
       { type: 'loseLife', count: 1 }
     ] },
   graveEcho: { id:'graveEcho', name:'Grave Echo', type:'cast', cost:3,
+    art: '~○~○~\n ECHO\n~○~○~',
+    flavor: 'The dead still whisper.',
     text:'Return a creature from your graveyard to your hand.',
     requiresSelection: true,
     selection: { type: 'graveCreature', prompt: 'Choose creature to return' },
@@ -297,17 +303,23 @@ export const VERSES = {
       { type: 'moveCard', from: 'me.grave', to: 'me.hand', target: 'selected' }
     ] },
   manaSurge: { id:'manaSurge', name:'Mana Surge', type:'cast', cost:0,
+    art: '  ⚡\n<●●●>\n  ⚡',
+    flavor: 'Once per lifetime, the well overflows.',
     text:'Gain 2 mana this turn. Once per game.',
     effects: [
       { type: 'gainMana', amount: 2 },
       { type: 'setFlag', flag: 'usedManaSurge', value: true }
     ] },
   predatorsMark: { id:'predatorsMark', name:"Predator's Mark", type:'cast', cost:2,
+    art: ' \\|/\n--X--\n /|\\',
+    flavor: 'The hunt ends here.',
     text:'Your next attack deals +30 damage.',
     effects: [
       { type: 'atkBonus', amount: 30, source: "Predator's Mark" }
     ] },
   banish: { id:'banish', name:'Banish', type:'cast', cost:3,
+    art: '|    |\n| ∅ |\n|____|',
+    flavor: 'Gone. Not dead. Worse.',
     text:'Destroy any creature. Remove from game.',
     requiresSelection: true,
     selection: { type: 'anyCreature', prompt: 'Choose a creature to banish' },
@@ -315,37 +327,53 @@ export const VERSES = {
       { type: 'banish', target: 'selected' }
     ] },
   bloodMoon: { id:'bloodMoon', name:'Blood Moon', type:'cast', cost:2,
+    art: ' ,--.\n( ☽ )\n `--\'',
+    flavor: 'When the moon bleeds, so does everything else.',
     text:'All creatures take 20 damage.',
     effects: [
       { type: 'aoeAll', amount: 20 }
     ] },
   secondWind: { id:'secondWind', name:'Second Wind', type:'cast', cost:2,
+    art: ' ~≈~\n<AIR>\n ~≈~',
+    flavor: 'Breathe deep. Fight again.',
     text:'Heal your active creature 40 HP.',
     effects: [
       { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' }
     ] },
   // Set Verses (with declarative triggers for future migration)
   phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
+    art: '|░░░░|\n|WALL|\n|░░░░|',
+    flavor: 'You cannot strike what is not there.',
     trigger:'When opponent attacks', text:'Negate attack. Their creature takes 10 damage.',
     triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true, priority: 2 },
     effects: [{ type: 'negateAttack' }, { type: 'damage', target: 'attacker', amount: 10 }] },
   soulTrap: { id:'soulTrap', name:'Soul Trap', type:'set', cost:2,
+    art: ' /\\ /\\\n{TRAP}\n \\/  \\/',
+    flavor: 'Welcome to your new home.',
     trigger:'When opponent summons', text:'That creature enters with -20 HP.',
     triggerDef: { event: 'onSummon', condition: { owner: 'opp' } },
     effects: [{ type: 'damage', target: 'summoned', amount: 20 }] },
   vengeance: { id:'vengeance', name:'Vengeance', type:'set', cost:2,
+    art: '  †\n /|\\\n/ | \\',
+    flavor: 'If I fall, you fall with me.',
     trigger:'When your creature would be KO\'d by attack', text:'Negate KO. Destroy attacker instead.',
     triggerDef: { event: 'beforeKO', condition: { target: 'me.active', source: 'attack' }, optional: true, priority: 2 },
     effects: [{ type: 'negateKO' }, { type: 'destroy', target: 'attacker' }] },
   graveRise: { id:'graveRise', name:'Grave Rise', type:'set', cost:1,
+    art: ' ▲\n/†\\\n~~~',
+    flavor: 'The fallen answer the call.',
     trigger:'When your creature is KO\'d', text:'Summon 1-cost creature from grave to bench.',
     triggerDef: { event: 'onKO', condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, optional: true },
     effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }] },
   manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
+    art: ' ○→\n[  ]\n ○→',
+    flavor: 'Your words mean nothing here.',
     trigger:'When opponent plays Cast Verse', text:'Negate the next spell your opponent casts.',
     triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
     effects: [{ type: 'negateSpell' }] },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
+    art: ' ~♥~\n<  >\n ~♥~',
+    flavor: 'Not yet. Not today.',
     trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.',
     triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true }, priority: 2 },
     effects: [{ type: 'negateLifeLoss' }] },
@@ -354,6 +382,8 @@ export const VERSES = {
   
   // Fang Pack addition
   ignite: { id:'ignite', name:'Ignite', type:'cast', cost:1,
+    art: ' )\\ /(\n( ⚬ )\n )/\\(',
+    flavor: 'Some things just need to burn.',
     text:'Deal 15 damage to any creature.',
     requiresSelection: true,
     selection: { type: 'anyCreature', prompt: 'Choose a creature to ignite' },
@@ -363,16 +393,22 @@ export const VERSES = {
   
   // Swarm Pack verses
   packTactics: { id:'packTactics', name:'Pack Tactics', type:'cast', cost:1,
+    art: '◄►◄►\nPACK\n◄►◄►',
+    flavor: 'Together, we see everything.',
     text:'Draw 1 card for each creature you control (max 3).',
     effects: [
       { type: 'draw', count: 'creatureCount', max: 3 }
     ] },
   callOfTheWild: { id:'callOfTheWild', name:'Call of the Wild', type:'cast', cost:2,
+    art: ' ~*~\n/CALL\\\n ~*~',
+    flavor: 'The pack always answers.',
     text:'Summon a RANDOM 1-cost creature from your deck to bench.',
     effects: [
       { type: 'summon', filter: { cost: 1 }, location: 'bench' }
     ] },
   sacrifice: { id:'sacrifice', name:'Sacrifice', type:'cast', cost:0,
+    art: ' _†_\n|   |\n|___|',
+    flavor: 'One falls. Two rise.',
     text:'KO one of your creatures. Draw 2 cards.',
     requiresSelection: true,
     selection: { type: 'ownCreature', prompt: 'Choose creature to sacrifice' },
@@ -381,44 +417,58 @@ export const VERSES = {
       { type: 'draw', count: 2 }
     ] },
   denMother: { id:'denMother', name:'Den Mother', type:'set', cost:2,
+    art: '/\\_/\\\n( DEN )\n \\_/',
+    flavor: 'Touch my children and burn.',
     trigger:'When a creature you control is KO\'d', text:'Your next attack deals +10 bonus damage.',
     triggerDef: { event: 'onKO', condition: { owner: 'me' }, optional: true },
     effects: [{ type: 'atkBonus', amount: 10, source: 'Den Mother' }] },
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
+    art: '◄▓▓▓►\n SHIELD\n◄▓▓▓►',
+    flavor: 'The swarm protects its own.',
     trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.',
     triggerDef: { event: 'beforeDamage', condition: { target: 'me.active', hasBench: true }, optional: true },
     effects: [{ type: 'reduceDamage', amount: 15 }] },
   
   // Shell Pack verses
   shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,
+    art: ' /==\\\n| ♥ |\n \\==/',
+    flavor: 'Hard outside, soft inside.',
     text:'Heal your creature 25 HP.',
     effects: [
       { type: 'heal', target: 'me.active', amount: 25, condition: 'me.active' }
     ] },
   brace: { id:'brace', name:'Brace', type:'set', cost:1,
+    art: ' |=|\n<|=|>\n |=|',
+    flavor: 'Stand firm. Hold the line.',
     trigger:'When opponent attacks', text:'Reduce damage by 15.',
     triggerDef: { event: 'beforeDamage', condition: { target: 'me.active' }, optional: true },
     effects: [{ type: 'reduceDamage', amount: 15 }] },
   spikeShield: { id:'spikeShield', name:'Spike Shield', type:'set', cost:2,
+    art: '/\\/\\/\\\n|SPIKE|\n\\/\\/\\/',
+    flavor: 'Strike me if you dare.',
     trigger:'When opponent attacks', text:'Deal 15 damage to their creature.',
     triggerDef: { event: 'beforeAttack', condition: { attacker: 'opp' }, optional: true },
     effects: [{ type: 'damage', target: 'attacker', amount: 15 }] },
   regenerate: { id:'regenerate', name:'Regenerate', type:'cast', cost:2,
+    art: ' ❀\n/||\\\n ❀',
+    flavor: 'Life finds a way back.',
     text:'Heal your creature 40 HP. Cure poison.',
     effects: [
       { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' },
       { type: 'cureStatus', target: 'me.active', status: 'poison' }
     ] },
   fortify: { id:'fortify', name:'Fortify', type:'cast', cost:2,
+    art: '[===]\n|FRT|\n[===]',
+    flavor: 'One more hit. Just one more.',
     text:'Your creature survives the next lethal hit with 1 HP.',
     effects: [
       { type: 'setStatus', target: 'me.active', status: 'fortified' }
     ] },
   unbreakable: { id:'unbreakable', name:'Unbreakable', type:'cast', cost:3,
-    text:'Prevent the next instance of damage to your creature.',
-    effects: [
-      { type: 'setStatus', target: 'me.active', status: 'shielded' }
-    ] },
+    art: ' ◆\n<◆>\n ◆',
+    flavor: 'Diamonds do not shatter.',
+    text:'Prevent the next instance of damage to your creatures.',
+    customHandler: true },  // Player-level flag, not creature-specific
 };
 
 export const DECKS = {

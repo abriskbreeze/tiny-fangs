@@ -3,6 +3,54 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.19] - 2026-02-08
+
+### Changed
+- Added art and flavor text to all 26 verses; color-coded trigger reveals (green=creature, purple=set, orange=cast)
+
+---
+
+
+## [0.4.18] - 2026-02-08
+
+### Changed
+- Added visual effect indicators (Fortified, Poisoned, Trapped) on battlefield cards and in hold-to-zoom detail
+
+---
+
+
+## [0.4.17] - 2026-02-08
+
+### Changed
+- Unbreakable now protects ANY creature (player-level shield); removed redundant Close button from set verse detail
+
+---
+
+
+## [0.4.16] - 2026-02-08
+
+### Changed
+- Added deck card list to preview - shows all cards with counts (2× Shellkin)
+
+---
+
+
+## [0.4.15] - 2026-02-08
+
+### Changed
+- Fixed Spike Shield not triggering - attacker/defender conditions used wrong comparison
+
+---
+
+
+## [0.4.14] - 2026-02-08
+
+### Changed
+- Fixed heal/damage animations not playing in declarative effects system
+
+---
+
+
 ## [0.4.5] - 2026-02-08
 
 ### Changed

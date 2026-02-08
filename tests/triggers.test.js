@@ -109,13 +109,24 @@ describe('Triggers', () => {
       expect(matchesTrigger(trigger, 'beforeDamage', context)).toBe(false);
     });
 
-    it('matches with attacker condition', () => {
+    it('matches with attacker condition (opponent attacks)', () => {
       const trigger = { 
         event: 'beforeAttack', 
         condition: { attacker: 'opp' } 
       };
-      const context = { attackerOwner: 'opp' };
+      // Trigger owned by 'me', attacker is 'opp' -> should match
+      const context = { attackerOwnerKey: 'opp', triggerOwnerKey: 'me' };
       expect(matchesTrigger(trigger, 'beforeAttack', context)).toBe(true);
+    });
+
+    it('rejects attacker condition when attacker is trigger owner', () => {
+      const trigger = { 
+        event: 'beforeAttack', 
+        condition: { attacker: 'opp' } 
+      };
+      // Trigger owned by 'me', attacker is also 'me' -> should NOT match
+      const context = { attackerOwnerKey: 'me', triggerOwnerKey: 'me' };
+      expect(matchesTrigger(trigger, 'beforeAttack', context)).toBe(false);
     });
 
     it('matches self condition for creature abilities', () => {

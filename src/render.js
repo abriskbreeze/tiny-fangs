@@ -37,12 +37,34 @@ export function renderSetVerse(verse, id, isPlayer = false) {
   return `<div class="card-empty set-slot has-set" id="${id}">[SET]</div>`;
 }
 
+// Get active effects on a creature for display
+export function getActiveEffects(c) {
+  const effects = [];
+  if (c.status === 'poison') {
+    effects.push({ id: 'poison', icon: '☠', name: 'Poisoned', desc: 'Takes 10 damage at turn end', color: 'poison' });
+  }
+  if (c.status === 'trapped') {
+    effects.push({ id: 'trapped', icon: '⚓', name: 'Trapped', desc: 'Cannot retreat', color: 'trapped' });
+  }
+  if (c.fortified) {
+    effects.push({ id: 'fortified', icon: 'F', name: 'Fortified', desc: 'Survives next lethal hit with 1 HP', color: 'fortified' });
+  }
+  return effects;
+}
+
+// Render effect badges for battlefield cards
+function renderEffectBadges(c) {
+  const effects = getActiveEffects(c);
+  if (effects.length === 0) return '';
+  const badges = effects.map(e => `<span class="effect-badge ${e.color}" title="${e.name}: ${e.desc}">${e.icon}</span>`).join('');
+  return `<div class="effect-badges">${badges}</div>`;
+}
+
 // Active creature card
 export function renderActiveCard(c, atkInfo = null) {
   if (!c) return `<div class="card-empty active-slot">EMPTY</div>`;
   const pct = (c.curHp / c.hp) * 100;
   const low = pct <= 30 ? 'low' : '';
-  const statusStr = c.status ? `[${c.status}]` : '';
   
   // ATK display with modifiers
   let atkDisplay;
@@ -59,9 +81,13 @@ export function renderActiveCard(c, atkInfo = null) {
   const hpDamaged = c.curHp < c.hp ? 'hp-damaged' : '';
   const hpDisplay = `<span class="hp-stat ${hpDamaged}">${c.curHp}/${c.hp}</span>`;
   
+  // Effect badges
+  const badges = renderEffectBadges(c);
+  
   return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
-    <div class="header"><span>${c.name}</span>${statusStr ? `<span class="status">${statusStr}</span>` : ''}</div>
+    <div class="header"><span>${c.name}</span></div>
     <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
+    ${badges}
     <div class="art">${c.art}</div>
     <div class="footer">${atkDisplay}${hpDisplay}</div>
   </div>`;

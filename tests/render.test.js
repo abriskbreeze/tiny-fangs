@@ -117,10 +117,13 @@ describe('renderActiveCard', () => {
       curHp: 30,
       atk: 10,
       art: 'X',
-      status: 'poisoned'
+      status: 'poison'
     };
     const html = renderActiveCard(creature);
-    expect(html).toContain('[poisoned]');
+    // Effect badge with poison icon
+    expect(html).toContain('effect-badge');
+    expect(html).toContain('poison');
+    expect(html).toContain('☠');
   });
 });
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.13</title>
+  <title>TINY FANGS v0.4.19</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -342,6 +342,37 @@
     }
     
     .card-active .status { color: var(--gold); }
+    
+    /* Effect badges */
+    .effect-badges {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin: 2px 0;
+      min-height: 14px;
+    }
+    .effect-badge {
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid;
+      cursor: help;
+    }
+    .effect-badge.poison {
+      color: #a855f7;
+      border-color: #a855f7;
+      text-shadow: 0 0 4px #a855f7;
+    }
+    .effect-badge.trapped {
+      color: #64748b;
+      border-color: #64748b;
+    }
+    .effect-badge.fortified {
+      color: #22d3ee;
+      border-color: #22d3ee;
+      text-shadow: 0 0 4px #22d3ee;
+    }
     
     /* ATK modifier colors */
     .atk-stat {
@@ -1048,6 +1079,26 @@
       color: var(--blue);
     }
     
+    /* Verse type colors */
+    .card-detail .top-bar.cast-verse {
+      background: rgba(255, 140, 0, 0.15);
+      border-color: rgba(255, 140, 0, 0.3);
+    }
+    .card-detail .top-bar.cast-verse .type {
+      color: #ff8c00;
+    }
+    .card-detail .top-bar.set-verse {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.3);
+    }
+    .card-detail .top-bar.set-verse .type {
+      color: #a855f7;
+    }
+    .card-detail .verse-art {
+      font-size: 14px;
+      min-height: 60px;
+    }
+    
     .card-detail .name-row {
       padding: 12px 14px;
       border-bottom: 1px solid var(--border);
@@ -1127,6 +1178,63 @@
       font-size: 10px;
       font-style: italic;
       color: var(--muted);
+    }
+    
+    /* Active effects section */
+    .card-detail .effects-section {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+    }
+    .card-detail .effects-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .card-detail .effect-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 10px;
+    }
+    .card-detail .effect-item:last-child {
+      margin-bottom: 0;
+    }
+    .card-detail .effect-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid;
+      font-size: 10px;
+    }
+    .card-detail .effect-icon.poison {
+      color: #a855f7;
+      border-color: #a855f7;
+    }
+    .card-detail .effect-icon.trapped {
+      color: #64748b;
+      border-color: #64748b;
+    }
+    .card-detail .effect-icon.fortified {
+      color: #22d3ee;
+      border-color: #22d3ee;
+    }
+    .card-detail .effect-name {
+      font-weight: 600;
+      color: var(--text);
+      min-width: 60px;
+    }
+    .card-detail .effect-desc {
+      color: var(--dim);
+      flex: 1;
     }
     
     .card-detail .close-btn {
@@ -1375,8 +1483,28 @@
     .deck-preview .name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
     .deck-preview .desc { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
     .deck-preview .full { font-size: 10px; line-height: 1.5; margin-bottom: 12px; }
-    .deck-preview .stars { font-size: 9px; color: var(--blue); }
+    .deck-preview .stars { font-size: 9px; color: var(--blue); margin-bottom: 12px; }
     .deck-preview .stars span { margin: 0 4px; }
+    .deck-preview .deck-list { 
+      text-align: left; 
+      font-size: 9px; 
+      line-height: 1.6;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 4px;
+    }
+    .deck-preview .deck-list-label { 
+      color: var(--dim); 
+      font-size: 8px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .deck-preview .deck-list-items { 
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .deck-preview .deck-list-items .count { color: var(--dim); }
     
     .deck-hint {
       text-align: center;
@@ -1616,6 +1744,52 @@
     }
     .trigger-modal.cast .name-row .type {
       color: var(--gold);
+    }
+    
+    /* Set verse (purple) - default style, already set */
+    .trigger-modal.set.open {
+      animation: trigger-bg-pulse 0.8s ease-out;
+    }
+    .trigger-modal.set .name-row .type {
+      color: var(--purple);
+    }
+    
+    /* Creature ability uses green */
+    .trigger-modal.creature.open {
+      animation: trigger-bg-pulse-green 0.8s ease-out;
+    }
+    .trigger-modal.creature .trigger-box {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), var(--panel-solid));
+      border-color: var(--green);
+      box-shadow: 
+        0 0 60px 20px rgba(34, 197, 94, 0.4),
+        0 0 100px 40px rgba(34, 197, 94, 0.2),
+        inset 0 0 40px rgba(34, 197, 94, 0.1);
+    }
+    .trigger-modal.creature .trigger-header {
+      background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.3), transparent);
+      border-bottom-color: rgba(34, 197, 94, 0.5);
+      color: var(--green);
+      text-shadow: 0 0 20px var(--green);
+    }
+    .trigger-modal.creature .name-row .type {
+      color: var(--green);
+    }
+    
+    @keyframes trigger-bg-pulse-green {
+      0% { background: rgba(34, 197, 94, 0.3); }
+      100% { background: rgba(0,0,0,0.8); }
+    }
+    
+    /* Trigger art display */
+    .trigger-box .trigger-art {
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 14px;
+      white-space: pre;
+      line-height: 1.2;
+      background: rgba(0,0,0,0.4);
+      border-bottom: 1px solid var(--border);
     }
     
     @keyframes trigger-box-appear {
@@ -2097,7 +2271,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.13 • Card Battler</p>
+    <p class="sub">v0.4.19 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
@@ -2423,7 +2597,7 @@
     import { CREATURES, VERSES, DECKS } from './src/cards.js';
     import { $, uid, state, setGame, clearGame } from './src/state.js';
     import { ANIM_TIMING, Anim } from './src/anim.js';
-    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline } from './src/render.js';
+    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline, getActiveEffects } from './src/render.js';
     import { applyDamage } from './src/game.js';
     import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './src/ai.js';
     import {
@@ -2455,6 +2629,9 @@
     import { Effects, processEffects } from './src/effects.js';
     import { GameEvents } from './src/events.js';
     import { matchesTrigger, getMatchingTriggers, processTriggers } from './src/triggers.js';
+    
+    // Expose Anim globally so effects.js can access it
+    globalThis.Anim = Anim;
     
     // ═══════════════════════════════════════════════════════════════
     // SUMMON EVENT HELPER
@@ -2685,11 +2862,37 @@
       hideDeckPreview();
     }
     
+    // Format deck contents as "2× Shellkin, 1× Ironhide, ..."
+    function formatDeckList(cardIds, cardLookup) {
+      const counts = {};
+      for (const id of cardIds) {
+        counts[id] = (counts[id] || 0) + 1;
+      }
+      // Sort by count (descending), then name
+      const sorted = Object.entries(counts).sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1]; // Higher count first
+        const nameA = cardLookup[a[0]]?.name || a[0];
+        const nameB = cardLookup[b[0]]?.name || b[0];
+        return nameA.localeCompare(nameB);
+      });
+      return sorted.map(([id, count]) => {
+        const name = cardLookup[id]?.name || id;
+        return `<span class="count">${count}×</span> ${name}`;
+      }).join(', ');
+    }
+
     function showDeckPreview(deckId, event) {
       const info = DECK_INFO[deckId];
       if (!info) return;
       
+      const deck = DECKS[deckId];
+      if (!deck) return;
+      
       hideDeckPreview();
+      
+      // Build card list HTML
+      const creaturesHtml = formatDeckList(deck.creatures, CREATURES);
+      const versesHtml = formatDeckList(deck.verses, VERSES);
       
       deckPreviewEl = document.createElement('div');
       deckPreviewEl.className = 'deck-preview';
@@ -2699,6 +2902,12 @@
         <div class="desc">${info.desc}</div>
         <div class="full">${info.full}</div>
         <div class="stars">★ ${info.stars.join(' • ')}</div>
+        <div class="deck-list">
+          <div class="deck-list-label">Creatures (${deck.creatures.length})</div>
+          <div class="deck-list-items">${creaturesHtml}</div>
+          <div class="deck-list-label">Verses (${deck.verses.length})</div>
+          <div class="deck-list-items">${versesHtml}</div>
+        </div>
       `;
       document.body.appendChild(deckPreviewEl);
       
@@ -3463,12 +3672,15 @@
       
       const el = $('cardDetail');
       const triggerHtml = card.trigger ? `<div class="ability-box"><div class="ability-name">Trigger</div><div class="ability-text">${card.trigger}</div></div>` : '';
+      const artHtml = card.art ? `<div class="art-box verse-art">${card.art}</div>` : '';
+      const flavorHtml = card.flavor ? `<div class="flavor">${card.flavor}</div>` : '';
       el.innerHTML = `
-        <div class="top-bar"><span class="type">Verse • Set</span><span class="cost">${card.cost}</span></div>
+        <div class="top-bar set-verse"><span class="type">Verse • Set</span><span class="cost">${card.cost}</span></div>
         <div class="name-row"><div class="name">${card.name}</div></div>
+        ${artHtml}
         ${triggerHtml}
         <div class="ability-box"><div class="ability-name">Effect</div><div class="ability-text">${card.text}</div></div>
-        <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
+        ${flavorHtml}
       `;
       
       $('cardModal').classList.add('open');
@@ -3514,6 +3726,18 @@
           atkTooltip = atkInfo.modifiers.map(m => `${m.name}: +${m.value}`).join(', ');
         }
         
+        // Active effects section (only for creatures on battlefield)
+        let effectsHtml = '';
+        if (isOnField) {
+          const effects = getActiveEffects(card);
+          if (effects.length > 0) {
+            const effectsList = effects.map(e => 
+              `<div class="effect-item"><span class="effect-icon ${e.color}">${e.icon}</span><span class="effect-name">${e.name}</span><span class="effect-desc">${e.desc}</span></div>`
+            ).join('');
+            effectsHtml = `<div class="effects-section"><div class="effects-label">Active Effects</div>${effectsList}</div>`;
+          }
+        }
+        
         el.innerHTML = `
           <div class="top-bar"><span class="type">Creature</span><span class="cost">${card.cost}</span></div>
           <div class="name-row"><div class="name">${card.name}</div><div class="subtitle">${card.subtitle}</div></div>
@@ -3522,18 +3746,24 @@
             <div class="stat"><div class="label">HP</div><div class="val ${hpClass}">${hpVal}</div></div>
             <div class="stat"><div class="label">ATK</div><div class="val ${atkClass}" title="${atkTooltip}">${atkVal}</div></div>
           </div>
+          ${effectsHtml}
           <div class="ability-box"><div class="ability-name">${card.ability?.name || card.ability}</div><div class="ability-text">${card.ability?.text || card.abilityText}</div></div>
           <div class="flavor">${card.flavor}</div>
           <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
         `;
       } else {
         const typeLabel = card.type === 'cast' ? 'Verse • Cast' : 'Verse • Set';
+        const typeClass = card.type === 'cast' ? 'cast-verse' : 'set-verse';
         const triggerHtml = card.trigger ? `<div class="ability-box"><div class="ability-name">Trigger</div><div class="ability-text">${card.trigger}</div></div>` : '';
+        const artHtml = card.art ? `<div class="art-box verse-art">${card.art}</div>` : '';
+        const flavorHtml = card.flavor ? `<div class="flavor">${card.flavor}</div>` : '';
         el.innerHTML = `
-          <div class="top-bar"><span class="type">${typeLabel}</span><span class="cost">${card.cost}</span></div>
+          <div class="top-bar ${typeClass}"><span class="type">${typeLabel}</span><span class="cost">${card.cost}</span></div>
           <div class="name-row"><div class="name">${card.name}</div></div>
+          ${artHtml}
           ${triggerHtml}
           <div class="ability-box"><div class="ability-name">Effect</div><div class="ability-text">${card.text}</div></div>
+          ${flavorHtml}
           <button class="close-btn" onclick="closeCardModal(event, true)">Close</button>
         `;
       }
@@ -4271,10 +4501,9 @@
           break;
         
         case 'unbreakable':
-          if (state.G.me.active) {
-            state.G.me.active.shielded = true;
-            log('Unbreakable! Next damage prevented.');
-          }
+          // Player-level shield - protects next damage to ANY of your creatures
+          state.G.me.unbreakable = true;
+          log('Unbreakable! Next damage prevented.');
           break;
       }
       
@@ -4516,11 +4745,11 @@
           
           const hitNum = isCindermaw ? ` (hit ${hit + 1})` : '';
           
-          // Unbreakable check - prevent damage entirely
+          // Unbreakable check - prevent damage entirely (player-level flag)
           let unbreakableUsed = false;
-          if (state.G.opp.active.shielded && dmg > 0) {
+          if (state.G.opp.unbreakable && dmg > 0) {
             unbreakableUsed = true;
-            state.G.opp.active.shielded = false;
+            state.G.opp.unbreakable = false;
             dmg = 0;
           }
           
@@ -5287,10 +5516,9 @@
           break;
         
         case 'unbreakable':
-          if (ai.active) {
-            ai.active.shielded = true;
-            log('Rival is unbreakable! Next damage prevented.');
-          }
+          // Player-level shield - protects next damage to ANY of AI's creatures
+          ai.unbreakable = true;
+          log('Rival is unbreakable! Next damage prevented.');
           break;
       }
       render();
@@ -5427,11 +5655,11 @@
           }
         }
         
-        // Unbreakable - prevent damage entirely (first hit only)
+        // Unbreakable - prevent damage entirely (player-level flag, first hit only)
         let unbreakableUsed = false;
-        if (player.active.shielded && dmg > 0) {
+        if (player.unbreakable && dmg > 0) {
           unbreakableUsed = true;
-          player.active.shielded = false;
+          player.unbreakable = false;
           dmg = 0;
         }
         
@@ -5725,7 +5953,7 @@
               shouldCast = ai.active && ai.active.curHp <= 30 && !ai.active.fortified; // Low HP
               break;
             case 'unbreakable':
-              shouldCast = ai.active && ai.active.curHp <= 25 && !ai.active.shielded;
+              shouldCast = ai.active && ai.active.curHp <= 25 && !ai.unbreakable;
               break;
           }
           
@@ -6575,12 +6803,20 @@
           effectText = card.text || 'Effect';
         }
         
+        // Determine type class for coloring
+        const typeClass = isCreature ? 'creature' : 'set';
+        
+        // Art display (if available)
+        const artHtml = card.art ? `<div class="trigger-art">${card.art}</div>` : 
+                        (card.ability?.art ? `<div class="trigger-art">${card.ability.art}</div>` : '');
+        
         // Build content
         const content = `
           <div class="name-row">
             <div class="name">${cardName}</div>
             <div class="type">${typeLabel}</div>
           </div>
+          ${artHtml}
           <div class="trigger-condition">
             <div class="label">${isCreature ? 'Ability' : 'Trigger'}</div>
             <div class="text">${triggerText}</div>
@@ -6593,7 +6829,8 @@
         
         $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'TRIGGERED!';
-        $('triggerModal').classList.add('open');
+        $('triggerModal').classList.remove('cast', 'set', 'creature');
+        $('triggerModal').classList.add('open', typeClass);
         
         // Auto-dismiss after delay
         triggerRevealTimeout = setTimeout(() => {
@@ -6607,11 +6844,15 @@
       return new Promise(resolve => {
         triggerRevealResolve = resolve;
         
+        // Art display (if available)
+        const artHtml = verse.art ? `<div class="trigger-art">${verse.art}</div>` : '';
+        
         const content = `
           <div class="name-row">
             <div class="name">${verse.name}</div>
             <div class="type">Cast Verse</div>
           </div>
+          ${artHtml}
           <div class="effect-box">
             <div class="label">Effect</div>
             <div class="text">${verse.text}</div>
@@ -6620,6 +6861,7 @@
         
         $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'CAST!';
+        $('triggerModal').classList.remove('set', 'creature');
         $('triggerModal').classList.add('open', 'cast');
         
         // Shorter duration for cast verses
@@ -6659,7 +6901,7 @@
         clearTimeout(triggerRevealTimeout);
         triggerRevealTimeout = null;
       }
-      $('triggerModal').classList.remove('open', 'cast');
+      $('triggerModal').classList.remove('open', 'cast', 'set', 'creature');
       if (triggerRevealResolve) {
         triggerRevealResolve();
         triggerRevealResolve = null;
