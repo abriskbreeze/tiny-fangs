@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.32</title>
+  <title>TINY FANGS v0.4.33</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2300,7 +2300,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.32 • Card Battler</p>
+    <p class="sub">v0.4.33 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2421,7 +2421,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.32</div>
+      <div class="logo">TINY FANGS v0.4.33</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4832,8 +4832,6 @@
           totalDamageDealt += dmg;
           log(`${state.G.opp.active.name} takes ${dmg}`, 'dmg');
           
-          // NOTE: Leechling Drain now handled by afterAttack trigger (heals total damage)
-          
           // Brief pause between Cindermaw hits
           if (isCindermaw && hit < attackCount - 1 && !defenderKo) {
             await Anim.wait(150);
@@ -4848,10 +4846,44 @@
           if (frenzyKo) await ko(attacker, state.G.me);
         }
         
+        // === onHit Event ===
+        // Fires immediately after damage - for attacker sustain (Drain, Digest)
+        // Resolves BEFORE retaliation so attacker can heal first
+        if (state.G.me.active && totalDamageDealt > 0) {
+          const onHitContext = {
+            attacker: state.G.me.active,
+            attackerOwner: state.G.me,
+            attackerOwnerKey: 'me',
+            defender,
+            defenderOwner: state.G.opp,
+            defenderOwnerKey: 'opp',
+            didDamage: true,
+            defenderAlive: !defenderKo,
+            causedKO: defenderKo,
+            damageDealt: totalDamageDealt,
+            activePlayerKey: 'me'
+          };
+          await processTriggers('onHit', onHitContext, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log,
+            render,
+            processEffects: async (card, ctx) => {
+              const effectCtx = {
+                ...ctx,
+                ...onHitContext,
+                self: state.G.me.active,
+                me: state.G.me,
+                opp: state.G.opp,
+                state
+              };
+              return await processEffects(card, effectCtx);
+            }
+          });
+        }
+        
         // === afterAttack Event ===
-        // Fire for ALL abilities that trigger on attack completion
-        // Handles: retaliation (thornling, coilshell, reflector), 
-        //          post-attack effects (hexweaver, mireveil, leechling, sundewqueen)
+        // Fires after onHit - for retaliation (Thorns, Recoil) and status effects (Hex, Snare)
         if (state.G.me.active) {
           const afterAttackContext = {
             attacker: state.G.me.active,
@@ -5788,9 +5820,43 @@
         });
       }
       
+      // === onHit Event (AI attack) ===
+      // Fires immediately after damage - for attacker sustain (Drain, Digest)
+      if (attacker && attacker.curHp > 0 && totalDamageDealt > 0) {
+        const onHitContext = {
+          attacker,
+          attackerOwner: ai,
+          attackerOwnerKey: 'opp',
+          defender: player.active,
+          defenderOwner: player,
+          defenderOwnerKey: 'me',
+          didDamage: true,
+          defenderAlive: !playerKo,
+          causedKO: playerKo,
+          damageDealt: totalDamageDealt,
+          activePlayerKey: 'opp'
+        };
+        await processTriggers('onHit', onHitContext, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log,
+          render,
+          processEffects: async (card, ctx) => {
+            const effectCtx = {
+              ...ctx,
+              ...onHitContext,
+              self: attacker,
+              me: ai,
+              opp: player,
+              state
+            };
+            return await processEffects(card, effectCtx);
+          }
+        });
+      }
+      
       // === afterAttack Event (AI attack) ===
-      // Fire for ALL abilities that trigger on attack completion
-      // NOTE: For AI attacks, ai=opp and player=me from state perspective
+      // Fires after onHit - for retaliation (Thorns, Recoil) and status effects
       console.log('[DEBUG] afterAttack check:', { 
         attacker: attacker?.name, 
         attackerHp: attacker?.curHp,

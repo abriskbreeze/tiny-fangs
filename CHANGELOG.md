@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.33] - 2026-02-08
+
+### Changed
+- Add onHit event for attacker sustain abilities (Drain, Digest) - fires before retaliation so Leechling survives Thornling
+
+---
+
+
 ## [0.4.32] - 2026-02-08
 
 ### Changed

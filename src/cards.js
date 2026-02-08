@@ -85,7 +85,7 @@ export const CREATURES = {
     ability: {
       name: 'Digest',
       text: 'When it KO\'s a creature, heal 30 HP.',
-      trigger: { event: 'afterAttack', condition: { attacker: 'self', causedKO: true } },
+      trigger: { event: 'onHit', condition: { attacker: 'self', causedKO: true } },
       effects: [{ type: 'healSelf', amount: 30 }]
     },
     flavor:'"She feeds on ambition."',
@@ -137,7 +137,7 @@ export const CREATURES = {
     ability: {
       name: 'Drain',
       text: 'Heal HP equal to damage dealt.',
-      trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true } },
+      trigger: { event: 'onHit', condition: { attacker: 'self', didDamage: true } },
       effects: [{ type: 'healSelf', amount: 'damageDealt' }]
     },
     flavor:'"It gives nothing back."',
