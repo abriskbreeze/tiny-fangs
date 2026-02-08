@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.27] - 2026-02-08
+
+### Changed
+- Trigger modals now require tap/click to dismiss - AI waits for player to acknowledge
+
+---
+
+
 ## [0.4.26] - 2026-02-08
 
 ### Changed
