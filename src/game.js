@@ -11,7 +11,17 @@
  * @returns {boolean} - True if creature is KO'd (HP <= 0)
  */
 export function applyDamage(creature, amount) {
-  creature.curHp = Math.max(0, creature.curHp - amount);
+  let finalAmount = amount;
+  
+  // Shellkin Harden: reduces first 10 damage from ANY source each turn
+  if (creature.id === 'shellkin' && !creature.hardenUsed) {
+    const reduction = Math.min(10, amount);
+    finalAmount = Math.max(0, amount - reduction);
+    creature.hardenUsed = true;
+    // Note: caller should log "Harden!" if needed
+  }
+  
+  creature.curHp = Math.max(0, creature.curHp - finalAmount);
   return creature.curHp <= 0;
 }
 

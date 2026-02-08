@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.32] - 2026-02-08
+
+### Changed
+- Fix Shellkin Harden vs Spike Shield/Phantom Wall - added Harden check to applyDamage function
+
+---
+
+
 ## [0.4.31] - 2026-02-08
 
 ### Changed
