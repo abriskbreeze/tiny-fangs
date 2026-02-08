@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.29] - 2026-02-08
+
+### Changed
+- Any keypress dismisses trigger modals; added hint text
+
+---
+
+
 ## [0.4.28] - 2026-02-08
 
 ### Changed

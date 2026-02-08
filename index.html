@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.28</title>
+  <title>TINY FANGS v0.4.29</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2300,7 +2300,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.28 • Card Battler</p>
+    <p class="sub">v0.4.29 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -6883,12 +6883,12 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content;
+        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap or press any key</div>';
         $('triggerHeaderText').textContent = 'TRIGGERED!';
         $('triggerModal').classList.remove('cast', 'set', 'creature');
         $('triggerModal').classList.add('open', typeClass);
         
-        // Auto-dismiss after delay (click also dismisses)
+        // Auto-dismiss after delay (click/key also dismisses)
         triggerRevealTimeout = setTimeout(() => {
           dismissTriggerReveal();
         }, ANIM_TIMING.TRIGGER_REVEAL);
@@ -6915,12 +6915,12 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content;
+        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap or press any key</div>';
         $('triggerHeaderText').textContent = 'CAST!';
         $('triggerModal').classList.remove('set', 'creature');
         $('triggerModal').classList.add('open', 'cast');
         
-        // Auto-dismiss after delay (click also dismisses)
+        // Auto-dismiss after delay (click/key also dismisses)
         triggerRevealTimeout = setTimeout(() => {
           dismissTriggerReveal();
         }, 2500);
@@ -7023,6 +7023,15 @@
     // ═══════════════════════════════════════════════════════════════
     // KEYBOARD
     // ═══════════════════════════════════════════════════════════════
+    
+    // Dismiss trigger modal on any keypress
+    document.addEventListener('keydown', e => {
+      if ($('triggerModal').classList.contains('open')) {
+        dismissTriggerReveal();
+        e.preventDefault();
+        return;
+      }
+    });
     
     document.addEventListener('keydown', e => {
       if (!state.G || state.G.winner || !state.G.myTurn) return;
