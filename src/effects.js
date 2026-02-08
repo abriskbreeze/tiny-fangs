@@ -78,17 +78,9 @@ const Effects = {
     const creature = resolveTarget(ctx, target);
     if (!creature) return { ko: false };
     
-    // BUG-A1 FIX: Apply Harden (Shellkin) damage reduction for non-combat damage
-    // Harden reduces first 10 damage from ANY source each turn
+    // Damage reduction is now handled by beforeDamage triggers (Shellkin Harden, etc.)
+    // via processTriggers() called before this effect runs
     let finalAmount = amount;
-    if (creature.id === 'shellkin' && !creature.hardenUsed) {
-      const reduction = Math.min(10, amount);
-      finalAmount = Math.max(0, amount - reduction);
-      creature.hardenUsed = true;
-      if (ctx.log) {
-        ctx.log(`Harden! -${reduction} damage`, 'heal');
-      }
-    }
     
     creature.curHp -= finalAmount;
     

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.33</title>
+  <title>TINY FANGS v0.4.34</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2300,7 +2300,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.33 • Card Battler</p>
+    <p class="sub">v0.4.34 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2421,7 +2421,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.33</div>
+      <div class="logo">TINY FANGS v0.4.34</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4722,11 +4722,24 @@
           if (shouldTrigger) {
             await Anim.attack('me', 'opp', 0); // Show attack animation
             await showTriggerReveal(state.G.opp.setVerse);
-            log('Spike Shield! -15 to attacker', 'dmg');
             state.G.opp.grave.push(state.G.opp.setVerse);
             state.G.opp.setVerse = null;
-            const spikeKo = applyDamage(attacker, 15);
-            await Anim.damage('me', 15);
+            
+            // Emit beforeDamage for damage reduction (Shellkin Harden, etc.)
+            let spikeDamage = 15;
+            const beforeDmgCtx = await processTriggers('beforeDamage', {
+              target: attacker,
+              defender: attacker,
+              defenderOwnerKey: 'me',
+              amount: 15,
+              source: 'verse',
+              damageReduction: 0
+            }, state, { promptTrigger, showTriggerReveal, log, render, processEffects });
+            spikeDamage = Math.max(0, 15 - (beforeDmgCtx.damageReduction || 0));
+            
+            log(`Spike Shield! -${spikeDamage} to attacker`, 'dmg');
+            const spikeKo = applyDamage(attacker, spikeDamage);
+            await Anim.damage('me', spikeDamage);
             if (spikeKo) {
               await Anim.ko('me');
               await ko(attacker, state.G.me);
@@ -5087,9 +5100,10 @@
         // Mana phase: refill to max
         ai.mana = ai.maxMana;
         
-        // Reset Harden (Shellkin) for the new turn
-        if (ai.active?.id === 'shellkin') {
-          ai.active.hardenUsed = false;
+        // Reset per-turn ability flags (Shellkin Harden, etc.)
+        if (ai.active) {
+          ai.active.Harden_used = false;
+          ai.active.hardenUsed = false; // Legacy
         }
         
         // Draw
@@ -5952,9 +5966,10 @@
         // Mana phase: refill to max (no increment here - that happens at end of turn)
         ai.mana = ai.maxMana;
         
-        // Reset Harden (Shellkin) for the new turn
-        if (ai.active?.id === 'shellkin') {
-          ai.active.hardenUsed = false;
+        // Reset per-turn ability flags (Shellkin Harden, etc.)
+        if (ai.active) {
+          ai.active.Harden_used = false;
+          ai.active.hardenUsed = false; // Legacy
         }
         
         // Draw
@@ -6394,9 +6409,10 @@
         state.G.hasAttacked = false;
         state.G.hasRetreated = false;
         
-        // Reset Harden (Shellkin) for the new turn
-        if (state.G.me.active?.id === 'shellkin') {
-          state.G.me.active.hardenUsed = false;
+        // Reset per-turn ability flags (Shellkin Harden, etc.)
+        if (state.G.me.active) {
+          state.G.me.active.Harden_used = false;
+          state.G.me.active.hardenUsed = false; // Legacy
         }
         
         state.G.myTurn = true;

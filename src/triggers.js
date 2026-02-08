@@ -414,10 +414,21 @@ async function processTriggers(event, context, state, gameCtx) {
       for (const effect of effects) {
         // Handle damage reduction effect directly
         if (effect.type === 'reduceDamage') {
+          // Check perTurn flag - only apply once per turn
+          if (effect.perTurn) {
+            const creature = context.target || context.defender;
+            const usedFlag = `${match.card.ability?.name || match.card.name}_used`;
+            if (creature && creature[usedFlag]) {
+              continue; // Already used this turn, skip
+            }
+            if (creature) {
+              creature[usedFlag] = true; // Mark as used
+            }
+          }
           modifiedContext.damageReduction += effect.amount;
           modifiedContext.triggeredCard = match.card;
           if (gameCtx.log) {
-            gameCtx.log(`${match.card.name}! -${effect.amount} damage`, 'heal');
+            gameCtx.log(`${match.card.ability?.name || match.card.name}! -${effect.amount} damage`, 'heal');
           }
         }
         // Handle spell negation (for Mana Drain)

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.34] - 2026-02-08
+
+### Changed
+- Refactor Harden to use trigger system - removed hardcoded checks, added perTurn support to triggers, Spike Shield now emits beforeDamage
+
+---
+
+
 ## [0.4.33] - 2026-02-08
 
 ### Changed
