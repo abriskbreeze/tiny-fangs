@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.37] - 2026-02-08
+
+### Changed
+- Fix poison tick missing in Hunter AI - aiTurnHunter was missing poison damage code
+
+---
+
+
 ## [0.4.36] - 2026-02-08
 
 ### Changed
