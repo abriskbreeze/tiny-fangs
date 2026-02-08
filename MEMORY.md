@@ -628,6 +628,11 @@ Trigger system migration requires: (1) card declares trigger, (2) game path emit
 - `brace`: higher priority when active is wounded
 - `spikeShield`: higher priority vs low-HP attackers
 
-**Current Version:** v0.4.3
+**v0.4.5: Deck Preview**
+- Hover on desktop / hold on mobile → shows full deck description
+- Strategy overview + star creatures for each deck
+- Added to deck selector with hint text
+
+**Current Version:** v0.4.5
 **Tests:** 261 passing
 
