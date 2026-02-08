@@ -930,7 +930,9 @@ const Effects = {
     creature.curHp = amount;
     
     if (ctx.log) {
-      ctx.log(`${creature.name} survives with ${amount} HP!`, 'heal');
+      const abilityName = ctx.card?.ability?.name || '';
+      const prefix = abilityName ? `${abilityName}! ` : '';
+      ctx.log(`${prefix}${creature.name} survives with ${amount} HP!`, 'heal');
     }
 
     return { applied: true, creature };

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.39] - 2026-02-08
+
+### Changed
+- Fix double survive log, sync Pup AI with Hunter AI - removed duplicate log from checkLethalDamage, added missing KO animation and summonedThisTurn flag clearing to Pup AI
+
+---
+
+
 ## [0.4.38] - 2026-02-08
 
 ### Changed
