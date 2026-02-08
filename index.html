@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.4</title>
+  <title>TINY FANGS v0.4.5</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1340,6 +1340,34 @@
       border-color: var(--text);
     }
     
+    /* Deck preview tooltip */
+    .deck-preview {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid var(--border-hi);
+      padding: 20px;
+      max-width: 280px;
+      z-index: 9999;
+      text-align: center;
+    }
+    .deck-preview .icon { font-size: 28px; margin-bottom: 8px; }
+    .deck-preview .name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .deck-preview .desc { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
+    .deck-preview .full { font-size: 10px; line-height: 1.5; margin-bottom: 12px; }
+    .deck-preview .stars { font-size: 9px; color: var(--blue); }
+    .deck-preview .stars span { margin: 0 4px; }
+    
+    .deck-hint {
+      text-align: center;
+      font-size: 9px;
+      color: var(--dim);
+      margin-top: 12px;
+      opacity: 0.7;
+    }
+    
     .difficulty-toggle {
       display: flex;
       align-items: center;
@@ -2051,30 +2079,30 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.4 • Card Battler</p>
+    <p class="sub">v0.4.5 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="selectPlayerDeck('shadow')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('fang')">
+      <button class="deck-btn" onclick="selectPlayerDeck('fang')" onpointerdown="deckPress('fang')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('venom')">
+      <button class="deck-btn" onclick="selectPlayerDeck('venom')" onpointerdown="deckPress('venom')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('swarm')">
+      <button class="deck-btn" onclick="selectPlayerDeck('swarm')" onpointerdown="deckPress('swarm')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('shell')">
+      <button class="deck-btn" onclick="selectPlayerDeck('shell')" onpointerdown="deckPress('shell')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">[=]</div>
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
@@ -2085,6 +2113,7 @@
         <div class="desc">Surprise me!</div>
       </button>
     </div>
+    <div class="deck-hint">hold to preview deck details</div>
     <div class="difficulty-toggle">
       <span class="diff-label">AI:</span>
       <button id="diff-pup" class="diff-btn" onclick="setDifficulty(1)">Pup</button>
@@ -2578,16 +2607,77 @@
     let pendingAIDeckId = null;
     
     const DECK_INFO = {
-      shadow: { icon: '(O)', name: 'Shadow', desc: 'Control & graveyard synergy' },
-      fang: { icon: '/\\', name: 'Fang', desc: 'Aggro & direct damage' },
-      venom: { icon: '*X*', name: 'Venom', desc: 'Poison & lifesteal' },
-      swarm: { icon: '}:{', name: 'Swarm', desc: 'Pack tactics & bench synergy' },
-      shell: { icon: '[=]', name: 'Shell', desc: 'Defense & damage reduction' }
+      shadow: { 
+        icon: '(O)', name: 'Shadow', desc: 'Control & graveyard synergy',
+        full: 'Manipulate the graveyard and outlast opponents. Whisper evades traps, Gloom punishes removal, Duskfang grows stronger with fallen allies.',
+        stars: ['Duskfang', 'Gloom', 'Mireveil']
+      },
+      fang: { 
+        icon: '/\\', name: 'Fang', desc: 'Aggro & direct damage',
+        full: 'Fast and ferocious. Cindermaw attacks twice, Pulsefin doubles first strike, Stormtalon chains lightning on death.',
+        stars: ['Cindermaw', 'Pulsefin', 'Stormtalon']
+      },
+      venom: { 
+        icon: '*X*', name: 'Venom', desc: 'Poison & lifesteal',
+        full: 'Wear down enemies with status effects. Hexweaver poisons, Leechling drains health, Sundew Queen heals on kills.',
+        stars: ['Hexweaver', 'Leechling', 'Sundew Queen']
+      },
+      swarm: { 
+        icon: '}:{', name: 'Swarm', desc: 'Pack tactics & bench synergy',
+        full: 'Strength in numbers. Fangpup grows with allies, Broodmother spawns tokens, Alpha buffs the whole pack.',
+        stars: ['Fangpup', 'Broodmother', 'Alpha']
+      },
+      shell: { 
+        icon: '[=]', name: 'Shell', desc: 'Defense & damage reduction',
+        full: 'Outlast and endure. Shellkin negates first hit, Ironhide reduces all damage, Titanback survives everything.',
+        stars: ['Shellkin', 'Ironhide', 'Titanback']
+      }
     };
     
     function getRandomDeckId() {
       const deckIds = Object.keys(DECKS);
       return deckIds[Math.floor(Math.random() * deckIds.length)];
+    }
+    
+    // Deck preview (hold to zoom)
+    let deckPreviewTimer = null;
+    let deckPreviewEl = null;
+    
+    function deckPress(deckId) {
+      deckPreviewTimer = setTimeout(() => showDeckPreview(deckId), 400);
+    }
+    
+    function deckRelease() {
+      if (deckPreviewTimer) {
+        clearTimeout(deckPreviewTimer);
+        deckPreviewTimer = null;
+      }
+      hideDeckPreview();
+    }
+    
+    function showDeckPreview(deckId) {
+      const info = DECK_INFO[deckId];
+      if (!info) return;
+      
+      hideDeckPreview();
+      
+      deckPreviewEl = document.createElement('div');
+      deckPreviewEl.className = 'deck-preview';
+      deckPreviewEl.innerHTML = `
+        <div class="icon">${info.icon}</div>
+        <div class="name">${info.name}</div>
+        <div class="desc">${info.desc}</div>
+        <div class="full">${info.full}</div>
+        <div class="stars">★ ${info.stars.join(' • ')}</div>
+      `;
+      document.body.appendChild(deckPreviewEl);
+    }
+    
+    function hideDeckPreview() {
+      if (deckPreviewEl) {
+        deckPreviewEl.remove();
+        deckPreviewEl = null;
+      }
     }
     
     function selectPlayerDeck(deckId) {
@@ -2857,6 +2947,8 @@
     window.startGame = startGame;
     window.showCoinFlip = showCoinFlip;
     window.selectPlayerDeck = selectPlayerDeck;
+    window.deckPress = deckPress;
+    window.deckRelease = deckRelease;
     
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {

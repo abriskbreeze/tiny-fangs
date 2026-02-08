@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.5] - 2026-02-08
+
+### Changed
+- Deck preview on hold - shows full description and star creatures
+
+---
+
+
 ## [0.4.4] - 2026-02-08
 
 ### Changed
