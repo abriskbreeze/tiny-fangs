@@ -38,7 +38,8 @@ export function renderSetVerse(verse, id, isPlayer = false) {
 }
 
 // Get active effects on a creature for display
-export function getActiveEffects(c) {
+// owner is optional - pass player object to check player-level flags like unbreakable
+export function getActiveEffects(c, owner = null) {
   const effects = [];
   if (c.status === 'poison') {
     effects.push({ id: 'poison', icon: '☠', name: 'Poisoned', desc: 'Takes 10 damage at turn end', color: 'poison' });
@@ -47,21 +48,26 @@ export function getActiveEffects(c) {
     effects.push({ id: 'trapped', icon: '⚓', name: 'Trapped', desc: 'Cannot retreat', color: 'trapped' });
   }
   if (c.fortified) {
-    effects.push({ id: 'fortified', icon: 'F', name: 'Fortified', desc: 'Survives next lethal hit with 1 HP', color: 'fortified' });
+    effects.push({ id: 'fortified', icon: '▣', name: 'Fortified', desc: 'Survives next lethal hit with 1 HP', color: 'fortified' });
+  }
+  // Unbreakable is a player-level flag - show on active creature only
+  if (owner?.unbreakable) {
+    effects.push({ id: 'unbreakable', icon: '◇', name: 'Unbreakable', desc: 'Next damage to any creature prevented', color: 'unbreakable' });
   }
   return effects;
 }
 
-// Render effect badges for battlefield cards
-function renderEffectBadges(c) {
-  const effects = getActiveEffects(c);
+// Render effect badges for battlefield cards (positioned bottom-right)
+function renderEffectBadges(c, owner = null) {
+  const effects = getActiveEffects(c, owner);
   if (effects.length === 0) return '';
   const badges = effects.map(e => `<span class="effect-badge ${e.color}" title="${e.name}: ${e.desc}">${e.icon}</span>`).join('');
   return `<div class="effect-badges">${badges}</div>`;
 }
 
 // Active creature card
-export function renderActiveCard(c, atkInfo = null) {
+// owner is optional - pass player object to show player-level effects like unbreakable
+export function renderActiveCard(c, atkInfo = null, owner = null) {
   if (!c) return `<div class="card-empty active-slot">EMPTY</div>`;
   const pct = (c.curHp / c.hp) * 100;
   const low = pct <= 30 ? 'low' : '';
@@ -81,14 +87,14 @@ export function renderActiveCard(c, atkInfo = null) {
   const hpDamaged = c.curHp < c.hp ? 'hp-damaged' : '';
   const hpDisplay = `<span class="hp-stat ${hpDamaged}">${c.curHp}/${c.hp}</span>`;
   
-  // Effect badges
-  const badges = renderEffectBadges(c);
+  // Effect badges (positioned bottom-right, above footer)
+  const badges = renderEffectBadges(c, owner);
   
   return `<div class="card-active creature" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="header"><span>${c.name}</span></div>
     <div class="hp-bar"><div class="hp-fill ${low}" style="width:${pct}%"></div></div>
-    ${badges}
     <div class="art">${c.art}</div>
+    ${badges}
     <div class="footer">${atkDisplay}${hpDisplay}</div>
   </div>`;
 }

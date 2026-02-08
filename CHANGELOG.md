@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.21] - 2026-02-08
+
+### Changed
+- Added Unbreakable indicator, changed Fortified icon to shield, positioned badges bottom-right
+
+---
+
+
 ## [0.4.20] - 2026-02-08
 
 ### Changed

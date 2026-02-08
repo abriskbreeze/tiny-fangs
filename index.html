@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.20</title>
+  <title>TINY FANGS v0.4.21</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -343,19 +343,19 @@
     
     .card-active .status { color: var(--gold); }
     
-    /* Effect badges */
+    /* Effect badges - positioned bottom-right of card, above footer */
     .effect-badges {
       display: flex;
-      justify-content: center;
-      gap: 4px;
-      margin: 2px 0;
-      min-height: 14px;
+      justify-content: flex-end;
+      gap: 3px;
+      padding: 0 4px;
+      min-height: 12px;
     }
     .effect-badge {
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 3px;
-      background: rgba(0,0,0,0.5);
+      font-size: 8px;
+      padding: 1px 3px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.6);
       border: 1px solid;
       cursor: help;
     }
@@ -372,6 +372,11 @@
       color: #22d3ee;
       border-color: #22d3ee;
       text-shadow: 0 0 4px #22d3ee;
+    }
+    .effect-badge.unbreakable {
+      color: #fbbf24;
+      border-color: #fbbf24;
+      text-shadow: 0 0 4px #fbbf24;
     }
     
     /* ATK modifier colors */
@@ -1239,6 +1244,10 @@
     .card-detail .effect-icon.fortified {
       color: #22d3ee;
       border-color: #22d3ee;
+    }
+    .card-detail .effect-icon.unbreakable {
+      color: #fbbf24;
+      border-color: #fbbf24;
     }
     .card-detail .effect-name {
       font-weight: 600;
@@ -2284,7 +2293,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.20 • Card Battler</p>
+    <p class="sub">v0.4.21 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
@@ -3278,10 +3287,10 @@
       const myAtkInfo = state.G.me.active ? getAtkModifiers(state.G.me.active, state.G.me, state.G.opp) : null;
       const oppAtkInfo = state.G.opp.active ? getAtkModifiers(state.G.opp.active, state.G.opp, state.G.me) : null;
       
-      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo);
-      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo);
-      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo);
-      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo);
+      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
+      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
+      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
+      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
       
       // Bench
       $('m-my-bench').innerHTML = renderBench(state.G.me.bench);
@@ -3710,19 +3719,24 @@
         // BUG-B3: Check if creature is on battlefield (active OR bench) to show effective stats
         let atkInfo = null;
         let isOnField = false;
+        let cardOwner = null;  // Track owner for player-level effects like unbreakable
         if (state.G.me.active?.uid === uid) {
           atkInfo = getAtkModifiers(card, state.G.me, state.G.opp);
           isOnField = true;
+          cardOwner = state.G.me;
         } else if (state.G.opp.active?.uid === uid) {
           atkInfo = getAtkModifiers(card, state.G.opp, state.G.me);
           isOnField = true;
+          cardOwner = state.G.opp;
         } else if (state.G.me.bench.some(c => c.uid === uid)) {
           // Bench creatures also show current HP and potential ATK modifiers
           atkInfo = getAtkModifiers(card, state.G.me, state.G.opp);
           isOnField = true;
+          cardOwner = state.G.me;
         } else if (state.G.opp.bench.some(c => c.uid === uid)) {
           atkInfo = getAtkModifiers(card, state.G.opp, state.G.me);
           isOnField = true;
+          cardOwner = state.G.opp;
         }
         
         // HP display: show current if on field, otherwise max
@@ -3742,7 +3756,7 @@
         // Active effects section (only for creatures on battlefield)
         let effectsHtml = '';
         if (isOnField) {
-          const effects = getActiveEffects(card);
+          const effects = getActiveEffects(card, cardOwner);
           if (effects.length > 0) {
             const effectsList = effects.map(e => 
               `<div class="effect-item"><span class="effect-icon ${e.color}">${e.icon}</span><span class="effect-name">${e.name}</span><span class="effect-desc">${e.desc}</span></div>`
