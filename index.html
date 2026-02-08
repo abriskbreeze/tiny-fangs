@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.6</title>
+  <title>TINY FANGS v0.4.7</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1347,15 +1347,18 @@
     /* Deck preview tooltip */
     .deck-preview {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
       background: rgba(0,0,0,0.95);
       border: 1px solid var(--border-hi);
       padding: 20px;
       max-width: 280px;
       z-index: 9999;
       text-align: center;
+      pointer-events: none;
+    }
+    .deck-preview.centered {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
     .deck-preview .icon { font-size: 28px; margin-bottom: 8px; }
     .deck-preview .name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -2086,27 +2089,27 @@
     <p class="sub">v0.4.5 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow')" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
+      <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('fang')" onmouseenter="deckHover('fang')" onmouseleave="deckLeave()" onpointerdown="deckPress('fang')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
+      <button class="deck-btn" onclick="selectPlayerDeck('fang')" onmouseenter="deckHover('fang', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('fang')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('venom')" onmouseenter="deckHover('venom')" onmouseleave="deckLeave()" onpointerdown="deckPress('venom')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
+      <button class="deck-btn" onclick="selectPlayerDeck('venom')" onmouseenter="deckHover('venom', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('venom')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('swarm')" onmouseenter="deckHover('swarm')" onmouseleave="deckLeave()" onpointerdown="deckPress('swarm')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
+      <button class="deck-btn" onclick="selectPlayerDeck('swarm')" onmouseenter="deckHover('swarm', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('swarm')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('shell')" onmouseenter="deckHover('shell')" onmouseleave="deckLeave()" onpointerdown="deckPress('shell')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
+      <button class="deck-btn" onclick="selectPlayerDeck('shell')" onmouseenter="deckHover('shell', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shell')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
         <div class="icon">[=]</div>
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
@@ -2661,9 +2664,9 @@
       hideDeckPreview();
     }
     
-    function deckHover(deckId) {
+    function deckHover(deckId, event) {
       if (isTouchDevice) return; // Skip hover on touch devices
-      showDeckPreview(deckId);
+      showDeckPreview(deckId, event);
     }
     
     function deckLeave() {
@@ -2671,7 +2674,7 @@
       hideDeckPreview();
     }
     
-    function showDeckPreview(deckId) {
+    function showDeckPreview(deckId, event) {
       const info = DECK_INFO[deckId];
       if (!info) return;
       
@@ -2687,6 +2690,22 @@
         <div class="stars">★ ${info.stars.join(' • ')}</div>
       `;
       document.body.appendChild(deckPreviewEl);
+      
+      // Position: right of cursor on desktop, centered on mobile
+      if (event && event.clientX !== undefined) {
+        const x = event.clientX + 20; // 20px to the right of cursor
+        const y = event.clientY;
+        const rect = deckPreviewEl.getBoundingClientRect();
+        
+        // Keep within viewport
+        const maxX = window.innerWidth - rect.width - 10;
+        const maxY = window.innerHeight - rect.height - 10;
+        
+        deckPreviewEl.style.left = Math.min(x, maxX) + 'px';
+        deckPreviewEl.style.top = Math.max(10, Math.min(y - rect.height / 2, maxY)) + 'px';
+      } else {
+        deckPreviewEl.classList.add('centered');
+      }
     }
     
     function hideDeckPreview() {
