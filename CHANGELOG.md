@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.25] - 2026-02-08
+
+### Changed
+- Fix keyboard shortcuts - was checking undefined G instead of state.G
+
+---
+
+
 ## [0.4.24] - 2026-02-08
 
 ### Changed

@@ -7023,7 +7023,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     document.addEventListener('keydown', e => {
-      if (!G || state.G.winner || !state.G.myTurn) return;
+      if (!state.G || state.G.winner || !state.G.myTurn) return;
       const k = e.key.toLowerCase();
       if (k === 's') doSummon();
       else if (k === 'c') doCast();
