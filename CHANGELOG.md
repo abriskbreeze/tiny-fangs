@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.26] - 2026-02-08
+
+### Changed
+- Fix Soul Trap animation - now plays benchDamage on bench slot when creature is summoned to bench
+
+---
+
+
 ## [0.4.25] - 2026-02-08
 
 ### Changed

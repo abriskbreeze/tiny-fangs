@@ -125,7 +125,15 @@ const Effects = {
     // Convert from ctx-relative key by checking against state.G
     if (getAnim() && finalAmount > 0) {
       const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
-      await getAnim().damage(animKey, finalAmount);
+      
+      // For summoned creatures going to bench, use benchDamage animation
+      // The creature will be placed at the end of the bench (current length = index)
+      if (target === 'summoned' && ctx.summonLocation === 'bench') {
+        const benchIndex = owner.bench?.length || 0;
+        await getAnim().benchDamage(animKey, benchIndex, finalAmount);
+      } else {
+        await getAnim().damage(animKey, finalAmount);
+      }
     }
     
     const isKo = creature.curHp <= 0;
