@@ -138,11 +138,22 @@ const Effects = {
     const creature = resolveTarget(ctx, target);
     if (!creature) return;
     
+    const oldHp = creature.curHp;
     creature.curHp = Math.min(creature.hp, creature.curHp + amount);
+    const actualHeal = creature.curHp - oldHp;
     
-    if (typeof Anim !== 'undefined') {
-      const [owner] = target.split('.');
-      Anim.heal(owner, amount);
+    // Animation (if available)
+    // Determine owner for animation key
+    if (typeof Anim !== 'undefined' && actualHeal > 0) {
+      const [ownerKey] = target.split('.');
+      const owner = ownerKey === 'me' ? ctx.me : ctx.opp;
+      const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
+      await Anim.heal(animKey, actualHeal);
+    }
+    
+    // Log the heal if context has a log function
+    if (ctx.log && actualHeal > 0) {
+      ctx.log(`${creature.name} healed ${actualHeal} HP!`, 'heal');
     }
   },
 
@@ -171,13 +182,13 @@ const Effects = {
     creature.curHp += actualHeal;
     
     // Animation
-    if (typeof Anim !== 'undefined') {
+    if (typeof Anim !== 'undefined' && actualHeal > 0) {
       const ownerKey = ctx.attackerOwnerKey || 'me';
-      Anim.heal(ownerKey, actualHeal);
+      await Anim.heal(ownerKey, actualHeal);
     }
     
     // Log
-    if (ctx.log) {
+    if (ctx.log && actualHeal > 0) {
       const abilityName = ctx.self?.ability?.name || 'Heal';
       ctx.log(`${abilityName}! +${actualHeal} HP`, 'heal');
     }
@@ -223,7 +234,7 @@ const Effects = {
     ctx.me.lp -= count;
     
     if (typeof Anim !== 'undefined') {
-      Anim.lpDamage('me', count);
+      await Anim.lpDamage('me', count);
     }
   },
 
@@ -234,7 +245,7 @@ const Effects = {
     ctx.me.mana += amount;
     
     if (typeof Anim !== 'undefined') {
-      Anim.manaGain();
+      await Anim.manaGain();
     }
   },
 
@@ -673,7 +684,7 @@ const Effects = {
     
     if (typeof Anim !== 'undefined') {
       const oppKey = ctx.me === ctx.state?.G?.me ? 'opp' : 'me';
-      Anim.lpDamage(oppKey, count);
+      await Anim.lpDamage(oppKey, count);
     }
     
     return { lifeLost: count };
