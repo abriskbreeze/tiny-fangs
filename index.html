@@ -4822,6 +4822,7 @@
           
           // Fortify buff - survive lethal with 1 HP
           if (defenderKo && state.G.opp.active.fortified) {
+            await showCastReveal(VERSES.fortify);
             state.G.opp.active.curHp = 1;
             state.G.opp.active.fortified = false;
             defenderKo = false;
@@ -5743,6 +5744,7 @@
         
         // Fortify buff - survive lethal with 1 HP
         if (playerKo && player.active.fortified) {
+          await showCastReveal(VERSES.fortify);
           player.active.curHp = 1;
           player.active.fortified = false;
           playerKo = false;

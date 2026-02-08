@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.24] - 2026-02-08
+
+### Changed
+- Show FORTIFY popup when it saves a creature from lethal damage
+
+---
+
+
 ## [0.4.23] - 2026-02-08
 
 ### Changed
