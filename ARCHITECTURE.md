@@ -115,7 +115,7 @@
 │         │                                                       │
 │  3. ──▶ beforeDamage triggers (Brace, Shellkin, Ironhide)      │
 │         │                                                       │
-│         └── Apply damageReduction                              │
+│         └── Apply damageReduction (perTurn flag support)       │
 │                                                                 │
 │  4. ──▶ Apply damage (applyDamage)                             │
 │         │                                                       │
@@ -125,14 +125,51 @@
 │         │                                                       │
 │  6. ──▶ Fortify check (verse buff)                             │
 │         │                                                       │
-│  7. ──▶ afterAttack triggers (Thornling, Leechling, Hexweaver) │
+│  7. ──▶ onHit triggers (Leechling Drain, Sundew Digest)        │
 │         │                                                       │
-│  8. ──▶ If HP ≤ 0:                                             │
+│         └── Attacker sustain - heals BEFORE retaliation        │
+│                                                                 │
+│  8. ──▶ afterAttack triggers (Thornling, Hexweaver, Mireveil)  │
+│         │                                                       │
+│         └── Defender retaliation & status effects              │
+│                                                                 │
+│  9. ──▶ If HP ≤ 0:                                             │
 │         │                                                       │
 │         ├── beforeKO triggers (Vengeance)                      │
 │         │   └── koNegated? ──▶ Skip KO                         │
 │         │                                                       │
 │         └── ko() ──▶ onKO triggers (Den Mother, Gloom)         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Leechling vs Thornling Example
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  SCENARIO: Leechling (10/20 HP, 15 ATK) attacks Thornling      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. beforeAttack ──▶ (no triggers)                             │
+│  2. Calculate damage ──▶ 15                                    │
+│  3. beforeDamage ──▶ (no reduction)                            │
+│  4. Apply damage ──▶ Thornling takes 15                        │
+│  5. onLethalDamage ──▶ (not lethal)                            │
+│  6. Fortify ──▶ (none)                                         │
+│                                                                 │
+│  7. onHit ──▶ Leechling Drain triggers!                        │
+│     ┌────────────────────────────────────────┐                 │
+│     │ Drain heals 15 HP                      │                 │
+│     │ Leechling: 10 → 25 HP                  │                 │
+│     └────────────────────────────────────────┘                 │
+│                                                                 │
+│  8. afterAttack ──▶ Thornling Thorns triggers!                 │
+│     ┌────────────────────────────────────────┐                 │
+│     │ Thorns deals 10 damage                 │                 │
+│     │ Leechling: 25 → 15 HP                  │                 │
+│     └────────────────────────────────────────┘                 │
+│                                                                 │
+│  RESULT: Leechling survives at 15 HP ✓                         │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -150,13 +187,22 @@
 │                                                                 │
 │  COMBAT EVENTS                                                  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │beforeAttack │  │beforeDamage │  │ afterAttack │             │
+│  │beforeAttack │  │beforeDamage │  │    onHit    │             │
 │  │             │  │             │  │             │             │
-│  │Phantom Wall │  │Brace        │  │Thornling    │             │
-│  │Spike Shield │  │Swarm Shield │  │Leechling    │             │
-│  │             │  │Shellkin     │  │Hexweaver    │             │
-│  │             │  │Ironhide     │  │Reflector    │             │
+│  │Phantom Wall │  │Brace        │  │Leechling    │             │
+│  │Spike Shield │  │Swarm Shield │  │Sundew Queen │             │
+│  │             │  │Shellkin     │  │(attacker    │             │
+│  │             │  │Ironhide     │  │ sustain)    │             │
 │  └─────────────┘  └─────────────┘  └─────────────┘             │
+│                                                                 │
+│  ┌─────────────┐                                               │
+│  │ afterAttack │  ← Fires AFTER onHit                          │
+│  │             │                                               │
+│  │Thornling    │  (defender retaliation)                       │
+│  │Hexweaver    │  (status effects)                             │
+│  │Mireveil     │                                               │
+│  │Coilshell    │                                               │
+│  └─────────────┘                                               │
 │                                                                 │
 │  LETHAL/KO EVENTS                                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
