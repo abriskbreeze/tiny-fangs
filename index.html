@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.40</title>
+  <title>TINY FANGS v0.4.41</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2300,7 +2300,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.40 • Card Battler</p>
+    <p class="sub">v0.4.41 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2421,7 +2421,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.40</div>
+      <div class="logo">TINY FANGS v0.4.41</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -5168,7 +5168,15 @@
         log(`(AI error: ${err.message || err})`, 'dmg');
       }
       
-      // BUG-C3 FIX: Emit turnEnd event for AI turn (Broodmother Spawn, etc.)
+      await endAiTurn(ai, pause);
+    }
+    
+    /**
+     * Shared end-of-turn logic for all AI difficulties
+     * Prevents divergence bugs by centralizing: turnEnd triggers, mana, flags, transition
+     */
+    async function endAiTurn(ai, pause) {
+      // Emit turnEnd event for trigger system (Broodmother Spawn, etc.)
       await processTriggers('turnEnd', {
         activePlayer: ai,
         activePlayerKey: 'opp'
@@ -5180,11 +5188,13 @@
         }
       });
       
-      // End of turn: increment max mana
+      // Increment max mana (capped at 5)
       if (ai.maxMana < 5) ai.maxMana++;
+      
+      // After first turn, attacking is allowed
       state.G.firstTurn = false;
       
-      // BUG-C1 FIX: Clear summonedThisTurn flags on AI creatures
+      // Clear summonedThisTurn flags on AI creatures
       if (ai.active) ai.active.summonedThisTurn = false;
       for (const c of ai.bench) c.summonedThisTurn = false;
       
@@ -6379,32 +6389,7 @@
         log(`(AI error: ${err.message || err})`, 'dmg');
       }
       
-      // BUG-C3 FIX: Emit turnEnd event for AI turn (Broodmother Spawn, etc.)
-      await processTriggers('turnEnd', {
-        activePlayer: ai,
-        activePlayerKey: 'opp'
-      }, state, {
-        log,
-        render,
-        processEffects: async (card, ctx) => {
-          return await processEffects(card, { ...ctx, self: card, state });
-        }
-      });
-      
-      // Mana phase: AI gains max mana at END of turn (capped at 5)
-      if (ai.maxMana < 5) ai.maxMana++;
-      
-      // After first turn of game, attacking is allowed
-      state.G.firstTurn = false;
-      
-      // BUG-C1 FIX: Clear summonedThisTurn flags on AI creatures
-      if (ai.active) ai.active.summonedThisTurn = false;
-      for (const c of ai.bench) c.summonedThisTurn = false;
-      
-      // Transition to player turn
-      await pause();
-      await playTurnEndAnimation();
-      if (!state.G.winner) startPlayerTurn();
+      await endAiTurn(ai, pause);
     }
     
     // Extracted player turn start for reuse

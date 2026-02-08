@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.41] - 2026-02-08
+
+### Changed
+- Extract shared endAiTurn() function - prevents AI path divergence bugs
+
+---
+
+
 ## [0.4.40] - 2026-02-08
 
 ### Changed
