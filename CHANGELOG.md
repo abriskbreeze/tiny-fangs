@@ -3,6 +3,30 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.45] - 2026-02-08
+
+### Changed
+- Phase 3 multiplayer: coin flip sync, deck shuffle sync, action validation, selection sync
+
+---
+
+
+## [0.4.44] - 2026-02-08
+
+### Changed
+- Phase 4: Rematch flow, desync detection, animation sync, forfeit button
+
+---
+
+
+## [0.4.44] - 2026-02-08
+
+### Changed
+- Phase 4: Multiplayer disconnection and reconnection handling
+
+---
+
+
 ## [0.4.43] - 2026-02-08
 
 ### Changed

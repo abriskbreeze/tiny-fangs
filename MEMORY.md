@@ -680,3 +680,63 @@ Built complete 1v1 multiplayer infrastructure using PeerJS WebRTC:
 **Current Version:** v0.4.43
 **Tests:** 262 passing
 
+### 2026-02-08 Evening — Multiplayer Phase 4: Disconnection & Reconnection (v0.4.44)
+
+**Complete disconnection and reconnection handling for multiplayer:**
+
+**1. Disconnection Detection:**
+- Wired up `multiplayer.onDisconnect` callback in `setupMultiplayerHandlers()`
+- Shows disconnect modal when opponent drops mid-game
+- 30-second countdown timer with visual countdown display
+- "Leave Game" button allows player to forfeit immediately
+- Auto-forfeit and show victory if countdown expires
+
+**2. State Persistence:**
+- `saveGameState()` saves to sessionStorage (`tf-mp-state` key)
+- Includes: room code, isHost flag, turn number, full game state
+- Saved on game start, every 10 seconds during game, and after each turn
+- `clearSavedGameState()` removes state on game end or forfeit
+- 30-second expiry window for reconnection attempts
+
+**3. Reconnection Flow:**
+- `loadSavedGameState()` checks sessionStorage on page load
+- Shows reconnection prompt if saved state exists and not expired
+- `attemptReconnection()` tries to rejoin same room:
+  - Host: creates room with same code, waits for guest
+  - Guest: joins room using saved code
+- Restores game state if successful
+- Shows error modal if reconnection fails
+- Clears saved state after successful reconnection
+
+**4. Connection Error Handling:**
+- `handleConnectionError()` shows user-friendly error messages:
+  - "Room not found" if code is invalid
+  - "Network error" for connection failures
+  - "Room code taken" if unavailable-id error
+- Provides "Try Again" and "Return to Menu" options
+- Integrated with PeerJS error types
+
+**5. Integration:**
+- `startGame()` triggers state persistence for multiplayer games
+- `endTurn()` saves state after each turn
+- `showResult()` clears state on game end and sends forfeit message
+- `leaveGame()` sends forfeit before disconnecting
+- `handleReconnect()` syncs state when opponent reconnects
+- `initializeMultiplayer()` orchestrates page load checks
+
+**Key Functions:**
+- `saveGameState()` / `loadSavedGameState()` / `clearSavedGameState()`
+- `handleDisconnect()` / `handleReconnect()` / `attemptReconnection()`
+- `handleConnectionError()`
+- `setupMultiplayerHandlers()` / `initializeMultiplayer()`
+- `startStatePersistence()` (auto-save every 10s)
+
+**User Experience:**
+- Seamless reconnection within 30 seconds of disconnect
+- Clear error messages with retry options
+- No data loss if both players reconnect in time
+- Automatic forfeit handling for extended disconnects
+
+**Tests:** 262 passing (all existing tests still pass)
+**Version:** v0.4.44
+

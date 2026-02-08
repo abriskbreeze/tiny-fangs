@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.43</title>
+  <title>TINY FANGS v0.4.45</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1602,6 +1602,12 @@
     .result.win h2 { color: var(--green); }
     .result.lose h2 { color: var(--red); }
     
+    .result .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
     .result button {
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
@@ -1610,6 +1616,23 @@
       font-family: inherit;
       font-size: 12px;
       cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .result button:hover {
+      border-color: var(--border-hi);
+    }
+    
+    .result button.primary {
+      border-color: var(--blue);
+      background: rgba(59,130,246,0.1);
+    }
+    
+    .result .waiting-rematch {
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 16px;
+      animation: pulse-opacity 1.5s ease-in-out infinite;
     }
     
     /* Rules Modal */
@@ -2668,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.43 • Card Battler</p>
+    <p class="sub">v0.4.45 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2746,7 +2769,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.43 • Card Battler</p>
+    <p class="sub">v0.4.45 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2858,6 +2881,7 @@
       <button class="m-btn primary" id="m-btn-atk" onclick="doAttack()"><span class="k">A</span>Attack</button>
       <button class="m-btn" id="m-btn-retreat" onclick="doRetreat()"><span class="k">R</span>Retreat</button>
       <button class="m-btn" id="m-btn-end" onclick="endTurn()"><span class="k">E</span>End</button>
+      <button class="m-btn" id="m-btn-forfeit" onclick="doForfeit()" style="display: none; opacity: 0.5;"><span class="k">F</span>Forfeit</button>
     </div>
     
     <div id="m-log" class="m-log"></div>
@@ -2867,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.43</div>
+      <div class="logo">TINY FANGS v0.4.45</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2961,6 +2985,7 @@
               <button class="d-btn primary" id="d-btn-atk" onclick="doAttack()"><span class="k">[A]</span>Attack</button>
               <button class="d-btn" id="d-btn-retreat" onclick="doRetreat()"><span class="k">[R]</span>Retreat</button>
               <button class="d-btn" id="d-btn-end" onclick="endTurn()"><span class="k">[E]</span>End Turn</button>
+              <button class="d-btn" id="d-btn-forfeit" onclick="doForfeit()" style="display: none; opacity: 0.5;"><span class="k">[F]</span>Forfeit</button>
             </div>
           </div>
         </div>
@@ -3065,7 +3090,10 @@
   <!-- Result -->
   <div id="result" class="result">
     <h2 id="result-text"></h2>
-    <button onclick="location.reload()">Play Again</button>
+    <div id="result-buttons" class="buttons">
+      <button onclick="location.reload()">Play Again</button>
+    </div>
+    <div id="waiting-rematch" class="waiting-rematch" style="display: none;">Waiting for opponent...</div>
   </div>
 
   <script type="module">
@@ -3120,6 +3148,7 @@
       
       // Actions
       ACTION: 'action',         // { type, action, cardUid, target, selection }
+      SELECTING: 'selecting',   // { type, cardName } - Opponent is choosing target
       
       // Sync
       SYNC: 'sync',             // { type, state }
@@ -3129,6 +3158,7 @@
       END_TURN: 'endTurn',      // { type }
       REMATCH: 'rematch',       // { type }
       FORFEIT: 'forfeit',       // { type }
+      LEAVE: 'leave',           // { type } - opponent leaving game
     };
     
     // ═══════════════════════════════════════════════════════════════
@@ -3246,8 +3276,22 @@
      * Apply synced state from host
      * Guest receives this after host validates and executes actions
      */
-    function applyStateSync(syncState) {
+    async function applyStateSync(syncState) {
       if (!state.G || state.G.mode !== 'multiplayer' || state.G.isHost) return;
+      
+      // Store old state for animation detection
+      const oldState = {
+        me: {
+          lp: state.G.me.lp,
+          activeUid: state.G.me.active?.uid || null,
+          activeHp: state.G.me.active?.curHp || 0
+        },
+        opp: {
+          lp: state.G.opp.lp,
+          activeUid: state.G.opp.active?.uid || null,
+          activeHp: state.G.opp.active?.curHp || 0
+        }
+      };
       
       // Apply state updates
       state.G.turn = syncState.turn;
@@ -3264,7 +3308,59 @@
         state.G.log = syncState.log;
       }
       
+      // Detect and animate changes
+      await detectAndAnimateChanges(oldState);
+      
       render();
+    }
+    
+    /**
+     * Detect state changes and trigger animations for guest
+     */
+    async function detectAndAnimateChanges(oldState) {
+      // LP changes - show LP damage animation
+      if (state.G.me.lp < oldState.me.lp) {
+        await Anim.lpDamage('me', oldState.me.lp - state.G.me.lp);
+      }
+      if (state.G.opp.lp < oldState.opp.lp) {
+        await Anim.lpDamage('opp', oldState.opp.lp - state.G.opp.lp);
+      }
+      
+      // Active creature changed - could be summon or KO
+      if (state.G.me.active?.uid !== oldState.me.activeUid) {
+        if (state.G.me.active && !oldState.me.activeUid) {
+          // New creature summoned
+          await Anim.summon('me');
+        } else if (!state.G.me.active && oldState.me.activeUid) {
+          // Creature KO'd
+          await Anim.ko('me');
+        }
+      }
+      if (state.G.opp.active?.uid !== oldState.opp.activeUid) {
+        if (state.G.opp.active && !oldState.opp.activeUid) {
+          await Anim.summon('opp');
+        } else if (!state.G.opp.active && oldState.opp.activeUid) {
+          await Anim.ko('opp');
+        }
+      }
+      
+      // HP damage on active creatures
+      if (state.G.me.active && oldState.me.activeUid === state.G.me.active.uid) {
+        const hpLoss = oldState.me.activeHp - state.G.me.active.curHp;
+        if (hpLoss > 0) {
+          await Anim.damage('me', hpLoss);
+        } else if (hpLoss < 0) {
+          await Anim.heal('me', -hpLoss);
+        }
+      }
+      if (state.G.opp.active && oldState.opp.activeUid === state.G.opp.active.uid) {
+        const hpLoss = oldState.opp.activeHp - state.G.opp.active.curHp;
+        if (hpLoss > 0) {
+          await Anim.damage('opp', hpLoss);
+        } else if (hpLoss < 0) {
+          await Anim.heal('opp', -hpLoss);
+        }
+      }
     }
     
     /**
@@ -3378,6 +3474,33 @@
     }
     
     /**
+     * Show overlay while opponent is selecting target
+     */
+    function showSelectionOverlay(cardName) {
+      // Remove existing overlay if any
+      hideSelectionOverlay();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'selection-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9998;';
+      overlay.innerHTML = `
+        <div style="text-align:center;color:var(--text);">
+          <div style="font-size:14px;margin-bottom:8px;">Opponent casting ${cardName}</div>
+          <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;">Choosing target...</div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+    
+    /**
+     * Hide selection overlay
+     */
+    function hideSelectionOverlay() {
+      const overlay = document.getElementById('selection-overlay');
+      if (overlay) overlay.remove();
+    }
+    
+    /**
      * Multiplayer message handler
      */
     multiplayer.onMessage = async (msg) => {
@@ -3396,6 +3519,9 @@
             break;
             
           case MP_MSG.ACTION:
+            // Hide selection overlay if showing
+            hideSelectionOverlay();
+            
             if (state.G.isHost) {
               await validateAndExecuteAction(msg);
             }
@@ -3403,12 +3529,17 @@
             
           case MP_MSG.SYNC:
             if (!state.G.isHost) {
-              applyStateSync(msg.state);
+              await applyStateSync(msg.state);
             }
             break;
             
           case MP_MSG.TRIGGER:
             await showTriggerReveal({ name: msg.cardName, trigger: msg.trigger });
+            break;
+            
+          case MP_MSG.SELECTING:
+            // Show "Opponent choosing target..." overlay
+            showSelectionOverlay(msg.cardName);
             break;
             
           case MP_MSG.END_TURN:
@@ -3431,7 +3562,19 @@
             break;
             
           case MP_MSG.REMATCH:
-            // TODO: Implement rematch flow
+            handleRematchRequest();
+            break;
+            
+          case MP_MSG.LEAVE:
+            handleOpponentLeft();
+            break;
+            
+          case 'HASH_CHECK':
+            handleHashCheck(msg);
+            break;
+            
+          case 'REQUEST_SYNC':
+            handleSyncRequest(msg);
             break;
             
           default:
@@ -3443,29 +3586,479 @@
       }
     };
     
+    // Multiplayer deck selection state
+    let myDeckReady = false;
+    let oppDeckId = null;
+    let oppDeckUidOrder = null; // Guest only: host's shuffle order for guest's deck
+    
     /**
      * Handle opponent ready message (deck selection)
      */
-    function handleOpponentReady(msg) {
-      state.G.opponentReady = true;
-      log('Opponent ready!', 'mana');
-      // TODO: Trigger coin flip when both ready
+    async function handleOpponentReady(msg) {
+      if (state.G && state.G.mode === 'multiplayer') {
+        state.G.opponentReady = true;
+      }
+      
+      oppDeckId = msg.deckId;
+      
+      // If opponent deck order provided (guest receiving shuffle), store it
+      if (msg.uidOrder) {
+        oppDeckUidOrder = msg.uidOrder;
+      }
+      
+      // If we're also ready, proceed
+      if (myDeckReady) {
+        // Host: Generate shuffles for both decks and send to guest
+        if (multiplayer.isHost) {
+          // Create both decks with crypto shuffle
+          const myDeck = mkDeck(pendingDeckId);
+          const oppDeck = mkDeck(oppDeckId);
+          
+          // Store my deck's UID order
+          const myDeckUids = myDeck.map(c => c.uid);
+          const oppDeckUids = oppDeck.map(c => c.uid);
+          
+          // Send opponent's shuffle order to guest
+          multiplayer.send({
+            type: MP_MSG.READY,
+            deckId: pendingDeckId, // Host's deck ID
+            uidOrder: oppDeckUids,  // Guest's deck shuffle order
+            ready: true
+          });
+          
+          // Store for game initialization
+          window.mpMyDeckUids = myDeckUids;
+          window.mpOppDeckUids = oppDeckUids;
+          
+          closeModal();
+          showCoinFlipModal();
+        } else {
+          // Guest: Received shuffle, ready to start
+          closeModal();
+          // Wait for host to trigger coin flip (or host sends their READY if guest was faster)
+        }
+      }
     }
     
     /**
-     * Handle coin flip result
+     * Handle rematch request from opponent
      */
-    function handleCoinFlipResult(msg) {
-      // TODO: Process coin flip, determine first player
-      log(`Coin flip: ${msg.result}`, 'mana');
+    function handleRematchRequest() {
+      if (!state.G) return;
+      
+      state.G.opponentWantsRematch = true;
+      log('Opponent wants to rematch!', 'mana');
+      
+      // If both want rematch, start it
+      if (state.G.wantsRematch && state.G.opponentWantsRematch) {
+        startRematch();
+      } else {
+        // Update result screen to show opponent is waiting
+        if ($('result').classList.contains('open')) {
+          $('result-text').textContent += '\nOpponent wants rematch!';
+        }
+      }
+    }
+    
+    /**
+     * Handle opponent leaving the game
+     */
+    function handleOpponentLeft() {
+      log('Opponent left', 'dmg');
+      
+      // If in rematch negotiation
+      if ($('result').classList.contains('open') && state.G.wantsRematch) {
+        $('result-text').textContent = 'Opponent Left';
+        $('result-buttons').innerHTML = `
+          <button onclick="leaveMultiplayerGame()">Return to Menu</button>
+        `;
+        $('waiting-rematch').style.display = 'none';
+      } else if ($('result').classList.contains('open')) {
+        // Already at result screen
+        $('result-buttons').innerHTML = `
+          <button onclick="leaveMultiplayerGame()">Return to Menu</button>
+        `;
+      } else {
+        // During game - opponent forfeited
+        if (state.G && !state.G.winner) {
+          state.G.winner = 'You';
+          showResult(true);
+          $('result-text').textContent = '[ OPPONENT LEFT - YOU WIN ]';
+        }
+      }
+    }
+    
+    /**
+     * Handle coin flip result (guest receives from host)
+     */
+    async function handleCoinFlipResult(msg) {
+      if (!state.G || state.G.mode !== 'multiplayer' || state.G.isHost) return;
+      
+      // Guest receives host's coin flip result
+      const result = msg.result; // 'heads' or 'tails'
+      const hostWon = msg.hostWon;
+      const guestWon = !hostWon;
+      
+      // Play coin flip animation with host's result
+      await playCoinFlipAnimation(result);
+      
+      // Determine who goes first
+      if (guestWon) {
+        // Guest won - let them choose
+        showModal(`${result.toUpperCase()}! You won the toss`, [
+          { name: 'Go First', sub: 'You cannot attack on turn 1', action: () => startGameMultiplayer(true) },
+          { name: 'Go Second', sub: 'You can attack on turn 1', action: () => startGameMultiplayer(false) }
+        ], { noCancel: true });
+      } else {
+        // Host won - they choose, guest waits for READY message with firstPlayer info
+        const msg = document.createElement('div');
+        msg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;';
+        msg.innerHTML = `<div style="margin-bottom:8px;">${result.toUpperCase()}! Opponent won</div><div style="color:var(--text);font-size:14px;">Waiting for opponent to choose...</div>`;
+        document.body.appendChild(msg);
+        // Don't remove - will be removed when READY message arrives
+      }
     }
     
     /**
      * Validate and execute action from opponent (host only)
      */
     async function validateAndExecuteAction(msg) {
-      // TODO: Validate action is legal, execute, send sync
-      console.log('[MP Host] Validating action:', msg.action);
+      if (!state.G.isHost) return;
+      
+      console.log('[MP Host] Validating action:', msg.action, msg);
+      
+      const oppPlayer = state.G.opp;
+      const myPlayer = state.G.me;
+      
+      // Validation: Is it opponent's turn?
+      if (state.G.myTurn) {
+        console.warn('[MP] Action from guest, but it\'s host turn - rejecting');
+        multiplayer.send({ 
+          type: 'error', 
+          message: 'Not your turn' 
+        });
+        return;
+      }
+      
+      try {
+        switch (msg.action) {
+          case 'summon': {
+            // Validate: Has card in hand?
+            const card = oppPlayer.hand.find(c => c.uid === msg.cardUid);
+            if (!card) {
+              console.warn('[MP] Card not in hand:', msg.cardUid);
+              multiplayer.send({ type: 'error', message: 'Card not in hand' });
+              return;
+            }
+            
+            // Validate: Enough mana?
+            if (card.cost > oppPlayer.mana) {
+              console.warn('[MP] Not enough mana');
+              multiplayer.send({ type: 'error', message: 'Not enough mana' });
+              return;
+            }
+            
+            // Validate: Valid target (active or bench)?
+            const hasActiveSlot = !oppPlayer.active;
+            const hasBenchSlot = oppPlayer.bench.length < 2;
+            if (!hasActiveSlot && !hasBenchSlot) {
+              console.warn('[MP] No room to summon');
+              multiplayer.send({ type: 'error', message: 'No room' });
+              return;
+            }
+            
+            // Execute summon (AI summon logic for opponent)
+            oppPlayer.mana -= card.cost;
+            oppPlayer.hand = oppPlayer.hand.filter(c => c.uid !== card.uid);
+            
+            const summonLocation = !oppPlayer.active ? 'active' : 'bench';
+            
+            // Emit onSummon event
+            const summonResult = await emitOnSummon(card, 'opp', summonLocation);
+            if (summonResult.ko) {
+              log(`Opponent's ${card.name} destroyed by trap!`, 'dmg');
+              oppPlayer.grave.push(card);
+            } else {
+              if (!oppPlayer.active) {
+                oppPlayer.active = card;
+                log(`Opponent summoned ${card.name} as active`);
+              } else {
+                oppPlayer.bench.push(card);
+                log(`Opponent summoned ${card.name} to bench`);
+              }
+            }
+            
+            // Chain Lightning check
+            if (oppPlayer.chainLightning > 0 && !summonResult.ko) {
+              const chainKo = applyDamage(card, oppPlayer.chainLightning);
+              log(`Chain Lightning: -${oppPlayer.chainLightning}`, 'dmg');
+              oppPlayer.chainLightning = 0;
+              if (chainKo) {
+                await ko(card, oppPlayer);
+              }
+            }
+            
+            break;
+          }
+          
+          case 'cast': {
+            // Validate: Has card in hand?
+            const card = oppPlayer.hand.find(c => c.uid === msg.cardUid);
+            if (!card || card.cardType !== 'verse') {
+              console.warn('[MP] Verse not in hand:', msg.cardUid);
+              multiplayer.send({ type: 'error', message: 'Card not found' });
+              return;
+            }
+            
+            // Validate: Enough mana?
+            if (card.cost > oppPlayer.mana) {
+              console.warn('[MP] Not enough mana for cast');
+              multiplayer.send({ type: 'error', message: 'Not enough mana' });
+              return;
+            }
+            
+            // For targeting spells, validate selection
+            if (msg.selection) {
+              const targetUid = msg.selection.targetUid;
+              // Find target card (could be in active, bench, or grave)
+              let targetFound = false;
+              if (myPlayer.active?.uid === targetUid) targetFound = true;
+              if (myPlayer.bench.some(c => c.uid === targetUid)) targetFound = true;
+              if (oppPlayer.active?.uid === targetUid) targetFound = true;
+              if (oppPlayer.bench.some(c => c.uid === targetUid)) targetFound = true;
+              
+              if (!targetFound) {
+                console.warn('[MP] Invalid target:', targetUid);
+                multiplayer.send({ type: 'error', message: 'Invalid target' });
+                return;
+              }
+            }
+            
+            // Execute cast (simplified - full effects in processEffects)
+            oppPlayer.mana -= card.cost;
+            oppPlayer.hand = oppPlayer.hand.filter(c => c.uid !== card.uid);
+            
+            // Process card effect (this will handle targeting via selection)
+            log(`Opponent cast ${card.name}`);
+            await processEffects(card, { 
+              me: oppPlayer, 
+              opp: myPlayer, 
+              state, 
+              selection: msg.selection 
+            });
+            
+            // Move to grave (if not "set" type)
+            if (card.type !== 'set') {
+              oppPlayer.grave.push(card);
+            } else {
+              oppPlayer.setVerse = card;
+            }
+            
+            break;
+          }
+          
+          case 'attack': {
+            // Validate: Has active creature?
+            if (!oppPlayer.active) {
+              console.warn('[MP] No active creature to attack');
+              multiplayer.send({ type: 'error', message: 'No active creature' });
+              return;
+            }
+            
+            // Validate: Not first turn restriction?
+            if (state.G.firstTurn) {
+              console.warn('[MP] Cannot attack on first turn');
+              multiplayer.send({ type: 'error', message: 'Cannot attack on first turn' });
+              return;
+            }
+            
+            // Execute attack (use existing attack logic but for opponent)
+            // This is complex - for now, log it
+            log('Opponent attacks!');
+            
+            const attacker = oppPlayer.active;
+            const defender = myPlayer.active;
+            
+            // Direct attack if no defender
+            if (!defender) {
+              const lpResult = await loseLife(myPlayer, 'me');
+              if (!lpResult.negated) {
+                log('Opponent attacks directly!', 'dmg');
+                await Anim.lpDamage('me', 1);
+                checkWin();
+              }
+            } else {
+              // Creature vs creature combat
+              const atkDmg = getEffectiveAtk(attacker, oppPlayer, myPlayer);
+              const defDmg = getEffectiveAtk(defender, myPlayer, oppPlayer);
+              
+              const attackerKo = applyDamage(attacker, defDmg);
+              const defenderKo = applyDamage(defender, atkDmg);
+              
+              log(`Opponent's ${attacker.name} (${attacker.atk}) vs ${defender.name} (${defender.atk})`);
+              
+              if (attackerKo) await ko(attacker, oppPlayer, defender, myPlayer);
+              if (defenderKo) await ko(defender, myPlayer, attacker, oppPlayer);
+            }
+            
+            break;
+          }
+          
+          case 'endTurn': {
+            // Process end turn for opponent
+            await endTurn();
+            break;
+          }
+          
+          default:
+            console.warn('[MP] Unknown action:', msg.action);
+            multiplayer.send({ type: 'error', message: 'Unknown action' });
+            return;
+        }
+        
+        // Send state sync after successful action
+        multiplayer.send({
+          type: MP_MSG.SYNC,
+          state: getMinimalState()
+        });
+        
+        render();
+        
+      } catch (err) {
+        console.error('[MP] Action execution failed:', err);
+        multiplayer.send({ 
+          type: 'error', 
+          message: 'Action failed: ' + err.message 
+        });
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // DESYNC DETECTION
+    // ═══════════════════════════════════════════════════════════════
+    
+    let lastSyncCheck = 0;
+    const SYNC_CHECK_INTERVAL = 30000; // 30 seconds
+    const SYNC_CHECK_TURNS = 5; // Every 5 turns
+    
+    /**
+     * Compute state hash for desync detection
+     * Hash includes: turn, LP, mana, active creature UIDs, hand sizes
+     */
+    function computeStateHash() {
+      if (!state.G) return '';
+      
+      const hashData = {
+        turn: state.G.turn,
+        me: {
+          lp: state.G.me.lp,
+          mana: state.G.me.mana,
+          maxMana: state.G.me.maxMana,
+          activeUid: state.G.me.active?.uid || null,
+          benchUids: state.G.me.bench.map(c => c.uid).sort(),
+          handSize: state.G.me.hand.length,
+          deckSize: state.G.me.deck.length,
+          graveSize: state.G.me.grave.length,
+          setVerseUid: state.G.me.setVerse?.uid || null
+        },
+        opp: {
+          lp: state.G.opp.lp,
+          mana: state.G.opp.mana,
+          maxMana: state.G.opp.maxMana,
+          activeUid: state.G.opp.active?.uid || null,
+          benchUids: state.G.opp.bench.map(c => c.uid).sort(),
+          handSize: state.G.opp.hand.length,
+          deckSize: state.G.opp.deck.length,
+          graveSize: state.G.opp.grave.length,
+          setVerseUid: state.G.opp.setVerse?.uid || null
+        }
+      };
+      
+      // Simple hash: JSON stringify and compute basic hash
+      const jsonStr = JSON.stringify(hashData);
+      let hash = 0;
+      for (let i = 0; i < jsonStr.length; i++) {
+        const char = jsonStr.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return hash.toString(36);
+    }
+    
+    /**
+     * Check for desync (called periodically in multiplayer)
+     */
+    function checkDesync() {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      const now = Date.now();
+      const timeSinceLastCheck = now - lastSyncCheck;
+      const turnsSinceLastCheck = state.G.turn % SYNC_CHECK_TURNS === 0;
+      
+      // Check every N turns or N seconds
+      if (timeSinceLastCheck < SYNC_CHECK_INTERVAL && !turnsSinceLastCheck) return;
+      
+      lastSyncCheck = now;
+      const hash = computeStateHash();
+      
+      if (state.G.isHost) {
+        // Host sends hash to guest
+        multiplayer.send({
+          type: 'HASH_CHECK',
+          hash: hash,
+          turn: state.G.turn
+        });
+      } else {
+        // Guest stores local hash (will compare when receiving host's hash)
+        state.G.lastHash = hash;
+      }
+    }
+    
+    /**
+     * Handle hash check message (guest only)
+     */
+    function handleHashCheck(msg) {
+      if (!state.G || state.G.isHost) return;
+      
+      const localHash = computeStateHash();
+      
+      if (localHash !== msg.hash) {
+        console.warn('[DESYNC] State mismatch detected!');
+        console.log('[DESYNC] Local hash:', localHash);
+        console.log('[DESYNC] Host hash:', msg.hash);
+        console.log('[DESYNC] Turn:', msg.turn);
+        
+        log('[Desync detected - requesting sync]', 'dmg');
+        
+        // Request full state sync from host
+        multiplayer.send({
+          type: 'REQUEST_SYNC',
+          reason: 'desync',
+          localHash: localHash,
+          hostHash: msg.hash
+        });
+      } else {
+        console.log('[SYNC] State hash OK:', localHash);
+      }
+    }
+    
+    /**
+     * Handle sync request from guest (host only)
+     */
+    function handleSyncRequest(msg) {
+      if (!state.G || !state.G.isHost) return;
+      
+      console.log('[SYNC] Guest requested sync:', msg.reason);
+      
+      // Send full state sync
+      const fullState = getMinimalState();
+      multiplayer.send({
+        type: MP_MSG.SYNC,
+        state: fullState,
+        reason: 'requested'
+      });
+      
+      log('[Syncing game state]', 'mana');
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -3605,22 +4198,60 @@
       return { ...t, cardType:'verse', uid:uid() };
     }
     
-    function mkDeck(deckId) {
+    /**
+     * Shuffle array using crypto.getRandomValues (secure random)
+     * @param {Array} array - Array to shuffle (modified in place)
+     * @returns {Array} The shuffled array
+     */
+    function cryptoShuffle(array) {
+      const randomBytes = new Uint8Array(array.length);
+      crypto.getRandomValues(randomBytes);
+      
+      for (let i = array.length - 1; i > 0; i--) {
+        // Use crypto random byte to determine swap index
+        const j = Math.floor((randomBytes[i] / 256) * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    
+    /**
+     * Shuffle array in a specific order (for guest deck sync)
+     * @param {Array} array - Array to shuffle
+     * @param {Array} uidOrder - Array of UIDs in desired order
+     * @returns {Array} New array in specified order
+     */
+    function shuffleByUidOrder(array, uidOrder) {
+      const result = [];
+      for (const uid of uidOrder) {
+        const card = array.find(c => c.uid === uid);
+        if (card) result.push(card);
+      }
+      // Add any cards not in uidOrder (shouldn't happen, but safety)
+      for (const card of array) {
+        if (!result.includes(card)) result.push(card);
+      }
+      return result;
+    }
+    
+    function mkDeck(deckId, uidOrder = null) {
       const def = DECKS[deckId];
       const cards = [
         ...def.creatures.map(mkCreature),
         ...def.verses.map(mkVerse)
       ];
-      // Shuffle
-      for (let i = cards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [cards[i], cards[j]] = [cards[j], cards[i]];
+      
+      // If uidOrder provided (guest receiving host's shuffle), use that order
+      if (uidOrder) {
+        return shuffleByUidOrder(cards, uidOrder);
       }
-      return cards;
+      
+      // Otherwise, crypto shuffle
+      return cryptoShuffle(cards);
     }
     
-    function mkPlayer(deckId) {
-      const deck = mkDeck(deckId);
+    function mkPlayer(deckId, uidOrder = null) {
+      const deck = mkDeck(deckId, uidOrder);
       const hand = deck.splice(0, 5);
       return {
         lp: 3,
@@ -3782,7 +4413,28 @@
       // Resolve random selection
       pendingDeckId = deckId === 'random' ? getRandomDeckId() : deckId;
       $('setup').classList.add('hidden');
-      showAIDeckSelector();
+      
+      // Multiplayer: Send READY message, wait for opponent
+      if (selectedMode === 'multiplayer') {
+        myDeckReady = true;
+        
+        multiplayer.send({
+          type: MP_MSG.READY,
+          deckId: pendingDeckId
+        });
+        
+        // If opponent already ready, handleOpponentReady will process
+        if (oppDeckId) {
+          // Opponent was ready first, trigger processing
+          handleOpponentReady({ deckId: oppDeckId, uidOrder: oppDeckUidOrder });
+        } else {
+          // Show waiting screen
+          showModal('Waiting for opponent...', [], { noCancel: true });
+        }
+      } else {
+        // AI mode: show AI deck selector
+        showAIDeckSelector();
+      }
     }
     
     function showAIDeckSelector() {
@@ -3823,12 +4475,11 @@
       showCoinFlipModal();
     }
     
-    async function doCoinFlip(playerCall) {
-      closeModal();
-      
-      const result = Math.random() < 0.5 ? 'heads' : 'tails';
-      const playerWon = playerCall === result;
-      
+    /**
+     * Play coin flip animation
+     * @param {string} result - 'heads' or 'tails'
+     */
+    async function playCoinFlipAnimation(result) {
       // Shaded Depth coin art at different sizes
       const coinSmall = {
         heads: '▓███▓\n█ H █\n▓███▓',
@@ -3903,6 +4554,42 @@
       
       // Remove overlay
       overlay.remove();
+    }
+    
+    async function doCoinFlip(playerCall) {
+      closeModal();
+      
+      // Multiplayer: Host generates and sends result, guest waits
+      let result, playerWon;
+      
+      if (state.G && state.G.mode === 'multiplayer') {
+        if (state.G.isHost) {
+          // Host generates crypto-random coin flip
+          const randomBytes = new Uint8Array(1);
+          crypto.getRandomValues(randomBytes);
+          result = randomBytes[0] < 128 ? 'heads' : 'tails';
+          playerWon = playerCall === result;
+          
+          // Send result to guest
+          multiplayer.send({
+            type: MP_MSG.COIN_FLIP,
+            result: result,
+            hostCall: playerCall,
+            hostWon: playerWon
+          });
+        } else {
+          // Guest waits for host's result
+          log('Waiting for coin flip...', 'mana');
+          return; // handleCoinFlipResult will continue from here
+        }
+      } else {
+        // AI mode: local random
+        result = Math.random() < 0.5 ? 'heads' : 'tails';
+        playerWon = playerCall === result;
+      }
+      
+      // Play animation
+      await playCoinFlipAnimation(result);
       
       if (playerWon) {
         // Player won - let them choose
@@ -3999,18 +4686,37 @@
       }
     }
     
-    async function startGame(deckId, playerFirst = true) {
+    async function startGame(deckId, playerFirst = true, oppDeck = null) {
       closeModal();
       
       // BEGIN! animation
       await playBeginAnimation();
       
-      // Use pre-selected AI deck, or random if not set
-      const aiDeck = pendingAIDeckId || getRandomDeckId();
+      // Determine opponent deck and shuffle orders
+      let myDeckUidOrder = null;
+      let oppDeckUidOrder = null;
+      let opponentDeckId = null;
+      
+      if (selectedMode === 'multiplayer') {
+        // Use pre-shuffled decks from handleOpponentReady
+        opponentDeckId = oppDeckId;
+        if (multiplayer.isHost) {
+          // Host uses their own shuffles
+          myDeckUidOrder = window.mpMyDeckUids;
+          oppDeckUidOrder = window.mpOppDeckUids;
+        } else {
+          // Guest uses host's shuffle for their deck
+          myDeckUidOrder = oppDeckUidOrder; // Received from host
+          // Opponent's (host's) deck will be created with host's shuffle (hidden from us)
+        }
+      } else {
+        // AI mode
+        opponentDeckId = pendingAIDeckId || getRandomDeckId();
+      }
       
       state.G = {
-        me: mkPlayer(deckId),
-        opp: mkPlayer(aiDeck),
+        me: mkPlayer(deckId, myDeckUidOrder),
+        opp: mkPlayer(opponentDeckId, oppDeckUidOrder),
         turn: 1,
         phase: 'main',
         log: [],
@@ -4021,8 +4727,8 @@
         hasRetreated: false, // C3: Track if player retreated this turn
         actionLock: false,   // BUG-12: Prevent multiple attack button clicks
         aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
-        mode: 'ai',          // 'ai' or 'multiplayer'
-        isHost: false,       // Multiplayer: are we the host?
+        mode: selectedMode,  // 'ai' or 'multiplayer'
+        isHost: multiplayer.isHost || false,       // Multiplayer: are we the host?
         opponentReady: false, // Multiplayer: has opponent selected deck?
         turnTimeRemaining: 60, // Multiplayer: turn timer in seconds
       };
@@ -4034,14 +4740,23 @@
       
       log('Game started');
       
+      // Save initial state if multiplayer
+      if (state.G.mode === 'multiplayer') {
+        saveGameState();
+        startStatePersistence();
+        startTurnTimer();
+      }
+      
       if (playerFirst) {
         log('You go first! Choose a creature to summon');
         render();
       } else {
         log('Rival goes first');
         render();
-        // AI takes first turn
-        setTimeout(aiTurn, 600);
+        // AI takes first turn (or multiplayer opponent)
+        if (state.G.mode === 'ai') {
+          setTimeout(aiTurn, 600);
+        }
       }
     }
     
@@ -4219,9 +4934,24 @@
     }
     
     /**
-     * Leave multiplayer game
+     * Leave multiplayer game (forfeit)
      */
     function leaveGame() {
+      // Send forfeit message before disconnecting
+      if (multiplayer.connected) {
+        multiplayer.send({ type: MP_MSG.FORFEIT });
+      }
+      
+      // Clear saved state
+      clearSavedGameState();
+      
+      // Stop disconnect countdown
+      if (disconnectCountdownTimer) {
+        clearInterval(disconnectCountdownTimer);
+        disconnectCountdownTimer = null;
+      }
+      
+      // Disconnect and reload
       multiplayer.disconnect();
       $('disconnect-modal').classList.remove('open');
       location.reload();
@@ -4245,9 +4975,318 @@
     window.leaveGame = leaveGame;
     window.backToModeSelect = backToModeSelect;
     
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 4: DISCONNECTION & RECONNECTION HANDLING
+    // ═══════════════════════════════════════════════════════════════
+    
+    const MP_STATE_KEY = 'tf-mp-state';
+    const MP_STATE_TIMEOUT = 30000; // 30 seconds
+    let disconnectCountdownTimer = null;
+    
+    /**
+     * Save game state to sessionStorage for reconnection
+     */
+    function saveGameState() {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      const savedState = {
+        timestamp: Date.now(),
+        roomCode: multiplayer.roomCode,
+        isHost: multiplayer.isHost,
+        turn: state.G.turn,
+        gameState: getMinimalState(),
+      };
+      
+      try {
+        sessionStorage.setItem(MP_STATE_KEY, JSON.stringify(savedState));
+        console.log('[MP] Game state saved for reconnection');
+      } catch (err) {
+        console.error('[MP] Failed to save state:', err);
+      }
+    }
+    
+    /**
+     * Load saved game state from sessionStorage
+     * @returns {object|null} Saved state if found and not expired
+     */
+    function loadSavedGameState() {
+      try {
+        const saved = sessionStorage.getItem(MP_STATE_KEY);
+        if (!saved) return null;
+        
+        const state = JSON.parse(saved);
+        const age = Date.now() - state.timestamp;
+        
+        if (age > MP_STATE_TIMEOUT) {
+          console.log('[MP] Saved state expired');
+          clearSavedGameState();
+          return null;
+        }
+        
+        console.log('[MP] Found saved state:', age, 'ms old');
+        return state;
+      } catch (err) {
+        console.error('[MP] Failed to load saved state:', err);
+        return null;
+      }
+    }
+    
+    /**
+     * Clear saved game state from sessionStorage
+     */
+    function clearSavedGameState() {
+      try {
+        sessionStorage.removeItem(MP_STATE_KEY);
+        console.log('[MP] Cleared saved state');
+      } catch (err) {
+        console.error('[MP] Failed to clear saved state:', err);
+      }
+    }
+    
+    /**
+     * Handle opponent disconnection
+     */
+    function handleDisconnect() {
+      console.log('[MP] Opponent disconnected');
+      
+      // Save current game state for potential reconnection
+      saveGameState();
+      
+      // Show disconnect modal with countdown
+      $('disconnect-modal').classList.add('open');
+      let countdown = 30;
+      $('disconnect-countdown').textContent = countdown;
+      
+      // Start countdown timer
+      disconnectCountdownTimer = setInterval(() => {
+        countdown--;
+        $('disconnect-countdown').textContent = countdown;
+        
+        if (countdown <= 0) {
+          clearInterval(disconnectCountdownTimer);
+          disconnectCountdownTimer = null;
+          
+          // Timeout expired - opponent forfeited
+          log('Opponent forfeited due to timeout', 'dmg');
+          $('disconnect-modal').classList.remove('open');
+          
+          // Show result as win
+          state.G.winner = 'You';
+          showResult(true);
+          
+          // Clear saved state
+          clearSavedGameState();
+        }
+      }, 1000);
+    }
+    
+    /**
+     * Handle successful reconnection
+     */
+    function handleReconnect() {
+      console.log('[MP] Opponent reconnected!');
+      
+      // Clear disconnect countdown
+      if (disconnectCountdownTimer) {
+        clearInterval(disconnectCountdownTimer);
+        disconnectCountdownTimer = null;
+      }
+      
+      // Hide disconnect modal
+      $('disconnect-modal').classList.remove('open');
+      
+      // Show reconnect notification
+      log('Opponent reconnected!', 'heal');
+      
+      // Sync state
+      if (state.G.isHost) {
+        const syncState = getMinimalState();
+        multiplayer.send({ type: MP_MSG.SYNC, state: syncState });
+      }
+    }
+    
+    /**
+     * Attempt to reconnect using saved state
+     */
+    async function attemptReconnection(savedState) {
+      console.log('[MP] Attempting reconnection to:', savedState.roomCode);
+      
+      // Show reconnecting modal
+      const reconnectOverlay = document.createElement('div');
+      reconnectOverlay.id = 'reconnect-overlay';
+      reconnectOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      reconnectOverlay.innerHTML = '<div style="text-align:center;color:var(--text);"><div style="font-size:14px;margin-bottom:8px;">Reconnecting...</div><div style="font-size:10px;color:var(--dim);animation:pulse-opacity 1.5s ease-in-out infinite;">Please wait</div></div>';
+      document.body.appendChild(reconnectOverlay);
+      
+      try {
+        // Try to rejoin the room
+        if (savedState.isHost) {
+          await multiplayer.createRoom();
+          // Wait for guest to rejoin
+        } else {
+          await multiplayer.joinRoom(savedState.roomCode);
+        }
+        
+        // Success! Restore game state
+        console.log('[MP] Reconnection successful!');
+        reconnectOverlay.remove();
+        
+        // Restore game state
+        state.G = {
+          ...mkPlayer('shadow'), // Placeholder
+          ...savedState.gameState,
+          mode: 'multiplayer',
+          isHost: savedState.isHost,
+        };
+        
+        // Request full state sync from host
+        if (!savedState.isHost) {
+          multiplayer.send({ type: 'requestSync' });
+        }
+        
+        render();
+        log('Reconnected to game!', 'heal');
+        
+        // Clear saved state after successful reconnection
+        clearSavedGameState();
+        
+      } catch (err) {
+        console.error('[MP] Reconnection failed:', err);
+        reconnectOverlay.remove();
+        
+        // Show error and return to mode select
+        const errorOverlay = document.createElement('div');
+        errorOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
+        errorOverlay.innerHTML = '<div style="text-align:center;color:var(--text);"><div style="font-size:14px;color:var(--red);margin-bottom:12px;">Reconnection Failed</div><div style="font-size:10px;color:var(--dim);margin-bottom:20px;">Could not rejoin game</div><button onclick="location.reload()" style="padding:8px 20px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:inherit;cursor:pointer;">Return to Menu</button></div>';
+        document.body.appendChild(errorOverlay);
+        
+        // Clear saved state
+        clearSavedGameState();
+      }
+    }
+    
+    /**
+     * Handle connection errors
+     */
+    function handleConnectionError(error) {
+      console.error('[MP] Connection error:', error);
+      
+      // Determine error type and show appropriate message
+      let errorMsg = 'Connection failed';
+      let errorDetail = 'Please check your internet connection and try again';
+      
+      if (error.type === 'peer-unavailable' || error.message?.includes('not found')) {
+        errorMsg = 'Room not found';
+        errorDetail = 'The room code you entered does not exist';
+      } else if (error.type === 'network') {
+        errorMsg = 'Network error';
+        errorDetail = 'Could not establish connection';
+      } else if (error.type === 'unavailable-id') {
+        errorMsg = 'Room code taken';
+        errorDetail = 'Please try creating a new room';
+      }
+      
+      // Show error modal
+      const errorModal = document.createElement('div');
+      errorModal.className = 'modal open';
+      errorModal.innerHTML = `
+        <div class="modal-box" style="border-color: var(--red);">
+          <div class="title" style="color: var(--red);">${errorMsg}</div>
+          <p style="text-align: center; font-size: 10px; color: var(--dim); margin: 12px 0;">${errorDetail}</p>
+          <button onclick="this.closest('.modal').remove(); showRoomModal();" style="width:100%;padding:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:10px;cursor:pointer;">Try Again</button>
+          <button onclick="this.closest('.modal').remove(); location.reload();" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--dim);font-family:inherit;font-size:10px;cursor:pointer;margin-top:6px;">Return to Menu</button>
+        </div>
+      `;
+      document.body.appendChild(errorModal);
+    }
+    
+    /**
+     * Wire up multiplayer event handlers
+     */
+    function setupMultiplayerHandlers() {
+      // Disconnection handler
+      multiplayer.onDisconnect = () => {
+        if (state.G && state.G.mode === 'multiplayer' && !state.G.winner) {
+          handleDisconnect();
+        }
+      };
+      
+      // Error handler
+      multiplayer.onError = (error) => {
+        handleConnectionError(error);
+      };
+      
+      // Reconnection handler (connection re-established)
+      const originalOnConnect = multiplayer.onConnect;
+      multiplayer.onConnect = () => {
+        // If we were in a disconnect state, handle reconnection
+        if ($('disconnect-modal').classList.contains('open')) {
+          handleReconnect();
+        }
+        
+        // Call original handler if it exists
+        if (originalOnConnect) {
+          originalOnConnect();
+        }
+      };
+    }
+    
+    /**
+     * Save state periodically during multiplayer games
+     */
+    function startStatePersistence() {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      // Save state every 10 seconds during active game
+      const persistenceTimer = setInterval(() => {
+        if (!state.G || state.G.mode !== 'multiplayer' || state.G.winner) {
+          clearInterval(persistenceTimer);
+          return;
+        }
+        saveGameState();
+      }, 10000);
+    }
+    
+    /**
+     * Initialize and check for reconnection on page load
+     */
+    function initializeMultiplayer() {
+      // Setup event handlers
+      setupMultiplayerHandlers();
+      
+      // Check for saved state on page load
+      const savedState = loadSavedGameState();
+      if (savedState) {
+        console.log('[MP] Found saved state, attempting reconnection');
+        
+        // Ask user if they want to reconnect
+        const reconnectPrompt = document.createElement('div');
+        reconnectPrompt.className = 'modal open';
+        reconnectPrompt.innerHTML = `
+          <div class="modal-box" style="border-color: var(--blue);">
+            <div class="title" style="color: var(--blue);">Reconnect to Game?</div>
+            <p style="text-align: center; font-size: 10px; color: var(--dim); margin: 12px 0;">You have an unfinished multiplayer game</p>
+            <button onclick="this.closest('.modal').remove(); attemptReconnectionWrapper();" style="width:100%;padding:12px;background:rgba(59,130,246,0.15);border:1px solid var(--blue);color:var(--text);font-family:inherit;font-size:11px;cursor:pointer;">Reconnect</button>
+            <button onclick="this.closest('.modal').remove(); clearSavedGameState(); showModeSelect();" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--dim);font-family:inherit;font-size:10px;cursor:pointer;margin-top:6px;">Start New Game</button>
+          </div>
+        `;
+        document.body.appendChild(reconnectPrompt);
+        
+        // Wrapper function for onclick handler
+        window.attemptReconnectionWrapper = () => {
+          attemptReconnection(savedState);
+        };
+        
+        return; // Don't show mode select if we have saved state
+      }
+      
+      // No saved state - show mode select normally
+      showModeSelect();
+    }
+    
     // Show mode select on page load
     document.addEventListener('DOMContentLoaded', () => {
-      showModeSelect();
+      initializeMultiplayer();
     });
     
     // Timer update function (uses ANIM_TIMING)
@@ -4359,6 +5398,12 @@
       ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !attackAllowed || !state.G.myTurn);
       ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !retreatAllowed || !state.G.myTurn);
       ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !state.G.myTurn);
+      
+      // Show/hide forfeit button in multiplayer mode
+      const isMultiplayer = state.G.mode === 'multiplayer';
+      ['m-btn-forfeit','d-btn-forfeit'].forEach(id => {
+        $(id).style.display = isMultiplayer ? 'block' : 'none';
+      });
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -4953,15 +5998,40 @@
         return;
       }
       
-      // Multiplayer: Send action message (will need selection result if applicable)
+      // Handle selection BEFORE sending to multiplayer (for targeting spells)
+      let selectionResult = null;
+      if (c.selection?.type === 'anyCreature') {
+        // Multiplayer: Notify opponent we're selecting target
+        if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+          multiplayer.send({
+            type: MP_MSG.SELECTING,
+            cardName: c.name
+          });
+        }
+        
+        selectionResult = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
+        if (!selectionResult) return; // Canceled - no mana spent
+      }
+      
+      // Multiplayer: Send action message with selection
       if (state.G.mode === 'multiplayer' && state.G.myTurn) {
-        // Note: For now, selection happens locally then sends complete action
-        // TODO: Handle complex selections in multiplayer
-        multiplayer.send({
+        const actionMsg = {
           type: MP_MSG.ACTION,
           action: 'cast',
           cardUid: c.uid
-        });
+        };
+        
+        // Include selection if targeting spell
+        if (selectionResult) {
+          actionMsg.selection = {
+            targetUid: selectionResult.creature.uid,
+            location: selectionResult.location,
+            ownerKey: selectionResult.ownerKey,
+            idx: selectionResult.idx
+          };
+        }
+        
+        multiplayer.send(actionMsg);
         
         // Guest waits for host to validate and sync
         if (!state.G.isHost) {
@@ -5019,7 +6089,7 @@
       }
       
       // === SELECTION CARDS: Get selection BEFORE spending mana ===
-      let selectionResult = null;
+      // Note: selectionResult already declared above for anyCreature targeting
       
       if (c.requiresSelection) {
         if (c.id === 'graveEcho') {
@@ -6215,6 +7285,13 @@
         });
       }
       
+      // Save state after turn ends (multiplayer)
+      if (state.G.mode === 'multiplayer') {
+        saveGameState();
+        // Periodic desync detection
+        checkDesync();
+      }
+      
       render();
       
       // TURN END animation
@@ -6225,6 +7302,7 @@
         state.G.myTurn = false;
         log("Opponent's turn", 'mana');
         render();
+        startTurnTimer(); // Start timer for opponent's turn
         // No AI turn in multiplayer
       } else {
         // AI turn
@@ -8002,8 +9080,116 @@
     
     function showResult(win) {
       clearInterval(state.timerInt);
+      stopTurnTimer();
       $('result').classList.add('open', win ? 'win' : 'lose');
       $('result-text').textContent = win ? '[ VICTORY ]' : '[ DEFEAT ]';
+      
+      // Clear saved state on game end
+      if (state.G && state.G.mode === 'multiplayer') {
+        clearSavedGameState();
+        
+        // Send forfeit message if opponent is still connected
+        if (multiplayer.connected) {
+          multiplayer.send({ type: MP_MSG.FORFEIT });
+        }
+      }
+      
+      // Show multiplayer-specific buttons
+      if (state.G && state.G.mode === 'multiplayer') {
+        $('result-buttons').innerHTML = `
+          <button class="primary" onclick="requestRematch()">Rematch</button>
+          <button onclick="leaveMultiplayerGame()">Leave</button>
+        `;
+      } else {
+        $('result-buttons').innerHTML = `
+          <button onclick="location.reload()">Play Again</button>
+        `;
+      }
+    }
+    
+    /**
+     * Request rematch - send REMATCH message to opponent
+     */
+    function requestRematch() {
+      if (!state.G || state.G.mode !== 'multiplayer') return;
+      
+      state.G.wantsRematch = true;
+      multiplayer.send({ type: MP_MSG.REMATCH });
+      
+      // Show waiting state
+      $('result-buttons').innerHTML = `
+        <button disabled>Rematch Requested</button>
+        <button onclick="leaveMultiplayerGame()">Leave</button>
+      `;
+      $('waiting-rematch').style.display = 'block';
+      
+      log('Waiting for opponent to accept rematch...', 'mana');
+    }
+    
+    /**
+     * Leave multiplayer game - disconnect and return to mode select
+     */
+    function leaveMultiplayerGame() {
+      // Notify opponent we're leaving
+      if (multiplayer.connected) {
+        multiplayer.send({ type: MP_MSG.LEAVE });
+        setTimeout(() => multiplayer.disconnect(), 100); // Small delay to ensure message sends
+      }
+      
+      // Reset game state
+      clearGame();
+      
+      // Hide result screen
+      $('result').classList.remove('open', 'win', 'lose');
+      $('waiting-rematch').style.display = 'none';
+      
+      // Show mode select
+      $('mode-select').classList.remove('hidden');
+      $('setup').classList.add('hidden');
+      
+      log('Left game', 'dim');
+    }
+    
+    /**
+     * Start rematch - both players agreed, return to deck select
+     */
+    function startRematch() {
+      // Hide result screen
+      $('result').classList.remove('open', 'win', 'lose');
+      $('waiting-rematch').style.display = 'none';
+      
+      // Clear game state but keep connection
+      clearGame();
+      
+      // Show deck select
+      $('setup').classList.remove('hidden');
+      
+      // Reset rematch flags
+      state.G = {
+        mode: 'multiplayer',
+        isHost: multiplayer.isHost,
+        opponentReady: false,
+        wantsRematch: false
+      };
+      
+      log('Rematch starting - choose your deck!', 'mana');
+    }
+    
+    /**
+     * Forfeit the game
+     */
+    function doForfeit() {
+      if (!state.G || state.G.mode !== 'multiplayer' || state.G.winner) return;
+      
+      if (!confirm('Are you sure you want to forfeit?')) return;
+      
+      // Send forfeit message
+      multiplayer.send({ type: MP_MSG.FORFEIT });
+      
+      // End game
+      state.G.winner = 'Opponent';
+      log('You forfeited', 'dmg');
+      showResult(false);
     }
     
     function showRules() {
@@ -8215,6 +9401,11 @@
     window.doAttack = doAttack;
     window.doRetreat = doRetreat;
     window.endTurn = endTurn;
+    window.doForfeit = doForfeit;
+    
+    // Multiplayer
+    window.requestRematch = requestRematch;
+    window.leaveMultiplayerGame = leaveMultiplayerGame;
     
     // Modals
     window.modalAction = modalAction;
