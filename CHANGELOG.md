@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.23] - 2026-02-08
+
+### Changed
+- Swap creature/cast verse colors: creatures now orange, cast verses now green (borders, zoom modal, trigger reveals)
+
+---
+
+
 ## [0.4.22] - 2026-02-08
 
 ### Changed

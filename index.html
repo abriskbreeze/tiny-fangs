@@ -285,8 +285,8 @@
       overflow: hidden;
     }
     
-    .card-active.creature { border-color: var(--green); }
-    .card-active.verse-cast { border-color: var(--gold); }
+    .card-active.creature { border-color: var(--gold); }
+    .card-active.verse-cast { border-color: var(--green); }
     .card-active.verse-set { border-color: var(--purple); }
     
     .card-active .header {
@@ -509,8 +509,8 @@
       background: rgba(59,130,246,0.15);
     }
     
-    .hand-card.creature { border-color: var(--green); }
-    .hand-card.verse-cast { border-color: var(--gold); }
+    .hand-card.creature { border-color: var(--gold); }
+    .hand-card.verse-cast { border-color: var(--green); }
     .hand-card.verse-set { border-color: var(--purple); }
     
     /* Drag-to-play drop zones */
@@ -956,8 +956,8 @@
         background: rgba(59,130,246,0.1);
       }
       
-      .d-hand-card.creature { border-color: var(--green); }
-      .d-hand-card.verse-cast { border-color: var(--gold); }
+      .d-hand-card.creature { border-color: var(--gold); }
+      .d-hand-card.verse-cast { border-color: var(--green); }
       .d-hand-card.verse-set { border-color: var(--purple); }
       
       .d-hand-card .cost {
@@ -1099,18 +1099,18 @@
     
     /* Card type colors */
     .card-detail .top-bar.creature {
-      background: rgba(34, 197, 94, 0.15);
-      border-color: rgba(34, 197, 94, 0.3);
-    }
-    .card-detail .top-bar.creature .type {
-      color: #22c55e;
-    }
-    .card-detail .top-bar.cast-verse {
       background: rgba(255, 140, 0, 0.15);
       border-color: rgba(255, 140, 0, 0.3);
     }
-    .card-detail .top-bar.cast-verse .type {
+    .card-detail .top-bar.creature .type {
       color: #ff8c00;
+    }
+    .card-detail .top-bar.cast-verse {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+    .card-detail .top-bar.cast-verse .type {
+      color: #22c55e;
     }
     .card-detail .top-bar.set-verse {
       background: rgba(168, 85, 247, 0.15);
@@ -1755,24 +1755,24 @@
         inset 0 0 40px rgba(139, 92, 246, 0.1);
     }
     
-    /* Cast verse uses gold/orange */
+    /* Cast verse uses green */
     .trigger-modal.cast.open {
-      animation: trigger-bg-pulse-gold 0.8s ease-out;
+      animation: trigger-bg-pulse-green 0.8s ease-out;
     }
     .trigger-modal.cast .trigger-box {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), var(--panel-solid));
-      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), var(--panel-solid));
+      border-color: var(--green);
       box-shadow: 
-        0 0 60px 20px rgba(245, 158, 11, 0.4),
-        0 0 100px 40px rgba(245, 158, 11, 0.2),
-        inset 0 0 40px rgba(245, 158, 11, 0.1);
+        0 0 60px 20px rgba(34, 197, 94, 0.4),
+        0 0 100px 40px rgba(34, 197, 94, 0.2),
+        inset 0 0 40px rgba(34, 197, 94, 0.1);
     }
     .trigger-modal.cast .trigger-header {
-      background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent);
-      border-bottom-color: rgba(245, 158, 11, 0.5);
+      background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.3), transparent);
+      border-bottom-color: rgba(34, 197, 94, 0.5);
     }
     .trigger-modal.cast .name-row .type {
-      color: var(--gold);
+      color: var(--green);
     }
     
     /* Set verse (purple) - default style, already set */
@@ -1783,26 +1783,26 @@
       color: var(--purple);
     }
     
-    /* Creature ability uses green */
+    /* Creature ability uses orange/gold */
     .trigger-modal.creature.open {
-      animation: trigger-bg-pulse-green 0.8s ease-out;
+      animation: trigger-bg-pulse-gold 0.8s ease-out;
     }
     .trigger-modal.creature .trigger-box {
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), var(--panel-solid));
-      border-color: var(--green);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), var(--panel-solid));
+      border-color: var(--gold);
       box-shadow: 
-        0 0 60px 20px rgba(34, 197, 94, 0.4),
-        0 0 100px 40px rgba(34, 197, 94, 0.2),
-        inset 0 0 40px rgba(34, 197, 94, 0.1);
+        0 0 60px 20px rgba(245, 158, 11, 0.4),
+        0 0 100px 40px rgba(245, 158, 11, 0.2),
+        inset 0 0 40px rgba(245, 158, 11, 0.1);
     }
     .trigger-modal.creature .trigger-header {
-      background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.3), transparent);
-      border-bottom-color: rgba(34, 197, 94, 0.5);
-      color: var(--green);
-      text-shadow: 0 0 20px var(--green);
+      background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent);
+      border-bottom-color: rgba(245, 158, 11, 0.5);
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--gold);
     }
     .trigger-modal.creature .name-row .type {
-      color: var(--green);
+      color: var(--gold);
     }
     
     @keyframes trigger-bg-pulse-green {
@@ -1847,10 +1847,10 @@
       text-shadow: 0 0 20px var(--purple);
     }
     
-    /* Cast verse header - gold color */
+    /* Cast verse header - green color */
     .trigger-modal.cast .trigger-header {
-      color: var(--gold);
-      text-shadow: 0 0 20px var(--gold);
+      color: var(--green);
+      text-shadow: 0 0 20px var(--green);
     }
     
     .trigger-flash {
