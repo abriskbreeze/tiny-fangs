@@ -280,9 +280,42 @@ function scoreCast(card, ai, player) {
       const allSummonedThisTurn = ai.bench.every(c => c.summonedThisTurn);
       if (allSummonedThisTurn) return -100; // Don't sacrifice just-summoned creatures
       return 35;
+    
+    // Shell Pack healing verses — require active creature
+    case 'shellArmor':
+      // Heal 25 — only if damaged
+      if (!ai.active) return -100;
+      const shellMissing = ai.active.hp - ai.active.curHp;
+      if (shellMissing < 15) return -20;
+      return 35 + shellMissing;
+      
+    case 'regenerate':
+      // Heal 40 + cure poison — only if damaged or poisoned
+      if (!ai.active) return -100;
+      const regenMissing = ai.active.hp - ai.active.curHp;
+      const isPoisoned = ai.active.status === 'poison';
+      if (regenMissing < 20 && !isPoisoned) return -20;
+      return 40 + regenMissing + (isPoisoned ? 30 : 0);
+      
+    case 'fortify':
+      // +20 max HP — only if active exists and not already fortified
+      if (!ai.active) return -100;
+      if (ai.active.fortified) return -100;
+      // More valuable when low HP (survival mode)
+      return ai.active.curHp <= 30 ? 50 : 25;
+      
+    case 'unbreakable':
+      // Survive next lethal — only if active and not already shielded
+      if (!ai.active) return -100;
+      if (ai.active.shielded) return -100;
+      // More valuable when low HP
+      return ai.active.curHp <= 25 ? 60 : 30;
       
     default:
-      return 20; // Unknown cast verse, low priority
+      // Unknown verse — check if it requires active creature (healing/buff pattern)
+      // Be conservative: if no active, don't cast unknown verses
+      if (!ai.active) return -50;
+      return 20;
   }
 }
 

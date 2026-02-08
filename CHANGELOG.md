@@ -2,6 +2,16 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.4.2] - 2026-02-08
+
+### Fixed
+- **AI casts healing verses without active creature** — Hunter AI now properly scores Shell Pack verses:
+  - `shellArmor`, `regenerate`, `fortify`, `unbreakable` all return -100 if no active
+  - Added intelligent scoring based on missing HP, poison status, existing buffs
+  - Default case also checks for active creature before casting unknown verses
+
+---
+
 ## [0.4.1] - 2026-02-07
 
 ### Added
