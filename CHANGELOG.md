@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.40] - 2026-02-08
+
+### Changed
+- Fix double survive log + sync AI paths: setHP now includes ability name, removed duplicate checkLethalDamage log, Pup AI gets missing KO animation and flag clearing
+
+---
+
+
 ## [0.4.39] - 2026-02-08
 
 ### Changed
