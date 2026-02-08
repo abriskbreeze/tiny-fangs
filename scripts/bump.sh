@@ -28,8 +28,9 @@ echo "  ✓ package.json"
 sed -i '' "s/\*\*v[0-9.]*\*\*/\*\*v$VERSION\*\*/" README.md
 echo "  ✓ README.md"
 
-# 4. index.html (setup screen version)
+# 4. index.html (setup screen version + page title)
 sed -i '' "s/v[0-9.]* • Card Battler/v$VERSION • Card Battler/" index.html
+sed -i '' "s/<title>TINY FANGS v[0-9.]*<\/title>/<title>TINY FANGS v$VERSION<\/title>/" index.html
 echo "  ✓ index.html"
 
 # 5. CHANGELOG.md (prepend new entry)
