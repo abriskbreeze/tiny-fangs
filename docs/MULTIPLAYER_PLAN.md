@@ -35,14 +35,14 @@ Alternative considered: Socket.io (requires server), raw WebRTC (complex)
 
 ## Game Flow
 
-### Phase 1: Matchmaking (Pre-Game)
+### Phase 1: Mode Selection (BEFORE Deck Select)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  DECK SELECT SCREEN                                            │
+│  MODE SELECT (Title Screen)                                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  [Play vs AI]    [Play vs Friend]                              │
+│         [Play vs AI]       [Play vs Friend]                    │
 │                                                                 │
 │  If "Play vs Friend":                                          │
 │  ┌─────────────────────────────────────┐                       │
@@ -57,12 +57,12 @@ Alternative considered: Socket.io (requires server), raw WebRTC (complex)
 
 ### Phase 2: Connection & Deck Selection
 
-1. Host creates room → generates 4-letter code (e.g., "FANGS-ABCD")
-2. Guest enters code → connects via PeerJS
-3. Both players select decks
-4. Host sees "Waiting for opponent's deck..."
-5. When both ready, coin flip determines first player
-6. Game starts with synchronized state
+1. **Mode first:** Player chooses AI or Friend
+2. **If Friend:** Create/Join room, exchange code, wait for connection
+3. **Then deck select:** Both players pick decks (opponent's deck HIDDEN)
+4. **Ready check:** "Waiting for opponent's deck..."
+5. **Coin flip:** Determines first player
+6. **Game starts:** Decks revealed only as cards are played
 
 ### Phase 3: Gameplay Sync
 
@@ -288,21 +288,30 @@ multiplayer.onMessage = async (msg) => {
 
 1. **Disconnection handling:**
    - Mid-game disconnect → "Opponent disconnected" modal
-   - Options: Wait (30s timeout), Claim Victory, Rematch
+   - Show reconnect countdown (30s)
+   - Options: [Wait for Reconnect] / [Leave Game]
+   - If timeout expires: "Opponent forfeited"
 
 2. **Reconnection:**
    - Store game state in sessionStorage
-   - Allow rejoin with same room code within timeout
+   - Allow rejoin with same room code within 30s timeout
+   - On reconnect: sync full state, resume game
 
-3. **Desync detection:**
+3. **Rematch flow:**
+   - Game end → [Rematch] / [Leave]
+   - If Rematch: return to deck select (same room stays connected)
+   - Both players can pick new decks
+   - Ready check → new coin flip → new game
+
+4. **Desync detection:**
    - Periodic state hash comparison
    - If mismatch, host sends full state sync
 
-4. **Animations:**
+5. **Animations:**
    - Guest plays animations based on received actions
    - May need slight delay for sync
 
-5. **Mobile considerations:**
+6. **Mobile considerations:**
    - Room code input: auto-uppercase, no special chars
    - Copy/paste room code button
 
@@ -373,12 +382,20 @@ Or use CDN:
 
 ---
 
-## Questions Before Implementation
+## Design Decisions (Confirmed)
 
-1. **Self-host PeerJS?** Free tier is 10k connections/month. Enough for testing, but may need own server for production.
+1. **PeerJS hosting:** Use free cloud tier (P2P, low traffic expected). Self-host only if limits hit.
 
-2. **Handle slow connections?** Turn timer? Action timeout?
+2. **Deck visibility:** Hidden until cards are played (adds strategy).
 
-3. **Rematch flow?** Same room or new code?
+3. **Disconnect handling:** Show reconnect window (30s timeout), not auto-forfeit.
 
-4. **Deck reveal timing?** Show opponent's deck at game start or keep hidden until played?
+4. **Rematch flow:** Same room stays connected → return to deck select → both can pick new decks.
+
+5. **Mode selection:** Happens BEFORE deck select (title screen).
+
+## Open Questions
+
+1. **Turn timer?** Add time limit per turn to prevent stalling? (e.g., 60s)
+
+2. **Slow connection handling?** Action timeout? Retry logic?
