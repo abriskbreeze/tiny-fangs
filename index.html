@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.7</title>
+  <title>TINY FANGS v0.4.8</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -5475,6 +5475,12 @@
       // === afterAttack Event (AI attack) ===
       // Fire for ALL abilities that trigger on attack completion
       // NOTE: For AI attacks, ai=opp and player=me from state perspective
+      console.log('[DEBUG] afterAttack check:', { 
+        attacker: attacker?.name, 
+        attackerHp: attacker?.curHp,
+        defender: player.active?.name,
+        defenderHp: player.active?.curHp
+      });
       if (attacker && attacker.curHp > 0) {
         const afterAttackContext = {
           attacker,
@@ -5489,9 +5495,13 @@
           damageDealt: dmg,
           activePlayerKey: 'opp'  // AI is the active player
         };
+        console.log('[DEBUG] Firing afterAttack triggers with context:', afterAttackContext);
         await processTriggers('afterAttack', afterAttackContext, state, {
           promptTrigger,
-          showTriggerReveal,
+          showTriggerReveal: async (card) => {
+            console.log('[DEBUG] Trigger revealed:', card.name, card.ability?.name);
+            return showTriggerReveal(card);
+          },
           log,
           render,
           processEffects: async (card, ctx) => {
@@ -5521,6 +5531,22 @@
       // NOTE: Sundew Queen Digest now handled by afterAttack triggers
       
       if (playerKo) {
+        // DEBUG: Log KO state
+        console.log('[DEBUG] Processing player KO:', { 
+          creature: player.active?.name, 
+          hp: player.active?.curHp,
+          playerKo 
+        });
+        await Anim.ko('me');
+        await ko(player.active, player, attacker, ai);
+      } else if (player.active && player.active.curHp <= 0) {
+        // DEBUG: Detect 0 HP without KO flag
+        console.error('[BUG] Creature at 0 HP but playerKo is false!', {
+          creature: player.active.name,
+          hp: player.active.curHp,
+          playerKo
+        });
+        // Force KO to prevent 0 HP creatures from staying on field
         await Anim.ko('me');
         await ko(player.active, player, attacker, ai);
       }

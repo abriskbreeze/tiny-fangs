@@ -88,6 +88,11 @@ const Effects = {
     // Only mark as dealt if actual damage > 0
     if (finalAmount > 0) {
       ctx.damageWasDealt = true;
+      
+      // Log ability-triggered damage (e.g., Thornling Thorns, Coilshell Recoil)
+      if (ctx.log && ctx.card?.ability?.name) {
+        ctx.log(`${ctx.card.ability.name}! -${finalAmount} to ${creature.name}`, 'dmg');
+      }
     }
     
     // Determine owner object first (needed for animation key)
