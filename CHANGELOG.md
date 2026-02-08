@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.36] - 2026-02-08
+
+### Changed
+- Refactor Fortify to use checkLethalDamage - removed hardcoded checks from attack flow
+
+---
+
+
 ## [0.4.35] - 2026-02-08
 
 ### Changed

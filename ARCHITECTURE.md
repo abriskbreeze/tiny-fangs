@@ -119,11 +119,11 @@
 │                                                                 │
 │  4. ──▶ Apply damage (applyDamage)                             │
 │         │                                                       │
-│  5. ──▶ onLethalDamage triggers (Bulwark Fortress)             │
+│  5. ──▶ checkLethalDamage()                                    │
 │         │                                                       │
-│         ├── HP > 0? ──▶ Prevented, skip KO                     │
-│         │                                                       │
-│  6. ──▶ Fortify check (verse buff)                             │
+│         ├── Fortify buff? ──▶ Survive with 1 HP                │
+│         ├── onLethalDamage triggers (Bulwark Fortress)         │
+│         └── HP > 0? ──▶ Prevented, skip KO                     │
 │         │                                                       │
 │  7. ──▶ onHit triggers (Leechling Drain, Sundew Digest)        │
 │         │                                                       │
