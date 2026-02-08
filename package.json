@@ -1,12 +1,15 @@
 {
   "name": "tiny-fangs",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "deploy": "npm test && npm run build && git add -A && git diff --cached --stat",
+    "deploy:push": "npm test && npm run build && git add -A && git commit -m \"${npm_config_msg:-Deploy}\" && git push",
+    "bump": "./scripts/bump.sh"
   },
   "devDependencies": {
     "vite": "^6.3.5",

@@ -558,3 +558,29 @@ Trigger system migration requires: (1) card declares trigger, (2) game path emit
 
 **Tests:** 257 passing (+3 from trigger tests)
 
+
+### 2026-02-07 Night — v0.4.0 Major Release + UI Features
+
+**v0.4.0: 33 bugs fixed across 2 sprints**
+- Sprint 1: 15 fixes (trigger system, UI, game flow)
+- Sprint 2: 18 fixes (damage system, AI, creature abilities)
+- All using parallel subagents + Karpathy guidelines
+
+**v0.4.1: Dual Deck Selector**
+- Player selects their deck (5 decks + Random)
+- Then selects AI deck (5 decks + Random)
+- Then coin flip → game start
+- Added: `selectPlayerDeck()`, `showAIDeckSelector()`, `selectAIDeck()`, `getRandomDeckId()`
+
+**v0.4.2: AI Healing Verse Scoring**
+- Hunter AI was falling through to default for Shell Pack cast verses
+- Added proper scoring: `shellArmor`, `regenerate`, `fortify`, `unbreakable` return -100 if no active
+
+**v0.4.3: AI Set Verse Scoring**
+- Added smarter scoring for `brace` and `spikeShield`
+- `brace`: higher priority when active is wounded
+- `spikeShield`: higher priority vs low-HP attackers
+
+**Current Version:** v0.4.3
+**Tests:** 261 passing
+

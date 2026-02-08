@@ -82,7 +82,7 @@ See [`guides/CARD-AUTHORING.md`](guides/CARD-AUTHORING.md) for full guide.
 
 ## Version
 
-**v0.4.3** — [Changelog](CHANGELOG.md)
+**v0.4.4** — [Changelog](CHANGELOG.md)
 
 ## Tech Stack
 

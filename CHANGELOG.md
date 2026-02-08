@@ -2,7 +2,15 @@
 
 All notable changes to Tiny Fangs.
 
-## [0.4.3] - 2026-02-08
+
+## [0.4.4] - 2026-02-08
+
+### Changed
+- Added automation scripts (bump, deploy, bugfix-sprint skill)
+
+---
+
+
 
 ### Improved
 - **AI scoring for Shell Pack set verses:**
