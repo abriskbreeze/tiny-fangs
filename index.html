@@ -6883,13 +6883,15 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap to continue</div>';
+        $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'TRIGGERED!';
         $('triggerModal').classList.remove('cast', 'set', 'creature');
         $('triggerModal').classList.add('open', typeClass);
         
-        // Wait for click to dismiss (no auto-dismiss)
-        // User must tap/click to continue
+        // Auto-dismiss after delay (click also dismisses)
+        triggerRevealTimeout = setTimeout(() => {
+          dismissTriggerReveal();
+        }, ANIM_TIMING.TRIGGER_REVEAL);
       });
     }
     
@@ -6913,12 +6915,15 @@
           </div>
         `;
         
-        $('triggerContent').innerHTML = content + '<div class="tap-hint">tap to continue</div>';
+        $('triggerContent').innerHTML = content;
         $('triggerHeaderText').textContent = 'CAST!';
         $('triggerModal').classList.remove('set', 'creature');
         $('triggerModal').classList.add('open', 'cast');
         
-        // Wait for click to dismiss (no auto-dismiss)
+        // Auto-dismiss after delay (click also dismisses)
+        triggerRevealTimeout = setTimeout(() => {
+          dismissTriggerReveal();
+        }, 2500);
       });
     }
     
