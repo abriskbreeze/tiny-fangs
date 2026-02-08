@@ -70,10 +70,25 @@ const Effects = {
     const creature = resolveTarget(ctx, target);
     if (!creature) return { ko: false };
     
-    creature.curHp -= amount;
+    // BUG-A1 FIX: Apply Harden (Shellkin) damage reduction for non-combat damage
+    // Harden reduces first 10 damage from ANY source each turn
+    let finalAmount = amount;
+    if (creature.id === 'shellkin' && !creature.hardenUsed) {
+      const reduction = Math.min(10, amount);
+      finalAmount = Math.max(0, amount - reduction);
+      creature.hardenUsed = true;
+      if (ctx.log) {
+        ctx.log(`Harden! -${reduction} damage`, 'heal');
+      }
+    }
+    
+    creature.curHp -= finalAmount;
     
     // Track that damage was dealt (for conditional healing like Soul Siphon)
-    ctx.damageWasDealt = true;
+    // Only mark as dealt if actual damage > 0
+    if (finalAmount > 0) {
+      ctx.damageWasDealt = true;
+    }
     
     // Determine owner object first (needed for animation key)
     let owner;
@@ -95,9 +110,9 @@ const Effects = {
     // Animation (if available)
     // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
     // Convert from ctx-relative key by checking against state.G
-    if (typeof Anim !== 'undefined') {
+    if (typeof Anim !== 'undefined' && finalAmount > 0) {
       const animKey = owner === ctx.state?.G?.me ? 'me' : 'opp';
-      await Anim.damage(animKey, amount);
+      await Anim.damage(animKey, finalAmount);
     }
     
     const isKo = creature.curHp <= 0;
@@ -308,8 +323,10 @@ const Effects = {
     
     // BUG-05 FIX: Reset HP when returning creature to hand
     // When a creature returns to hand (e.g., Grave Echo), it should have full HP
+    // BUG-A6 FIX: Also clear ATK bonuses to prevent stacking on re-summon
     if (toZone === 'hand' && card.hp !== undefined) {
       card.curHp = card.hp;
+      card.atkBonuses = [];
     }
     
     // Add to destination
@@ -351,13 +368,15 @@ const Effects = {
       }
       
       // Note: does NOT go to grave - removed from game
+      const needsReplacement = location === 'active' && ownerObj.bench.length > 0;
       return { 
         banished: true, 
         owner: ownerKey, 
-        needsReplacement: location === 'active' && ownerObj.bench.length > 0,
+        needsReplacement,
         creature,
         location,
-        ownerKey
+        ownerKey,
+        modifiedContext: { needsReplacement }
       };
     }
     
@@ -371,7 +390,8 @@ const Effects = {
       }
       ownerObj.active = null;
       // Note: does NOT go to grave - removed from game
-      return { banished: true, owner, needsReplacement: true };
+      // BUG-C1 FIX: Also add modifiedContext for legacy path
+      return { banished: true, owner, needsReplacement: true, modifiedContext: { needsReplacement: true } };
     }
     
     return { banished: false };
@@ -823,6 +843,24 @@ const Effects = {
     }
     if (typeof Anim !== 'undefined') {
       await Anim.benchToActive(ownerKey);
+    }
+
+    // BUG-A2 FIX: Chain Lightning triggers when new creature becomes active via swap
+    if (owner.chainLightning > 0 && owner.active) {
+      if (typeof Anim !== 'undefined') {
+        await Anim.wait(300);
+        await Anim.damage(ownerKey, owner.chainLightning);
+      }
+      const chainDmg = owner.chainLightning;
+      owner.active.curHp -= chainDmg;
+      if (ctx.log) {
+        ctx.log(`Chain Lightning: -${chainDmg}`, 'dmg');
+      }
+      owner.chainLightning = 0;
+      // Return chainKO info so caller can process KO if needed
+      if (owner.active.curHp <= 0) {
+        return { swapped: true, from: current, to: selectedBench, chainKO: true, chainKOCreature: owner.active };
+      }
     }
 
     return { swapped: true, from: current, to: selectedBench };

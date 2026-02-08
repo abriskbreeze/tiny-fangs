@@ -187,6 +187,52 @@ describe('Triggers', () => {
       // owner: 'me' means trigger owner should match life-loser, but opp != me
       expect(matchesTrigger(trigger, 'beforeLifeLoss', context)).toBe(false);
     });
+
+    // BUG-D1 FIX: Location condition for Hiveling bench-only trigger
+    it('matches location: bench condition when summoned to bench', () => {
+      const trigger = { 
+        event: 'onSummon', 
+        condition: { self: true, location: 'bench' } 
+      };
+      const creature = createCreature({ uid: 'hiveling123' });
+      const context = { 
+        summoned: creature,
+        self: creature,
+        summonLocation: 'bench',
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'onSummon', context)).toBe(true);
+    });
+
+    it('does NOT match location: bench when summoned to active', () => {
+      const trigger = { 
+        event: 'onSummon', 
+        condition: { self: true, location: 'bench' } 
+      };
+      const creature = createCreature({ uid: 'hiveling123' });
+      const context = { 
+        summoned: creature,
+        self: creature,
+        summonLocation: 'active',  // Summoned to active, not bench
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'onSummon', context)).toBe(false);
+    });
+
+    it('matches location: active condition when summoned to active', () => {
+      const trigger = { 
+        event: 'onSummon', 
+        condition: { self: true, location: 'active' } 
+      };
+      const creature = createCreature({ uid: 'test123' });
+      const context = { 
+        summoned: creature,
+        self: creature,
+        summonLocation: 'active',
+        triggerOwnerKey: 'me'
+      };
+      expect(matchesTrigger(trigger, 'onSummon', context)).toBe(true);
+    });
   });
 
   describe('getMatchingTriggers', () => {

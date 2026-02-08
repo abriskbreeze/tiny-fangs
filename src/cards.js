@@ -19,7 +19,7 @@ export const CREATURES = {
       effects: [{ type: 'damage', target: 'attacker', amount: 10 }]
     },
     flavor:'"It doesn\'t chase. It waits."',
-    art:' 🌿ί\n(●oο)\n \\|/' },
+    art:'  ί\n(●oο)\n \\|/' },
   cindermaw: { id:'cindermaw', name:'Cindermaw', subtitle:'Ember Shrew', cost:2, hp:30, atk:30,
     ability: {
       name: 'Frenzy',
@@ -65,7 +65,8 @@ export const CREATURES = {
   hexweaver: { id:'hexweaver', name:'Hexweaver', subtitle:'Curse Spider', cost:2, hp:40, atk:20,
     ability: {
       name: 'Venom Thread',
-      text: 'On hit, enemy takes 10 at end of each turn.',
+      // BUG-A5 FIX: Updated text to clarify poison mechanic
+      text: 'On hit, enemy takes 10 damage at end of each turn until cured.',
       trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } },
       effects: [{ type: 'setStatus', target: 'defender', status: 'poison' }]
     },
@@ -154,8 +155,8 @@ export const CREATURES = {
   hiveling: { id:'hiveling', name:'Hiveling', subtitle:'Swarm Drone', cost:1, hp:20, atk:20,
     ability: {
       name: 'Swarm',
-      text: 'When summoned with 2+ creatures, draw 1 card.',
-      trigger: { event: 'onSummon', condition: { self: true, swarm: true } },
+      text: 'When summoned to the bench, draw 1 card.',
+      trigger: { event: 'onSummon', condition: { self: true, location: 'bench' } },
       effects: [{ type: 'draw', count: 1 }]
     },
     flavor:'"One of many."',
@@ -197,7 +198,8 @@ export const CREATURES = {
     ability: {
       name: 'Spawn',
       text: 'End of your turn, summon a 10/10 Antling to bench (max 2).',
-      trigger: { event: 'turnEnd', condition: { self: 'active' } },
+      // BUG-C3 FIX: Added myTurn condition - only fires on owner's turn
+      trigger: { event: 'turnEnd', condition: { self: 'active', myTurn: true } },
       effects: [{ type: 'summonToken', token: 'antling', location: 'bench', maxBench: 2 }]
     },
     flavor:'"The swarm is eternal."',
@@ -234,7 +236,7 @@ export const CREATURES = {
   coilshell: { id:'coilshell', name:'Coilshell', subtitle:'Spike Snail', cost:2, hp:45, atk:25,
     ability: {
       name: 'Recoil',
-      text: 'When damaged, deal 10 back to attacker.',
+      text: 'When attacked, deal 10 back to attacker.',
       trigger: { event: 'afterAttack', condition: { defender: 'self' } },
       effects: [{ type: 'damage', target: 'attacker', amount: 10 }]
     },
@@ -264,7 +266,7 @@ export const CREATURES = {
   titanback: { id:'titanback', name:'Titanback', subtitle:'Ancient Tortoise', cost:4, hp:85, atk:25,
     ability: {
       name: 'Juggernaut',
-      text: 'Takes -15 damage. When KO\'d, deal 25 to enemy creature.',
+      text: 'Resists first 15 damage per turn. When KO\'d deal 25 damage to enemy creature.',
       procedural: true  // Handled in damage calc + onKO - dual ability
     },
     flavor:'"Mountains move slowly."',
@@ -301,7 +303,7 @@ export const VERSES = {
       { type: 'setFlag', flag: 'usedManaSurge', value: true }
     ] },
   predatorsMark: { id:'predatorsMark', name:"Predator's Mark", type:'cast', cost:2,
-    text:'Your creature\'s next attack deals +30 damage.',
+    text:'Your next attack deals +30 damage.',
     effects: [
       { type: 'atkBonus', amount: 30, source: "Predator's Mark" }
     ] },
@@ -340,9 +342,9 @@ export const VERSES = {
     triggerDef: { event: 'onKO', condition: { owner: 'me', hasOneCostInGrave: true, benchNotFull: true }, optional: true },
     effects: [{ type: 'summonFromGrave', filter: { cost: 1 }, location: 'bench' }] },
   manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
-    trigger:'When opponent plays Cast Verse', text:'Negate it. Gain 1 mana.',
+    trigger:'When opponent plays Cast Verse', text:'Negate the next spell your opponent casts.',
     triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
-    effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 1 }] },
+    effects: [{ type: 'negateSpell' }] },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
     trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.',
     triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true }, priority: 2 },

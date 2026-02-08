@@ -387,6 +387,12 @@
       color: #ff4444;
     }
     
+    /* BUG-B2: Red HP for damaged bench creatures */
+    
+    .card-mini .stats.hp-damaged {
+      color: #ff4444;
+    }
+    
     .card-empty {
       width: clamp(50px, min(14vw, 7vh), 60px);
       aspect-ratio: 5 / 7;
@@ -1026,6 +1032,7 @@
         color: var(--dim);
         flex: 1;
         overflow-y: auto;
+        max-height: 300px;  /* BUG-B1: Scrollable log with max height */
       }
       
       .d-log-entries .dmg { color: var(--red); }
@@ -1226,7 +1233,7 @@
       color: var(--dim);
     }
     
-    /* Creature selector ownership indicators (BUG-07, 08, 09) */
+    /* Creature selector ownership indicators (BUG-07, 08, 09, B4) */
     
     .modal-box .option.selector-yours {
       border-left: 3px solid #4a9;
@@ -1237,12 +1244,34 @@
       color: #4a9;
     }
     
+    /* BUG-B4: Keep green color on hover */
+    
+    .modal-box .option.selector-yours:hover {
+      border-left-color: #4a9;
+      background: rgba(68, 170, 153, 0.15);
+    }
+    
+    .modal-box .option.selector-yours:hover .name {
+      color: #4a9;
+    }
+    
     .modal-box .option.selector-enemy {
       border-left: 3px solid #c55;
       padding-left: 10px;
     }
     
     .modal-box .option.selector-enemy .name {
+      color: #c55;
+    }
+    
+    /* BUG-B4: Keep red color on hover */
+    
+    .modal-box .option.selector-enemy:hover {
+      border-left-color: #c55;
+      background: rgba(204, 85, 85, 0.15);
+    }
+    
+    .modal-box .option.selector-enemy:hover .name {
       color: #c55;
     }
     
@@ -2115,7 +2144,7 @@
     
     .screen-flash-gold { animation: screen-flash-gold 0.4s ease-out; }
   </style>
-  <script type="module" crossorigin src="./assets/index-BHSzzlU7.js"></script>
+  <script type="module" crossorigin src="./assets/index-DwoEg-Nd.js"></script>
 </head>
 <body>
   <div class="bg-img"></div>

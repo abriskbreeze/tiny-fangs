@@ -214,16 +214,21 @@ describe('renderLogEntries', () => {
     expect(html).toContain('heal');
   });
 
-  it('respects limit', () => {
+  it('shows all entries reversed (newest first)', () => {
+    // BUG-B1: Now shows all entries, reversed so newest at top
     const log = [
       { t: 'One', c: '' },
       { t: 'Two', c: '' },
       { t: 'Three', c: '' }
     ];
     const html = renderLogEntries(log, 2);
-    expect(html).not.toContain('One');
+    // All entries should be present
+    expect(html).toContain('One');
     expect(html).toContain('Two');
     expect(html).toContain('Three');
+    // Order should be reversed (newest first)
+    expect(html.indexOf('Three')).toBeLessThan(html.indexOf('Two'));
+    expect(html.indexOf('Two')).toBeLessThan(html.indexOf('One'));
   });
 });
 

@@ -477,3 +477,84 @@ Trigger system migration requires: (1) card declares trigger, (2) game path emit
 4. Test Brace/Phantom Wall/Spike Shield set verse triggers
 5. Test Gloom discard effect on KO
 
+
+### 2026-02-07 — Trigger/Effect System Bug Fixes (Group A)
+
+**4 Bugs Fixed:**
+
+**BUG-A1: Pulsefin Sonic Strike dealt 120 instead of 60**
+- **Root cause:** Sonic Strike doubled ATK in BOTH `getEffectiveAtk()` AND inline doAttack code
+- **Fix:** Removed doubling from `getEffectiveAtk()` in abilities.js, kept it in doAttack for procedural handling
+- **Pattern:** When ability is procedural, don't also apply it in helper functions
+
+**BUG-A2: Chain Lightning not working on retreat/swap**
+- **Root cause:** `chainLightning` only checked after fresh summons, not after retreat or Scurry swaps
+- **Fix:** Added chainLightning check to `doRetreat()` and `swapWithBench` effect
+- **Pattern:** Any bench-to-active transition should check chainLightning
+
+**BUG-A3: Skitter ability showed "UNDEFINED"**
+- **Root cause:** `showTriggerReveal` used `card.ability?.trigger?.event` (technical name like 'afterDamage') instead of readable text
+- **Fix:** For creature abilities, show `ability.name` as trigger label and `ability.text` as effect
+- **Pattern:** Creature ability text already contains trigger condition; don't parse event name
+
+**BUG-A4: Phantom Wall and Spike Shield not triggering for player attacks**
+- **Root cause:** Player attack's `processTriggers('beforeAttack', ...)` didn't pass `processEffects` callback
+- **Fix:** Added `processEffects` callback to player attack's beforeAttack trigger processing (same as AI attack)
+- **Pattern:** Trigger system needs `processEffects` in gameCtx to execute effect primitives like `negateAttack`
+
+**BUG-A5: Blood Moon — Verified Working**
+- Player's Blood Moon uses declarative path with `processEffects` → `aoeAll`
+- `aoeAll` correctly damages ctx.me (player) and ctx.opp (AI) creatures
+- No fix needed; code already correct
+
+**Key Patterns Learned:**
+1. **Procedural vs Declarative:** When ability is marked `procedural: true`, don't also apply in helper functions
+2. **Event Consistency:** Any state transition that puts a creature in active slot should check flags like `chainLightning`
+3. **Trigger Display:** Creature abilities already have human-readable text; don't try to generate from event names
+4. **Trigger Processing:** `processTriggers` needs `processEffects` callback to execute non-inline effects
+
+**Tests:** 254 passing
+
+
+### 2026-02-07 Evening — Ability & Damage System Bug Fixes (Group A)
+
+**6 Bugs Fixed:**
+
+**BUG-A1: Shellkin's Harden vs Ignite**
+- **Root cause:** `Effects.damage()` only applied damage without checking for damage reduction abilities
+- **Fix:** Added Harden check in `Effects.damage()` — reduces first 10 damage from ANY source (not just attacks), marks `hardenUsed = true`
+- **Pattern:** Non-combat damage sources (verses like Ignite) should respect creature damage reduction
+
+**BUG-A2: Echomask 0 ATK direct attack**
+- **Root cause:** Direct attack section dealt LP damage without checking effective ATK
+- **Fix:** Added `getEffectiveAtk()` check before direct attack loop — if ATK ≤ 0, log "deals no damage" and skip LP loss
+- **Pattern:** Always validate effective damage before dealing LP damage
+
+**BUG-A3: Echomask copies BASE not MODIFIED ATK**
+- **Root cause:** `getEffectiveAtk()` used `enemy.active.atk` (base) instead of recursive call
+- **Fix:** Changed to `getEffectiveAtk(enemy.active, enemy, owner)` to get enemy's full modified ATK
+- **Pattern:** Mirror effects should mirror the FINAL stat, not the base stat
+
+**BUG-A4: Thornling causes negative HP / creatures not KO'd**
+- **Root cause:** `afterAttack` trigger's `processEffects` callback didn't handle KO results from damage effects
+- **Fix:** Added KO handling in both player and AI `afterAttack` trigger processing (same pattern as beforeAttack)
+- **Pattern:** Any trigger that can deal damage must handle the KO result from `processEffects`
+
+**BUG-A5: Hexweaver poison damage**
+- **Status:** Poison damage was already implemented for both player (line ~4520) and AI (line ~5745)
+- **Fix:** Updated Hexweaver card text to be clearer: "On hit, enemy takes 10 damage at end of each turn until cured."
+- **Pattern:** Verify bug exists before fixing — sometimes it's just a text issue
+
+**BUG-A6: Duskfang ATK bonus stacks on re-summon**
+- **Root cause:** `atkBonuses` array wasn't cleared on creature death or return to hand
+- **Fix:** Clear `creature.atkBonuses = []` in `ko()` function AND in `moveCard` effect when returning to hand
+- **Pattern:** Creature state must be reset on zone transitions (death, return to hand)
+
+**Key Patterns Learned:**
+1. **Damage reduction should be checked at damage source:** `Effects.damage()` is the right place for universal damage reduction like Harden
+2. **Mirror effects need recursion:** When copying a stat, recursively call the same getter to get the full modified value
+3. **Trigger callbacks must handle KOs:** Any `processEffects` callback that can deal damage needs to check `result.kos` and process them
+4. **State reset on zone transitions:** Creatures returning to hand or dying should have temporary bonuses cleared
+
+**Tests:** 257 passing (+3 from trigger tests)
+

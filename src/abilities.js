@@ -37,15 +37,14 @@ export function getEffectiveAtk(creature, owner, enemy) {
     atk += 10;
   }
   
-  // Reflection (Echomask): ATK equals enemy creature's ATK
+  // Reflection (Echomask): ATK equals enemy creature's MODIFIED ATK
+  // BUG-A3 FIX: Recursively call getEffectiveAtk to get enemy's full ATK with modifiers
   if (creature.id === 'echomask' && enemy?.active) {
-    atk = enemy.active.atk;
+    atk = getEffectiveAtk(enemy.active, enemy, owner);
   }
   
-  // Sonic Strike (Pulsefin): Double ATK on first attack
-  if (creature.id === 'pulsefin' && creature.firstAtk) {
-    atk += creature.atk; // Double the base ATK
-  }
+  // NOTE: Sonic Strike (Pulsefin) is handled procedurally in doAttack/AI attack
+  // to avoid double-doubling. getAtkModifiers still shows it for UI display.
   
   // Attack bonuses on creature (Duskfang Pack Call, etc.)
   if (creature.atkBonuses?.length > 0) {
@@ -99,10 +98,12 @@ export function getAtkModifiers(creature, owner, enemy) {
     modifiers.push({ name: 'Rend', value: 10, desc: '+10 damage' });
   }
   
-  // Reflection (Echomask): ATK equals enemy creature's ATK
+  // Reflection (Echomask): ATK equals enemy creature's MODIFIED ATK
+  // BUG-A3 FIX: Show the enemy's full modified ATK, not just base
   if (creature.id === 'echomask' && enemy?.active) {
-    effectiveAtk = enemy.active.atk;
-    modifiers.push({ name: 'Reflection', value: enemy.active.atk - baseAtk, desc: `Mirror ${enemy.active.name}` });
+    const enemyModifiedAtk = getEffectiveAtk(enemy.active, enemy, owner);
+    effectiveAtk = enemyModifiedAtk;
+    modifiers.push({ name: 'Reflection', value: enemyModifiedAtk - baseAtk, desc: `Mirror ${enemy.active.name}` });
   }
   
   // Sonic Strike (Pulsefin): Double ATK on first attack

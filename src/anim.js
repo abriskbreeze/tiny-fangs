@@ -15,7 +15,7 @@ export const ANIM_TIMING = {
   NEGATE: 500,
   FLOAT_TEXT: 800,
   ATTACK_SEQUENCE: 700, // coiled strike + hit reaction
-  AI_PAUSE: 1400,       // pause between AI actions for readability (increased)
+  AI_PAUSE: 800,        // pause between AI actions for readability
   TRIGGER_REVEAL: 5000, // how long to show triggered set verse (doubled from 2500)
 };
 

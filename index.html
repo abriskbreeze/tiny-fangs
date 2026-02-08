@@ -366,6 +366,10 @@
     .hp-stat.hp-damaged {
       color: #ff4444;
     }
+    /* BUG-B2: Red HP for damaged bench creatures */
+    .card-mini .stats.hp-damaged {
+      color: #ff4444;
+    }
     
     .card-empty {
       width: clamp(50px, min(14vw, 7vh), 60px);
@@ -989,6 +993,7 @@
         color: var(--dim);
         flex: 1;
         overflow-y: auto;
+        max-height: 300px;  /* BUG-B1: Scrollable log with max height */
       }
       
       .d-log-entries .dmg { color: var(--red); }
@@ -1189,7 +1194,7 @@
       color: var(--dim);
     }
     
-    /* Creature selector ownership indicators (BUG-07, 08, 09) */
+    /* Creature selector ownership indicators (BUG-07, 08, 09, B4) */
     .modal-box .option.selector-yours {
       border-left: 3px solid #4a9;
       padding-left: 10px;
@@ -1197,11 +1202,27 @@
     .modal-box .option.selector-yours .name {
       color: #4a9;
     }
+    /* BUG-B4: Keep green color on hover */
+    .modal-box .option.selector-yours:hover {
+      border-left-color: #4a9;
+      background: rgba(68, 170, 153, 0.15);
+    }
+    .modal-box .option.selector-yours:hover .name {
+      color: #4a9;
+    }
     .modal-box .option.selector-enemy {
       border-left: 3px solid #c55;
       padding-left: 10px;
     }
     .modal-box .option.selector-enemy .name {
+      color: #c55;
+    }
+    /* BUG-B4: Keep red color on hover */
+    .modal-box .option.selector-enemy:hover {
+      border-left-color: #c55;
+      background: rgba(204, 85, 85, 0.15);
+    }
+    .modal-box .option.selector-enemy:hover .name {
       color: #c55;
     }
     
@@ -2383,13 +2404,15 @@
      * Emit onSummon event and process triggers (e.g., Soul Trap)
      * @param {object} creature - The creature being summoned
      * @param {string} summoningPlayerKey - 'me' or 'opp' (who is summoning)
+     * @param {string} summonLocation - 'active' or 'bench' (where creature is being summoned)
      * @returns {object} { ko: boolean } - whether creature was KO'd by trigger
      */
-    async function emitOnSummon(creature, summoningPlayerKey) {
+    async function emitOnSummon(creature, summoningPlayerKey, summonLocation) {
       const ctx = await processTriggers('onSummon', {
         summoned: creature,
         creatureOwnerKey: summoningPlayerKey,
-        summoningPlayer: summoningPlayerKey
+        summoningPlayer: summoningPlayerKey,
+        summonLocation: summonLocation
       }, state, {
         showTriggerReveal,
         log,
@@ -2428,7 +2451,9 @@
         });
         
         if (beforeLifeLossCtx.lifeLossNegated) {
-          log('Last Breath saved you!', 'heal');
+          // BUG-D2 FIX: Show correct message based on who was saved
+          const savedMsg = playerKey === 'me' ? 'Last Breath saved you!' : 'Last Breath saved rival!';
+          log(savedMsg, playerKey === 'me' ? 'heal' : 'dmg');
           await Anim.versePopup('Last Breath');
           return { negated: true };
         }
@@ -2729,7 +2754,7 @@
       // BEGIN! animation
       await playBeginAnimation();
       
-      const aiDecks = ['shadow','fang','venom','swarm'].filter(d => d !== deckId);
+      const aiDecks = ['shadow','fang','venom','swarm','shell'];
       const aiDeck = aiDecks[Math.floor(Math.random() * aiDecks.length)];
       
       state.G = {
@@ -3172,7 +3197,7 @@
       switch (zone.type) {
         case 'summon-active': {
           // Emit onSummon event for triggers (Soul Trap, etc.)
-          const summonResult = await emitOnSummon(card, 'me');
+          const summonResult = await emitOnSummon(card, 'me', 'active');
           if (summonResult.ko) {
             log(`${card.name} destroyed by trap!`, 'dmg');
             state.G.me.grave.push(card);
@@ -3191,7 +3216,7 @@
           
         case 'summon-bench': {
           // Emit onSummon event for triggers (Soul Trap, etc.)
-          const summonResult = await emitOnSummon(card, 'me');
+          const summonResult = await emitOnSummon(card, 'me', 'bench');
           if (summonResult.ko) {
             log(`${card.name} destroyed by trap!`, 'dmg');
             state.G.me.grave.push(card);
@@ -3253,13 +3278,20 @@
       const el = $('cardDetail');
       
       if (card.cardType === 'creature') {
-        // Check if creature is active on battlefield (to show effective stats)
+        // BUG-B3: Check if creature is on battlefield (active OR bench) to show effective stats
         let atkInfo = null;
         let isOnField = false;
         if (state.G.me.active?.uid === uid) {
           atkInfo = getAtkModifiers(card, state.G.me, state.G.opp);
           isOnField = true;
         } else if (state.G.opp.active?.uid === uid) {
+          atkInfo = getAtkModifiers(card, state.G.opp, state.G.me);
+          isOnField = true;
+        } else if (state.G.me.bench.some(c => c.uid === uid)) {
+          // Bench creatures also show current HP and potential ATK modifiers
+          atkInfo = getAtkModifiers(card, state.G.me, state.G.opp);
+          isOnField = true;
+        } else if (state.G.opp.bench.some(c => c.uid === uid)) {
           atkInfo = getAtkModifiers(card, state.G.opp, state.G.me);
           isOnField = true;
         }
@@ -3346,8 +3378,11 @@
       state.G.me.mana -= c.cost;
       state.G.me.hand = state.G.me.hand.filter(x => x.uid !== c.uid);
       
+      // Determine summon location BEFORE emitting event (for Hiveling bench-only trigger)
+      const summonLocation = !state.G.me.active ? 'active' : 'bench';
+      
       // Emit onSummon event for triggers (Soul Trap, etc.)
-      const summonResult = await emitOnSummon(c, 'me');
+      const summonResult = await emitOnSummon(c, 'me', summonLocation);
       if (summonResult.ko) {
         log(`${c.name} destroyed by trap!`, 'dmg');
         state.G.me.grave.push(c);
@@ -3695,6 +3730,13 @@
         if (c.id === 'darkPact') {
           checkWin();  // Check win after life loss
         }
+        // BUG-B3 FIX: Add Soul Siphon battle log entries
+        if (c.id === 'soulSiphon' && selectionResult) {
+          log(`Soul Siphon dealt 20 to ${selectionResult.creature.name}`, 'dmg');
+          if (ctx.damageWasDealt && state.G.me.active) {
+            log(`Soul Siphon healed ${state.G.me.active.name} for 10`, 'heal');
+          }
+        }
         if (c.id === 'banish' && state.G.opp.bench.length > 0 && !state.G.opp.active) {
           // Opponent sends out replacement after banish
           await Anim.wait(300);
@@ -3713,19 +3755,6 @@
       
       // === FALLBACK: Legacy switch for un-migrated cards ===
       switch(c.id) {
-        case 'soulSiphon':
-          if (state.G.opp.active) {
-            const siphonKo = applyDamage(state.G.opp.active, 20);
-            log('Enemy -20', 'dmg');
-            Anim.damage('opp', 20);
-            if (siphonKo) { await Anim.ko('opp'); await ko(state.G.opp.active, state.G.opp); }
-          }
-          if (state.G.me.active) {
-            state.G.me.active.curHp = Math.min(state.G.me.active.hp, state.G.me.active.curHp + 10);
-            log('You +10', 'heal');
-            Anim.heal('me', 10);
-          }
-          break;
         case 'darkPact': {
           draw(state.G.me); draw(state.G.me);
           const pactResult = await loseLife(state.G.me, 'me');
@@ -4099,7 +4128,7 @@
         const attacker = state.G.me.active;
         const defender = state.G.opp.active;
         
-        // Emit beforeAttack event for trigger system (Phantom Wall, etc.)
+        // Emit beforeAttack event for trigger system (Phantom Wall, Spike Shield)
         const beforeAttackCtx = await processTriggers('beforeAttack', {
           attacker,
           attackerOwner: state.G.me,
@@ -4111,7 +4140,21 @@
         }, state, {
           promptTrigger,
           showTriggerReveal,
-          log
+          log,
+          render,
+          // BUG-A4 FIX: Need processEffects for beforeAttack triggers (Phantom Wall negateAttack, Spike Shield damage)
+          processEffects: async (card, ctx) => {
+            const result = await processEffects(card, { ...ctx, attacker, defender, attackerOwner: state.G.me, defenderOwner: state.G.opp, attackerOwnerKey: 'me', defenderOwnerKey: 'opp' });
+            // Handle KOs from damage effects (e.g., Spike Shield deals 15 to attacker)
+            if (result?.kos?.length > 0) {
+              for (const koInfo of result.kos) {
+                const koOwnerKey = koInfo.owner === state.G.opp ? 'opp' : 'me';
+                await Anim.ko(koOwnerKey);
+                await ko(koInfo.creature, koInfo.owner);
+              }
+            }
+            return result;
+          }
         });
         
         if (beforeAttackCtx.attackNegated) {
@@ -4128,6 +4171,17 @@
         
         // Direct attack if no defender
         if (!state.G.opp.active) {
+          // BUG-A2 FIX: Check if creature has any effective ATK before dealing LP damage
+          // Echomask with no enemy creature has 0 ATK and should not deal LP damage
+          const directAtk = getEffectiveAtk(attacker, state.G.me, state.G.opp);
+          if (directAtk <= 0) {
+            log(`${attacker.name} attacks but deals no damage!`);
+            state.G.hasAttacked = true;
+            render();
+            highlightEndTurn(true);
+            return;
+          }
+          
           // B2: Cindermaw direct = 2 LP damage (two separate hits)
           const directDamage = isCindermaw ? 2 : 1;
           
@@ -4179,6 +4233,7 @@
             log(`${bonus.source}! +${bonus.value} damage`, 'mana');
           }
           state.G.me.attackBonuses = []; // Consume all bonuses
+          render(); // BUG-B5: Immediately update UI to remove modifier display
         }
         
         if (isCindermaw) {
@@ -4338,7 +4393,16 @@
                 opp: ctx.opp,
                 state
               };
-              return await processEffects(card, effectCtx);
+              const result = await processEffects(card, effectCtx);
+              // BUG-A4 FIX: Handle KOs from afterAttack trigger damage (e.g., Thornling Thorns)
+              if (result?.kos?.length > 0) {
+                for (const koInfo of result.kos) {
+                  const koOwnerKey = koInfo.owner === state.G.opp ? 'opp' : 'me';
+                  await Anim.ko(koOwnerKey);
+                  await ko(koInfo.creature, koInfo.owner);
+                }
+              }
+              return result;
             }
           });
         }
@@ -4420,6 +4484,20 @@
           log(`Switched to ${state.G.me.active.name}`);
           render();
           await Anim.benchToActive('me');
+          
+          // BUG-A2 FIX: Chain Lightning triggers when new creature becomes active via retreat
+          if (state.G.me.chainLightning > 0) {
+            await Anim.wait(300);
+            const chainKo = applyDamage(state.G.me.active, state.G.me.chainLightning);
+            log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
+            await Anim.damage('me', state.G.me.chainLightning);
+            state.G.me.chainLightning = 0;
+            if (chainKo) {
+              await Anim.ko('me');
+              await ko(state.G.me.active, state.G.me);
+            }
+          }
+          
           highlightEndTurn(true); // Prompt to end turn after retreat
         }
       })));
@@ -4444,6 +4522,7 @@
       }
       
       // Emit turnEnd event for trigger system (Broodmother Spawn, etc.)
+      // BUG-C3 FIX: Don't override ctx.me/opp - let processTriggers set them based on trigger owner
       await processTriggers('turnEnd', {
         activePlayer: state.G.me,
         activePlayerKey: 'me'
@@ -4451,7 +4530,7 @@
         log,
         render,
         processEffects: async (card, ctx) => {
-          return await processEffects(card, { ...ctx, self: card, me: state.G.me, opp: state.G.opp, state });
+          return await processEffects(card, { ...ctx, self: card, state });
         }
       });
       
@@ -4538,9 +4617,25 @@
         log('(AI error)', 'dmg');
       }
       
+      // BUG-C3 FIX: Emit turnEnd event for AI turn (Broodmother Spawn, etc.)
+      await processTriggers('turnEnd', {
+        activePlayer: ai,
+        activePlayerKey: 'opp'
+      }, state, {
+        log,
+        render,
+        processEffects: async (card, ctx) => {
+          return await processEffects(card, { ...ctx, self: card, state });
+        }
+      });
+      
       // End of turn: increment max mana
       if (ai.maxMana < 5) ai.maxMana++;
       state.G.firstTurn = false;
+      
+      // BUG-C1 FIX: Clear summonedThisTurn flags on AI creatures
+      if (ai.active) ai.active.summonedThisTurn = false;
+      for (const c of ai.bench) c.summonedThisTurn = false;
       
       // Transition to player turn
       await pause();
@@ -4559,7 +4654,7 @@
           ai.hand = ai.hand.filter(c => c.uid !== card.uid);
           
           // Emit onSummon event for triggers (Soul Trap, etc.)
-          const summonResult = await emitOnSummon(card, 'opp');
+          const summonResult = await emitOnSummon(card, 'opp', 'active');
           if (summonResult.ko) {
             log(`${card.name} destroyed by trap!`, 'dmg');
             ai.grave.push(card);
@@ -4582,12 +4677,15 @@
           ai.hand = ai.hand.filter(c => c.uid !== card.uid);
           
           // Emit onSummon event for triggers (Soul Trap, etc.)
-          const summonResult = await emitOnSummon(card, 'opp');
+          const summonResult = await emitOnSummon(card, 'opp', 'bench');
           if (summonResult.ko) {
             log(`${card.name} destroyed by trap!`, 'dmg');
             ai.grave.push(card);
             return;
           }
+          
+          // BUG-C1 FIX: Mark creature as summoned this turn (prevents immediate Sacrifice)
+          card.summonedThisTurn = true;
           
           const benchIdx = ai.bench.length;
           ai.bench.push(card);
@@ -4887,6 +4985,7 @@
           const drawCount = Math.min(count, 3);
           for (let i = 0; i < drawCount; i++) draw(ai);
           log(`Rival drew ${drawCount}`, 'mana');
+          render(); // BUG-C5: Update hand count display after drawing
           break;
         case 'graveEcho':
           const graveCr = ai.grave.filter(c => c.cardType === 'creature');
@@ -5039,94 +5138,120 @@
         return;
       }
       
-      // Calculate damage (creature vs creature)
+      // BUG-C4 FIX: Cindermaw attacks twice with two animations (like player attack)
+      const isCindermaw = ai.active.id === 'cindermaw';
+      const attackCount = isCindermaw ? 2 : 1;
+      
+      // Calculate base damage (creature vs creature)
       // getEffectiveAtk handles: Orphan, Pack Bond, Feeding Frenzy, Rally, Bladewhisker Rend, Echomask Reflection
-      let dmg = getEffectiveAtk(ai.active, ai, player);
-      // Pulsefin/Cindermaw ability doublers - BUG-11 FIX: Apply BEFORE one-shot bonuses
+      let baseDmg = getEffectiveAtk(ai.active, ai, player);
+      
+      // Pulsefin Sonic Strike (first attack doubles) - BUG-11 FIX: Apply BEFORE one-shot bonuses
       if (ai.active.id === 'pulsefin' && ai.active.firstAtk) {
-        dmg *= 2;
+        baseDmg *= 2;
         ai.active.firstAtk = false;
         log('Sonic Strike! Double damage', 'mana');
       }
-      if (ai.active.id === 'cindermaw') {
-        dmg *= 2;
-        log('Frenzy! Double damage!', 'dmg');
-      }
+      
       // Attack bonuses (Den Mother, Predator's Mark, etc.) - BUG-11 FIX: Apply AFTER doublers
+      // Only applies to first hit
       if (ai.attackBonuses.length > 0) {
         for (const bonus of ai.attackBonuses) {
-          dmg += bonus.value;
+          baseDmg += bonus.value;
           log(`Rival's ${bonus.source}! +${bonus.value} damage`, 'dmg');
         }
         ai.attackBonuses = [];
       }
       
-      // Emit beforeDamage event for trigger system (creature abilities like Ironhide, Shellkin, Pebbleback)
-      const beforeDamageCtx = await processTriggers('beforeDamage', {
-        targetOwner: 'me',
-        targetLocation: 'active',
-        target: player.active,
-        attacker: ai.active,
-        defender: player.active,
-        damage: dmg,
-        damageReduction: 0
-      }, state, {
-        promptTrigger,
-        showTriggerReveal,
-        log
-      });
-      let triggerReduction = beforeDamageCtx.damageReduction || 0;
-      
-      // Damage reduction (creature abilities that weren't migrated + trigger system results)
-      let reduction = getEffectiveDamageReduction(player.active, player, false);
-      reduction += triggerReduction;
-      
-      if (reduction > 0) {
-        dmg = Math.max(0, dmg - reduction);
-        const sources = getDamageReductionSources(player.active, player, false);
-        for (const src of sources) {
-          log(`${src.name}! -${src.value} damage`, 'heal');
-        }
-        // Mark Harden as used this turn
-        if (player.active.id === 'shellkin') {
-          player.active.hardenUsed = true;
-        }
-      }
-      
-      // Unbreakable - prevent damage entirely
-      if (player.active.shielded && dmg > 0) {
-        log(`Unbreakable! Damage prevented!`, 'heal');
-        player.active.shielded = false;
-        dmg = 0;
+      if (isCindermaw) {
+        log('Frenzy! Attacks twice!', 'dmg');
       }
       
       const attacker = ai.active;
+      let playerKo = false;
       
-      // NOTE: Spike Shield now handled by beforeAttack trigger system above
-      
-      log(`${attacker.name} attacks for ${dmg}!`);
-      await Anim.attack('opp', 'me', dmg);
-      
-      let playerKo = applyDamage(player.active, dmg);
-      
-      // Check for lethal damage triggers (Bulwark's Fortress, etc.)
-      if (playerKo) {
-        const { prevented } = await checkLethalDamage(player.active, 'me', 'attack');
-        if (prevented) playerKo = false;
+      // Attack loop - Cindermaw attacks twice, others once
+      for (let hit = 0; hit < attackCount; hit++) {
+        if (playerKo) break; // Stop if defender already KO'd
+        if (!player.active) break; // Defender might be replaced
+        
+        // Recalculate damage for second hit (no bonuses)
+        let dmg = hit === 0 ? baseDmg : getEffectiveAtk(attacker, ai, player);
+        
+        // Emit beforeDamage event for trigger system (first hit only for set verses)
+        let triggerReduction = 0;
+        if (hit === 0) {
+          const beforeDamageCtx = await processTriggers('beforeDamage', {
+            targetOwner: 'me',
+            targetLocation: 'active',
+            target: player.active,
+            attacker: attacker,
+            defender: player.active,
+            damage: dmg,
+            damageReduction: 0
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log
+          });
+          triggerReduction = beforeDamageCtx.damageReduction || 0;
+        }
+        
+        // Damage reduction (creature abilities + trigger system results)
+        let reduction = getEffectiveDamageReduction(player.active, player, false);
+        reduction += triggerReduction;
+        
+        if (reduction > 0) {
+          dmg = Math.max(0, dmg - reduction);
+          if (hit === 0) { // Only log once
+            const sources = getDamageReductionSources(player.active, player, false);
+            for (const src of sources) {
+              log(`${src.name}! -${src.value} damage`, 'heal');
+            }
+            // Mark Harden as used this turn
+            if (player.active.id === 'shellkin') {
+              player.active.hardenUsed = true;
+            }
+          }
+        }
+        
+        // Unbreakable - prevent damage entirely (first hit only)
+        if (player.active.shielded && dmg > 0) {
+          log(`Unbreakable! Damage prevented!`, 'heal');
+          player.active.shielded = false;
+          dmg = 0;
+        }
+        
+        const hitNum = isCindermaw ? ` (hit ${hit + 1})` : '';
+        log(`${attacker.name} attacks for ${dmg}!${hitNum}`);
+        await Anim.attack('opp', 'me', dmg);
+        
+        playerKo = applyDamage(player.active, dmg);
+        
+        // Check for lethal damage triggers (Bulwark's Fortress, etc.)
+        if (playerKo) {
+          const { prevented } = await checkLethalDamage(player.active, 'me', 'attack');
+          if (prevented) playerKo = false;
+        }
+        
+        // Fortify buff - survive lethal with 1 HP
+        if (playerKo && player.active.fortified) {
+          player.active.curHp = 1;
+          player.active.fortified = false;
+          playerKo = false;
+          log(`Fortified! ${player.active.name} survives with 1 HP!`, 'heal');
+        }
+        
+        // Brief pause between Cindermaw hits
+        if (isCindermaw && hit < attackCount - 1 && !playerKo) {
+          await Anim.wait(200);
+        }
       }
       
-      // Fortify buff - survive lethal with 1 HP
-      if (playerKo && player.active.fortified) {
-        player.active.curHp = 1;
-        player.active.fortified = false;
-        playerKo = false;
-        log(`Fortified! ${player.active.name} survives with 1 HP!`, 'heal');
-      }
-      
-      // Cindermaw self-damage
-      if (attacker.id === 'cindermaw') {
+      // Cindermaw self-damage (10 Burnout) happens ONCE after all attacks
+      if (isCindermaw && attacker.curHp > 0) {
         const selfKo = applyDamage(attacker, 10);
-        log('Cindermaw Frenzy! -10 HP', 'dmg');
+        log('-10 Burnout from Frenzy', 'dmg');
         await Anim.damage('opp', 10);
         if (selfKo) {
           await Anim.ko('opp');
@@ -5184,7 +5309,16 @@
               opp: ai,     // From AI perspective: 'opp' = attacker = ai
               state
             };
-            return await processEffects(card, effectCtx);
+            const result = await processEffects(card, effectCtx);
+            // BUG-A4 FIX: Handle KOs from afterAttack trigger damage (e.g., Thornling Thorns)
+            if (result?.kos?.length > 0) {
+              for (const koInfo of result.kos) {
+                const koOwnerKey = koInfo.owner === state.G.opp ? 'opp' : 'me';
+                await Anim.ko(koOwnerKey);
+                await ko(koInfo.creature, koInfo.owner);
+              }
+            }
+            return result;
           }
         });
       }
@@ -5239,7 +5373,7 @@
             ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
             
             // Emit onSummon event for triggers (Soul Trap, etc.)
-            const summonResult = await emitOnSummon(pick, 'opp');
+            const summonResult = await emitOnSummon(pick, 'opp', 'active');
             if (summonResult.ko) {
               log(`${pick.name} destroyed by trap!`, 'dmg');
               ai.grave.push(pick);
@@ -5266,7 +5400,7 @@
           ai.hand = ai.hand.filter(x => x.uid !== pick.uid);
           
           // Emit onSummon event for triggers (Soul Trap, etc.)
-          const summonResult = await emitOnSummon(pick, 'opp');
+          const summonResult = await emitOnSummon(pick, 'opp', 'bench');
           if (summonResult.ko) {
             log(`${pick.name} destroyed by trap!`, 'dmg');
             ai.grave.push(pick);
@@ -5614,6 +5748,18 @@
         log('(AI error)', 'dmg');
       }
       
+      // BUG-C3 FIX: Emit turnEnd event for AI turn (Broodmother Spawn, etc.)
+      await processTriggers('turnEnd', {
+        activePlayer: ai,
+        activePlayerKey: 'opp'
+      }, state, {
+        log,
+        render,
+        processEffects: async (card, ctx) => {
+          return await processEffects(card, { ...ctx, self: card, state });
+        }
+      });
+      
       // Mana phase: AI gains max mana at END of turn (capped at 5)
       if (ai.maxMana < 5) ai.maxMana++;
       
@@ -5751,6 +5897,10 @@
       }
       
       log(`${creature.name} KO'd!`, 'dmg');
+      
+      // BUG-A6 FIX: Clear creature's ATK bonuses when it dies
+      // This prevents stacking when creature is re-summoned via Grave Echo/Grave Rise
+      creature.atkBonuses = [];
       
       // Add to graveyard and clear active FIRST (so triggers can see the KO'd creature)
       owner.grave.push(creature);
@@ -5911,36 +6061,13 @@
     async function showCreatureSelector(prompt) {
       const options = [];
       
-      // YOURS section
-      if (state.G.me.active) {
-        options.push({
-          creature: state.G.me.active,
-          location: 'active',
-          ownerKey: 'me',
-          name: `[YOURS] ${state.G.me.active.name}`,
-          sub: `${state.G.me.active.curHp}/${state.G.me.active.hp} HP • Active`,
-          cssClass: 'selector-yours'
-        });
-      }
-      state.G.me.bench.forEach((cr, idx) => {
-        options.push({
-          creature: cr,
-          location: 'bench',
-          ownerKey: 'me',
-          idx,
-          name: `[YOURS] ${cr.name}`,
-          sub: `${cr.curHp}/${cr.hp} HP • Bench`,
-          cssClass: 'selector-yours'
-        });
-      });
-      
-      // ENEMY section
+      // BUG-B4: ENEMY section first (at TOP)
       if (state.G.opp.active) {
         options.push({
           creature: state.G.opp.active,
           location: 'active',
           ownerKey: 'opp',
-          name: `[ENEMY] ${state.G.opp.active.name}`,
+          name: `[ENEMY] ★ ${state.G.opp.active.name}`,  // BUG-B4: ★ for active
           sub: `${state.G.opp.active.curHp}/${state.G.opp.active.hp} HP • Active`,
           cssClass: 'selector-enemy'
         });
@@ -5954,6 +6081,29 @@
           name: `[ENEMY] ${cr.name}`,
           sub: `${cr.curHp}/${cr.hp} HP • Bench`,
           cssClass: 'selector-enemy'
+        });
+      });
+      
+      // BUG-B4: YOURS section second (at BOTTOM)
+      if (state.G.me.active) {
+        options.push({
+          creature: state.G.me.active,
+          location: 'active',
+          ownerKey: 'me',
+          name: `[YOURS] ★ ${state.G.me.active.name}`,  // BUG-B4: ★ for active
+          sub: `${state.G.me.active.curHp}/${state.G.me.active.hp} HP • Active`,
+          cssClass: 'selector-yours'
+        });
+      }
+      state.G.me.bench.forEach((cr, idx) => {
+        options.push({
+          creature: cr,
+          location: 'bench',
+          ownerKey: 'me',
+          idx,
+          name: `[YOURS] ${cr.name}`,
+          sub: `${cr.curHp}/${cr.hp} HP • Bench`,
+          cssClass: 'selector-yours'
         });
       });
       
@@ -6161,12 +6311,18 @@
         
         // Get the right fields depending on card type
         const cardName = card.name;
-        const triggerText = isCreature 
-          ? (card.ability?.trigger?.event || 'On trigger')
-          : (card.trigger || 'On trigger');
-        const effectText = isCreature 
-          ? (card.ability?.text || 'Effect')
-          : (card.text || 'Effect');
+        let triggerText, effectText;
+        
+        if (isCreature) {
+          // BUG-A3 FIX: For creature abilities, show ability name as trigger label
+          // The ability text already contains the full description
+          triggerText = card.ability?.name || 'Ability';
+          effectText = card.ability?.text || 'Effect';
+        } else {
+          // Set verses have explicit trigger text
+          triggerText = card.trigger || 'On trigger';
+          effectText = card.text || 'Effect';
+        }
         
         // Build content
         const content = `
@@ -6175,7 +6331,7 @@
             <div class="type">${typeLabel}</div>
           </div>
           <div class="trigger-condition">
-            <div class="label">Trigger</div>
+            <div class="label">${isCreature ? 'Ability' : 'Trigger'}</div>
             <div class="text">${triggerText}</div>
           </div>
           <div class="effect-box">

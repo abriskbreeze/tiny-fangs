@@ -181,10 +181,13 @@ function scoreCast(card, ai, player) {
       return 50 + healValue;
       
     case 'ignite':
-      // Amazing if can KO, otherwise mediocre
+      // BUG-C2 FIX: Only cast if it will KO or significantly weaken
       if (!player.active) return -100;
       if (player.active.curHp <= 15) return 100; // KO!
-      return 25;
+      // Don't waste on high-HP creatures - inefficient
+      if (player.active.curHp >= 40) return -50; // Too healthy, waste of spell
+      // Medium HP - marginal value
+      return 15;
       
     case 'darkPact':
       // Draw 2 lose 1 LP — only if safe
@@ -272,6 +275,10 @@ function scoreCast(card, ai, player) {
       // KO bench creature, draw 2
       if (ai.bench.length === 0) return -100;
       if (ai.hand.length >= 5) return -30;
+      // BUG-C1 FIX: Don't sacrifice creatures summoned this turn
+      // Check if ALL bench creatures were summoned this turn
+      const allSummonedThisTurn = ai.bench.every(c => c.summonedThisTurn);
+      if (allSummonedThisTurn) return -100; // Don't sacrifice just-summoned creatures
       return 35;
       
     default:
@@ -326,11 +333,12 @@ function scoreSet(card, ai, player) {
 
 /**
  * Score attacking
+ * BUG-C2 FIX: Reduced penalties so AI attacks more often
  */
 function scoreAttack(ai, player) {
   if (!ai.active || !player.active) return -100;
   
-  let score = 50; // Base attack value
+  let score = 60; // Base attack value (increased from 50)
   
   // Calculate damage we'd deal using ability-aware ATK (BUG-16 fix)
   let dmg = getEffectiveAtk(ai.active, ai, player);
@@ -347,20 +355,24 @@ function scoreAttack(ai, player) {
     }
   }
   
+  const canKO = dmg >= player.active.curHp;
+  
   // Bonus for KO
-  if (dmg >= player.active.curHp) {
+  if (canKO) {
     score += 50; // Can KO!
   }
   
   // Risk assessment - would we die on counterattack?
   const counterDmg = getEffectiveAtk(player.active, player, ai);
   if (counterDmg >= ai.active.curHp) {
-    score -= 30; // We might die
+    // Trading is acceptable if we can also KO
+    score -= canKO ? 10 : 20; // Reduced from 30
   }
   
-  // Fear of set verse (might be trap)
-  if (player.setVerse) {
-    score -= 25; // Cautious of traps
+  // Fear of set verse (might be trap) - only if we CAN'T KO
+  // If we can KO, the risk is worth it
+  if (player.setVerse && !canKO) {
+    score -= 15; // Reduced from 25
   }
   
   // Cindermaw self-damage consideration

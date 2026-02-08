@@ -68,10 +68,12 @@ export function renderActiveCard(c, atkInfo = null) {
 }
 
 // Mini card for bench
+// BUG-B2: Add hp-damaged class when bench creature is damaged
 export function renderMiniCard(c) {
+  const hpDamaged = c.curHp < c.hp ? 'hp-damaged' : '';
   return `<div class="card-mini" onpointerdown="cardPress('${c.uid}')" onpointerup="cardRelease()" onpointerleave="cardRelease()">
     <div class="name">${c.name}</div>
-    <div class="stats">${c.curHp}/${c.hp}</div>
+    <div class="stats ${hpDamaged}">${c.curHp}/${c.hp}</div>
     <div class="art">${c.art}</div>
   </div>`;
 }
@@ -110,8 +112,12 @@ export function renderHandCard(c, vertical, selectedCardUid) {
 }
 
 // Game log
+// BUG-B1: Show full history (high limit), reversed so newest at top (desktop)
 export function renderLogEntries(log, limit) {
-  return log.slice(-limit).map(l => `<div class="${l.c||''}">${l.t}</div>`).join('');
+  // Show all entries (use 500 as effectively unlimited)
+  const entries = log.slice(-500);
+  // Reverse so newest is at top (for desktop scrollable view)
+  return entries.slice().reverse().map(l => `<div class="${l.c||''}">${l.t}</div>`).join('');
 }
 
 export function renderLogInline(log, limit) {

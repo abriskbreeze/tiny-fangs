@@ -1,149 +1,185 @@
-# Bug Fix Sprint — 2026-02-05
+# Tiny Fangs Bug Fix Sprint #2 — 2026-02-07
 
-## Root Cause Questions (Karpathy Guidelines)
+## Root Cause Questions (per AGENTS.md / Karpathy Guidelines)
 Before each fix:
 1. Am I solving symptoms or ROOT problems?
 2. What pattern allowed this bug to exist?
-3. What breaks if we revert this fix?
+3. What's the verifiable acceptance criteria?
 
 ---
 
-## BUG CATEGORIES
+## GROUP A: Ability & Damage System Bugs
 
-### A. Visual/UI Bugs
-- [ ] **BUG-01**: Pulsefin ATK modifier UI not showing doubled ATK
-- [ ] **BUG-02**: Duskfang ATK boost UI not triggering when +20 ATK active
-- [ ] **BUG-03**: Opponent deck count missing from left stats column
-- [ ] **BUG-04**: Graveyard modal: newest at bottom (should be top), no scrollbar
+### BUG-A1: Shellkin's Harden doesn't protect against Ignite
+**Symptoms:** Ignite damages Shellkin even if first damage that turn
+**Root Cause:** Harden (damage reduction) only checked in attack combat path, not in verse damage path
+**Pattern:** Damage reduction bypassed by non-combat damage sources
+**Acceptance:** Ignite Shellkin (first damage that turn) → takes 5 damage not 15, Harden marked used
+**Files:** index.html (Ignite case), effects.js (damage effect), abilities.js
 
-### B. Card Effect Bugs  
-- [ ] **BUG-05**: Grave Echo returns creature with 0 HP instead of full HP
-- [ ] **BUG-06**: Vengeance triggers on verse KO (should only trigger on attack KO)
-- [ ] **BUG-07**: Ignite has no monster selector (should select any creature)
-- [ ] **BUG-08**: Banish has no monster selector (should select any creature with ownership visual)
-- [ ] **BUG-09**: Soul Siphon needs selector + only heals if damage dealt
-- [ ] **BUG-10**: Mana Drain doesn't consume caster's mana (negated spell still costs mana)
-- [ ] **BUG-11**: Predator's Mark stacks incorrectly with ability bonuses (doubled instead of added)
+### BUG-A2: Echomask with 0 ATK deals LP damage on direct attack
+**Symptoms:** Echomask attacks directly and deals 1 LP even with 0 ATK
+**Root Cause:** Direct attack always deals 1 LP regardless of damage value
+**Pattern:** Direct attack doesn't check if actual damage > 0
+**Acceptance:** Echomask (0 ATK, no enemy) attacks directly → no LP damage, log says "no damage"
+**Files:** index.html (doAttack direct attack section)
 
-### C. Combat/Game Flow Bugs
-- [ ] **BUG-12**: Multiple attack button clicks = multiple attacks
-- [ ] **BUG-13**: Creature with 0 HP stays on field after Soul Siphon (AI error in logs)
-- [ ] **BUG-14**: AI monster not attacking (unclear reason, needs investigation)
-- [ ] **BUG-15**: Grave Rise: should summon to bench if slots available; selected creature should be option in "new active" selector
+### BUG-A3: Echomask copies BASE ATK not MODIFIED ATK
+**Symptoms:** Echomask mirrors enemy's base ATK ignoring their buffs
+**Root Cause:** `getEffectiveAtk` for Echomask uses `enemy.active.atk` (base) not `getEffectiveAtk(enemy.active...)`
+**Pattern:** Nested getEffectiveAtk call needed for proper mirroring
+**Acceptance:** Enemy Bladewhisker (30+10 Rend) → Echomask shows 40 ATK
+**Files:** src/abilities.js (getEffectiveAtk Echomask section)
 
-### D. AI Behavior Bugs
-- [ ] **BUG-16**: AI doesn't use getEffectiveAtk() for ability-modified creatures
-- [ ] **BUG-17**: AI Blood Moon kills own creature when no benefit
-- [ ] **BUG-18**: AI wastes Predator's Mark after attacking / when not needed
+### BUG-A4: Thornling causes negative HP / creatures not KO'd
+**Symptoms:** After Thornling thorns damage, attacker has 0 or negative HP but stays on field
+**Root Cause:** Trigger system damage effect doesn't call ko() or check KO condition
+**Pattern:** Trigger-based damage returns KO info but caller doesn't process it
+**Acceptance:** Creature attacks Thornling, thorns reduce to 0 HP → creature KO'd and removed
+**Files:** index.html (afterAttack trigger handling), effects.js (damage return handling)
 
-### E. Text Fixes
-- [ ] **BUG-19**: Call of the Wild text should say "RANDOM"
+### BUG-A5: Hexweaver poison not dealing damage at turn end
+**Symptoms:** Poison status applied but no damage at turn end
+**Root Cause:** No turnEnd processing for poison status — only status is set, not damage tick
+**Pattern:** Poison status exists but no damage loop implemented
+**Acceptance:** Hexweaver poisons enemy → enemy's turn ends → takes 10 damage → repeat until cured/KO'd
+**Files:** index.html (turn end sections), effects.js, cards.js (poison description)
 
----
-
-## DETAILED ANALYSIS
-
-### BUG-01: Pulsefin ATK modifier UI
-**Root cause:** `getAtkModifiers()` in abilities.js doesn't check for Pulsefin's `firstAtk` flag
-**Pattern:** Procedural abilities bypass declarative modifier system
-**Fix:** Add Pulsefin check to `getAtkModifiers()` when `creature.firstAtk === true`
-**Test:** Unit test for getAtkModifiers with Pulsefin when firstAtk is true
-
-### BUG-02: Duskfang ATK boost UI
-**Root cause:** Duskfang's +20 ATK from onSummon trigger sets `atkBonuses` but UI doesn't read it
-**Pattern:** Trigger-based bonuses stored differently than passive bonuses
-**Fix:** Check `creature.atkBonuses` array in `getAtkModifiers()` or unify storage
-**Test:** Unit test for getAtkModifiers with Duskfang that has atkBonuses
-
-### BUG-05: Grave Echo 0 HP
-**Root cause:** `moveCard` effect doesn't reset creature HP when moving to hand
-**Pattern:** Card state not reset on zone transition
-**Fix:** In effects.js `moveCard`, reset curHp to hp when destination is hand
-**Test:** Unit test for Grave Echo returning creature, verify curHp === hp
-
-### BUG-06: Vengeance on verse KO
-**Root cause:** `beforeKO` trigger doesn't distinguish attack vs spell damage
-**Pattern:** Missing context in trigger condition
-**Fix:** Add `source: 'attack'` to Vengeance triggerDef condition, pass source in KO events
-**Test:** Verify Vengeance triggers on attack KO, doesn't trigger on Ignite/Banish KO
-
-### BUG-07/08/09: Missing selectors (Ignite, Banish, Soul Siphon)
-**Root cause:** Effects target `opp.active` hardcoded instead of allowing selection
-**Pattern:** No selection system for targets in effects
-**Fix:** Add `requiresSelection: true` with `selection: { type: 'anyCreature' }` and pass through UI
-**Test:** Verify selection modal appears, correct targets available
-
-### BUG-10: Mana Drain doesn't consume mana
-**Root cause:** Mana Drain negates spell BEFORE mana deduction in `castVerse()`
-**Pattern:** Order of operations - negate happens too early
-**Fix:** Deduct mana BEFORE checking for Mana Drain trigger
-**Test:** Cast verse into Mana Drain, verify mana still deducted
-
-### BUG-11: Predator's Mark stacking
-**Root cause:** In `doAttack()`, Pulsefin doubling happens AFTER Predator's Mark is added
-**Pattern:** Modifier application order wrong
-**Fix:** Calculate base ATK + ability bonuses first, THEN add one-shot bonuses (Predator's Mark, Den Mother)
-**Test:** Pulsefin (30 base, doubled to 60) + Predator's Mark (+30) = 90, not 120
-
-### BUG-12: Multiple attack clicks
-**Root cause:** Attack button doesn't disable during attack animation
-**Pattern:** Missing action lock
-**Fix:** Set `state.G.actionLock = true` at attack start, clear on completion
-**Test:** Manual test - rapid click attack, verify single attack occurs
-
-### BUG-13: 0 HP creature on field
-**Root cause:** `applyDamage()` returns KO status but caller doesn't always call `ko()`
-**Pattern:** Inconsistent KO handling
-**Fix:** Audit all applyDamage calls, ensure ko() called when returns true
-**Test:** Soul Siphon damages creature to 0, verify ko() triggered
-
-### BUG-15: Grave Rise bench summon
-**Root cause:** Grave Rise summon logic doesn't consider bench slots
-**Pattern:** Summon location hardcoded
-**Fix:** Check bench.length < 2, summon to bench; include revived creature in active selector
-**Test:** Creature KO'd, bench has room, Grave Rise summons to bench
-
-### BUG-16: AI effective ATK
-**Root cause:** AI scoring uses `card.atk` instead of `getEffectiveAtk()`
-**Pattern:** Duplicated damage calculation logic
-**Fix:** Import and use `getEffectiveAtk()` in all AI scoring functions
-**Test:** AI Shade Pup with empty bench uses 30 ATK in decisions
-
-### BUG-17/18: AI wasteful plays
-**Root cause:** AI doesn't simulate outcome, just scores current state
-**Pattern:** Greedy without lookahead
-**Fix:** Add outcome simulation to Blood Moon / Predator's Mark scoring
-**Test:** AI doesn't Blood Moon when it would KO own creature without benefit
-
-### BUG-19: Call of the Wild text
-**Root cause:** Text missing "RANDOM" keyword
-**Fix:** Update text in cards.js
-**Test:** N/A (text change)
+### BUG-A6: Duskfang ATK bonus stacks on re-summon
+**Symptoms:** Duskfang dies, returns via Grave Echo, resummon → +40 ATK instead of +20
+**Root Cause:** `atkBonuses` array not cleared when creature dies/returns to hand
+**Pattern:** Creature state not reset on zone transitions
+**Acceptance:** Duskfang dies, returns to hand, resummons → has +20 (not +40)
+**Files:** index.html (ko function), effects.js (moveCard, Grave Echo)
 
 ---
 
-## SUBAGENT ASSIGNMENTS
+## GROUP B: Card Effect & Spell Bugs
 
-### Agent 1: Visual/UI (BUG-01, BUG-02, BUG-03, BUG-04)
-Focus: getAtkModifiers, render.js, graveyard modal
+### BUG-B1: Mana Drain - remove "gain 1 mana" 
+**Symptoms:** Card says gain mana but Rico wants it removed
+**Root Cause:** Feature request, not bug
+**Acceptance:** Mana Drain text and effect = just negate spell, no mana gain
+**Files:** src/cards.js (manaDrain), src/effects.js (if mana gain effect exists)
 
-### Agent 2: Card Effects (BUG-05, BUG-06, BUG-10, BUG-11, BUG-19)
-Focus: effects.js, triggers.js, cards.js
+### BUG-B2: Soul Siphon damages ALL bench creatures
+**Symptoms:** Casting Soul Siphon hits enemy bench, not just selected creature
+**Root Cause:** Effect targeting wrong — hitting all creatures instead of selected
+**Pattern:** Selection system not properly limiting target
+**Acceptance:** Soul Siphon → select ONE enemy creature → only that creature takes 20 damage
+**Files:** index.html (Soul Siphon case), effects.js
 
-### Agent 3: Selectors (BUG-07, BUG-08, BUG-09)
-Focus: Add target selection system for cast verses
+### BUG-B3: Soul Siphon missing battle log entries
+**Symptoms:** No log for "dealt X damage to Y" or "healed X on Z"
+**Root Cause:** Log calls missing in Soul Siphon execution path
+**Acceptance:** Cast Soul Siphon → log shows "Dealt 20 to [creature]" and "Healed 10 on [creature]"
+**Files:** index.html (Soul Siphon case)
 
-### Agent 4: Combat Flow (BUG-12, BUG-13, BUG-14, BUG-15)
-Focus: Attack locking, KO consistency, Grave Rise logic
+### BUG-B4: Banish not sending cards to grave
+**Symptoms:** Banished creatures disappear completely, not in grave
+**Root Cause:** This is INTENDED — Banish removes from game, not grave
+**Pattern:** But player expects grave? Check card text.
+**Acceptance:** Confirm Banish text says "remove from play" or change to send to grave if that's desired
+**Files:** src/cards.js (banish text), effects.js (banish effect)
 
-### Agent 5: AI Behavior (BUG-16, BUG-17, BUG-18)
-Focus: ai.js scoring improvements
+### BUG-B5: Grave Echo can't find previously-revived creatures
+**Symptoms:** Creature revived by Grave Rise, KO'd again, not found in grave
+**Root Cause:** When creature is KO'd, it may not be added to grave properly
+**Pattern:** KO path for previously-revived creatures different somehow
+**Acceptance:** Grave Rise creature → KO it → Grave Echo finds it in grave
+**Files:** index.html (ko function), effects.js (ko handling)
 
 ---
 
-## VERIFICATION CHECKLIST
-Each bug fix must:
-- [ ] Have a failing test first (TDD)
-- [ ] Pass all existing tests after fix
+## GROUP C: AI Behavior Bugs
+
+### BUG-C1: AI Sacrifice casting Skitter immediately (AI error)
+**Symptoms:** "Rival called Skitter to bench! Rival cast Sacrifice Rival sacrificed Skitter (AI error)"
+**Root Cause:** AI casts Sacrifice on just-summoned creature, which is wasteful/broken
+**Pattern:** AI decision making doesn't consider creature value or "just summoned" state
+**Acceptance:** AI shouldn't Sacrifice a creature it just summoned that turn
+**Files:** src/ai.js (Sacrifice scoring), index.html (AI Sacrifice case)
+
+### BUG-C2: AI wastes Ignite on high-HP creatures
+**Symptoms:** AI Ignites creature with 40+ HP when it won't KO
+**Root Cause:** AI Ignite decision is `curHp <= 15` but that may be stale or wrong
+**Pattern:** AI scoring doesn't properly evaluate Ignite benefit
+**Acceptance:** AI only Ignites if it will KO (hp ≤ 15) or significantly weaken target
+**Files:** src/ai.js (Ignite scoring), index.html (AI Ignite case)
+
+### BUG-C3: AI turn end delay too long
+**Symptoms:** Too much pause between AI ending turn and TURN END animation
+**Root Cause:** Multiple `pause()` calls or high `ANIM_TIMING.AI_PAUSE` value
+**Pattern:** Animation timing not optimized
+**Acceptance:** Reduce delay to feel snappier (current 1400ms → ~800ms or less)
+**Files:** src/anim.js (AI_PAUSE), index.html (AI turn end)
+
+### BUG-C4: Allow rival to choose any deck
+**Symptoms:** Rival picks from decks OTHER than player's choice
+**Root Cause:** `aiDecks = ['shadow','fang','venom','swarm'].filter(d => d !== deckId)`
+**Pattern:** Intentional design, but Rico wants changed
+**Acceptance:** AI can pick any deck including same as player
+**Files:** index.html (startGame function, aiDecks line)
+
+### BUG-C5: Pack Tactics not updating AI hand properly
+**Symptoms:** AI casts Pack Tactics, draws cards, but hand count doesn't update
+**Root Cause:** `render()` not called after AI draws, or hand count display bug
+**Acceptance:** AI casts Pack Tactics → hand count in stats increases correctly
+**Files:** index.html (AI Pack Tactics case), render (hand count display)
+
+---
+
+## GROUP D: Creature Ability Fixes
+
+### BUG-D1: Hiveling ability trigger conditions wrong
+**Symptoms:** Hiveling draws on active summon, on swap, should only draw on bench summon
+**Root Cause:** Trigger condition doesn't check summon location
+**Pattern:** onSummon doesn't distinguish active vs bench
+**Acceptance:** Hiveling summoned to BENCH → draws 1. Summoned to active → no draw. Swapped to bench → no draw.
+**Text:** "When summoned to the bench, draw 1 card."
+**Files:** src/cards.js (hiveling), triggers.js (onSummon handling)
+
+### BUG-D2: Last Breath log says "saved you!" for opponent
+**Symptoms:** When AI's Last Breath triggers, log says "saved you!" instead of "saved the opponent!"
+**Root Cause:** Log message hardcoded for player perspective
+**Pattern:** Log messages don't account for which side triggered
+**Acceptance:** AI Last Breath → log says "Last Breath saved rival!" (or appropriate enemy text)
+**Files:** index.html (Last Breath handling, loseLife function)
+
+---
+
+## Subagent Assignments
+
+### Agent 1: Ability & Damage System (A1-A6)
+- Shellkin Harden for all damage sources
+- Echomask 0 ATK direct attack
+- Echomask copy modified ATK
+- Thornling/trigger damage KO handling
+- Poison turn-end damage
+- Duskfang ATK reset on death
+
+### Agent 2: Card Effects (B1-B5)
+- Mana Drain remove mana gain
+- Soul Siphon single target fix
+- Soul Siphon battle log
+- Banish grave behavior (confirm intent)
+- Grave Echo finding revived creatures
+
+### Agent 3: AI Behavior (C1-C5)
+- Sacrifice not on just-summoned
+- Ignite smarter targeting
+- Turn end delay reduction
+- Any deck for rival
+- Pack Tactics hand update
+
+### Agent 4: Creature Ability Fixes (D1-D2)
+- Hiveling bench-only trigger
+- Last Breath log fix
+
+---
+
+## Verification Checklist
+Each fix must:
+- [ ] Have clear acceptance criteria
+- [ ] Not break existing tests (`npm test`)
 - [ ] Be verified in browser manually
-- [ ] Not break related functionality

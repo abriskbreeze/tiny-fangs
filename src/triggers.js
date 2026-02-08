@@ -200,6 +200,17 @@ function matchesTrigger(trigger, event, context) {
     if (creatureCount < 2) return false;
   }
 
+  // Location condition: { location: 'bench' } - summon must be to specific location
+  // Used for Hiveling's "when summoned to the bench" ability
+  if (cond.location && context.summonLocation !== cond.location) return false;
+
+  // BUG-C3 FIX: myTurn condition - trigger only fires on owner's turn
+  // Used for Broodmother's "End of YOUR turn" ability
+  if (cond.myTurn === true) {
+    // activePlayerKey tells us whose turn is ending
+    if (context.activePlayerKey !== context.triggerOwnerKey) return false;
+  }
+
   return true;
 }
 

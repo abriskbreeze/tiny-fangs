@@ -12,7 +12,7 @@ describe('ANIM_TIMING', () => {
     expect(ANIM_TIMING.NEGATE).toBe(500);
     expect(ANIM_TIMING.FLOAT_TEXT).toBe(800);
     expect(ANIM_TIMING.ATTACK_SEQUENCE).toBe(700);
-    expect(ANIM_TIMING.AI_PAUSE).toBe(1400);
+    expect(ANIM_TIMING.AI_PAUSE).toBe(800);  // BUG-C3: Reduced for snappier AI turns
     expect(ANIM_TIMING.TRIGGER_REVEAL).toBe(5000);
   });
 

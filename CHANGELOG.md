@@ -2,6 +2,68 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.4.0] - 2026-02-07
+
+### Major Bug Fix Release — 33 bugs fixed across 2 sprints
+
+#### Sprint 1: Trigger & Effect System (15 fixes)
+
+**Trigger System**
+- Pulsefin Sonic Strike was doubling twice (120 → 60 damage)
+- Chain Lightning now fires on retreat/swap, not just summons
+- Phantom Wall & Spike Shield now trigger properly (missing processEffects callback)
+- Skitter ability shows proper text instead of "UNDEFINED"
+
+**UI/Visual**
+- Battle log: full history, scrollable, newest at top (desktop)
+- Bench creatures show red HP when damaged
+- Hold-to-zoom shows current HP/max HP and ATK modifiers
+- Ignite selector: enemies at top, player at bottom, ★ marks actives
+- Predator's Mark visual updates immediately after attack
+
+**Game Flow**
+- Banish properly swaps bench to active
+- Broodmother tokens spawn on correct side (fixed owner context)
+- Cindermaw AI double-attack animation now plays
+
+**Text Fixes**
+- Coilshell: "When attacked" (was "When damaged")
+- Titanback: "Resists first 15 damage per turn. When KO'd deal 25 damage to enemy creature."
+- Predator's Mark: "Your next attack" (was "Your creature's next attack")
+
+#### Sprint 2: Ability & Damage System (18 fixes)
+
+**Damage System**
+- Shellkin Harden blocks ALL damage sources (not just attacks)
+- Echomask 0 ATK can't deal LP damage on direct attack
+- Echomask copies MODIFIED ATK (not base)
+- Thornling Thorns properly KO attackers (was leaving at 0 HP)
+- Duskfang ATK bonus resets on death/return to hand
+
+**Card Effects**
+- Mana Drain simplified: just negates, no mana gain
+- Soul Siphon targets single creature (was hitting all bench!)
+- Soul Siphon logs damage and healing
+- Hexweaver poison text clarified
+
+**AI Behavior**
+- Won't Sacrifice just-summoned creatures
+- Won't waste Ignite on high-HP creatures
+- Turn end delay reduced (1400ms → 800ms)
+- Can pick any deck (including same as player)
+- Pack Tactics updates hand count display
+
+**Creature Abilities**
+- Hiveling only draws when summoned to bench (not active/swap)
+- Last Breath log says "saved rival!" for opponent
+
+### Changed
+- VERSION: 0.3.11 → 0.4.0
+- package.json version synced to 0.4.0
+- 257 tests passing (3 new tests for location conditions)
+
+---
+
 ## [0.3.11] - 2026-02-05
 
 ### Fixed — attackerOwner/defenderOwner Type Mismatch
