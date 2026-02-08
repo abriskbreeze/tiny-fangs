@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.21</title>
+  <title>TINY FANGS v0.4.22</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2293,7 +2293,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.21 • Card Battler</p>
+    <p class="sub">v0.4.22 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
@@ -4625,6 +4625,15 @@
           return;
         }
         
+        // Check if attacker was KO'd by trigger (opponent's Spike Shield)
+        if (state.G.me.active !== attacker) {
+          log('Your attacker was KO\'d!', 'dmg');
+          state.G.hasAttacked = true;
+          render();
+          highlightEndTurn(true);
+          return;
+        }
+        
         // B2: Cindermaw Frenzy - attacks TWICE (2 hearts on direct attack)
         const isCindermaw = attacker.id === 'cindermaw';
         const attackCount = isCindermaw ? 2 : 1;
@@ -5558,6 +5567,9 @@
     async function executeAiAttack(ai, player, pause) {
       if (!ai.active) return;
       
+      // Capture original attacker to detect if KO'd by triggers (Spike Shield)
+      const originalAttacker = ai.active;
+      
       // Emit beforeAttack event for trigger system (Phantom Wall, Spike Shield)
       // Must happen BEFORE direct attack check so Phantom Wall can negate direct attacks
       const beforeAttackCtx = await processTriggers('beforeAttack', {
@@ -5589,6 +5601,14 @@
       // Check if attack was negated (Phantom Wall)
       if (beforeAttackCtx.attackNegated) {
         log('Attack negated!', 'mana');
+        render();
+        return;
+      }
+      
+      // Check if original attacker was KO'd by trigger (Spike Shield)
+      // If so, attack fails - don't let replacement creature attack
+      if (ai.active !== originalAttacker) {
+        log('Attacker KO\'d!', 'dmg');
         render();
         return;
       }

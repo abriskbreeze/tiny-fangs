@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.22] - 2026-02-08
+
+### Changed
+- Fixed Spike Shield double-attack bug - attack ends if attacker is KO'd by trigger
+
+---
+
+
 ## [0.4.21] - 2026-02-08
 
 ### Changed
