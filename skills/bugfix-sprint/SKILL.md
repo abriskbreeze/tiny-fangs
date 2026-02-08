@@ -78,6 +78,13 @@ You are fixing bugs in [project] at [path].
 
 ## Key Principles
 
+### Searching
+Always use `qmd search` to find relevant code — NOT grep, NOT memory_search:
+```bash
+qmd search "trigger system"    # Fast keyword search
+qmd vsearch "damage reduction" # Semantic search if keywords fail
+```
+
 ### From AGENTS.md
 - **Root Cause Check (MANDATORY)**: Before ANY fix, ask the three questions
 - **Surgical Changes**: Touch only what's necessary

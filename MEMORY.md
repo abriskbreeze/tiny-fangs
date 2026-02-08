@@ -49,6 +49,17 @@ npm run deploy:push  # test → build → commit → push (all-in-one)
 2. What pattern allowed this bug to exist?
 3. What breaks if we revert this fix?
 
+### Searching the Codebase
+**Always use `qmd search` first** — NOT grep, NOT memory_search
+```bash
+qmd search "pulsefin damage"     # Fast keyword search
+qmd vsearch "trigger system"     # Semantic search (slower)
+```
+
+- `qmd search` = search FILES on disk (code, docs, notes)
+- `memory_search` = search AGENT CONTEXT only (prior decisions, preferences)
+- `grep` = last resort if qmd doesn't find it
+
 ---
 
 ## Game Design
