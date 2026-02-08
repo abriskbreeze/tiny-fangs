@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.42] - 2026-02-08
+
+### Changed
+- Add debug logs to player attack flow for onHit/afterAttack order tracing
+
+---
+
+
 ## [0.4.41] - 2026-02-08
 
 ### Changed
