@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.30] - 2026-02-08
+
+### Changed
+- Fix KO visual bug - clear active slot immediately to prevent creature re-render during trigger processing
+
+---
+
+
 ## [0.4.29] - 2026-02-08
 
 ### Changed

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.29</title>
+  <title>TINY FANGS v0.4.30</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2300,7 +2300,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.29 • Card Battler</p>
+    <p class="sub">v0.4.30 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -6379,6 +6379,10 @@
     async function ko(creature, owner, attacker = null, attackerOwner = null) {
       const ownerKey = owner === state.G.me ? 'me' : 'opp';
       
+      // Clear active slot IMMEDIATELY to prevent re-render during trigger processing
+      // This fixes the visual bug where creature pops back up during KO
+      owner.active = null;
+      
       // Emit beforeKO event for triggers like Vengeance
       // Only emit if there's an attacker (combat KO)
       // BUG-06 FIX: Pass source: 'attack' so Vengeance only triggers on attack KO
@@ -6405,6 +6409,9 @@
         
         // If KO was negated (e.g., Vengeance), handle attacker replacement and return
         if (beforeKOCtx.koNegated) {
+          // Restore creature to active (we cleared it at top of function)
+          owner.active = creature;
+          
           // Log the survival and destruction
           if (beforeKOCtx.destroyed) {
             log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
@@ -6437,9 +6444,8 @@
       // This prevents stacking when creature is re-summoned via Grave Echo/Grave Rise
       creature.atkBonuses = [];
       
-      // Add to graveyard and clear active FIRST (so triggers can see the KO'd creature)
+      // Add to graveyard (active already cleared at top of function)
       owner.grave.push(creature);
-      owner.active = null;
       
       const isPlayer = owner === state.G.me;
       const enemy = isPlayer ? state.G.opp : state.G.me;
