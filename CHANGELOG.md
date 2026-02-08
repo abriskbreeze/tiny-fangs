@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.20] - 2026-02-08
+
+### Changed
+- Fixed battle log panel sizing - log entries now properly fill container
+
+---
+
+
 ## [0.4.19] - 2026-02-08
 
 ### Changed
