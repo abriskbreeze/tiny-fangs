@@ -358,6 +358,20 @@ function scoreSet(card, ai, player) {
     case 'manaDrain':
       // Counter spells — always useful
       return 55;
+    
+    // Shell Pack set verses
+    case 'brace':
+      // Reduce damage by 15 — need active to protect
+      if (!ai.active) return 10;
+      // More valuable if active is wounded (closer to KO)
+      return ai.active.curHp <= 30 ? 50 : 35;
+      
+    case 'spikeShield':
+      // Deal 15 to attacker — need active to trigger
+      if (!ai.active) return 10;
+      // More valuable vs low-HP attackers (can KO them)
+      if (player.active?.curHp <= 15) return 60;
+      return 40;
       
     default:
       return 25; // Unknown set verse

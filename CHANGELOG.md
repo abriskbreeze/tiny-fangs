@@ -2,6 +2,16 @@
 
 All notable changes to Tiny Fangs.
 
+## [0.4.3] - 2026-02-08
+
+### Improved
+- **AI scoring for Shell Pack set verses:**
+  - `brace` — higher priority when active creature is wounded (50 vs 35)
+  - `spikeShield` — higher priority vs low-HP attackers (60 if can KO, else 40)
+  - Both return low score (10) if no active creature to protect
+
+---
+
 ## [0.4.2] - 2026-02-08
 
 ### Fixed
