@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.12</title>
+  <title>TINY FANGS v0.4.13</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -1093,6 +1093,17 @@
       font-weight: 500;
     }
     
+    /* Colored stats for modified values */
+    .card-detail .val.hp-damaged {
+      color: #ff4444;
+    }
+    .card-detail .val.atk-boosted {
+      color: #22ff88;
+    }
+    .card-detail .val.atk-reduced {
+      color: #ff4444;
+    }
+    
     .card-detail .ability-box {
       padding: 12px 14px;
       border-bottom: 1px solid var(--border);
@@ -2086,7 +2097,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.12 • Card Battler</p>
+    <p class="sub">v0.4.13 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover('shadow', event)" onmouseleave="deckLeave()" onpointerdown="deckPress('shadow')" onpointerup="deckRelease()" onpointerleave="deckRelease()">
