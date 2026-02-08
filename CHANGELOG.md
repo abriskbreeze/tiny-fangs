@@ -3,6 +3,22 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.21] - 2026-02-08
+
+### Changed
+- Add green colored header to creature cards in hold-to-zoom modal (matching cast/set verse styling)
+
+---
+
+
+## [patch] - 2026-02-08
+
+### Changed
+- Add green colored header to creature cards in hold-to-zoom modal (matching cast/set verse styling)
+
+---
+
+
 ## [0.4.22] - 2026-02-08
 
 ### Changed
