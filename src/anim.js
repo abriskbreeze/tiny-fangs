@@ -311,6 +311,24 @@ export const Anim = {
     });
   },
   
+  // Bench KO animation - returns promise
+  benchKo(side, index) {
+    return new Promise(resolve => {
+      const mobileSelector = side === 'me' 
+        ? `#m-my-bench .card-mini:nth-child(${index + 1})` 
+        : `#m-opp-bench .card-mini:nth-child(${index + 1})`;
+      const desktopSelector = side === 'me'
+        ? `#d-my-bench .card-mini:nth-child(${index + 1})`
+        : `#d-opp-bench .card-mini:nth-child(${index + 1})`;
+      const selector = `${mobileSelector}, ${desktopSelector}`;
+      
+      this.playOn(selector, 'anim-ko', ANIM_TIMING.KO);
+      const el = this.getVisibleElement(selector);
+      if (el) this.floatText('KO!', 'ko', el);
+      setTimeout(resolve, ANIM_TIMING.KO);
+    });
+  },
+  
   // Cast verse - returns promise
   castVerse() {
     return new Promise(resolve => {

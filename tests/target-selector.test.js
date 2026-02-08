@@ -58,6 +58,7 @@ global.Anim = {
   damage: () => Promise.resolve(),
   heal: () => Promise.resolve(),
   ko: () => Promise.resolve(),
+  benchKo: () => Promise.resolve(),
   lpDamage: () => Promise.resolve(),
   manaGain: () => Promise.resolve(),
   wait: () => Promise.resolve(),

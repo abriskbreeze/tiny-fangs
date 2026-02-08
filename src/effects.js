@@ -404,7 +404,11 @@ const Effects = {
       // Animation key is ABSOLUTE: 'me' = player (bottom), 'opp' = AI (top)
       if (getAnim()) {
         const animKey = ownerObj === ctx.state?.G?.me ? 'me' : 'opp';
-        await getAnim().ko(animKey);
+        if (location === 'bench') {
+          await getAnim().benchKo(animKey, idx);
+        } else {
+          await getAnim().ko(animKey);
+        }
       }
       
       if (location === 'active') {

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.35] - 2026-02-08
+
+### Changed
+- Fix Banish bench animation - added benchKo() animation, banish now uses correct animation based on target location
+
+---
+
+
 ## [0.4.34] - 2026-02-08
 
 ### Changed
