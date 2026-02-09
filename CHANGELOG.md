@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.46] - 2026-02-09
+
+### Changed
+- Fix MP display: flex not grid, restore header version
+
+---
+
+
 ## [0.4.45] - 2026-02-09
 
 ### Changed
