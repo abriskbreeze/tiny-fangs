@@ -3300,6 +3300,15 @@
     async function applyStateSync(syncState) {
       if (!state.G || state.G.mode !== 'multiplayer' || state.G.isHost) return;
       
+      console.log('[applyStateSync] Received sync:', {
+        turn: syncState.turn,
+        myTurn: syncState.myTurn,
+        meActive: syncState.me?.active?.id || null,
+        oppActive: syncState.opp?.active?.id || null,
+        meMana: syncState.me?.mana,
+        oppMana: syncState.opp?.mana
+      });
+      
       // Store old state for animation detection
       const oldState = {
         me: {
@@ -3355,6 +3364,14 @@
         log('Your turn', 'mana');
         startTurnTimer();
       }
+      
+      console.log('[applyStateSync] After merge:', {
+        myActive: state.G.me.active?.id || null,
+        oppActive: state.G.opp.active?.id || null,
+        myMana: state.G.me.mana,
+        myTurn: state.G.myTurn,
+        handSize: state.G.me.hand.length
+      });
       
       // Detect and animate changes
       await detectAndAnimateChanges(oldState);
@@ -4120,6 +4137,9 @@
         }
       };
       
+      // Debug: Log hash data for comparison
+      console.log('[computeStateHash] Data:', hashData);
+      
       // Simple hash: JSON stringify and compute basic hash
       const jsonStr = JSON.stringify(hashData);
       let hash = 0;
@@ -4392,6 +4412,7 @@
       // If deckCards provided (guest receiving host's shuffle), 
       // create cards with MATCHING UIDs in the same order
       if (deckCards && Array.isArray(deckCards) && deckCards.length > 0) {
+        console.log('[mkDeck] Creating deck from deckCards:', { deckId, deckCardsCount: deckCards.length, sample: deckCards.slice(0, 3) });
         const cards = [];
         for (const { uid, cardId } of deckCards) {
           // Determine if creature or verse
@@ -4405,6 +4426,7 @@
             console.warn('[mkDeck] Unknown cardId:', cardId);
           }
         }
+        console.log('[mkDeck] Created cards:', cards.length, 'sample:', cards.slice(0, 3).map(c => ({ id: c.id, uid: c.uid })));
         return cards;
       }
       
