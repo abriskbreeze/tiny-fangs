@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.46</title>
+  <title>TINY FANGS v0.4.47</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2691,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.46 • Card Battler</p>
+    <p class="sub">v0.4.47 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2769,7 +2769,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.46 • Card Battler</p>
+    <p class="sub">v0.4.47 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2891,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.46</div>
+      <div class="logo">TINY FANGS v0.4.47</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3504,7 +3504,11 @@
      * Multiplayer message handler
      */
     multiplayer.onMessage = async (msg) => {
-      if (!state.G || state.G.mode !== 'multiplayer') return;
+      // Allow pre-game messages (READY, COIN_FLIP, GAME_START) even without state.G
+      const preGameMessages = [MP_MSG.READY, MP_MSG.COIN_FLIP, 'GAME_START'];
+      if (!preGameMessages.includes(msg.type)) {
+        if (!state.G || state.G.mode !== 'multiplayer') return;
+      }
       
       console.log('[MP] Received:', msg.type);
       
@@ -3696,7 +3700,8 @@
      * Handle coin flip result (guest receives from host)
      */
     async function handleCoinFlipResult(msg) {
-      if (!state.G || state.G.mode !== 'multiplayer' || state.G.isHost) return;
+      // Note: state.G doesn't exist yet, use selectedMode and multiplayer.isHost
+      if (selectedMode !== 'multiplayer' || multiplayer.isHost) return;
       
       // Guest receives host's coin flip result
       const result = msg.result; // 'heads' or 'tails'
@@ -4600,8 +4605,9 @@
       // Multiplayer: Host generates and sends result, guest waits
       let result, playerWon;
       
-      if (state.G && state.G.mode === 'multiplayer') {
-        if (state.G.isHost) {
+      // Note: state.G doesn't exist yet, use selectedMode and multiplayer.isHost
+      if (selectedMode === 'multiplayer') {
+        if (multiplayer.isHost) {
           // Host generates crypto-random coin flip
           const randomBytes = new Uint8Array(1);
           crypto.getRandomValues(randomBytes);
@@ -4630,7 +4636,8 @@
       await playCoinFlipAnimation(result);
       
       // Multiplayer uses startGameMultiplayer, AI uses startGame
-      const isMultiplayer = state.G && state.G.mode === 'multiplayer';
+      // Note: state.G doesn't exist yet, use selectedMode
+      const isMultiplayer = selectedMode === 'multiplayer';
       const startFn = isMultiplayer ? startGameMultiplayer : (first) => startGame(pendingDeckId, first);
       
       if (playerWon) {

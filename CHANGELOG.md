@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.47] - 2026-02-08
+
+### Changed
+- Fix pre-game multiplayer messages not being processed (state.G check)
+
+---
+
+
 ## [0.4.46] - 2026-02-08
 
 ### Changed
