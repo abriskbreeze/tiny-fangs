@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.8] - 2026-02-08
+
+### Changed
+- Fix: reset hasAttacked/hasRetreated for guest's turn before sync
+
+---
+
+
 ## [0.5.7] - 2026-02-08
 
 ### Changed
