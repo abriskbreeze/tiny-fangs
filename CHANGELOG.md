@@ -3,6 +3,17 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.60] - 2026-02-08
+
+### Fixed
+- **MP deck sync**: CRITICAL - Deck UIDs were completely mismatched between host and guest!
+  - Host was sending just UIDs, but guest created NEW cards with NEW UIDs
+  - Now host sends `[{uid, cardId}, ...]` so guest creates exact same deck
+  - This was causing "No active creature" errors and all validation failures
+
+---
+
+
 ## [0.4.59] - 2026-02-08
 
 ### Fixed

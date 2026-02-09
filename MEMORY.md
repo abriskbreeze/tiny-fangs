@@ -771,5 +771,47 @@ if (state.G.mode === 'multiplayer' && state.G.isHost) {
 Every player action function needs sync at ALL exit paths, not just the happy path. When adding new actions, use try/finally pattern like `doAttack` to ensure sync always runs.
 
 **Tests:** 262 passing
-**Version:** v0.4.58
+
+
+### 2026-02-08 Night — MP Mana Sync & Hash Fix (v0.4.59)
+
+**Bug Reports (from koi/Rico):**
+1. Opponent not regaining mana
+2. Turn counter not syncing/restarting per turn
+3. Constant DESYNC detection in logs
+
+**Root Cause 1: SYNC overwrites mana refill**
+When host ends turn:
+1. Host sends END_TURN
+2. Host sends SYNC (with OLD mana values, before turn transition)
+3. Guest receives END_TURN → refills mana, draws
+4. Guest receives SYNC → **overwrites** the mana refill with old values!
+
+**Fix:**
+- Guest's END_TURN handler now just sets `state.G._pendingTurnStart = true`
+- Guest waits for SYNC to arrive
+- In `applyStateSync`, after merging state, if `_pendingTurnStart` is true:
+  - Refill mana, draw card, reset flags
+  - Clear the pending flag
+
+**Root Cause 2: Hash uses perspective keys**
+Hash function used `me`/`opp` directly:
+- Host hashes: `{me: hostData, opp: guestData}`
+- Guest hashes: `{me: guestData, opp: hostData}` (swapped!)
+These will NEVER match because JSON key order differs.
+
+**Fix:**
+Use consistent `host`/`guest` keys based on `isHost`:
+```javascript
+const hostPlayer = state.G.isHost ? state.G.me : state.G.opp;
+const guestPlayer = state.G.isHost ? state.G.opp : state.G.me;
+```
+
+**Pattern Learned:**
+1. In multiplayer, message order matters - END_TURN and SYNC can race
+2. When syncing state, don't do local modifications that will be overwritten
+3. Hash/comparison functions must use consistent keys, not perspective-based keys
+
+**Tests:** 262 passing
+**Version:** v0.4.59
 

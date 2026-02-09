@@ -3661,7 +3661,7 @@
     // Multiplayer deck selection state
     let myDeckReady = false;
     let oppDeckId = null;
-    let oppDeckUidOrder = null; // Guest only: host's shuffle order for guest's deck
+    let oppDeckCards = null; // Guest only: host's shuffle for guest's deck [{uid, cardId}, ...]
     
     /**
      * Handle opponent ready message (deck selection)
@@ -3680,9 +3680,13 @@
       
       oppDeckId = msg.deckId;
       
-      // If opponent deck order provided (guest receiving shuffle), store it
-      if (msg.uidOrder) {
-        oppDeckUidOrder = msg.uidOrder;
+      // If opponent deck cards provided (guest receiving shuffle), store it
+      // Format: [{uid, cardId}, ...] - allows guest to recreate exact deck
+      if (msg.deckCards) {
+        oppDeckCards = msg.deckCards;
+      } else if (msg.uidOrder) {
+        // Legacy support for old format (shouldn't happen)
+        oppDeckCards = null;
       }
       
       // If we're also ready, proceed
@@ -3693,22 +3697,23 @@
           const myDeck = mkDeck(pendingDeckId);
           const oppDeck = mkDeck(oppDeckId);
           
-          // Store my deck's UID order
+          // Store my deck's UID order (just UIDs for local use)
           const myDeckUids = myDeck.map(c => c.uid);
-          const oppDeckUids = oppDeck.map(c => c.uid);
+          // Store opponent deck with BOTH uid and cardId so guest can recreate exactly
+          const oppDeckCards = oppDeck.map(c => ({ uid: c.uid, cardId: c.id }));
           
-          // Send opponent's shuffle order to guest
-          console.log('[MP] Host sending shuffle:', { deckId: pendingDeckId, uidOrderLength: oppDeckUids.length });
+          // Send opponent's shuffle order to guest (includes cardId so guest can match)
+          console.log('[MP] Host sending shuffle:', { deckId: pendingDeckId, cardCount: oppDeckCards.length });
           multiplayer.send({
             type: MP_MSG.READY,
             deckId: pendingDeckId, // Host's deck ID
-            uidOrder: oppDeckUids,  // Guest's deck shuffle order
+            deckCards: oppDeckCards,  // Guest's deck: [{uid, cardId}, ...]
             ready: true
           });
           
           // Store for game initialization
           window.mpMyDeckUids = myDeckUids;
-          window.mpOppDeckUids = oppDeckUids;
+          window.mpOppDeckCards = oppDeckCards;
           
           closeModal();
           showCoinFlipModal();
@@ -4375,24 +4380,44 @@
       return result;
     }
     
-    function mkDeck(deckId, uidOrder = null) {
+    /**
+     * Create a deck from deck definition
+     * @param {string} deckId - Deck ID (e.g., 'shadow', 'fang')
+     * @param {Array|null} deckCards - If provided, [{uid, cardId}, ...] to recreate exact deck
+     * @returns {Array} Array of card objects
+     */
+    function mkDeck(deckId, deckCards = null) {
       const def = DECKS[deckId];
+      
+      // If deckCards provided (guest receiving host's shuffle), 
+      // create cards with MATCHING UIDs in the same order
+      if (deckCards && Array.isArray(deckCards) && deckCards.length > 0) {
+        const cards = [];
+        for (const { uid, cardId } of deckCards) {
+          // Determine if creature or verse
+          if (CREATURES[cardId]) {
+            const t = CREATURES[cardId];
+            cards.push({ ...t, cardType: 'creature', curHp: t.hp, status: null, uid, firstAtk: true });
+          } else if (VERSES[cardId]) {
+            const t = VERSES[cardId];
+            cards.push({ ...t, cardType: 'verse', uid });
+          } else {
+            console.warn('[mkDeck] Unknown cardId:', cardId);
+          }
+        }
+        return cards;
+      }
+      
+      // Otherwise, create normally with new UIDs and crypto shuffle
       const cards = [
         ...def.creatures.map(mkCreature),
         ...def.verses.map(mkVerse)
       ];
-      
-      // If uidOrder provided (guest receiving host's shuffle), use that order
-      if (uidOrder) {
-        return shuffleByUidOrder(cards, uidOrder);
-      }
-      
-      // Otherwise, crypto shuffle
       return cryptoShuffle(cards);
     }
     
-    function mkPlayer(deckId, uidOrder = null) {
-      const deck = mkDeck(deckId, uidOrder);
+    function mkPlayer(deckId, deckCards = null) {
+      const deck = mkDeck(deckId, deckCards);
       const hand = deck.splice(0, 5);
       return {
         lp: 3,
@@ -4585,7 +4610,7 @@
         // If opponent already ready, handleOpponentReady will process
         if (oppDeckId) {
           // Opponent was ready first, trigger processing
-          handleOpponentReady({ deckId: oppDeckId, uidOrder: oppDeckUidOrder });
+          handleOpponentReady({ deckId: oppDeckId, deckCards: oppDeckCards });
         } else {
           // Show waiting screen with timeout
           showModal('Waiting for opponent...', [], { noCancel: true });
@@ -4879,22 +4904,22 @@
       await playBeginAnimation();
       
       // Determine opponent deck and shuffle orders
-      let myDeckUidOrder = null;
-      let localOppDeckUidOrder = null;
+      let myDeckCards = null;      // For guest: [{uid, cardId}, ...] from host
+      let localOppDeckCards = null; // For host: [{uid, cardId}, ...] for opponent's deck
       let opponentDeckId = null;
       
       if (selectedMode === 'multiplayer') {
         // Use pre-shuffled decks from handleOpponentReady
         opponentDeckId = oppDeckId;
         if (multiplayer.isHost) {
-          // Host uses their own shuffles
-          myDeckUidOrder = window.mpMyDeckUids;
-          localOppDeckUidOrder = window.mpOppDeckUids;
+          // Host uses their own shuffles (myDeckUids is just for reference, deck already created)
+          myDeckCards = null; // Host creates fresh deck
+          localOppDeckCards = window.mpOppDeckCards; // For creating opponent's deck
         } else {
-          // Guest uses host's shuffle for their deck (stored in module-level oppDeckUidOrder)
-          myDeckUidOrder = oppDeckUidOrder; // Module-level variable from handleOpponentReady
+          // Guest uses host's shuffle for their deck
+          myDeckCards = oppDeckCards; // Module-level variable from handleOpponentReady
           // Opponent's (host's) deck will be created without shuffle (we don't know it)
-          localOppDeckUidOrder = null;
+          localOppDeckCards = null;
         }
       } else {
         // AI mode
@@ -4902,8 +4927,8 @@
       }
       
       state.G = {
-        me: mkPlayer(deckId, myDeckUidOrder),
-        opp: mkPlayer(opponentDeckId, localOppDeckUidOrder),
+        me: mkPlayer(deckId, myDeckCards),
+        opp: mkPlayer(opponentDeckId, localOppDeckCards),
         turn: 1,
         phase: 'main',
         log: [],
