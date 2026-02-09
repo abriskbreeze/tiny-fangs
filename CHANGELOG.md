@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.2] - 2026-02-08
+
+### Changed
+- Fix: set verse action, cancel targeting, turn-start sync
+
+---
+
+
 ## [0.5.1] - 2026-02-08
 
 ### Changed

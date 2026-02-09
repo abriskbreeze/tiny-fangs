@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.1</title>
+  <title>TINY FANGS v0.5.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.1 • Card Battler</p>
+    <p class="sub">v0.5.2 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.1 • Card Battler</p>
+    <p class="sub">v0.5.2 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.1</div>
+      <div class="logo">TINY FANGS v0.5.2</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3380,17 +3380,12 @@
         state.G.log = syncState.log;
       }
 
-      // If turn just started for guest (received END_TURN then SYNC), do turn transition
+      // If turn just started for guest (received END_TURN then SYNC), do turn transition UI
+      // NOTE: Host already did mana/draw for guest before sending sync
       if (pendingTurnStart && state.G.myTurn) {
         state.G._pendingTurnStart = false;
 
-        // Refill guest's mana (start of their turn)
-        state.G.me.mana = state.G.me.maxMana;
-
-        // Draw for guest
-        draw(state.G.me);
-
-        // Reset flags for guest's turn
+        // Reset flags for guest's turn (state already has correct mana/hand from sync)
         state.G.hasAttacked = false;
         state.G.hasRetreated = false;
         if (state.G.me.active) {
@@ -3664,6 +3659,11 @@
           case MP_MSG.SELECTING:
             // Show "Opponent choosing target..." overlay
             showSelectionOverlay(msg.cardName);
+            break;
+
+          case 'CANCEL_SELECT':
+            // Hide selection overlay when opponent cancels targeting
+            hideSelectionOverlay();
             break;
 
           case MP_MSG.END_TURN:
@@ -4048,6 +4048,31 @@
               oppPlayer.setVerse = card;
             }
 
+            break;
+          }
+
+          case 'set': {
+            // Validate: Has verse in hand?
+            const setCard = oppPlayer.hand.find(c => c.uid === msg.cardUid);
+            if (!setCard || setCard.cardType !== 'verse') {
+              console.warn('[MP] Verse not in hand for set:', msg.cardUid);
+              multiplayer.send({ type: 'error', message: 'Card not found' });
+              return;
+            }
+
+            // Validate: Enough mana?
+            if (setCard.cost > oppPlayer.mana) {
+              console.warn('[MP] Not enough mana to set verse');
+              multiplayer.send({ type: 'error', message: 'Not enough mana' });
+              return;
+            }
+
+            // Execute set
+            oppPlayer.mana -= setCard.cost;
+            oppPlayer.hand = oppPlayer.hand.filter(c => c.uid !== setCard.uid);
+            oppPlayer.setVerse = setCard;
+
+            log(`Opponent set a verse`);
             break;
           }
 
@@ -6370,7 +6395,13 @@
         }
 
         selectionResult = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
-        if (!selectionResult) return; // Canceled - no mana spent
+        if (!selectionResult) {
+          // Cancelled - notify opponent to hide selection overlay
+          if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+            multiplayer.send({ type: 'CANCEL_SELECT' });
+          }
+          return; // No mana spent
+        }
       }
 
       // Multiplayer: Send action message with selection
@@ -7684,6 +7715,14 @@
       // If I ended my turn (isOpponentTurn=false), it's now opponent's turn
       if (state.G.mode === 'multiplayer') {
         state.G.myTurn = isOpponentTurn;
+      }
+
+      // HOST: If it's now guest's turn, do guest's turn-start BEFORE sending sync
+      // This ensures sync contains correct mana/hand for guest
+      if (state.G.mode === 'multiplayer' && state.G.isHost && !state.G.myTurn) {
+        // Guest's turn starting - do their mana refill and draw
+        state.G.opp.mana = state.G.opp.maxMana;
+        draw(state.G.opp);
       }
 
       // Multiplayer: Send state sync if host (pre-swapped for guest)
