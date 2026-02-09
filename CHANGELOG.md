@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.6] - 2026-02-08
+
+### Changed
+- Fix: guard doAttack with hasAttacked/hasRetreated, detailed hash logging, animation debug logs
+
+---
+
+
 ## [0.5.5] - 2026-02-08
 
 ### Changed
