@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.48] - 2026-02-08
+
+### Changed
+- Add debug logging for multiplayer ready flow
+
+---
+
+
 ## [0.4.47] - 2026-02-08
 
 ### Changed
