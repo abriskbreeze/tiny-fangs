@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.44] - 2026-02-09
+
+### Changed
+- Remove version from battlefield header, fix bump script
+
+---
+
+
 ## [0.4.43] - 2026-02-09
 
 ### Changed
