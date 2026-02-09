@@ -3,7 +3,13 @@
 All notable changes to Tiny Fangs.
 
 
-## [0.5.9] - 2026-02-08
+## [0.5.10] - 2026-02-08
+
+### Changed
+- Improved guest animation detection: handles KO+promote, bench KOs, creature replacements
+- Captures bench state for proper animation sequencing
+
+---
 
 ### Changed
 - Fix guest animations - render DOM before animating
@@ -1098,3 +1104,12 @@ Anim.damage('me') for player's side (bottom)
 - Shadow, Fang packs
 - AI opponent
 - Basic animations
+
+
+## [0.5.10] - 2026-02-08
+
+### Changed
+- Improved guest animation detection: handles KO+promote, bench KOs, creature replacements
+- Captures bench state for proper animation sequencing
+
+---

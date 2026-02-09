@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.9</title>
+  <title>TINY FANGS v0.5.10</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.9 • Card Battler</p>
+    <p class="sub">v0.5.10 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.9 • Card Battler</p>
+    <p class="sub">v0.5.10 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.9</div>
+      <div class="logo">TINY FANGS v0.5.10</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3355,12 +3355,14 @@
         me: {
           lp: state.G.me.lp,
           activeUid: state.G.me.active?.uid || null,
-          activeHp: state.G.me.active?.curHp || 0
+          activeHp: state.G.me.active?.curHp || 0,
+          benchUids: state.G.me.bench.map(c => c.uid)
         },
         opp: {
           lp: state.G.opp.lp,
           activeUid: state.G.opp.active?.uid || null,
-          activeHp: state.G.opp.active?.curHp || 0
+          activeHp: state.G.opp.active?.curHp || 0,
+          benchUids: state.G.opp.bench.map(c => c.uid)
         }
       };
 
@@ -3423,6 +3425,7 @@
 
     /**
      * Detect state changes and trigger animations for guest
+     * Handles: summons, KOs, bench promotes, HP damage, LP damage
      */
     async function detectAndAnimateChanges(oldState) {
       console.log('[Anim] detectAndAnimateChanges:', {
@@ -3433,54 +3436,79 @@
         oldMeLp: oldState.me.lp,
         newMeLp: state.G.me.lp,
         oldOppLp: oldState.opp.lp,
-        newOppLp: state.G.opp.lp
+        newOppLp: state.G.opp.lp,
+        oldMeBench: oldState.me.benchUids,
+        newMeBench: state.G.me.bench.map(c => c.uid),
+        oldOppBench: oldState.opp.benchUids,
+        newOppBench: state.G.opp.bench.map(c => c.uid)
       });
+
+      // Helper to check if a creature was on bench before
+      const wasOnBench = (uid, oldBenchUids) => oldBenchUids.includes(uid);
       
-      // LP changes - show LP damage animation
-      if (state.G.me.lp < oldState.me.lp) {
-        console.log('[Anim] Playing LP damage (me):', oldState.me.lp - state.G.me.lp);
-        await Anim.lpDamage('me', oldState.me.lp - state.G.me.lp);
-      }
-      if (state.G.opp.lp < oldState.opp.lp) {
-        console.log('[Anim] Playing LP damage (opp):', oldState.opp.lp - state.G.opp.lp);
-        await Anim.lpDamage('opp', oldState.opp.lp - state.G.opp.lp);
-      }
-
-      // Active creature changed - could be summon or KO
-      if (state.G.me.active?.uid !== oldState.me.activeUid) {
-        if (state.G.me.active && !oldState.me.activeUid) {
-          console.log('[Anim] Playing summon (me)');
-          await Anim.summon('me');
-        } else if (!state.G.me.active && oldState.me.activeUid) {
-          console.log('[Anim] Playing KO (me)');
-          await Anim.ko('me');
+      // Process each side
+      for (const side of ['me', 'opp']) {
+        const old = oldState[side];
+        const current = state.G[side];
+        const newActiveUid = current.active?.uid;
+        
+        // === ACTIVE SLOT CHANGES ===
+        if (newActiveUid !== old.activeUid) {
+          // Old active is gone - check if it was KO'd
+          if (old.activeUid && newActiveUid !== old.activeUid) {
+            // Old creature is no longer active - play KO
+            console.log(`[Anim] Playing KO (${side}) - old active gone`);
+            await Anim.ko(side);
+            await Anim.wait(200); // Brief pause between KO and next anim
+          }
+          
+          // New active appeared
+          if (newActiveUid) {
+            if (wasOnBench(newActiveUid, old.benchUids)) {
+              // Promoted from bench
+              console.log(`[Anim] Playing bench-to-active (${side})`);
+              await Anim.benchToActive(side);
+            } else if (!old.activeUid) {
+              // Fresh summon (was nothing before)
+              console.log(`[Anim] Playing summon (${side})`);
+              await Anim.summon(side);
+            } else {
+              // New creature that wasn't on bench - probably a summon after KO
+              console.log(`[Anim] Playing summon (${side}) - new creature`);
+              await Anim.summon(side);
+            }
+          }
         }
-      }
-      if (state.G.opp.active?.uid !== oldState.opp.activeUid) {
-        if (state.G.opp.active && !oldState.opp.activeUid) {
-          console.log('[Anim] Playing summon (opp)');
-          await Anim.summon('opp');
-        } else if (!state.G.opp.active && oldState.opp.activeUid) {
-          console.log('[Anim] Playing KO (opp)');
-          await Anim.ko('opp');
+        
+        // === HP DAMAGE on same active creature ===
+        if (current.active && old.activeUid === current.active.uid) {
+          const hpLoss = old.activeHp - current.active.curHp;
+          if (hpLoss > 0) {
+            console.log(`[Anim] Playing damage (${side}):`, hpLoss);
+            await Anim.damage(side, hpLoss);
+          } else if (hpLoss < 0) {
+            console.log(`[Anim] Playing heal (${side}):`, -hpLoss);
+            await Anim.heal(side, -hpLoss);
+          }
         }
-      }
-
-      // HP damage on active creatures
-      if (state.G.me.active && oldState.me.activeUid === state.G.me.active.uid) {
-        const hpLoss = oldState.me.activeHp - state.G.me.active.curHp;
-        if (hpLoss > 0) {
-          await Anim.damage('me', hpLoss);
-        } else if (hpLoss < 0) {
-          await Anim.heal('me', -hpLoss);
+        
+        // === LP DAMAGE ===
+        if (current.lp < old.lp) {
+          console.log(`[Anim] Playing LP damage (${side}):`, old.lp - current.lp);
+          await Anim.lpDamage(side, old.lp - current.lp);
         }
-      }
-      if (state.G.opp.active && oldState.opp.activeUid === state.G.opp.active.uid) {
-        const hpLoss = oldState.opp.activeHp - state.G.opp.active.curHp;
-        if (hpLoss > 0) {
-          await Anim.damage('opp', hpLoss);
-        } else if (hpLoss < 0) {
-          await Anim.heal('opp', -hpLoss);
+        
+        // === BENCH KOs ===
+        // Check if any bench creatures from before are now gone (not on bench or active)
+        for (const oldBenchUid of old.benchUids) {
+          const stillOnBench = current.bench.some(c => c.uid === oldBenchUid);
+          const nowActive = current.active?.uid === oldBenchUid;
+          if (!stillOnBench && !nowActive) {
+            // This bench creature is gone - it was KO'd
+            const oldIdx = old.benchUids.indexOf(oldBenchUid);
+            console.log(`[Anim] Playing bench KO (${side}) at index ${oldIdx}`);
+            await Anim.benchKo(side, oldIdx);
+          }
         }
       }
     }
