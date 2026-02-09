@@ -3,6 +3,17 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.59] - 2026-02-08
+
+### Fixed
+- **MP mana sync**: Fixed mana not refilling for opponent - SYNC was overwriting mana refill done in END_TURN handler
+  - Guest now waits for SYNC before doing turn transition (draw, mana refill)
+  - Uses `_pendingTurnStart` flag to coordinate END_TURN and SYNC order
+- **MP hash desync**: Fixed constant desync detection - hash function now uses consistent `host`/`guest` keys instead of perspective-based `me`/`opp` keys
+
+---
+
+
 ## [0.4.58] - 2026-02-08
 
 ### Fixed

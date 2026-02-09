@@ -740,3 +740,36 @@ Built complete 1v1 multiplayer infrastructure using PeerJS WebRTC:
 **Tests:** 262 passing (all existing tests still pass)
 **Version:** v0.4.44
 
+
+### 2026-02-08 Late — MP Sync Bug (v0.4.58)
+
+**Bug Report (from koi/Rico):**
+"You can't see the actions your opponent is taking until they end their turn and then things all happen at once."
+
+**Root Cause Analysis:**
+- Player action functions should send `MP_MSG.SYNC` after completing
+- All actions had sync blocks: `summonCreature`, `setVerse`, `doAttack`, `doRetreat`
+- **Missing:** `castVerse()` had 3 exit paths with no sync!
+
+**Exit Paths Without Sync:**
+1. After spell negation (`castResult.negated`)
+2. After declarative effects (`if (c.effects)` branch)
+3. After legacy switch (fallback for non-migrated cards)
+
+**Fix (v0.4.58):**
+Added sync block to all 3 exit paths:
+```javascript
+if (state.G.mode === 'multiplayer' && state.G.isHost) {
+  multiplayer.send({ 
+    type: MP_MSG.SYNC, 
+    state: getMinimalState() 
+  });
+}
+```
+
+**Pattern Learned:**
+Every player action function needs sync at ALL exit paths, not just the happy path. When adding new actions, use try/finally pattern like `doAttack` to ensure sync always runs.
+
+**Tests:** 262 passing
+**Version:** v0.4.58
+

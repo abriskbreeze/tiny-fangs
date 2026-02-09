@@ -3314,6 +3314,10 @@
         }
       };
       
+      // Track if this sync triggers a turn start for guest
+      const wasMyTurn = state.G.myTurn;
+      const pendingTurnStart = state.G._pendingTurnStart;
+      
       // Apply state updates
       state.G.turn = syncState.turn;
       // IMPORTANT: Flip myTurn for guest (host's turn = not guest's turn)
@@ -3329,6 +3333,27 @@
       // Update log
       if (syncState.log) {
         state.G.log = syncState.log;
+      }
+      
+      // If turn just started for guest (received END_TURN then SYNC), do turn transition
+      if (pendingTurnStart && state.G.myTurn) {
+        state.G._pendingTurnStart = false;
+        
+        // Refill guest's mana (start of their turn)
+        state.G.me.mana = state.G.me.maxMana;
+        
+        // Draw for guest
+        draw(state.G.me);
+        
+        // Reset flags for guest's turn
+        state.G.hasAttacked = false;
+        state.G.hasRetreated = false;
+        if (state.G.me.active) {
+          state.G.me.active.hardenUsed = false;
+        }
+        
+        log('Your turn', 'mana');
+        startTurnTimer();
       }
       
       // Detect and animate changes
@@ -3594,25 +3619,10 @@
                 await endTurn(true); // true = opponent's turn ending
               }
             } else {
-              // Guest receives end turn notification - it's now guest's turn
-              state.G.myTurn = true;
-              
-              // Refill guest's mana (start of their turn)
-              state.G.me.mana = state.G.me.maxMana;
-              
-              // Draw for guest
-              draw(state.G.me);
-              
-              // Reset flags for guest's turn
-              state.G.hasAttacked = false;
-              state.G.hasRetreated = false;
-              if (state.G.me.active) {
-                state.G.me.active.hardenUsed = false;
-              }
-              
-              log('Your turn', 'mana');
-              startTurnTimer();
-              render();
+              // Guest receives END_TURN notification
+              // DON'T do mana/draw here - wait for SYNC which will trigger turn transition
+              // Just mark that we're expecting a turn transition
+              state.G._pendingTurnStart = true;
             }
             break;
             
@@ -4068,33 +4078,40 @@
     /**
      * Compute state hash for desync detection
      * Hash includes: turn, LP, mana, active creature UIDs, hand sizes
+     * IMPORTANT: Use consistent keys (host/guest) not perspective keys (me/opp)
      */
     function computeStateHash() {
       if (!state.G) return '';
       
+      // Use consistent keys based on isHost to avoid perspective mismatch
+      // Host: me=host, opp=guest
+      // Guest: me=guest, opp=host (swapped)
+      const hostPlayer = state.G.isHost ? state.G.me : state.G.opp;
+      const guestPlayer = state.G.isHost ? state.G.opp : state.G.me;
+      
       const hashData = {
         turn: state.G.turn,
-        me: {
-          lp: state.G.me.lp,
-          mana: state.G.me.mana,
-          maxMana: state.G.me.maxMana,
-          activeUid: state.G.me.active?.uid || null,
-          benchUids: state.G.me.bench.map(c => c.uid).sort(),
-          handSize: state.G.me.hand.length,
-          deckSize: state.G.me.deck.length,
-          graveSize: state.G.me.grave.length,
-          setVerseUid: state.G.me.setVerse?.uid || null
+        host: {
+          lp: hostPlayer.lp,
+          mana: hostPlayer.mana,
+          maxMana: hostPlayer.maxMana,
+          activeUid: hostPlayer.active?.uid || null,
+          benchUids: hostPlayer.bench.map(c => c.uid).sort(),
+          handSize: hostPlayer.hand.length,
+          deckSize: hostPlayer.deck.length,
+          graveSize: hostPlayer.grave.length,
+          setVerseUid: hostPlayer.setVerse?.uid || null
         },
-        opp: {
-          lp: state.G.opp.lp,
-          mana: state.G.opp.mana,
-          maxMana: state.G.opp.maxMana,
-          activeUid: state.G.opp.active?.uid || null,
-          benchUids: state.G.opp.bench.map(c => c.uid).sort(),
-          handSize: state.G.opp.hand.length,
-          deckSize: state.G.opp.deck.length,
-          graveSize: state.G.opp.grave.length,
-          setVerseUid: state.G.opp.setVerse?.uid || null
+        guest: {
+          lp: guestPlayer.lp,
+          mana: guestPlayer.mana,
+          maxMana: guestPlayer.maxMana,
+          activeUid: guestPlayer.active?.uid || null,
+          benchUids: guestPlayer.bench.map(c => c.uid).sort(),
+          handSize: guestPlayer.hand.length,
+          deckSize: guestPlayer.deck.length,
+          graveSize: guestPlayer.grave.length,
+          setVerseUid: guestPlayer.setVerse?.uid || null
         }
       };
       
