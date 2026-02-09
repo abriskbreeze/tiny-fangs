@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.57] - 2026-02-08
+
+### Changed
+- Move turn timer to top right, show countdown prominently
+
+---
+
+
 ## [0.4.56] - 2026-02-08
 
 ### Changed
