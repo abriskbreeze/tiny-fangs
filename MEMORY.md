@@ -854,6 +854,23 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 **Version:** v0.4.60
 
 
+### 2026-02-08 Night — MP Architecture Refactor Planning
+
+**Problem:** Current MP architecture has both host and guest maintaining independent `state.G`, with sync + perspective swap. Causes desync bugs, perspective swap errors, race conditions.
+
+**Solution:** Host as Single Source of Truth
+- Host maintains authoritative `state.G`
+- Host sends state PRE-SWAPPED for guest (no swap in applyStateSync)
+- Guest is view-only layer - sends actions, receives synced state
+- All game logic runs on host
+
+**New Functions:**
+- `getStateForGuest()` - Host swaps me/opp BEFORE sending
+- `applyStateSync()` - Simplified, no swap needed
+
+**See:** `tasks/mp-refactor-plan.md` for full diagrams and implementation details
+
+
 ### 2026-02-08 Night (cont.) — Deploy Cleanup
 
 **Removed docs/ folder:**

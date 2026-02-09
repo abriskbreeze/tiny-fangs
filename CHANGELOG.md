@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.0] - 2026-02-08
+
+### Changed
+- MP Refactor: Host as source of truth
+
+---
+
+
 ## [0.4.63] - 2026-02-08
 
 ### Changed
