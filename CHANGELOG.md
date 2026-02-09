@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.5] - 2026-02-08
+
+### Changed
+- Fix: use synced counts for ALL players in hash, sync deck contents
+
+---
+
+
 ## [0.5.4] - 2026-02-08
 
 ### Changed

@@ -854,22 +854,26 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 **Version:** v0.5.0
 
 
-### 2026-02-09 — MP Architecture Refactor COMPLETE ✅
+### 2026-02-09 — MP Architecture Refactor + Bug Fixes
 
-**Problem Solved:** Perspective swap bugs causing guest's `state.G.me.active` to be set incorrectly
-
-**Solution Implemented:** Host as Single Source of Truth
+**v0.5.0:** Host as Single Source of Truth architecture
 - `getStateForGuest()` - Host swaps me/opp BEFORE sending
 - `applyStateSync()` - Guest applies DIRECTLY (no swap needed)
-- 13 sync locations updated
-- `computeStateHash()` simplified (no perspective logic)
 
-**Key Files Changed:**
-- `index.html`: Added getStateForGuest(), simplified applyStateSync(), updated 13 sync calls, simplified hash
+**v0.5.1:** Fixed `executeDrop()` for guest summons
+
+**v0.5.2:** Fixed turn-start sync (host does guest's mana/draw before sending)
+- Added `set` action handler for set verses
+- Added `CANCEL_SELECT` message for cancelled targeting
+
+**v0.5.3:** Exposed `showModeSelect` to window
+
+**v0.5.4:** Fixed remaining sync issues
+- Sync `hasAttacked`/`hasRetreated` flags to prevent infinite attacks
+- Store opponent's `handCount`/`deckCount`/`graveCount` for hash comparison
+- Fixes DESYNC caused by host drawing cards that guest doesn't know about
 
 **See:** `tasks/mp-refactor-plan.md` for architecture diagrams
-
-**Version:** v0.5.0 (commit d3d5443)
 
 
 ### 2026-02-08 Night — MP Architecture Refactor Planning
