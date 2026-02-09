@@ -3669,7 +3669,7 @@
     async function handleOpponentReady(msg) {
       console.log('[MP] handleOpponentReady:', { 
         msgDeckId: msg.deckId, 
-        msgUidOrder: !!msg.uidOrder, 
+        msgDeckCards: msg.deckCards?.length || 0,
         myDeckReady, 
         isHost: multiplayer.isHost 
       });
@@ -4926,6 +4926,17 @@
         opponentDeckId = pendingAIDeckId || getRandomDeckId();
       }
       
+      // Debug: Log deck creation for multiplayer
+      if (selectedMode === 'multiplayer') {
+        console.log('[MP] Creating game state:', {
+          deckId,
+          opponentDeckId,
+          myDeckCardsLength: myDeckCards?.length || 0,
+          localOppDeckCardsLength: localOppDeckCards?.length || 0,
+          isHost: multiplayer.isHost
+        });
+      }
+      
       state.G = {
         me: mkPlayer(deckId, myDeckCards),
         opp: mkPlayer(opponentDeckId, localOppDeckCards),
@@ -4957,6 +4968,16 @@
         saveGameState();
         startStatePersistence();
         startTurnTimer();
+      }
+      
+      // Debug: Log hand contents after game start
+      if (selectedMode === 'multiplayer') {
+        console.log('[MP] Game started:', {
+          myTurn: state.G.myTurn,
+          handSize: state.G.me.hand.length,
+          handCards: state.G.me.hand.map(c => ({ id: c.id, uid: c.uid })),
+          mana: state.G.me.mana
+        });
       }
       
       if (playerFirst) {
