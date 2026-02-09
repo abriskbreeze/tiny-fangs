@@ -851,7 +851,25 @@ Host now sends `deckCards: [{uid, cardId}, ...]` so guest can create cards with 
 When syncing deck state across network, you must sync BOTH the card identity (cardId) AND the unique instance ID (uid). Just sending one or the other isn't enough.
 
 **Tests:** 262 passing
-**Version:** v0.4.60
+**Version:** v0.5.0
+
+
+### 2026-02-09 — MP Architecture Refactor COMPLETE ✅
+
+**Problem Solved:** Perspective swap bugs causing guest's `state.G.me.active` to be set incorrectly
+
+**Solution Implemented:** Host as Single Source of Truth
+- `getStateForGuest()` - Host swaps me/opp BEFORE sending
+- `applyStateSync()` - Guest applies DIRECTLY (no swap needed)
+- 13 sync locations updated
+- `computeStateHash()` simplified (no perspective logic)
+
+**Key Files Changed:**
+- `index.html`: Added getStateForGuest(), simplified applyStateSync(), updated 13 sync calls, simplified hash
+
+**See:** `tasks/mp-refactor-plan.md` for architecture diagrams
+
+**Version:** v0.5.0 (commit d3d5443)
 
 
 ### 2026-02-08 Night — MP Architecture Refactor Planning

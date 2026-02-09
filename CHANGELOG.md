@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.1] - 2026-02-08
+
+### Changed
+- Fix: executeDrop() now sends MP actions for guest summons
+
+---
+
+
 ## [0.5.0] - 2026-02-08
 
 ### Changed

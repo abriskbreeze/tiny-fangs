@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.0</title>
+  <title>TINY FANGS v0.5.1</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.0 • Card Battler</p>
+    <p class="sub">v0.5.1 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.0 • Card Battler</p>
+    <p class="sub">v0.5.1 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.0</div>
+      <div class="logo">TINY FANGS v0.5.1</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -6033,6 +6033,29 @@
         return;
       }
 
+      // Set verses use setVerse() which handles multiplayer sync
+      if (zone.type === 'set-verse') {
+        await setVerse(card);
+        return;
+      }
+
+      // Summons - guest sends action, waits for host sync
+      if (state.G.mode === 'multiplayer' && state.G.myTurn) {
+        const summonLocation = zone.type === 'summon-active' ? 'active' : 'bench';
+        multiplayer.send({
+          type: MP_MSG.ACTION,
+          action: 'summon',
+          cardUid: card.uid,
+          target: summonLocation
+        });
+
+        // Guest waits for host to validate and sync
+        if (!state.G.isHost) {
+          log(`Summoning ${card.name}...`, 'mana');
+          return;
+        }
+      }
+
       // For other types, deduct mana and remove from hand
       state.G.me.mana -= card.cost;
       state.G.me.hand = state.G.me.hand.filter(c => c.uid !== card.uid);
@@ -6074,12 +6097,7 @@
           break;
         }
 
-        case 'set-verse':
-          state.G.me.setVerse = card;
-          log(`Set ${card.name}`);
-          render();
-          await Anim.setVerse('me');
-          break;
+        // NOTE: set-verse handled by setVerse() before this switch
       }
 
       render();
