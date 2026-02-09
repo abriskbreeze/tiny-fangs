@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.54</title>
+  <title>TINY FANGS v0.4.55</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2691,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.54 • Card Battler</p>
+    <p class="sub">v0.4.55 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2769,7 +2769,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.54 • Card Battler</p>
+    <p class="sub">v0.4.55 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2891,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.54</div>
+      <div class="logo">TINY FANGS v0.4.55</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -5269,10 +5269,35 @@
       document.body.appendChild(reconnectOverlay);
       
       try {
-        // Try to rejoin the room
+        // Try to rejoin the room with the SAME room code
         if (savedState.isHost) {
-          await multiplayer.createRoom();
-          // Wait for guest to rejoin
+          // Host needs to recreate room with SAME code
+          // This requires modifying multiplayer.js or using the code directly
+          multiplayer.roomCode = savedState.roomCode;
+          multiplayer.isHost = true;
+          multiplayer.peer = new Peer(savedState.roomCode, { debug: 1 });
+          
+          await new Promise((resolve, reject) => {
+            multiplayer.peer.on('open', () => {
+              console.log('[MP] Host room recreated:', savedState.roomCode);
+              resolve();
+            });
+            multiplayer.peer.on('error', reject);
+            
+            // Wait for guest to reconnect
+            multiplayer.peer.on('connection', (conn) => {
+              multiplayer.conn = conn;
+              multiplayer.connected = true;
+              conn.on('data', (data) => {
+                if (multiplayer.onMessage) multiplayer.onMessage(data);
+              });
+              conn.on('close', () => {
+                multiplayer.connected = false;
+                if (multiplayer.onDisconnect) multiplayer.onDisconnect();
+              });
+              if (multiplayer.onConnect) multiplayer.onConnect();
+            });
+          });
         } else {
           await multiplayer.joinRoom(savedState.roomCode);
         }
@@ -5281,24 +5306,32 @@
         console.log('[MP] Reconnection successful!');
         reconnectOverlay.remove();
         
-        // Restore game state
-        state.G = {
-          ...mkPlayer('shadow'), // Placeholder
-          ...savedState.gameState,
-          mode: 'multiplayer',
-          isHost: savedState.isHost,
-        };
+        // Restore game state properly
+        state.G = savedState.gameState;
+        state.G.mode = 'multiplayer';
+        state.G.isHost = savedState.isHost;
         
-        // Request full state sync from host
+        // Set up mode for proper handling
+        selectedMode = 'multiplayer';
+        
+        // Hide setup, show game
+        $('mode-select').classList.add('hidden');
+        $('setup').classList.add('hidden');
+        
+        // Request full state sync from host (guest only)
         if (!savedState.isHost) {
           multiplayer.send({ type: 'requestSync' });
+        } else {
+          // Host sends current state to guest on reconnect
+          multiplayer.onConnect = () => {
+            multiplayer.send({ type: MP_MSG.SYNC, state: getMinimalState() });
+            log('Opponent reconnected!', 'heal');
+          };
         }
         
         render();
         log('Reconnected to game!', 'heal');
-        
-        // Clear saved state after successful reconnection
-        clearSavedGameState();
+        startTurnTimer();
         
       } catch (err) {
         console.error('[MP] Reconnection failed:', err);

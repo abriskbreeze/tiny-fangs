@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.55] - 2026-02-08
+
+### Changed
+- Fix reconnection - host recreates room with same code, proper state restore
+
+---
+
+
 ## [0.4.54] - 2026-02-08
 
 ### Changed
