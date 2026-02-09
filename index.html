@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.55</title>
+  <title>TINY FANGS v0.4.56</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2691,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.55 • Card Battler</p>
+    <p class="sub">v0.4.56 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2761,15 +2761,15 @@
     </div>
   </div>
   
-  <!-- TURN TIMER -->
+  <!-- TURN INDICATOR -->
   <div id="turn-timer" class="turn-timer">
-    <span id="timer-seconds">60</span>s
+    <span id="turn-label">YOUR TURN</span> • <span id="timer-seconds">60</span>s
   </div>
   
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.55 • Card Battler</p>
+    <p class="sub">v0.4.56 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2891,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.55</div>
+      <div class="logo">TINY FANGS v0.4.56</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -5490,6 +5490,23 @@
       // Turn
       $('m-turn').textContent = state.G.turn;
       $('d-turn').textContent = state.G.turn;
+      
+      // Turn indicator (multiplayer)
+      if (state.G.mode === 'multiplayer') {
+        const timerEl = $('turn-timer');
+        const labelEl = $('turn-label');
+        const secondsEl = $('timer-seconds');
+        
+        timerEl.classList.add('show');
+        labelEl.textContent = state.G.myTurn ? 'YOUR TURN' : "OPP'S TURN";
+        labelEl.style.color = state.G.myTurn ? 'var(--green)' : 'var(--dim)';
+        secondsEl.textContent = state.G.turnTimeRemaining || 60;
+        
+        // Warning style when low time
+        timerEl.classList.toggle('warning', state.G.myTurn && state.G.turnTimeRemaining <= 10);
+      } else {
+        $('turn-timer').classList.remove('show');
+      }
       
       // LP (as hearts)
       $('m-my-lp').textContent = hearts(state.G.me.lp);

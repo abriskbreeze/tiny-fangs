@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.56] - 2026-02-08
+
+### Changed
+- Add turn indicator - shows YOUR TURN or OPP'S TURN with timer
+
+---
+
+
 ## [0.4.55] - 2026-02-08
 
 ### Changed
