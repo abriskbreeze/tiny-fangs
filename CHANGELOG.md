@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.3] - 2026-02-08
+
+### Changed
+- Fix: expose showModeSelect to window for onclick handlers
+
+---
+
+
 ## [0.5.2] - 2026-02-08
 
 ### Changed
