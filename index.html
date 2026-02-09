@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.44</title>
+  <title>TINY FANGS v0.4.45</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2367,7 +2367,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.44 • Card Battler</p>
+    <p class="sub">v0.4.45 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2995,7 +2995,11 @@
         
         switch (e.type) {
           case 'summon':
-            await Anim.summon(side, e.slot === 'bench' ? 0 : null);
+            if (e.slot === 'bench') {
+              await Anim.summonBench(side, 0);
+            } else {
+              await Anim.summon(side);
+            }
             break;
           case 'attack':
             await Anim.attack(side, side === 'me' ? 'opp' : 'me', e.damage);
@@ -3013,19 +3017,26 @@
             await Anim.benchToActive(side);
             break;
           case 'cast':
-            await Anim.cast(side);
+            await Anim.castVerse();
             break;
           case 'setVerse':
-            await Anim.setVerse(side);
+            Anim.setVerse(side);
             break;
           case 'draw':
-            await Anim.draw(side, e.count || 1);
+            // No draw animation - just a brief pause
+            await Anim.wait(100);
             break;
           case 'lpDamage':
-            await Anim.lpDamage(side);
+            await Anim.lpDamage(side, e.amount || 1);
             break;
           case 'manaGain':
-            if (e.amount) await Anim.manaGain();
+            await Anim.manaGain();
+            break;
+          case 'turnStart':
+            // Show banner
+            if (e.yourTurn !== undefined) {
+              showTurnBanner(e.yourTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
+            }
             break;
           case 'gameOver':
             // Handled separately

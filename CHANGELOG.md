@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.45] - 2026-02-09
+
+### Changed
+- Fix MP event animations: draw, cast, summonBench
+
+---
+
+
 ## [0.4.44] - 2026-02-09
 
 ### Changed
