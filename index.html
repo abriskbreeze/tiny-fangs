@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.3</title>
+  <title>TINY FANGS v0.5.4</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.3 • Card Battler</p>
+    <p class="sub">v0.5.4 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.3 • Card Battler</p>
+    <p class="sub">v0.5.4 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.3</div>
+      <div class="logo">TINY FANGS v0.5.4</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3322,6 +3322,9 @@
         log: state.G.log.slice(-20),
         winner: state.G.winner,
         firstTurn: state.G.firstTurn,
+        // Sync action flags (represent current player's actions)
+        hasAttacked: state.G.hasAttacked,
+        hasRetreated: state.G.hasRetreated,
       };
     }
 
@@ -3370,6 +3373,10 @@
       state.G.myTurn = syncState.myTurn;  // Already flipped for guest
       state.G.winner = syncState.winner;
       state.G.firstTurn = syncState.firstTurn;
+      
+      // Sync action flags (prevent double attack/retreat)
+      if (syncState.hasAttacked !== undefined) state.G.hasAttacked = syncState.hasAttacked;
+      if (syncState.hasRetreated !== undefined) state.G.hasRetreated = syncState.hasRetreated;
 
       // Direct merge - no swap needed (host already swapped before sending)
       mergePlayerState(state.G.me, syncState.me, true);   // Guest's me
@@ -3473,6 +3480,11 @@
       localPlayer.attackBonuses = syncedPlayer.attackBonuses || [];
       localPlayer.poisoned = syncedPlayer.poisoned;
       localPlayer.chainLightning = syncedPlayer.chainLightning;
+      
+      // Store counts for opponent (hidden info) - needed for hash comparison
+      if (syncedPlayer.handCount !== undefined) localPlayer._handCount = syncedPlayer.handCount;
+      if (syncedPlayer.deckCount !== undefined) localPlayer._deckCount = syncedPlayer.deckCount;
+      if (syncedPlayer.graveCount !== undefined) localPlayer._graveCount = syncedPlayer.graveCount;
 
       // Active creature
       if (syncedPlayer.active) {
@@ -4187,9 +4199,10 @@
           maxMana: state.G.opp.maxMana,
           activeUid: state.G.opp.active?.uid || null,
           benchUids: state.G.opp.bench.map(c => c.uid).sort(),
-          handSize: state.G.opp.hand.length,
-          deckSize: state.G.opp.deck.length,
-          graveSize: state.G.opp.grave.length,
+          // Use synced counts for opp (hidden info) if available
+          handSize: state.G.opp._handCount ?? state.G.opp.hand.length,
+          deckSize: state.G.opp._deckCount ?? state.G.opp.deck.length,
+          graveSize: state.G.opp._graveCount ?? state.G.opp.grave.length,
           setVerseUid: state.G.opp.setVerse?.uid || null
         }
       };

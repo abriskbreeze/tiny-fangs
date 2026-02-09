@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.4] - 2026-02-08
+
+### Changed
+- Fix: sync hasAttacked/hasRetreated, fix DESYNC with opponent counts
+
+---
+
+
 ## [0.5.3] - 2026-02-08
 
 ### Changed
