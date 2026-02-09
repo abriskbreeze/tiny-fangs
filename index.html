@@ -4708,6 +4708,9 @@
     async function castVerse(c) {
       closeModal();
       
+      // DEBUG: Log card data to verify selection property
+      console.log('🎯 castVerse called with:', c.name, 'selection:', c.selection);
+      
       // === PRE-CHECKS (before showing any selection UI) ===
       
       // Grave Echo - need creatures in graveyard
@@ -7558,6 +7561,7 @@
      * @returns {Promise<{creature, location, ownerKey, idx?}|null>} - Selected creature or null
      */
     async function showCreatureSelector(prompt) {
+      console.log('🎯 showCreatureSelector called with prompt:', prompt);
       const options = [];
       
       // BUG-B4: ENEMY section first (at TOP)
