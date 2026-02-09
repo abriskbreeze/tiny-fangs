@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.63] - 2026-02-08
+
+### Changed
+- More debug logging for sync swap issue
+
+---
+
+
 ## [0.4.62] - 2026-02-08
 
 ### Changed
