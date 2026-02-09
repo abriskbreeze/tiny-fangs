@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.43] - 2026-02-09
+
+### Changed
+- Fix MP client: element ID, state properties, null checks
+
+---
+
+
 ## [0.5.10] - 2026-02-08
 
 ### Changed
