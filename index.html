@@ -3203,6 +3203,7 @@
           clearInterval(turnTimer);
           turnTimer = null;
           if (state.G.myTurn) {
+            console.log('[MP DEBUG] Turn timer expired, auto-ending turn');
             log('Time out! Turn ended automatically', 'dmg');
             endTurn(); // Auto-end turn on timeout
           }
@@ -5004,7 +5005,9 @@
       
       if (playerFirst) {
         log('You go first! Choose a creature to summon');
+        console.log('[MP DEBUG] About to render, myTurn:', state.G.myTurn);
         render();
+        console.log('[MP DEBUG] Render complete, waiting for player action');
       } else {
         log('Rival goes first');
         render();
@@ -9836,12 +9839,16 @@
     document.addEventListener('keydown', e => {
       if (!state.G || state.G.winner || !state.G.myTurn) return;
       const k = e.key.toLowerCase();
+      console.log('[MP DEBUG] Keydown:', k, 'turn:', state.G.turn);
       if (k === 's') doSummon();
       else if (k === 'c') doCast();
       else if (k === 't') doSet();
       else if (k === 'a') doAttack();
       else if (k === 'r') doRetreat();
-      else if (k === 'e') endTurn();
+      else if (k === 'e') {
+        console.log('[MP DEBUG] E key pressed, calling endTurn');
+        endTurn();
+      }
       else if (k === 'escape') closeModal();
       // Debug: test animations with number keys
       else if (e.ctrlKey && k === '1') { Anim.attack('me', 'opp', 30); log('TEST: attack'); }
