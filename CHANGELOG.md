@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.51] - 2026-02-08
+
+### Changed
+- Add safety checks for messages that require state.G
+
+---
+
+
 ## [0.4.50] - 2026-02-08
 
 ### Changed
