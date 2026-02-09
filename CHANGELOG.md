@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.52] - 2026-02-09
+
+### Changed
+- Full trigger modals, status effects polish, auto-swap on poison KO
+
+---
+
+
 ## [0.4.51] - 2026-02-09
 
 ### Changed

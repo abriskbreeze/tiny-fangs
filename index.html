@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.51</title>
+  <title>TINY FANGS v0.4.52</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.51 • Card Battler</p>
+    <p class="sub">v0.4.52 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.51</div>
+      <div class="logo">TINY FANGS v0.4.52</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -3125,7 +3125,11 @@
             // Player declined Skitter swap - no animation needed
             break;
           case 'abilityTrigger':
-            // Show ability trigger log
+            // Find creature by name for ability display
+            const triggerCreature = Object.values(CREATURES).find(c => c.name === e.creature);
+            if (triggerCreature && triggerCreature.ability) {
+              await showTriggerReveal(triggerCreature);
+            }
             log(`${e.creature}'s ${e.ability} triggered!`);
             break;
           case 'banish':
@@ -3143,9 +3147,12 @@
             log(`${e.creature} was sacrificed!`);
             break;
           case 'triggerVerse':
-            // Set verse triggered - show simple notification
+            // Find the verse card by name and show full modal
+            const triggerVerse = Object.values(VERSES).find(v => v.name === e.verse);
+            if (triggerVerse) {
+              await showTriggerReveal(triggerVerse);
+            }
             log(`${e.verse} triggered!`);
-            await Anim.versePopup(e.verse);
             break;
           case 'damageReduced':
             // Damage reduced by ability

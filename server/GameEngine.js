@@ -1376,9 +1376,13 @@ export function endTurn(state, playerIdx) {
   if (player.active) player.active.summonedThisTurn = false;
   player.bench.forEach(c => c.summonedThisTurn = false);
   
-  // Clear trapped status
+  // Compute player side for events
+  const endTurnSide = playerIdx === 0 ? 'p1' : 'p2';
+  
+  // Clear trapped status at end of turn
   if (player.active && player.active.status === 'trapped') {
     player.active.status = null;
+    events.push({ type: 'clearStatus', side: endTurnSide, status: 'trapped' });
   }
   
   // Reset per-turn damage reduction flags for next player
@@ -1396,18 +1400,20 @@ export function endTurn(state, playerIdx) {
     const ko = applyDamage(player.active, 10);
     events.push({ 
       type: 'damage', 
-      side: playerIdx === 0 ? 'p1' : 'p2', 
+      side: endTurnSide, 
       amount: 10, 
       source: 'Poison' 
     });
     if (ko) {
       events.push({ 
         type: 'ko', 
-        side: playerIdx === 0 ? 'p1' : 'p2', 
+        side: endTurnSide, 
         creature: player.active.name 
       });
       player.grave.push(player.active);
       player.active = null;
+      // Auto-swap bench to active
+      autoSwapBenchToActive(player, endTurnSide, events);
     }
   }
   
