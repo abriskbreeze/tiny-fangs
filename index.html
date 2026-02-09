@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.52</title>
+  <title>TINY FANGS v0.4.53</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.52 • Card Battler</p>
+    <p class="sub">v0.4.53 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.52</div>
+      <div class="logo">TINY FANGS v0.4.53</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -2883,6 +2883,7 @@
         case 'turnChange':
           state.G.myTurn = msg.yourTurn;
           updateTurnUI();
+          showTurnBanner(msg.yourTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
           break;
           
         case 'opponentLeft':
@@ -3002,11 +3003,8 @@
         await playServerEvents(events);
       }
       
-      // Check for turn change
-      if (oldTurn !== undefined && oldTurn !== state.G.myTurn) {
-        // Show turn banner on turn change
-        showTurnBanner(state.G.myTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
-      }
+      // Turn banner is handled by turnStart event in playServerEvents
+      // Don't duplicate it here
       
       // Make sure turn indicator is updated
       if (state.G.isMultiplayer) {
@@ -3108,10 +3106,8 @@
             await Anim.manaGain();
             break;
           case 'turnStart':
-            // Show banner
-            if (e.yourTurn !== undefined) {
-              showTurnBanner(e.yourTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
-            }
+            // Banner is handled by turnChange message (personalized per player)
+            // Don't show banner here - it has wrong yourTurn for one player
             break;
           case 'gameOver':
             // Handled separately

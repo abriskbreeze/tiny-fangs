@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.53] - 2026-02-09
+
+### Changed
+- Fix double turn banner - use personalized turnChange message
+
+---
+
+
 ## [0.4.52] - 2026-02-09
 
 ### Changed
