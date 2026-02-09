@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.47</title>
+  <title>TINY FANGS v0.4.48</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2367,7 +2367,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.47 • Card Battler</p>
+    <p class="sub">v0.4.48 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2536,7 +2536,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.47</div>
+      <div class="logo">TINY FANGS v0.4.48</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3100,6 +3100,76 @@
         ws.send(JSON.stringify({ type: 'endTurn' }));
       }
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // UNIFIED ACTION DISPATCHER
+    // All game actions go through here - handles MP vs Solo routing
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * Dispatch a game action
+     * @param {string} type - Action type: 'summon', 'cast', 'set', 'attack', 'retreat', 'endTurn'
+     * @param {object} params - Action parameters (cardUid, target, benchIdx, etc.)
+     */
+    async function dispatchAction(type, params = {}) {
+      if (!state.G) return;
+      if (state.animating) return;
+      
+      // Multiplayer: validate turn and send to server
+      if (state.G.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log("Not your turn!", 'dmg');
+          return;
+        }
+        
+        switch (type) {
+          case 'summon':
+            sendAction({ action: 'summon', cardUid: params.cardUid, target: params.target });
+            break;
+          case 'cast':
+            sendAction({ action: 'cast', cardUid: params.cardUid });
+            break;
+          case 'set':
+            sendAction({ action: 'set', cardUid: params.cardUid });
+            break;
+          case 'attack':
+            sendAction({ action: 'attack' });
+            break;
+          case 'retreat':
+            sendAction({ action: 'retreat', benchIdx: params.benchIdx });
+            break;
+          case 'endTurn':
+            sendEndTurn();
+            break;
+        }
+        return;
+      }
+      
+      // Solo mode: execute locally
+      switch (type) {
+        case 'summon':
+          await executeLocalSummon(params.card);
+          break;
+        case 'cast':
+          await executeLocalCast(params.card);
+          break;
+        case 'set':
+          await executeLocalSet(params.card);
+          break;
+        case 'attack':
+          await executeLocalAttack();
+          break;
+        case 'retreat':
+          await executeLocalRetreat(params.benchIdx);
+          break;
+        case 'endTurn':
+          await executeLocalEndTurn();
+          break;
+      }
+    }
+    
+    // Expose for onclick handlers
+    window.dispatchAction = dispatchAction;
     
     function setMpStatus(text) {
       const el = document.getElementById('mp-status');
@@ -4173,27 +4243,21 @@
     }
     
     async function executeDrop(card, zone) {
-      // Can only play cards on your turn
-      if (!state.G.myTurn) {
-        log("Not your turn!", 'dmg');
-        return;
-      }
-      
-      // Multiplayer: delegate to the action functions which send to server
-      if (state.G.isMultiplayer) {
-        if (zone.type === 'cast') {
-          await castVerse(card);
-        } else if (zone.type === 'summon-active' || zone.type === 'summon-bench') {
-          await summonCreature(card);
-        } else if (zone.type === 'set-verse') {
-          await setVerse(card);
-        }
-        return;
-      }
-      
-      // Cast verses use castVerse() which handles mana/hand itself
+      // Use unified dispatcher for all actions
       if (zone.type === 'cast') {
-        await castVerse(card);
+        const target = zone.type === 'summon-bench' ? 'bench' : 'active';
+        await dispatchAction('cast', { card, cardUid: card.uid });
+        return;
+      }
+      
+      if (zone.type === 'summon-active' || zone.type === 'summon-bench') {
+        const target = zone.type === 'summon-bench' ? 'bench' : 'active';
+        await dispatchAction('summon', { card, cardUid: card.uid, target });
+        return;
+      }
+      
+      if (zone.type === 'set-verse') {
+        await dispatchAction('set', { card, cardUid: card.uid });
         return;
       }
       
@@ -4400,20 +4464,15 @@
       })));
     }
     
+    // Wrapper - all entry points should use this
     async function summonCreature(c) {
       closeModal();
-      
-      // Multiplayer: send to server
-      if (state.G?.isMultiplayer) {
-        if (!state.G.myTurn) {
-          log('Not your turn!', 'dmg');
-          return;
-        }
-        const target = !state.G.me.active ? 'active' : 'bench';
-        sendAction({ action: 'summon', cardUid: c.uid, target });
-        return;
-      }
-      
+      const target = !state.G.me.active ? 'active' : 'bench';
+      await dispatchAction('summon', { card: c, cardUid: c.uid, target });
+    }
+    
+    // Local execution (solo mode only)
+    async function executeLocalSummon(c) {
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
@@ -4482,19 +4541,14 @@
       })));
     }
     
+    // Wrapper
     async function castVerse(c) {
       closeModal();
-      
-      // Multiplayer: send to server
-      if (state.G?.isMultiplayer) {
-        if (!state.G.myTurn) {
-          log('Not your turn!', 'dmg');
-          return;
-        }
-        sendAction({ action: 'cast', cardUid: c.uid });
-        return;
-      }
-      
+      await dispatchAction('cast', { card: c, cardUid: c.uid });
+    }
+    
+    // Local execution (solo mode only)
+    async function executeLocalCast(c) {
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
@@ -5155,19 +5209,14 @@
       })));
     }
     
+    // Wrapper
     async function setVerse(c) {
       closeModal();
-      
-      // Multiplayer: send to server
-      if (state.G?.isMultiplayer) {
-        if (!state.G.myTurn) {
-          log('Not your turn!', 'dmg');
-          return;
-        }
-        sendAction({ action: 'set', cardUid: c.uid });
-        return;
-      }
-      
+      await dispatchAction('set', { card: c, cardUid: c.uid });
+    }
+    
+    // Local execution (solo mode only)
+    async function executeLocalSet(c) {
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
@@ -5182,22 +5231,17 @@
       Anim.setVerse('me');
     }
     
+    // Wrapper
     async function doAttack() {
-      if (!state.G) return; // No game state
-      if (state.animating) return; // Block during animations
-      if (state.G.actionLock) return; // BUG-12: Prevent multiple attack clicks
+      if (!state.G) return;
+      if (state.animating) return;
+      if (state.G.actionLock) return;
       if (!state.G.me.active) return;
-      
-      // Multiplayer: send to server
-      if (state.G.isMultiplayer) {
-        if (!state.G.myTurn) {
-          log('Not your turn!', 'dmg');
-          return;
-        }
-        sendAction({ action: 'attack' });
-        return;
-      }
-      
+      await dispatchAction('attack', {});
+    }
+    
+    // Local execution (solo mode only)
+    async function executeLocalAttack() {
       if (state.G.firstTurn) {
         log("Can't attack on first turn!", 'dmg');
         return;
@@ -5604,15 +5648,10 @@
       }
     }
     
+    // Shows modal to pick bench creature, then dispatches action
     function doRetreat() {
-      if (state.animating) return; // Block during animations
+      if (state.animating) return;
       if (!state.G.me.active || !state.G.me.bench.length) return;
-      
-      // Multiplayer: check turn
-      if (state.G?.isMultiplayer && !state.G.myTurn) {
-        log('Not your turn!', 'dmg');
-        return;
-      }
       
       if (state.G.me.active.status === 'trapped') {
         log('Cannot retreat - trapped!', 'dmg');
@@ -5624,55 +5663,50 @@
         sub: `${c.curHp}/${c.hp} HP`,
         action: async () => {
           closeModal();
-          
-          // Multiplayer: send to server
-          if (state.G?.isMultiplayer) {
-            sendAction({ action: 'retreat', benchIdx: idx });
-            return;
-          }
-          
-          const old = state.G.me.active;
-          const swapIdx = state.G.me.bench.findIndex(x => x.uid === c.uid);
-          state.G.me.active = state.G.me.bench.splice(swapIdx, 1)[0];
-          state.G.me.bench.push(old);
-          state.G.hasRetreated = true; // C3: Mark that we retreated (can't attack after)
-          log(`Switched to ${state.G.me.active.name}`);
-          render();
-          await Anim.benchToActive('me');
-          
-          // BUG-A2 FIX: Chain Lightning triggers when new creature becomes active via retreat
-          if (state.G.me.chainLightning > 0) {
-            await Anim.wait(300);
-            const chainKo = applyDamage(state.G.me.active, state.G.me.chainLightning);
-            log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
-            await Anim.damage('me', state.G.me.chainLightning);
-            state.G.me.chainLightning = 0;
-            if (chainKo) {
-              await Anim.ko('me');
-              await ko(state.G.me.active, state.G.me);
-            }
-          }
-          
-          highlightEndTurn(true); // Prompt to end turn after retreat
+          await dispatchAction('retreat', { benchIdx: idx, creature: c });
         }
       })));
     }
     
-    async function endTurn() {
-      if (!state.G) return; // No game state
-      if (state.G.winner) return;
-      if (state.animating) return; // Block during animations
+    // Local execution (solo mode only)
+    async function executeLocalRetreat(benchIdx) {
+      const c = state.G.me.bench[benchIdx];
+      if (!c) return;
       
-      // Multiplayer: send to server
-      if (state.G.isMultiplayer) {
-        if (!state.G.myTurn) {
-          log('Not your turn!', 'dmg');
-          return;
+      const old = state.G.me.active;
+      state.G.me.active = state.G.me.bench.splice(benchIdx, 1)[0];
+      state.G.me.bench.push(old);
+      state.G.hasRetreated = true;
+      log(`Switched to ${state.G.me.active.name}`);
+      render();
+      await Anim.benchToActive('me');
+      
+      // Chain Lightning triggers when new creature becomes active
+      if (state.G.me.chainLightning > 0) {
+        await Anim.wait(300);
+        const chainKo = applyDamage(state.G.me.active, state.G.me.chainLightning);
+        log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
+        await Anim.damage('me', state.G.me.chainLightning);
+        state.G.me.chainLightning = 0;
+        if (chainKo) {
+          await Anim.ko('me');
+          await ko(state.G.me.active, state.G.me);
         }
-        sendEndTurn();
-        return;
       }
       
+      highlightEndTurn(true);
+    }
+    
+    // Wrapper
+    async function endTurn() {
+      if (!state.G) return;
+      if (state.G.winner) return;
+      if (state.animating) return;
+      await dispatchAction('endTurn', {});
+    }
+    
+    // Local execution (solo mode only)
+    async function executeLocalEndTurn() {
       // Clear END TURN highlight
       highlightEndTurn(false);
       

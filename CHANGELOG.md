@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.48] - 2026-02-09
+
+### Changed
+- Refactor: unified dispatchAction for all game actions
+
+---
+
+
 ## [0.4.47] - 2026-02-09
 
 ### Changed
