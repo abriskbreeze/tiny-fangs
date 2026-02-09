@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.54] - 2026-02-08
+
+### Changed
+- Fix turn end processing - correct player gets mana/effects, proper turn transition
+
+---
+
+
 ## [0.4.53] - 2026-02-08
 
 ### Changed
