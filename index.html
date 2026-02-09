@@ -4709,7 +4709,11 @@
       closeModal();
       
       // DEBUG: Log card data to verify selection property
-      console.log('🎯 castVerse called with:', c.name, 'selection:', c.selection);
+      console.log('🎯 castVerse called with:', c.name);
+      console.log('🎯 Card object:', JSON.stringify(c, null, 2));
+      console.log('🎯 c.selection:', c.selection);
+      console.log('🎯 c.selection?.type:', c.selection?.type);
+      console.log('🎯 Check anyCreature:', c.selection?.type === 'anyCreature');
       
       // === PRE-CHECKS (before showing any selection UI) ===
       
@@ -4825,7 +4829,9 @@
       }
       
       // anyCreature selection (Ignite, Banish, Soul Siphon)
+      console.log('🎯 Before anyCreature check, c.selection:', c.selection);
       if (c.selection?.type === 'anyCreature') {
+        console.log('🎯 Entering anyCreature selection block');
         const result = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
         if (!result) return; // Canceled
         selection = { 
@@ -4839,6 +4845,7 @@
       }
       
       // Dispatch with selection
+      console.log('🎯 About to dispatch cast with selection:', selection);
       await dispatchAction('cast', { card: c, cardUid: c.uid, selection });
     }
     
