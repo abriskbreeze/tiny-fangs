@@ -380,7 +380,7 @@ tiny-fangs/
 │   ├── ai.test.js             # AI makes valid decisions
 │   └── storage.test.js        # Save/load works
 │
-└── docs/
+└── dist/
     ├── PLAN.md                # This file
     ├── CARDS.md               # Card reference
     └── CHANGELOG.md           # Version history

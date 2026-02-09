@@ -12,7 +12,7 @@
 │                         TINY FANGS v0.3.5                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │
-│  │   index.    │  │    src/     │  │   tests/    │  │   docs/    │  │
+│  │   index.    │  │    src/     │  │   tests/    │  │   dist/    │  │
 │  │   html      │  │  modules    │  │   *.test    │  │   build    │  │
 │  │  (6000 LOC) │  │  (12 files) │  │  (22 files) │  │  (vite)    │  │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └─────┬──────┘  │
@@ -687,7 +687,7 @@ tiny-fangs/
 ├── tests/              # Test files (Vitest)
 │   └── *.test.js       # 350+ tests
 │
-├── docs/               # Built output (GitHub Pages)
+├── dist/               # Built output (GitHub Pages)
 │   ├── index.html      # Bundled game
 │   └── assets/         # Bundled assets
 │

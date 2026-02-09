@@ -13,7 +13,7 @@ ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny preda
 - Vanilla HTML/CSS/JS, single `index.html`
 - Vite + Vitest for build/test
 - Font: JetBrains Mono (ASCII aesthetic, no emojis)
-- Deploy: `npm run build` → `docs/` → GH Pages
+- Deploy: Push to main → GitHub Actions builds → deploys dist/ to GH Pages
 
 ---
 
@@ -444,7 +444,7 @@ brace: {
 |------|-------------|
 | `README.md` | Quick start, architecture overview |
 | `CHANGELOG.md` | Full version history |
-| `docs/ARCHITECTURE.md` | Complete system documentation |
+| `dist/ARCHITECTURE.md` | Complete system documentation |
 | `guides/CARD-AUTHORING.md` | How to add new cards (declarative) |
 | `guides/EVENT-SYSTEM.md` | Event/trigger system details |
 

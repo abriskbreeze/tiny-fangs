@@ -30,7 +30,7 @@
 npm install
 npm run dev      # Dev server → http://localhost:5173
 npm test         # Run 276 tests
-npm run build    # Build to docs/
+npm run build    # Build (GitHub Actions deploys dist/)
 ```
 
 ## Architecture
@@ -47,7 +47,7 @@ src/
 └── render.js     # Board rendering
 ```
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for full documentation.
+See [`dist/ARCHITECTURE.md`](dist/ARCHITECTURE.md) for full documentation.
 
 ## Card Authoring
 

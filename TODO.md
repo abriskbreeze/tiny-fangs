@@ -29,7 +29,7 @@ Full modularization of the monolith using TDD approach.
 
 ## Phase 1: Project Setup
 - [x] Initialize Vite + Vitest
-- [x] Set up GitHub Pages deployment (docs/)
+- [x] Set up GitHub Pages deployment (dist/)
 - [x] Add .gitignore
 
 ## Phase 2: Module Extraction

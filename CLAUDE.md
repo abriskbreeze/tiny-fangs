@@ -4,7 +4,7 @@
 ```bash
 cd ~/clawd/tiny-fangs
 npm test              # Run tests (162 should pass)
-npm run build         # Build to docs/ for GitHub Pages
+npm run build         # Build (GitHub Actions deploys dist/) for GitHub Pages
 launchctl stop com.tinyfangs.v2 && launchctl start com.tinyfangs.v2  # Restart local server
 ```
 
@@ -36,7 +36,7 @@ src/
   cards.js          # CREATURES, VERSES, DECKS definitions
   helpers.js        # Utility functions
 tests/              # Vitest tests (162 total)
-docs/               # Built output for GitHub Pages
+dist/               # Built output for GitHub Pages
 ```
 
 ### Key Patterns
@@ -139,10 +139,10 @@ beforeEach(() => clearGame());
 ```
 
 ## Deployment
-**IMPORTANT:** GitHub Pages serves from `docs/` folder, NOT root `index.html`!
+**IMPORTANT:** GitHub Actions deploys `dist/` to GitHub Pages, NOT root `index.html`!
 1. Edit `index.html` in root
-2. **Run `npm run build`** → copies to `docs/`
-3. `git push` → GitHub Pages auto-deploys from `docs/`
+2. **Run `npm run build`** → copies to `dist/`
+3. `git push` → GitHub Pages auto-deploys from `dist/`
 4. Restart local: `launchctl stop/start com.tinyfangs.v2`
 
 ⚠️ If you forget `npm run build`, GitHub Pages will show OLD code!
