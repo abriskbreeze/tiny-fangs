@@ -4072,36 +4072,29 @@
     function computeStateHash() {
       if (!state.G) return '';
       
-      // Use consistent keys (host/guest) instead of me/opp to avoid perspective mismatch
-      // Host: me=host, opp=guest
-      // Guest: me=guest, opp=host (swapped)
-      // So we need to use isHost to determine which is which
-      const hostPlayer = state.G.isHost ? state.G.me : state.G.opp;
-      const guestPlayer = state.G.isHost ? state.G.opp : state.G.me;
-      
       const hashData = {
         turn: state.G.turn,
-        host: {
-          lp: hostPlayer.lp,
-          mana: hostPlayer.mana,
-          maxMana: hostPlayer.maxMana,
-          activeUid: hostPlayer.active?.uid || null,
-          benchUids: hostPlayer.bench.map(c => c.uid).sort(),
-          handSize: hostPlayer.hand.length,
-          deckSize: hostPlayer.deck.length,
-          graveSize: hostPlayer.grave.length,
-          setVerseUid: hostPlayer.setVerse?.uid || null
+        me: {
+          lp: state.G.me.lp,
+          mana: state.G.me.mana,
+          maxMana: state.G.me.maxMana,
+          activeUid: state.G.me.active?.uid || null,
+          benchUids: state.G.me.bench.map(c => c.uid).sort(),
+          handSize: state.G.me.hand.length,
+          deckSize: state.G.me.deck.length,
+          graveSize: state.G.me.grave.length,
+          setVerseUid: state.G.me.setVerse?.uid || null
         },
-        guest: {
-          lp: guestPlayer.lp,
-          mana: guestPlayer.mana,
-          maxMana: guestPlayer.maxMana,
-          activeUid: guestPlayer.active?.uid || null,
-          benchUids: guestPlayer.bench.map(c => c.uid).sort(),
-          handSize: guestPlayer.hand.length,
-          deckSize: guestPlayer.deck.length,
-          graveSize: guestPlayer.grave.length,
-          setVerseUid: guestPlayer.setVerse?.uid || null
+        opp: {
+          lp: state.G.opp.lp,
+          mana: state.G.opp.mana,
+          maxMana: state.G.opp.maxMana,
+          activeUid: state.G.opp.active?.uid || null,
+          benchUids: state.G.opp.bench.map(c => c.uid).sort(),
+          handSize: state.G.opp.hand.length,
+          deckSize: state.G.opp.deck.length,
+          graveSize: state.G.opp.grave.length,
+          setVerseUid: state.G.opp.setVerse?.uid || null
         }
       };
       
@@ -5148,8 +5141,6 @@
     window.selectMode = selectMode;
     window.showCreateRoom = showCreateRoom;
     window.showJoinRoom = showJoinRoom;
-    window.clearSavedGameState = clearSavedGameState;
-    window.showModeSelect = showModeSelect;
     window.joinRoom = joinRoom;
     window.copyRoomCode = copyRoomCode;
     window.leaveGame = leaveGame;
@@ -6390,6 +6381,14 @@
         await Anim.negateX();
         log(`${c.name} negated!`);
         render();
+        
+        // Multiplayer: Send state sync after negation (host only)
+        if (state.G.mode === 'multiplayer' && state.G.isHost) {
+          multiplayer.send({ 
+            type: MP_MSG.SYNC, 
+            state: getMinimalState() 
+          });
+        }
         return;
       }
       
@@ -6582,6 +6581,14 @@
         }
         
         render();
+        
+        // Multiplayer: Send state sync after declarative effects (host only)
+        if (state.G.mode === 'multiplayer' && state.G.isHost) {
+          multiplayer.send({ 
+            type: MP_MSG.SYNC, 
+            state: getMinimalState() 
+          });
+        }
         return;
       }
       
@@ -6906,6 +6913,14 @@
       }
       
       render();
+      
+      // Multiplayer: Send state sync after cast verse completes (host only)
+      if (state.G.mode === 'multiplayer' && state.G.isHost) {
+        multiplayer.send({ 
+          type: MP_MSG.SYNC, 
+          state: getMinimalState() 
+        });
+      }
     }
     
     function doSet() {

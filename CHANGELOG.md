@@ -5,8 +5,9 @@ All notable changes to Tiny Fangs.
 
 ## [0.4.58] - 2026-02-08
 
-### Changed
-- Fix hash to use host/guest keys (perspective-neutral), expose clearSavedGameState globally
+### Fixed
+- **MP sync for cast spells**: Added missing state sync after castVerse - opponent now sees spells in real-time instead of all-at-once on turn end
+- Sync added for three code paths: spell negation, declarative effects, legacy switch
 
 ---
 
