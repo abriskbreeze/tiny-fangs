@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.47] - 2026-02-09
+
+### Changed
+- Fix MP drag-drop: delegate to action functions that send to server
+
+---
+
+
 ## [0.4.46] - 2026-02-09
 
 ### Changed

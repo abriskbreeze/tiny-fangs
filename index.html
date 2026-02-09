@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.46</title>
+  <title>TINY FANGS v0.4.47</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2367,7 +2367,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.46 • Card Battler</p>
+    <p class="sub">v0.4.47 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2536,7 +2536,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.46</div>
+      <div class="logo">TINY FANGS v0.4.47</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4176,6 +4176,18 @@
       // Can only play cards on your turn
       if (!state.G.myTurn) {
         log("Not your turn!", 'dmg');
+        return;
+      }
+      
+      // Multiplayer: delegate to the action functions which send to server
+      if (state.G.isMultiplayer) {
+        if (zone.type === 'cast') {
+          await castVerse(card);
+        } else if (zone.type === 'summon-active' || zone.type === 'summon-bench') {
+          await summonCreature(card);
+        } else if (zone.type === 'set-verse') {
+          await setVerse(card);
+        }
         return;
       }
       
