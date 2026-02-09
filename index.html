@@ -1492,6 +1492,65 @@
       border-color: var(--text);
     }
     
+    /* Mode selection buttons */
+    .mode-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .mode-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 24px 32px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      text-align: center;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    .mode-btn:hover {
+      border-color: var(--border-hi);
+      background: rgba(255,255,255,0.05);
+    }
+    .mode-btn .icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .mode-btn .name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .mode-btn .desc {
+      font-size: 10px;
+      color: var(--dim);
+    }
+    
+    /* Multiplayer lobby */
+    .mp-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    #mp-status {
+      color: var(--yellow);
+      margin-bottom: 15px;
+    }
+    #room-code-input {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      padding: 8px;
+    }
+    #room-code-input:focus {
+      outline: none;
+      border-color: var(--border-hi);
+    }
+    
     /* Deck preview tooltip */
     .deck-preview {
       position: fixed;
@@ -2301,6 +2360,53 @@
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
     <p class="sub">v0.4.42 • Card Battler</p>
+    
+    <!-- Mode Selection -->
+    <div id="mode-select">
+      <h2>Select Mode</h2>
+      <div class="mode-buttons">
+        <button class="mode-btn" onclick="selectMode('solo')">
+          <div class="icon">🎮</div>
+          <div class="name">Solo</div>
+          <div class="desc">Play against AI</div>
+        </button>
+        <button class="mode-btn" onclick="selectMode('multi')">
+          <div class="icon">👥</div>
+          <div class="name">Multiplayer</div>
+          <div class="desc">Play with a friend</div>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Multiplayer Lobby -->
+    <div id="mp-lobby" style="display: none;">
+      <h2>Multiplayer</h2>
+      <div id="mp-status"></div>
+      <div class="mp-buttons">
+        <button class="mode-btn" onclick="createRoom()">
+          <div class="name">Create Room</div>
+          <div class="desc">Host a game</div>
+        </button>
+        <button class="mode-btn" onclick="showJoinInput()">
+          <div class="name">Join Room</div>
+          <div class="desc">Enter room code</div>
+        </button>
+      </div>
+      <div id="join-input" style="display: none; margin-top: 20px;">
+        <input type="text" id="room-code-input" placeholder="XXXX" maxlength="4" style="font-size: 24px; text-align: center; width: 120px; text-transform: uppercase;">
+        <button onclick="joinRoom()" style="margin-left: 10px;">Join</button>
+      </div>
+      <div id="room-info" style="display: none; margin-top: 20px;">
+        <div style="font-size: 14px; color: var(--dim);">Room Code:</div>
+        <div id="room-code-display" style="font-size: 32px; letter-spacing: 8px; margin: 10px 0;"></div>
+        <div style="font-size: 12px; color: var(--dim);">Share this code with your friend</div>
+        <div id="waiting-msg" style="margin-top: 15px; color: var(--yellow);">Waiting for opponent...</div>
+      </div>
+      <button onclick="backToModeSelect()" style="margin-top: 20px; opacity: 0.7;">← Back</button>
+    </div>
+    
+    <!-- Deck Selection (shown after mode select for solo, or after room joined for MP) -->
+    <div id="deck-select" style="display: none;">
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2335,12 +2441,13 @@
       </button>
     </div>
     <div class="deck-hint">hover to preview • hold on mobile</div>
-    <div class="difficulty-toggle">
+    <div class="difficulty-toggle" id="ai-difficulty">
       <span class="diff-label">AI:</span>
       <button id="diff-pup" class="diff-btn" onclick="setDifficulty(1)">Pup</button>
       <button id="diff-hunter" class="diff-btn active" onclick="setDifficulty(2)">Hunter</button>
     </div>
-  </div>
+    </div><!-- end deck-select -->
+  </div><!-- end setup -->
   
   <!-- MOBILE -->
   <div id="mobile" class="mobile">
@@ -2661,6 +2768,180 @@
     
     // Expose Anim globally so effects.js can access it
     globalThis.Anim = Anim;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MULTIPLAYER (WebSocket)
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Server URL - change for production
+    const WS_SERVER = 'wss://gonna-status-studios-physiology.trycloudflare.com';
+    
+    let ws = null;
+    let gameMode = 'solo'; // 'solo' or 'multi'
+    let roomCode = null;
+    let isHost = false;
+    let selectedDeckId = null;
+    
+    function connectWebSocket() {
+      return new Promise((resolve, reject) => {
+        ws = new WebSocket(WS_SERVER);
+        
+        ws.onopen = () => {
+          console.log('🔌 Connected to server');
+          resolve();
+        };
+        
+        ws.onerror = (err) => {
+          console.error('❌ WebSocket error:', err);
+          reject(err);
+        };
+        
+        ws.onclose = () => {
+          console.log('🔌 Disconnected from server');
+          if (gameMode === 'multi') {
+            setMpStatus('Disconnected from server');
+          }
+        };
+        
+        ws.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          console.log('📩 Server:', msg);
+          handleServerMessage(msg);
+        };
+      });
+    }
+    
+    function handleServerMessage(msg) {
+      switch (msg.type) {
+        case 'roomCreated':
+          roomCode = msg.roomCode;
+          document.getElementById('room-code-display').textContent = roomCode;
+          document.getElementById('room-info').style.display = 'block';
+          document.getElementById('join-input').style.display = 'none';
+          document.querySelector('.mp-buttons').style.display = 'none';
+          break;
+          
+        case 'roomJoined':
+          roomCode = msg.roomCode;
+          isHost = false;
+          setMpStatus(`Joined room ${roomCode}!`);
+          // Go to deck select
+          showDeckSelect();
+          break;
+          
+        case 'opponentJoined':
+          setMpStatus('Opponent joined! Select your deck.');
+          document.getElementById('waiting-msg').textContent = 'Opponent joined!';
+          document.getElementById('waiting-msg').style.color = 'var(--green)';
+          // Go to deck select
+          setTimeout(() => showDeckSelect(), 1000);
+          break;
+          
+        case 'opponentLeft':
+          setMpStatus('Opponent disconnected');
+          // TODO: Handle mid-game disconnect
+          break;
+          
+        case 'error':
+          setMpStatus(`Error: ${msg.message}`);
+          break;
+      }
+    }
+    
+    function setMpStatus(text) {
+      const el = document.getElementById('mp-status');
+      if (el) el.textContent = text;
+    }
+    
+    function selectMode(mode) {
+      gameMode = mode;
+      if (mode === 'solo') {
+        showDeckSelect();
+        document.getElementById('ai-difficulty').style.display = 'flex';
+      } else {
+        document.getElementById('mode-select').style.display = 'none';
+        document.getElementById('mp-lobby').style.display = 'block';
+        document.getElementById('deck-select').style.display = 'none';
+        // Connect to server
+        connectWebSocket().catch(err => {
+          setMpStatus('Failed to connect to server. Try again later.');
+        });
+      }
+    }
+    
+    function showDeckSelect() {
+      document.getElementById('mode-select').style.display = 'none';
+      document.getElementById('mp-lobby').style.display = 'none';
+      document.getElementById('deck-select').style.display = 'block';
+      // Hide AI difficulty in multiplayer
+      if (gameMode === 'multi') {
+        document.getElementById('ai-difficulty').style.display = 'none';
+      }
+    }
+    
+    function backToModeSelect() {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      roomCode = null;
+      document.getElementById('mode-select').style.display = 'block';
+      document.getElementById('mp-lobby').style.display = 'none';
+      document.getElementById('deck-select').style.display = 'none';
+      document.getElementById('room-info').style.display = 'none';
+      document.getElementById('join-input').style.display = 'none';
+      document.querySelector('.mp-buttons').style.display = 'flex';
+      setMpStatus('');
+    }
+    
+    async function createRoom() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        setMpStatus('Connecting...');
+        try {
+          await connectWebSocket();
+        } catch (e) {
+          setMpStatus('Failed to connect');
+          return;
+        }
+      }
+      isHost = true;
+      // We'll send the deck ID after selection
+      // For now, just create with placeholder
+      ws.send(JSON.stringify({ type: 'create', deckId: 'pending' }));
+    }
+    
+    function showJoinInput() {
+      document.getElementById('join-input').style.display = 'block';
+      document.getElementById('room-code-input').focus();
+    }
+    
+    async function joinRoom() {
+      const input = document.getElementById('room-code-input');
+      const code = input.value.toUpperCase().trim();
+      if (code.length !== 4) {
+        setMpStatus('Room code must be 4 characters');
+        return;
+      }
+      
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        setMpStatus('Connecting...');
+        try {
+          await connectWebSocket();
+        } catch (e) {
+          setMpStatus('Failed to connect');
+          return;
+        }
+      }
+      
+      ws.send(JSON.stringify({ type: 'join', roomCode: code, deckId: 'pending' }));
+    }
+    
+    // Expose functions globally
+    window.selectMode = selectMode;
+    window.backToModeSelect = backToModeSelect;
+    window.createRoom = createRoom;
+    window.showJoinInput = showJoinInput;
+    window.joinRoom = joinRoom;
     
     // ═══════════════════════════════════════════════════════════════
     // SUMMON EVENT HELPER
