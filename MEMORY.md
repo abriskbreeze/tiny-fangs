@@ -853,3 +853,19 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 **Tests:** 262 passing
 **Version:** v0.4.60
 
+
+### 2026-02-08 Night (cont.) — Deploy Cleanup
+
+**Removed docs/ folder:**
+- GitHub Pages now served from `dist/` via GitHub Actions workflow
+- Deleted the redundant `docs/` folder completely
+- Updated all doc references: ARCHITECTURE.md, TODO.md, README.md, MEMORY.md, PLAN.md, CLAUDE.md
+- Changed `docs/ARCHITECTURE.md` refs → `dist/ARCHITECTURE.md`
+
+**Debug Logging Added for MP:**
+- `[MP] Creating game state` logs deck contents (UIDs and cardIds)
+- `[MP] Game started` logs hand contents for both players
+- Helps trace UID mismatches between host/guest
+
+**Still investigating:** User reports same hash mismatches after v0.4.60 - may need to verify the new bundle is deployed and cached properly. New bundle should be `index-CpL7ksj7.js`.
+

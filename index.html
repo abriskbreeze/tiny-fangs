@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.60</title>
+  <title>TINY FANGS v0.4.61</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.60 • Card Battler</p>
+    <p class="sub">v0.4.61 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.60 • Card Battler</p>
+    <p class="sub">v0.4.61 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.60</div>
+      <div class="logo">TINY FANGS v0.4.61</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3648,7 +3648,7 @@
             if (!state.G) break;
             log('Opponent forfeited!', 'dmg');
             state.G.winner = 'You';
-            showResult(true);
+            showResult(true, true);  // true = received forfeit, don't send one back
             break;
             
           case MP_MSG.REMATCH:
@@ -5301,6 +5301,7 @@
         console.error('[MP] Failed to clear saved state:', err);
       }
     }
+    window.clearSavedGameState = clearSavedGameState;
     
     /**
      * Handle opponent disconnection
@@ -9455,7 +9456,7 @@
       $('responseModal').classList.remove('open');
     }
     
-    function showResult(win) {
+    function showResult(win, receivedForfeit = false) {
       clearInterval(state.timerInt);
       stopTurnTimer();
       $('result').classList.add('open', win ? 'win' : 'lose');
@@ -9466,7 +9467,8 @@
         clearSavedGameState();
         
         // Send forfeit message if opponent is still connected
-        if (multiplayer.connected) {
+        // BUT NOT if we're responding to a forfeit (would cause infinite loop)
+        if (multiplayer.connected && !receivedForfeit) {
           multiplayer.send({ type: MP_MSG.FORFEIT });
         }
       }

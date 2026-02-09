@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.61] - 2026-02-08
+
+### Changed
+- Fix forfeit infinite loop + expose clearSavedGameState to window
+
+---
+
+
 ## [0.4.60] - 2026-02-08
 
 ### Fixed
