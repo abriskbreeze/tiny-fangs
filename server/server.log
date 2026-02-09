@@ -1,0 +1,14 @@
+🎮 Tiny Fangs server listening on ws://localhost:3001
+📊 Server started at 2/9/2026, 3:13:34 PM
+🔌 Client connected
+📩 Received: create { type: 'create', deckId: 'starter' }
+🏠 Room created: 8JHF by player with deck starter
+🔌 Client connected
+📩 Received: join { type: 'join', roomCode: '8JHF', deckId: 'aggro' }
+👥 Player joined room 8JHF with deck aggro
+✅ Room 8JHF now has 2 players
+🔌 Client disconnected
+👋 Player left room 8JHF
+🔌 Client disconnected
+👋 Player left room 8JHF
+🗑️  Room 8JHF deleted (empty)
