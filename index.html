@@ -2782,7 +2782,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     // Server URL - change for production
-    const WS_SERVER = 'wss://melbourne-candidates-ash-hindu.trycloudflare.com';
+    const WS_SERVER = 'wss://attract-travel-puzzles-karen.trycloudflare.com';
     
     let ws = null;
     let gameMode = 'solo'; // 'solo' or 'multi'
@@ -3126,9 +3126,21 @@
           case 'summon':
             sendAction({ action: 'summon', cardUid: params.cardUid, target: params.target });
             break;
-          case 'cast':
-            sendAction({ action: 'cast', cardUid: params.cardUid });
+          case 'cast': {
+            const castAction = { action: 'cast', cardUid: params.cardUid };
+            // Include selection data for targeting cards
+            if (params.selection) {
+              if (params.selection.type === 'target') {
+                castAction.targetUid = params.selection.uid;
+              } else if (params.selection.type === 'grave') {
+                castAction.graveUid = params.selection.uid;
+              } else if (params.selection.type === 'own') {
+                castAction.sacrificeUid = params.selection.uid;
+              }
+            }
+            sendAction(castAction);
             break;
+          }
           case 'set':
             sendAction({ action: 'set', cardUid: params.cardUid });
             break;
@@ -3151,7 +3163,7 @@
           await executeLocalSummon(params.card);
           break;
         case 'cast':
-          await executeLocalCast(params.card);
+          await executeLocalCast(params.card, params.selection);
           break;
         case 'set':
           await executeLocalSet(params.card);
@@ -4541,41 +4553,13 @@
       })));
     }
     
-    // Wrapper
+    // Wrapper - handles selection BEFORE dispatchAction for both solo and MP
     async function castVerse(c) {
       closeModal();
-      await dispatchAction('cast', { card: c, cardUid: c.uid });
-    }
-    
-    // Local execution (solo mode only)
-    async function executeLocalCast(c) {
-      if (c.cost > state.G.me.mana) {
-        log('Not enough mana!', 'dmg');
-        return;
-      }
       
-      // Pre-check for cards that might fail
-      if (c.id === 'callOfTheWild') {
-        const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
-        if (!oneCostInDeck.length) {
-          showModal('Call of the Wild', [{
-            name: 'No 1-cost creatures in deck!',
-            sub: 'The call goes unanswered...',
-            action: () => closeModal()
-          }]);
-          return; // Don't spend mana
-        }
-        if (state.G.me.active && state.G.me.bench.length >= 2) {
-          showModal('Call of the Wild', [{
-            name: 'Board is full!',
-            sub: 'Active + 2 benched creatures',
-            action: () => closeModal()
-          }]);
-          return; // Don't spend mana
-        }
-      }
+      // === PRE-CHECKS (before showing any selection UI) ===
       
-      // Pre-check for Grave Echo - need creatures in graveyard
+      // Grave Echo - need creatures in graveyard
       if (c.id === 'graveEcho') {
         const creaturesInGrave = state.G.me.grave.filter(x => x.cardType === 'creature');
         if (!creaturesInGrave.length) {
@@ -4584,11 +4568,11 @@
             sub: 'The echoes are silent...',
             action: () => closeModal()
           }]);
-          return; // Don't spend mana
+          return;
         }
       }
       
-      // Pre-check for anyCreature selection - need creatures on field
+      // anyCreature selection - need creatures on field
       if (c.selection?.type === 'anyCreature') {
         const hasCreatures = state.G.me.active || state.G.me.bench.length > 0 || 
                             state.G.opp.active || state.G.opp.bench.length > 0;
@@ -4598,57 +4582,132 @@
             sub: 'No valid targets...',
             action: () => closeModal()
           }]);
-          return; // Don't spend mana
+          return;
         }
       }
       
-      // === SELECTION CARDS: Get selection BEFORE spending mana ===
-      let selectionResult = null;
+      // ownCreature selection (sacrifice) - need own creatures
+      if (c.selection?.type === 'ownCreature') {
+        const hasOwn = state.G.me.active || state.G.me.bench.length > 0;
+        if (!hasOwn) {
+          showModal(c.name, [{
+            name: 'No creatures to sacrifice!',
+            sub: 'Your board is empty...',
+            action: () => closeModal()
+          }]);
+          return;
+        }
+      }
       
-      if (c.requiresSelection) {
-        if (c.id === 'graveEcho') {
-          // Select creature from graveyard
-          const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
-          selectionResult = await new Promise(resolve => {
-            showModal('Grave Echo - Choose creature to return', graveCr.map(creature => ({
-              name: creature.name,
-              sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
-              action: () => {
-                closeModal();
-                resolve(creature);
-              }
-            })));
-          });
-          if (!selectionResult) return; // Canceled - no mana spent
+      // Call of the Wild - need 1-cost in deck and board space
+      if (c.id === 'callOfTheWild') {
+        const oneCostInDeck = state.G.me.deck.filter(x => x.cardType === 'creature' && x.cost === 1);
+        if (!oneCostInDeck.length) {
+          showModal('Call of the Wild', [{
+            name: 'No 1-cost creatures in deck!',
+            sub: 'The call goes unanswered...',
+            action: () => closeModal()
+          }]);
+          return;
         }
-        
-        if (c.id === 'sacrifice') {
-          // Select creature to sacrifice (active or bench)
-          const sacrificeOptions = [];
-          if (state.G.me.active) {
-            sacrificeOptions.push({ creature: state.G.me.active, location: 'active', idx: -1 });
-          }
-          state.G.me.bench.forEach((cr, idx) => {
-            sacrificeOptions.push({ creature: cr, location: 'bench', idx });
-          });
-          
-          selectionResult = await new Promise(resolve => {
-            showModal('Sacrifice - Choose creature', sacrificeOptions.map(opt => ({
-              name: opt.creature.name,
-              sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
-              action: () => {
-                closeModal();
-                resolve(opt);
-              }
-            })));
-          });
-          if (!selectionResult) return; // Canceled - no mana spent
+        if (state.G.me.active && state.G.me.bench.length >= 2) {
+          showModal('Call of the Wild', [{
+            name: 'Board is full!',
+            sub: 'Active + 2 benched creatures',
+            action: () => closeModal()
+          }]);
+          return;
         }
+      }
+      
+      // === GET SELECTION (before spending mana) ===
+      let selection = null;
+      
+      // Grave Echo - select creature from graveyard
+      if (c.id === 'graveEcho') {
+        const graveCr = state.G.me.grave.filter(x => x.cardType === 'creature');
+        selection = await new Promise(resolve => {
+          showModal('Grave Echo - Choose creature to return', graveCr.map(creature => ({
+            name: creature.name,
+            sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
+            action: () => {
+              closeModal();
+              resolve({ type: 'grave', uid: creature.uid, creature });
+            }
+          })).concat([{
+            name: '← Cancel',
+            sub: 'Return to hand',
+            action: () => { closeModal(); resolve(null); }
+          }]));
+        });
+        if (!selection) return; // Canceled
+      }
+      
+      // Sacrifice - select own creature
+      if (c.selection?.type === 'ownCreature') {
+        const options = [];
+        if (state.G.me.active) {
+          options.push({ creature: state.G.me.active, location: 'active', idx: -1 });
+        }
+        state.G.me.bench.forEach((cr, idx) => {
+          options.push({ creature: cr, location: 'bench', idx });
+        });
         
-        // BUG-07, BUG-08, BUG-09: anyCreature selection (Ignite, Banish, Soul Siphon)
-        if (c.selection?.type === 'anyCreature') {
-          selectionResult = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
-          if (!selectionResult) return; // Canceled - no mana spent
+        selection = await new Promise(resolve => {
+          showModal(c.selection.prompt || 'Choose creature', options.map(opt => ({
+            name: opt.creature.name,
+            sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
+            action: () => {
+              closeModal();
+              resolve({ type: 'own', uid: opt.creature.uid, location: opt.location, idx: opt.idx, creature: opt.creature });
+            }
+          })).concat([{
+            name: '← Cancel',
+            sub: 'Return to hand',
+            action: () => { closeModal(); resolve(null); }
+          }]));
+        });
+        if (!selection) return; // Canceled
+      }
+      
+      // anyCreature selection (Ignite, Banish, Soul Siphon)
+      if (c.selection?.type === 'anyCreature') {
+        const result = await showCreatureSelector(c.selection.prompt || 'Choose a creature');
+        if (!result) return; // Canceled
+        selection = { 
+          type: 'target', 
+          uid: result.creature.uid, 
+          ownerKey: result.ownerKey,
+          location: result.location,
+          idx: result.idx,
+          creature: result.creature 
+        };
+      }
+      
+      // Dispatch with selection
+      await dispatchAction('cast', { card: c, cardUid: c.uid, selection });
+    }
+    
+    // Local execution (solo mode only)
+    // Local execution (solo mode) - selection already obtained in castVerse
+    async function executeLocalCast(c, selection) {
+      if (c.cost > state.G.me.mana) {
+        log('Not enough mana!', 'dmg');
+        return;
+      }
+      
+      // Convert selection format from castVerse to expected format
+      let selectionResult = null;
+      if (selection) {
+        if (selection.type === 'grave') {
+          // For graveEcho - just the creature object
+          selectionResult = selection.creature;
+        } else if (selection.type === 'own') {
+          // For sacrifice - { creature, location, idx }
+          selectionResult = { creature: selection.creature, location: selection.location, idx: selection.idx };
+        } else if (selection.type === 'target') {
+          // For anyCreature - { creature, location, ownerKey, idx }
+          selectionResult = { creature: selection.creature, location: selection.location, ownerKey: selection.ownerKey, idx: selection.idx };
         }
       }
       

@@ -207,6 +207,221 @@ export function getAtkModifiers(creature, owner, opponent) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TRIGGER SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if a verse matches a trigger event
+ * @param {object} verse - Set verse card
+ * @param {string} event - Event type to check
+ * @returns {boolean} - True if verse triggers on this event
+ */
+function matchesTrigger(verse, event) {
+  const triggers = {
+    phantomWall: 'beforeAttack',
+    spikeShield: 'beforeAttack',
+    brace: 'beforeDamage',
+    swarmShield: 'beforeDamage',
+    soulTrap: 'onSummon',
+    vengeance: 'onLethalDamage',
+    graveRise: 'onKO',
+    denMother: 'onAllyKO',
+    manaDrain: 'onCast',
+    lastBreath: 'onLifeLoss'
+  };
+  return triggers[verse.id] === event;
+}
+
+/**
+ * Execute a triggered verse
+ * @param {object} verse - Set verse card
+ * @param {object} context - Event context (varies by trigger type)
+ * @param {object} owner - Owner of the set verse
+ * @param {object} enemy - Opponent player
+ * @param {string} ownerSide - 'p1' or 'p2' for owner
+ * @param {string} enemySide - 'p1' or 'p2' for enemy
+ * @returns {object} - { events: [], negated: boolean, damageReduction: number, modifiedDamage: number }
+ */
+function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
+  const events = [];
+  let negated = false;
+  let damageReduction = 0;
+  let modifiedDamage = null;
+  
+  events.push({ type: 'triggerVerse', side: ownerSide, verse: verse.name });
+  
+  switch (verse.id) {
+    case 'phantomWall':
+      // beforeAttack: Negate the attack
+      negated = true;
+      break;
+      
+    case 'spikeShield':
+      // beforeAttack: Deal 15 damage to attacker
+      if (context.attacker) {
+        const ko = applyDamage(context.attacker, 15);
+        events.push({ type: 'damage', side: enemySide, amount: 15, source: 'Spike Shield' });
+        if (ko) {
+          events.push({ type: 'ko', side: enemySide, creature: context.attacker.name });
+          enemy.grave.push(context.attacker);
+          enemy.active = null;
+        }
+      }
+      break;
+      
+    case 'brace':
+      // beforeDamage: Reduce damage by 15
+      damageReduction = 15;
+      break;
+      
+    case 'swarmShield':
+      // beforeDamage: Reduce damage by 10 per bench creature
+      damageReduction = owner.bench.length * 10;
+      break;
+      
+    case 'soulTrap':
+      // onSummon: Deal 15 damage to summoned creature
+      if (context.creature) {
+        const ko = applyDamage(context.creature, 15);
+        events.push({ type: 'damage', side: enemySide, amount: 15, source: 'Soul Trap' });
+        if (ko) {
+          events.push({ type: 'ko', side: enemySide, creature: context.creature.name });
+          // Move to grave and clear from board
+          enemy.grave.push(context.creature);
+          if (enemy.active && enemy.active.uid === context.creature.uid) {
+            enemy.active = null;
+          } else {
+            enemy.bench = enemy.bench.filter(c => c.uid !== context.creature.uid);
+          }
+        }
+      }
+      break;
+      
+    case 'vengeance':
+      // onLethalDamage: Survive at 1 HP, destroy attacker
+      if (context.defender && context.attacker) {
+        context.defender.curHp = 1;
+        events.push({ type: 'heal', side: ownerSide, amount: 1, source: 'Vengeance' });
+        // Destroy attacker
+        enemy.grave.push(context.attacker);
+        enemy.active = null;
+        events.push({ type: 'ko', side: enemySide, creature: context.attacker.name, source: 'Vengeance' });
+        modifiedDamage = context.defender.hp - 1; // Prevent KO
+      }
+      break;
+      
+    case 'graveRise':
+      // onKO: Summon creature from graveyard
+      if (owner.grave.length > 0) {
+        const graveCreatures = owner.grave.filter(c => c.cardType === 'creature');
+        if (graveCreatures.length > 0) {
+          // Summon the most recently added creature
+          const summonedCreature = graveCreatures[graveCreatures.length - 1];
+          summonedCreature.curHp = summonedCreature.hp; // Restore to full HP
+          owner.grave = owner.grave.filter(c => c.uid !== summonedCreature.uid);
+          
+          // Place in active or bench
+          if (!owner.active) {
+            owner.active = summonedCreature;
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'active', source: 'Grave Rise' });
+          } else if (owner.bench.length < 2) {
+            owner.bench.push(summonedCreature);
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'bench', source: 'Grave Rise' });
+          }
+        }
+      }
+      break;
+      
+    case 'denMother':
+      // onAllyKO: Summon 1-cost creature from deck
+      if (context.koedCreature) {
+        // Find a 1-cost creature in deck
+        const oneCostIdx = owner.deck.findIndex(c => c.cardType === 'creature' && c.cost === 1);
+        if (oneCostIdx !== -1) {
+          const summonedCreature = owner.deck.splice(oneCostIdx, 1)[0];
+          
+          // Place in active or bench
+          if (!owner.active) {
+            owner.active = summonedCreature;
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'active', source: 'Den Mother' });
+          } else if (owner.bench.length < 2) {
+            owner.bench.push(summonedCreature);
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'bench', source: 'Den Mother' });
+          } else {
+            // No space, send to grave
+            owner.grave.push(summonedCreature);
+          }
+        }
+      }
+      break;
+      
+    case 'manaDrain':
+      // onCast: Negate the spell, gain 2 mana
+      negated = true;
+      owner.mana = Math.min(owner.maxMana, owner.mana + 2);
+      events.push({ type: 'manaGain', side: ownerSide, amount: 2, source: 'Mana Drain' });
+      break;
+      
+    case 'lastBreath':
+      // onLifeLoss: Negate LP loss (once)
+      if (!owner.usedLastBreath) {
+        negated = true;
+        owner.usedLastBreath = true;
+      }
+      break;
+  }
+  
+  return { events, negated, damageReduction, modifiedDamage };
+}
+
+/**
+ * Check for and execute triggered set verses
+ * @param {string} event - Event type
+ * @param {object} context - Event context
+ * @param {object} activePlayer - Current player
+ * @param {object} inactivePlayer - Opponent player
+ * @param {string} activeSide - 'p1' or 'p2'
+ * @param {string} inactiveSide - 'p1' or 'p2'
+ * @returns {object} - { events: [], negated: boolean, damageReduction: number, modifiedDamage: number }
+ */
+function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide, inactiveSide) {
+  const events = [];
+  let negated = false;
+  let damageReduction = 0;
+  let modifiedDamage = null;
+  
+  // Check inactive player's set verse first (defender advantage)
+  const defenderVerse = inactivePlayer.setVerse;
+  if (defenderVerse && matchesTrigger(defenderVerse, event)) {
+    const result = executeTrigger(defenderVerse, context, inactivePlayer, activePlayer, inactiveSide, activeSide);
+    events.push(...result.events);
+    if (result.negated) negated = true;
+    if (result.damageReduction) damageReduction = result.damageReduction;
+    if (result.modifiedDamage !== null) modifiedDamage = result.modifiedDamage;
+    
+    // Consume set verse
+    inactivePlayer.grave.push(defenderVerse);
+    inactivePlayer.setVerse = null;
+  }
+  
+  // Check active player's set verse (for their own triggers like onAllyKO, onLifeLoss)
+  const attackerVerse = activePlayer.setVerse;
+  if (attackerVerse && matchesTrigger(attackerVerse, event) && !negated) {
+    const result = executeTrigger(attackerVerse, context, activePlayer, inactivePlayer, activeSide, inactiveSide);
+    events.push(...result.events);
+    if (result.negated) negated = true;
+    if (result.damageReduction) damageReduction += result.damageReduction;
+    if (result.modifiedDamage !== null) modifiedDamage = result.modifiedDamage;
+    
+    // Consume set verse
+    activePlayer.grave.push(attackerVerse);
+    activePlayer.setVerse = null;
+  }
+  
+  return { events, negated, damageReduction, modifiedDamage };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EXECUTE ACTION
 // ═══════════════════════════════════════════════════════════════
 
@@ -265,12 +480,22 @@ export function executeAction(state, playerIdx, action) {
         events.push({ type: 'summon', side, creature: card.name, slot: 'bench' });
       }
       
-      // Trigger onSummon effects (simplified for MVP - full trigger system in Phase 4)
+      // CHECK: onSummon trigger (opponent's set verses like soulTrap)
+      const onSummonTrigger = checkTriggers('onSummon', { creature: card }, player, opponent, side, oppSide);
+      events.push(...onSummonTrigger.events);
+      
+      // === CREATURE ON-SUMMON ABILITIES ===
+      
+      // Duskfang: +20 ATK if graveyard has creatures
       if (card.id === 'duskfang' && player.grave.some(c => c.cardType === 'creature')) {
+        events.push({ type: 'abilityTrigger', side, creature: card.name, ability: 'Pack Call' });
         events.push({ type: 'atkBonus', side, amount: 20, source: 'Pack Call' });
       }
+      
+      // Emberfang: Deal 5 damage to enemy active
       if (card.id === 'emberfang' && opponent.active) {
         const ko = applyDamage(opponent.active, 5);
+        events.push({ type: 'abilityTrigger', side, creature: card.name, ability: 'Spark' });
         events.push({ type: 'damage', side: oppSide, amount: 5, source: 'Spark' });
         if (ko) {
           events.push({ type: 'ko', side: oppSide, creature: opponent.active.name });
@@ -278,8 +503,11 @@ export function executeAction(state, playerIdx, action) {
           opponent.active = null;
         }
       }
+      
+      // Hiveling: Draw card when summoned to bench
       if (card.id === 'hiveling' && location === 'bench') {
         const drawResult = draw(player);
+        events.push({ type: 'abilityTrigger', side, creature: card.name, ability: 'Swarm' });
         events.push(...drawResult.events);
       }
       
@@ -306,13 +534,22 @@ export function executeAction(state, playerIdx, action) {
       const attacker = player.active;
       const defender = opponent.active;
       
+      // CHECK: beforeAttack trigger
+      const beforeAttackTrigger = checkTriggers('beforeAttack', { attacker, defender }, player, opponent, side, oppSide);
+      events.push(...beforeAttackTrigger.events);
+      if (beforeAttackTrigger.negated) {
+        state.hasAttacked = true;
+        break; // Attack negated - don't process further
+      }
+      
       // Calculate damage
       let damage = getEffectiveAtk(attacker, player, opponent);
       
-      // Pulsefin double damage on first attack
+      // Pulsefin: First attack deals double damage
       if (attacker.id === 'pulsefin' && attacker.firstAtk) {
         damage *= 2;
         attacker.firstAtk = false;
+        events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Sonic Strike' });
         events.push({ type: 'atkBonus', side, amount: damage / 2, source: 'Sonic Strike' });
       }
       
@@ -323,83 +560,277 @@ export function executeAction(state, playerIdx, action) {
         // Attack creature
         events.push({ type: 'attack', side, damage });
         
+        // CHECK: beforeDamage trigger
+        const beforeDamageTrigger = checkTriggers('beforeDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
+        events.push(...beforeDamageTrigger.events);
+        
+        // Apply damage reduction from set verses
+        if (beforeDamageTrigger.damageReduction) {
+          damage = Math.max(0, damage - beforeDamageTrigger.damageReduction);
+        }
+        
+        // === CREATURE PASSIVE DAMAGE REDUCTION ===
+        
+        // Unbreakable verse - prevent ALL damage
+        if (opponent.unbreakable) {
+          damage = 0;
+          opponent.unbreakable = false;
+          events.push({ type: 'damageNegated', side: oppSide, source: 'Unbreakable' });
+        }
+        
+        // Ironhide: Always takes -10 damage
+        if (defender.id === 'ironhide' && damage > 0) {
+          const reduction = Math.min(10, damage);
+          damage -= reduction;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Iron Skin' });
+          events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Iron Skin' });
+        }
+        
+        // Pebbleback: Always takes -5 damage
+        if (defender.id === 'pebbleback' && damage > 0) {
+          const reduction = Math.min(5, damage);
+          damage -= reduction;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Sturdy' });
+          events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Sturdy' });
+        }
+        
+        // Shellkin: Negate first 10 damage each turn
+        if (defender.id === 'shellkin' && !defender.shellkinUsed && damage > 0) {
+          const reduction = Math.min(10, damage);
+          damage -= reduction;
+          defender.shellkinUsed = true;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Harden' });
+          events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Harden' });
+        }
+        
+        // Titanback: Resist first 15 damage per turn
+        if (defender.id === 'titanback' && !defender.titanbackUsed && damage > 0) {
+          const reduction = Math.min(15, damage);
+          damage -= reduction;
+          defender.titanbackUsed = true;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Juggernaut' });
+          events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Juggernaut' });
+        }
+        
+        // Hollowfox: -10 damage while having bench
+        if (defender.id === 'hollowfox' && opponent.bench.length > 0 && damage > 0) {
+          const reduction = Math.min(10, damage);
+          damage -= reduction;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Den Guard' });
+          events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Den Guard' });
+        }
+        
+        // Check for lethal damage and vengeance trigger
+        const wouldBeLethal = defender.curHp - damage <= 0;
+        if (wouldBeLethal) {
+          const lethalTrigger = checkTriggers('onLethalDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
+          events.push(...lethalTrigger.events);
+          if (lethalTrigger.modifiedDamage !== null) {
+            damage = lethalTrigger.modifiedDamage;
+          }
+        }
+        
         // Apply damage
-        const ko = applyDamage(defender, damage);
+        let ko = applyDamage(defender, damage);
         events.push({ type: 'damage', side: oppSide, amount: damage });
+        
+        // === SURVIVAL MECHANICS ===
+        
+        // Bulwark: Survive first lethal hit at 1 HP
+        if (ko && defender.id === 'bulwark' && !defender.bulwarkUsed) {
+          defender.curHp = 1;
+          defender.bulwarkUsed = true;
+          ko = false;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Fortress' });
+          events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1 });
+        }
+        
+        // Fortified (from Fortify verse): Survive lethal with 1 HP
+        if (ko && defender.fortified) {
+          defender.curHp = 1;
+          defender.fortified = false;
+          ko = false;
+          events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1, source: 'Fortify' });
+        }
+        
+        // === ON DEATH TRIGGERS ===
         
         if (ko) {
           events.push({ type: 'ko', side: oppSide, creature: defender.name });
+          const koedCreature = defender;
           opponent.grave.push(defender);
           opponent.active = null;
           
-          // Trigger onKO effects (simplified)
-          if (defender.id === 'gloom' && player.hand.length > 0) {
-            // Discard random card
+          // CHECK: onKO trigger (defender's owner)
+          const onKOTrigger = checkTriggers('onKO', { koedCreature, attacker }, player, opponent, side, oppSide);
+          events.push(...onKOTrigger.events);
+          
+          // CHECK: onAllyKO trigger (for opponent's own triggers)
+          const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature, attacker }, opponent, player, oppSide, side);
+          events.push(...onAllyKOTrigger.events);
+          
+          // Gloom: Discard random card from killer's hand
+          if (koedCreature.id === 'gloom' && player.hand.length > 0) {
             const idx = Math.floor(Math.random() * player.hand.length);
             const discarded = player.hand.splice(idx, 1)[0];
             player.grave.push(discarded);
+            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Fade' });
             events.push({ type: 'discard', side, card: discarded.name });
           }
-          if (defender.id === 'echomask') {
-            player.lp -= 1;
-            events.push({ type: 'lpDamage', side, amount: 1 });
+          
+          // Echomask: Enemy loses 1 life
+          if (koedCreature.id === 'echomask') {
+            // CHECK: onLifeLoss trigger for echomask ability
+            const echomaskLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+            events.push(...echomaskLifeLossTrigger.events);
+            
+            if (!echomaskLifeLossTrigger.negated) {
+              player.lp -= 1;
+              events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Reflection' });
+              events.push({ type: 'lpDamage', side, amount: 1 });
+            }
           }
-          if (defender.id === 'stormtalon') {
+          
+          // Stormtalon: Set chainLightning flag
+          if (koedCreature.id === 'stormtalon') {
             player.chainLightning = 20;
+            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Chain Lightning' });
             events.push({ type: 'setFlag', side, flag: 'chainLightning', value: 20 });
+          }
+          
+          // Titanback: Deal 25 damage to attacker on death
+          if (koedCreature.id === 'titanback') {
+            const recoilKo = applyDamage(attacker, 25);
+            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Juggernaut' });
+            events.push({ type: 'damage', side, amount: 25, source: 'Juggernaut' });
+            if (recoilKo) {
+              events.push({ type: 'ko', side, creature: attacker.name });
+              player.grave.push(attacker);
+              player.active = null;
+              
+              // CHECK: onAllyKO trigger for attacker's death
+              const atkKoTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+              events.push(...atkKoTrigger.events);
+            }
           }
         }
         
-        // Thorns/Recoil damage
-        if (defender.id === 'thornling' || defender.id === 'coilshell') {
-          const reflectDmg = defender.id === 'thornling' ? 10 : 10;
+        // === REFLECTION DAMAGE (Thorns/Recoil/Reflector) ===
+        
+        // Thornling: Deal 10 damage to attacker
+        if (defender.id === 'thornling') {
+          const reflectDmg = 10;
           const atkKo = applyDamage(attacker, reflectDmg);
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Thorns' });
           events.push({ type: 'damage', side, amount: reflectDmg, source: 'Thorns' });
           if (atkKo) {
             events.push({ type: 'ko', side, creature: attacker.name });
+            const koedCreature = attacker;
             player.grave.push(attacker);
             player.active = null;
+            
+            // CHECK: onAllyKO trigger (for player's own triggers)
+            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+            events.push(...onAllyKOTrigger.events);
           }
         }
         
-        // Mireveil trap
-        if (attacker.id === 'mireveil' && !ko && defender) {
-          defender.status = 'trapped';
-          events.push({ type: 'setStatus', side: oppSide, status: 'trapped' });
+        // Coilshell: Deal 10 damage to attacker
+        if (defender.id === 'coilshell') {
+          const reflectDmg = 10;
+          const atkKo = applyDamage(attacker, reflectDmg);
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Recoil' });
+          events.push({ type: 'damage', side, amount: reflectDmg, source: 'Recoil' });
+          if (atkKo) {
+            events.push({ type: 'ko', side, creature: attacker.name });
+            const koedCreature = attacker;
+            player.grave.push(attacker);
+            player.active = null;
+            
+            // CHECK: onAllyKO trigger
+            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+            events.push(...onAllyKOTrigger.events);
+          }
         }
         
-        // Hexweaver poison
-        if (attacker.id === 'hexweaver' && !ko && defender) {
-          defender.status = 'poison';
-          events.push({ type: 'setStatus', side: oppSide, status: 'poison' });
+        // Reflector: Deal 15 damage to attacker when hit
+        if (defender.id === 'reflector' && damage > 0) {
+          const reflectDmg = 15;
+          const atkKo = applyDamage(attacker, reflectDmg);
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Mirror Shell' });
+          events.push({ type: 'damage', side, amount: reflectDmg, source: 'Mirror Shell' });
+          if (atkKo) {
+            events.push({ type: 'ko', side, creature: attacker.name });
+            const koedCreature = attacker;
+            player.grave.push(attacker);
+            player.active = null;
+            
+            // CHECK: onAllyKO trigger
+            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+            events.push(...onAllyKOTrigger.events);
+          }
         }
         
-        // Sundew Queen heal
-        if (attacker.id === 'sundewqueen' && ko) {
+        // === ATTACKER ON-HIT TRIGGERS (when defender survives) ===
+        
+        if (!ko && defender && damage > 0) {
+          // Mireveil: Apply trapped status
+          if (attacker.id === 'mireveil') {
+            defender.status = 'trapped';
+            events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Bog Grasp' });
+            events.push({ type: 'setStatus', side: oppSide, status: 'trapped' });
+          }
+          
+          // Hexweaver: Apply poison
+          if (attacker.id === 'hexweaver') {
+            defender.status = 'poison';
+            events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Venom Thread' });
+            events.push({ type: 'setStatus', side: oppSide, status: 'poison' });
+          }
+          
+          // Leechling: Heal for damage dealt
+          if (attacker.id === 'leechling') {
+            attacker.curHp = Math.min(attacker.hp, attacker.curHp + damage);
+            events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Drain' });
+            events.push({ type: 'heal', side, amount: damage });
+          }
+        }
+        
+        // === ATTACKER ON-KILL TRIGGERS ===
+        
+        if (ko && attacker.id === 'sundewqueen') {
           attacker.curHp = Math.min(attacker.hp, attacker.curHp + 30);
+          events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Digest' });
           events.push({ type: 'heal', side, amount: 30 });
         }
         
-        // Leechling drain
-        if (attacker.id === 'leechling' && !ko) {
-          attacker.curHp = Math.min(attacker.hp, attacker.curHp + damage);
-          events.push({ type: 'heal', side, amount: damage });
-        }
+        // === CINDERMAW SELF-DAMAGE (always after attack) ===
         
-        // Cindermaw self-damage
-        if (attacker.id === 'cindermaw') {
+        if (attacker.id === 'cindermaw' && player.active && player.active.uid === attacker.uid) {
           const selfKo = applyDamage(attacker, 10);
+          events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Frenzy' });
           events.push({ type: 'damage', side, amount: 10, source: 'Frenzy' });
           if (selfKo) {
             events.push({ type: 'ko', side, creature: attacker.name });
+            const koedCreature = attacker;
             player.grave.push(attacker);
             player.active = null;
+            
+            // CHECK: onAllyKO trigger
+            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+            events.push(...onAllyKOTrigger.events);
           }
         }
       } else {
         // Direct attack on life points
-        opponent.lp -= 1;
-        events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
+        // CHECK: onLifeLoss trigger (before LP decrement)
+        const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
+        events.push(...onLifeLossTrigger.events);
+        
+        if (!onLifeLossTrigger.negated) {
+          opponent.lp -= 1;
+          events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
+        }
         
         // Cindermaw self-damage even on direct attack
         if (attacker.id === 'cindermaw') {
@@ -407,8 +838,13 @@ export function executeAction(state, playerIdx, action) {
           events.push({ type: 'damage', side, amount: 10, source: 'Frenzy' });
           if (selfKo) {
             events.push({ type: 'ko', side, creature: attacker.name });
+            const koedCreature = attacker;
             player.grave.push(attacker);
             player.active = null;
+            
+            // CHECK: onAllyKO trigger
+            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+            events.push(...onAllyKOTrigger.events);
           }
         }
       }
@@ -430,6 +866,17 @@ export function executeAction(state, playerIdx, action) {
       // Deduct mana and move to grave
       player.mana -= card.cost;
       player.hand = player.hand.filter(c => c.uid !== action.cardUid);
+      
+      // CHECK: onCast trigger (before spell resolves)
+      const onCastTrigger = checkTriggers('onCast', { spell: card }, player, opponent, side, oppSide);
+      events.push(...onCastTrigger.events);
+      
+      if (onCastTrigger.negated) {
+        // Spell negated - move to grave but don't execute effect
+        player.grave.push(card);
+        break;
+      }
+      
       player.grave.push(card);
       
       // Execute cast effects (simplified - full effects in Phase 3/4)
@@ -439,9 +886,16 @@ export function executeAction(state, playerIdx, action) {
       if (card.id === 'darkPact') {
         draw(player);
         draw(player);
-        player.lp -= 1;
         events.push({ type: 'draw', count: 2 });
-        events.push({ type: 'lpDamage', side, amount: 1 });
+        
+        // CHECK: onLifeLoss trigger
+        const darkPactLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+        events.push(...darkPactLifeLossTrigger.events);
+        
+        if (!darkPactLifeLossTrigger.negated) {
+          player.lp -= 1;
+          events.push({ type: 'lpDamage', side, amount: 1 });
+        }
       }
       if (card.id === 'predatorsMark') {
         player.attackBonuses.push({ source: "Predator's Mark", value: 30 });
@@ -451,6 +905,282 @@ export function executeAction(state, playerIdx, action) {
         player.mana += 2;
         player.usedManaSurge = true;
         events.push({ type: 'manaGain', side, amount: 2 });
+      }
+      
+      // ignite - Deal 30 damage to target creature
+      if (card.id === 'ignite') {
+        if (!action.targetUid) {
+          // Refund - put card back in hand
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Select target creature' };
+        }
+        
+        // Find target in opponent's active or bench
+        let target = null;
+        let targetLocation = null;
+        let targetIdx = -1;
+        
+        if (opponent.active && opponent.active.uid === action.targetUid) {
+          target = opponent.active;
+          targetLocation = 'active';
+        } else {
+          targetIdx = opponent.bench.findIndex(c => c.uid === action.targetUid);
+          if (targetIdx !== -1) {
+            target = opponent.bench[targetIdx];
+            targetLocation = 'bench';
+          }
+        }
+        
+        if (!target) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Invalid target' };
+        }
+        
+        const ko = applyDamage(target, 30);
+        events.push({ type: 'damage', side: oppSide, amount: 30, target: target.name });
+        
+        if (ko) {
+          events.push({ type: 'ko', side: oppSide, creature: target.name });
+          opponent.grave.push(target);
+          if (targetLocation === 'active') {
+            opponent.active = null;
+          } else {
+            opponent.bench.splice(targetIdx, 1);
+          }
+        }
+      }
+      
+      // banish - Remove target creature from game entirely
+      if (card.id === 'banish') {
+        if (!action.targetUid) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Select target creature' };
+        }
+        
+        let target = null;
+        let targetLocation = null;
+        let targetIdx = -1;
+        
+        if (opponent.active && opponent.active.uid === action.targetUid) {
+          target = opponent.active;
+          targetLocation = 'active';
+        } else {
+          targetIdx = opponent.bench.findIndex(c => c.uid === action.targetUid);
+          if (targetIdx !== -1) {
+            target = opponent.bench[targetIdx];
+            targetLocation = 'bench';
+          }
+        }
+        
+        if (!target) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Invalid target' };
+        }
+        
+        events.push({ type: 'banish', side: oppSide, creature: target.name });
+        
+        // Remove from game (not to grave - banished)
+        if (targetLocation === 'active') {
+          opponent.active = null;
+        } else {
+          opponent.bench.splice(targetIdx, 1);
+        }
+      }
+      
+      // soulSiphon - Deal 20 damage to enemy active, heal your active 10
+      if (card.id === 'soulSiphon') {
+        if (opponent.active) {
+          const ko = applyDamage(opponent.active, 20);
+          events.push({ type: 'damage', side: oppSide, amount: 20 });
+          
+          if (ko) {
+            events.push({ type: 'ko', side: oppSide, creature: opponent.active.name });
+            opponent.grave.push(opponent.active);
+            opponent.active = null;
+          }
+        }
+        
+        if (player.active) {
+          player.active.curHp = Math.min(player.active.hp, player.active.curHp + 10);
+          events.push({ type: 'heal', side, amount: 10 });
+        }
+      }
+      
+      // secondWind - Heal your active creature 40 HP
+      if (card.id === 'secondWind') {
+        if (player.active) {
+          player.active.curHp = Math.min(player.active.hp, player.active.curHp + 40);
+          events.push({ type: 'heal', side, amount: 40 });
+        }
+      }
+      
+      // shellArmor - Heal your active creature 25 HP
+      if (card.id === 'shellArmor') {
+        if (player.active) {
+          player.active.curHp = Math.min(player.active.hp, player.active.curHp + 25);
+          events.push({ type: 'heal', side, amount: 25 });
+        }
+      }
+      
+      // regenerate - Heal your active 40 HP and cure poison
+      if (card.id === 'regenerate') {
+        if (player.active) {
+          player.active.curHp = Math.min(player.active.hp, player.active.curHp + 40);
+          if (player.active.status === 'poison') {
+            player.active.status = null;
+            events.push({ type: 'clearStatus', side, status: 'poison' });
+          }
+          events.push({ type: 'heal', side, amount: 40 });
+        }
+      }
+      
+      // fortify - Your active survives next lethal hit
+      if (card.id === 'fortify') {
+        if (player.active) {
+          player.active.fortified = true;
+          events.push({ type: 'setFlag', side, flag: 'fortified', creature: player.active.name });
+        }
+      }
+      
+      // unbreakable - Prevent next damage to any of your creatures
+      if (card.id === 'unbreakable') {
+        player.unbreakable = true;
+        events.push({ type: 'setFlag', side, flag: 'unbreakable' });
+      }
+      
+      // bloodMoon - Deal 20 damage to ALL creatures (both sides, active + bench)
+      if (card.id === 'bloodMoon') {
+        const allTargets = [];
+        
+        // Collect all creatures
+        if (player.active) allTargets.push({ creature: player.active, owner: player, side, location: 'active' });
+        player.bench.forEach((c, idx) => allTargets.push({ creature: c, owner: player, side, location: 'bench', idx }));
+        if (opponent.active) allTargets.push({ creature: opponent.active, owner: opponent, side: oppSide, location: 'active' });
+        opponent.bench.forEach((c, idx) => allTargets.push({ creature: c, owner: opponent, side: oppSide, location: 'bench', idx }));
+        
+        // Apply damage to all
+        const koList = [];
+        for (const t of allTargets) {
+          const ko = applyDamage(t.creature, 20);
+          events.push({ type: 'damage', side: t.side, amount: 20, target: t.creature.name });
+          if (ko) {
+            koList.push(t);
+          }
+        }
+        
+        // Process KOs (in reverse order to not mess up indices)
+        koList.sort((a, b) => (b.idx || 0) - (a.idx || 0));
+        for (const t of koList) {
+          events.push({ type: 'ko', side: t.side, creature: t.creature.name });
+          t.owner.grave.push(t.creature);
+          if (t.location === 'active') {
+            t.owner.active = null;
+          } else {
+            t.owner.bench.splice(t.idx, 1);
+          }
+        }
+      }
+      
+      // callOfTheWild - Summon random 1-cost creature from deck
+      if (card.id === 'callOfTheWild') {
+        const oneCostCreatures = player.deck.filter(c => c.cardType === 'creature' && c.cost === 1);
+        
+        if (oneCostCreatures.length > 0 && player.bench.length < 2) {
+          const randIdx = Math.floor(Math.random() * oneCostCreatures.length);
+          const creature = oneCostCreatures[randIdx];
+          
+          // Remove from deck
+          player.deck = player.deck.filter(c => c.uid !== creature.uid);
+          
+          // Summon to bench (or active if empty)
+          if (!player.active) {
+            player.active = creature;
+            creature.summonedThisTurn = true;
+            events.push({ type: 'summon', side, creature: creature.name, slot: 'active', source: 'Call of the Wild' });
+          } else {
+            player.bench.push(creature);
+            creature.summonedThisTurn = true;
+            events.push({ type: 'summon', side, creature: creature.name, slot: 'bench', source: 'Call of the Wild' });
+          }
+        }
+      }
+      
+      // graveEcho - Return creature from graveyard to hand
+      if (card.id === 'graveEcho') {
+        if (!action.graveUid) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Select creature from graveyard' };
+        }
+        
+        const graveIdx = player.grave.findIndex(c => c.uid === action.graveUid && c.cardType === 'creature');
+        if (graveIdx === -1) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Invalid graveyard target' };
+        }
+        
+        const creature = player.grave[graveIdx];
+        player.grave.splice(graveIdx, 1);
+        player.hand.push(creature);
+        events.push({ type: 'graveReturn', side, creature: creature.name });
+      }
+      
+      // sacrifice - Sacrifice creature, draw 2 cards
+      if (card.id === 'sacrifice') {
+        if (!action.sacrificeUid) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Select creature to sacrifice' };
+        }
+        
+        // Find creature in active or bench
+        let target = null;
+        let targetLocation = null;
+        let targetIdx = -1;
+        
+        if (player.active && player.active.uid === action.sacrificeUid) {
+          target = player.active;
+          targetLocation = 'active';
+        } else {
+          targetIdx = player.bench.findIndex(c => c.uid === action.sacrificeUid);
+          if (targetIdx !== -1) {
+            target = player.bench[targetIdx];
+            targetLocation = 'bench';
+          }
+        }
+        
+        if (!target) {
+          player.mana += card.cost;
+          player.hand.push(card);
+          player.grave = player.grave.filter(c => c.uid !== card.uid);
+          return { state, events, error: 'Invalid sacrifice target' };
+        }
+        
+        // Sacrifice the creature
+        events.push({ type: 'sacrifice', side, creature: target.name });
+        player.grave.push(target);
+        if (targetLocation === 'active') {
+          player.active = null;
+        } else {
+          player.bench.splice(targetIdx, 1);
+        }
+        
+        // Draw 2 cards
+        draw(player);
+        draw(player);
+        events.push({ type: 'draw', side, count: 2 });
       }
       
       break;
@@ -570,6 +1300,16 @@ export function endTurn(state, playerIdx) {
     player.active.status = null;
   }
   
+  // Reset per-turn damage reduction flags for next player
+  if (nextPlayer.active) {
+    nextPlayer.active.shellkinUsed = false;
+    nextPlayer.active.titanbackUsed = false;
+  }
+  nextPlayer.bench.forEach(c => {
+    c.shellkinUsed = false;
+    c.titanbackUsed = false;
+  });
+  
   // Poison damage at end of turn
   if (player.active && player.active.status === 'poison') {
     const ko = applyDamage(player.active, 10);
@@ -598,6 +1338,7 @@ export function endTurn(state, playerIdx) {
     antling.curHp = 10;
     antling.atk = 10;
     player.bench.push(antling);
+    events.push({ type: 'abilityTrigger', side: playerIdx === 0 ? 'p1' : 'p2', creature: player.active.name, ability: 'Spawn' });
     events.push({ type: 'summon', side: playerIdx === 0 ? 'p1' : 'p2', creature: 'Antling', slot: 'bench' });
   }
   

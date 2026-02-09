@@ -6,6 +6,14 @@ All notable changes to Tiny Fangs.
 ## [0.4.48] - 2026-02-09
 
 ### Changed
+- Selection UI for targeting cards (ignite, banish, graveEcho, sacrifice) in MP mode
+
+---
+
+
+## [0.4.48] - 2026-02-09
+
+### Changed
 - Refactor: unified dispatchAction for all game actions
 
 ---
