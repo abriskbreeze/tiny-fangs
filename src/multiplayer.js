@@ -175,6 +175,11 @@ class MultiplayerManager {
     
     // Data received
     this.conn.on('data', (data) => {
+      // Ensure connected flag is set (sometimes 'open' event is missed)
+      if (!this.connected) {
+        this.connected = true;
+        console.log('[Multiplayer] Connection confirmed by received data');
+      }
       console.log('[Multiplayer] Received:', data);
       if (this.onMessage) {
         this.onMessage(data);
@@ -190,12 +195,23 @@ class MultiplayerManager {
       }
     });
     
-    // For host, trigger onConnect immediately since connection is already open
-    if (this.isHost && this.conn.open) {
-      this.connected = true;
-      if (this.onConnect) {
-        // Delay slightly to ensure conn is fully ready
-        setTimeout(() => this.onConnect(), 100);
+    // For host, connection is usually already open when peer connects
+    if (this.isHost) {
+      if (this.conn.open) {
+        this.connected = true;
+        if (this.onConnect) {
+          // Delay slightly to ensure conn is fully ready
+          setTimeout(() => this.onConnect(), 100);
+        }
+      } else {
+        // Wait for open event
+        this.conn.on('open', () => {
+          this.connected = true;
+          console.log('[Multiplayer] Host connection opened');
+          if (this.onConnect) {
+            this.onConnect();
+          }
+        });
       }
     }
     

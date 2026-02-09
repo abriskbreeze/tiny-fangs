@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.49] - 2026-02-08
+
+### Changed
+- Add connection checks, timeout, and robust connected state handling
+
+---
+
+
 ## [0.4.48] - 2026-02-08
 
 ### Changed
