@@ -193,6 +193,14 @@
       gap: 4px;
     }
     
+    /* Turn banner fade in/out */
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    }
+    
     /* Set verse animation - glow pulse */
     @keyframes set-verse-glow {
       0% { 
@@ -2825,7 +2833,6 @@
           roomCode = msg.roomCode;
           isHost = false;
           setMpStatus(`Joined room ${roomCode}!`);
-          // Go to deck select
           showDeckSelect();
           break;
           
@@ -2833,18 +2840,244 @@
           setMpStatus('Opponent joined! Select your deck.');
           document.getElementById('waiting-msg').textContent = 'Opponent joined!';
           document.getElementById('waiting-msg').style.color = 'var(--green)';
-          // Go to deck select
           setTimeout(() => showDeckSelect(), 1000);
           break;
           
+        case 'waitingForOpponent':
+          setMpStatus('Waiting for opponent to select deck...');
+          break;
+          
+        case 'opponentReady':
+          setMpStatus('Opponent ready! Select your deck.');
+          break;
+          
+        case 'gameStart':
+          console.log('🎮 Game starting!', msg);
+          startMultiplayerGame(msg.state, msg.yourTurn, msg.you);
+          break;
+          
+        case 'stateUpdate':
+          console.log('📊 State update', msg.events);
+          updateFromServer(msg.state, msg.events);
+          break;
+          
+        case 'turnChange':
+          state.G.myTurn = msg.yourTurn;
+          updateTurnUI();
+          break;
+          
         case 'opponentLeft':
-          setMpStatus('Opponent disconnected');
-          // TODO: Handle mid-game disconnect
+          if (state.G && state.G.isMultiplayer) {
+            showModal('Opponent Left', [{
+              name: 'Return to Menu',
+              action: () => { closeModal(); location.reload(); }
+            }]);
+          } else {
+            setMpStatus('Opponent disconnected');
+          }
           break;
           
         case 'error':
-          setMpStatus(`Error: ${msg.message}`);
+          console.error('Server error:', msg.message);
+          if (state.G && state.G.isMultiplayer) {
+            // Show error briefly but don't block
+            log(`Error: ${msg.message}`, 'dmg');
+          } else {
+            setMpStatus(`Error: ${msg.message}`);
+          }
           break;
+      }
+    }
+    
+    // Convert server state to client state format
+    function convertServerState(serverState) {
+      return {
+        isMultiplayer: true,
+        myTurn: serverState.yourTurn,
+        turn: serverState.turn,
+        winner: serverState.winner,
+        me: {
+          lp: serverState.me.lp,
+          mana: serverState.me.mana,
+          maxMana: serverState.me.maxMana,
+          deck: [], // Hidden - just need count
+          deckCount: serverState.me.deckCount,
+          hand: serverState.me.hand,
+          active: serverState.me.active,
+          bench: serverState.me.bench,
+          grave: serverState.me.grave,
+          setVerse: serverState.me.setVerse,
+          attackBonuses: serverState.me.attackBonuses || [],
+          chainLightning: serverState.me.chainLightning || 0,
+          unbreakable: serverState.me.unbreakable || false
+        },
+        opp: {
+          lp: serverState.opp.lp,
+          mana: serverState.opp.mana,
+          maxMana: serverState.opp.maxMana,
+          deck: [],
+          deckCount: serverState.opp.deckCount,
+          handCount: serverState.opp.handCount,
+          hand: [], // Hidden
+          active: serverState.opp.active,
+          bench: serverState.opp.bench,
+          grave: serverState.opp.grave,
+          setVerse: serverState.opp.setVerse,
+          chainLightning: serverState.opp.chainLightning || 0
+        }
+      };
+    }
+    
+    // Start multiplayer game with server state
+    function startMultiplayerGame(serverState, yourTurn, you) {
+      // Hide setup, show game
+      document.getElementById('setup').style.display = 'none';
+      const gameEl = window.innerWidth <= 600 ? 'mobile' : 'game';
+      document.getElementById(gameEl).style.display = gameEl === 'mobile' ? 'flex' : 'grid';
+      
+      // Initialize state from server
+      state.G = convertServerState(serverState);
+      state.G.myTurn = yourTurn;
+      state.G.myPlayerKey = you; // 'p1' or 'p2'
+      
+      // Start game timer
+      state.G.startTime = Date.now();
+      
+      render();
+      updateTurnUI();
+      
+      // Show turn banner
+      if (yourTurn) {
+        showTurnBanner('YOUR TURN');
+      } else {
+        showTurnBanner('OPPONENT\'S TURN');
+      }
+    }
+    
+    // Update client state from server
+    async function updateFromServer(serverState, events) {
+      // Play events for animations
+      if (events && events.length > 0) {
+        await playServerEvents(events);
+      }
+      
+      // Update state
+      const oldTurn = state.G.myTurn;
+      state.G = convertServerState(serverState);
+      
+      // Check for turn change
+      if (oldTurn !== state.G.myTurn) {
+        updateTurnUI();
+      }
+      
+      // Check for game over
+      if (state.G.winner !== null) {
+        const youWon = state.G.winner === 'me';
+        showGameOver(youWon);
+      }
+      
+      render();
+    }
+    
+    // Play animation events from server
+    async function playServerEvents(events) {
+      for (const e of events) {
+        const side = e.side; // Already mapped to 'me' or 'opp' by server
+        
+        switch (e.type) {
+          case 'summon':
+            await Anim.summon(side, e.slot === 'bench' ? 0 : null);
+            break;
+          case 'attack':
+            await Anim.attack(side, side === 'me' ? 'opp' : 'me', e.damage);
+            break;
+          case 'damage':
+            await Anim.damage(side, e.amount);
+            break;
+          case 'heal':
+            await Anim.heal(side, e.amount);
+            break;
+          case 'ko':
+            await Anim.ko(side);
+            break;
+          case 'retreat':
+            await Anim.benchToActive(side);
+            break;
+          case 'cast':
+            await Anim.cast(side);
+            break;
+          case 'setVerse':
+            await Anim.setVerse(side);
+            break;
+          case 'draw':
+            await Anim.draw(side, e.count || 1);
+            break;
+          case 'lpDamage':
+            await Anim.lpDamage(side);
+            break;
+          case 'manaGain':
+            if (e.amount) await Anim.manaGain();
+            break;
+          case 'gameOver':
+            // Handled separately
+            break;
+          default:
+            console.log('Unknown event:', e.type);
+        }
+      }
+    }
+    
+    // Update UI based on whose turn it is
+    function updateTurnUI() {
+      const attackBtn = document.getElementById('attack-btn');
+      const endTurnBtn = document.getElementById('end-turn');
+      const mAttackBtn = document.getElementById('m-attack-btn');
+      const mEndTurnBtn = document.getElementById('m-end-turn');
+      
+      if (state.G.isMultiplayer) {
+        const enabled = state.G.myTurn;
+        if (attackBtn) attackBtn.disabled = !enabled;
+        if (endTurnBtn) endTurnBtn.disabled = !enabled;
+        if (mAttackBtn) mAttackBtn.disabled = !enabled;
+        if (mEndTurnBtn) mEndTurnBtn.disabled = !enabled;
+      }
+    }
+    
+    // Show turn banner
+    function showTurnBanner(text) {
+      // Reuse existing banner animation if available
+      const banner = document.createElement('div');
+      banner.className = 'turn-banner';
+      banner.textContent = text;
+      banner.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        font-size: 24px; font-weight: bold; color: var(--yellow);
+        text-shadow: 0 0 10px var(--yellow); z-index: 9999;
+        animation: fadeInOut 1.5s ease-in-out forwards;
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 1500);
+    }
+    
+    // Show game over modal
+    function showGameOver(youWon) {
+      showModal(youWon ? '🏆 VICTORY!' : '💀 DEFEAT', [{
+        name: 'Return to Menu',
+        action: () => { closeModal(); location.reload(); }
+      }]);
+    }
+    
+    // Send action to server
+    function sendAction(action) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'action', action }));
+      }
+    }
+    
+    // Send end turn to server
+    function sendEndTurn() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'endTurn' }));
       }
     }
     
@@ -3255,7 +3488,18 @@
     
     function selectPlayerDeck(deckId) {
       // Resolve random selection
-      pendingDeckId = deckId === 'random' ? getRandomDeckId() : deckId;
+      const resolvedDeckId = deckId === 'random' ? getRandomDeckId() : deckId;
+      
+      // Multiplayer: send deck to server
+      if (gameMode === 'multi') {
+        selectedDeckId = resolvedDeckId;
+        ws.send(JSON.stringify({ type: 'deckSelect', deckId: resolvedDeckId }));
+        setMpStatus('Deck selected! Waiting for opponent...');
+        return;
+      }
+      
+      // Solo: continue to AI deck selection
+      pendingDeckId = resolvedDeckId;
       $('setup').classList.add('hidden');
       showAIDeckSelector();
     }
@@ -4127,6 +4371,17 @@
     async function summonCreature(c) {
       closeModal();
       
+      // Multiplayer: send to server
+      if (state.G?.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log('Not your turn!', 'dmg');
+          return;
+        }
+        const target = !state.G.me.active ? 'active' : 'bench';
+        sendAction({ action: 'summon', cardUid: c.uid, target });
+        return;
+      }
+      
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
@@ -4197,6 +4452,16 @@
     
     async function castVerse(c) {
       closeModal();
+      
+      // Multiplayer: send to server
+      if (state.G?.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log('Not your turn!', 'dmg');
+          return;
+        }
+        sendAction({ action: 'cast', cardUid: c.uid });
+        return;
+      }
       
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
@@ -4861,6 +5126,16 @@
     async function setVerse(c) {
       closeModal();
       
+      // Multiplayer: send to server
+      if (state.G?.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log('Not your turn!', 'dmg');
+          return;
+        }
+        sendAction({ action: 'set', cardUid: c.uid });
+        return;
+      }
+      
       if (c.cost > state.G.me.mana) {
         log('Not enough mana!', 'dmg');
         return;
@@ -4879,6 +5154,16 @@
       if (state.animating) return; // Block during animations
       if (state.G.actionLock) return; // BUG-12: Prevent multiple attack clicks
       if (!state.G.me.active) return;
+      
+      // Multiplayer: send to server
+      if (state.G?.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log('Not your turn!', 'dmg');
+          return;
+        }
+        sendAction({ action: 'attack' });
+        return;
+      }
       
       if (state.G.firstTurn) {
         log("Can't attack on first turn!", 'dmg');
@@ -5289,19 +5574,33 @@
     function doRetreat() {
       if (state.animating) return; // Block during animations
       if (!state.G.me.active || !state.G.me.bench.length) return;
+      
+      // Multiplayer: check turn
+      if (state.G?.isMultiplayer && !state.G.myTurn) {
+        log('Not your turn!', 'dmg');
+        return;
+      }
+      
       if (state.G.me.active.status === 'trapped') {
         log('Cannot retreat - trapped!', 'dmg');
         return;
       }
       
-      showModal('Choose replacement', state.G.me.bench.map(c => ({
+      showModal('Choose replacement', state.G.me.bench.map((c, idx) => ({
         name: c.name,
         sub: `${c.curHp}/${c.hp} HP`,
         action: async () => {
           closeModal();
+          
+          // Multiplayer: send to server
+          if (state.G?.isMultiplayer) {
+            sendAction({ action: 'retreat', benchIdx: idx });
+            return;
+          }
+          
           const old = state.G.me.active;
-          const idx = state.G.me.bench.findIndex(x => x.uid === c.uid);
-          state.G.me.active = state.G.me.bench.splice(idx, 1)[0];
+          const swapIdx = state.G.me.bench.findIndex(x => x.uid === c.uid);
+          state.G.me.active = state.G.me.bench.splice(swapIdx, 1)[0];
           state.G.me.bench.push(old);
           state.G.hasRetreated = true; // C3: Mark that we retreated (can't attack after)
           log(`Switched to ${state.G.me.active.name}`);
@@ -5329,6 +5628,16 @@
     async function endTurn() {
       if (state.G.winner) return;
       if (state.animating) return; // Block during animations
+      
+      // Multiplayer: send to server
+      if (state.G?.isMultiplayer) {
+        if (!state.G.myTurn) {
+          log('Not your turn!', 'dmg');
+          return;
+        }
+        sendEndTurn();
+        return;
+      }
       
       // Clear END TURN highlight
       highlightEndTurn(false);
