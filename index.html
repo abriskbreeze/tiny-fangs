@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.49</title>
+  <title>TINY FANGS v0.4.50</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -76,6 +76,23 @@
       gap: 14px;
       font-size: 10px;
       color: var(--dim);
+    }
+    
+    /* Turn Indicator */
+    .turn-indicator {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .turn-indicator.your-turn {
+      background: var(--green);
+      color: var(--bg);
+    }
+    .turn-indicator.opp-turn {
+      background: var(--red);
+      color: var(--bg);
     }
     
     /* LP Bar */
@@ -2367,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.49 • Card Battler</p>
+    <p class="sub">v0.4.50 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2462,6 +2479,7 @@
     <div class="m-top">
       <div class="logo">TINY FANGS</div>
       <div class="right">
+        <span id="m-turn-indicator" class="turn-indicator"></span>
         <span>T<span id="m-turn">1</span></span>
         <span id="m-time">0:00</span>
       </div>
@@ -2536,8 +2554,9 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.49</div>
+      <div class="logo">TINY FANGS v0.4.50</div>
       <div class="right">
+        <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
       </div>
@@ -2965,17 +2984,30 @@
     
     // Update client state from server
     async function updateFromServer(serverState, events, pendingAction) {
+      // Preserve log before state update
+      const oldLog = state.G?.log || [];
+      
       // Play events for animations
       if (events && events.length > 0) {
         await playServerEvents(events);
       }
       
       // Update state
-      const oldTurn = state.G.myTurn;
+      const oldTurn = state.G?.myTurn;
       state.G = convertServerState(serverState);
       
+      // Restore log entries
+      state.G.log = oldLog;
+      
       // Check for turn change
-      if (oldTurn !== state.G.myTurn) {
+      if (oldTurn !== undefined && oldTurn !== state.G.myTurn) {
+        updateTurnUI();
+        // Show turn banner on turn change
+        showTurnBanner(state.G.myTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
+      }
+      
+      // Make sure turn indicator is updated
+      if (state.G.isMultiplayer) {
         updateTurnUI();
       }
       
@@ -3147,6 +3179,26 @@
         if (endTurnBtn) endTurnBtn.disabled = !enabled;
         if (mAttackBtn) mAttackBtn.disabled = !enabled;
         if (mEndTurnBtn) mEndTurnBtn.disabled = !enabled;
+        
+        // Update turn indicator
+        const mIndicator = document.getElementById('m-turn-indicator');
+        const dIndicator = document.getElementById('d-turn-indicator');
+        const text = enabled ? 'YOUR TURN' : 'WAITING';
+        const className = enabled ? 'turn-indicator your-turn' : 'turn-indicator opp-turn';
+        
+        if (mIndicator) {
+          mIndicator.textContent = text;
+          mIndicator.className = className;
+        }
+        if (dIndicator) {
+          dIndicator.textContent = text;
+          dIndicator.className = className;
+        }
+        
+        // Don't highlight end turn if not your turn
+        if (!enabled) {
+          highlightEndTurn(false);
+        }
       }
     }
     

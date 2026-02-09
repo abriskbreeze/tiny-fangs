@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.50] - 2026-02-09
+
+### Changed
+- MP UI fixes: turn indicator, log persistence, turn banner on change
+
+---
+
+
 ## [0.4.49] - 2026-02-09
 
 ### Changed
