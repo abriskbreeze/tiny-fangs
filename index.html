@@ -2896,20 +2896,27 @@
         myTurn: serverState.yourTurn,
         turn: serverState.turn,
         winner: serverState.winner,
+        firstTurn: serverState.turn === 1,
+        actionLock: false,
+        hasAttacked: false,
+        hasRetreated: false,
+        aiDifficulty: 0, // No AI in multiplayer
         me: {
           lp: serverState.me.lp,
           mana: serverState.me.mana,
           maxMana: serverState.me.maxMana,
           deck: [], // Hidden - just need count
           deckCount: serverState.me.deckCount,
-          hand: serverState.me.hand,
+          hand: serverState.me.hand || [],
           active: serverState.me.active,
-          bench: serverState.me.bench,
-          grave: serverState.me.grave,
+          bench: serverState.me.bench || [],
+          grave: serverState.me.grave || [],
           setVerse: serverState.me.setVerse,
           attackBonuses: serverState.me.attackBonuses || [],
           chainLightning: serverState.me.chainLightning || 0,
-          unbreakable: serverState.me.unbreakable || false
+          unbreakable: serverState.me.unbreakable || false,
+          usedManaSurge: false,
+          usedLastBreath: false
         },
         opp: {
           lp: serverState.opp.lp,
@@ -2920,11 +2927,12 @@
           handCount: serverState.opp.handCount,
           hand: [], // Hidden
           active: serverState.opp.active,
-          bench: serverState.opp.bench,
-          grave: serverState.opp.grave,
+          bench: serverState.opp.bench || [],
+          grave: serverState.opp.grave || [],
           setVerse: serverState.opp.setVerse,
           chainLightning: serverState.opp.chainLightning || 0
-        }
+        },
+        log: [] // Battle log
       };
     }
     
@@ -2932,8 +2940,9 @@
     function startMultiplayerGame(serverState, yourTurn, you) {
       // Hide setup, show game
       document.getElementById('setup').style.display = 'none';
-      const gameEl = window.innerWidth <= 600 ? 'mobile' : 'game';
-      document.getElementById(gameEl).style.display = gameEl === 'mobile' ? 'flex' : 'grid';
+      const isMobile = window.innerWidth <= 600;
+      const gameEl = isMobile ? 'mobile' : 'desktop';
+      document.getElementById(gameEl).style.display = isMobile ? 'flex' : 'grid';
       
       // Initialize state from server
       state.G = convertServerState(serverState);
@@ -5151,12 +5160,13 @@
     }
     
     async function doAttack() {
+      if (!state.G) return; // No game state
       if (state.animating) return; // Block during animations
       if (state.G.actionLock) return; // BUG-12: Prevent multiple attack clicks
       if (!state.G.me.active) return;
       
       // Multiplayer: send to server
-      if (state.G?.isMultiplayer) {
+      if (state.G.isMultiplayer) {
         if (!state.G.myTurn) {
           log('Not your turn!', 'dmg');
           return;
@@ -5626,11 +5636,12 @@
     }
     
     async function endTurn() {
+      if (!state.G) return; // No game state
       if (state.G.winner) return;
       if (state.animating) return; // Block during animations
       
       // Multiplayer: send to server
-      if (state.G?.isMultiplayer) {
+      if (state.G.isMultiplayer) {
         if (!state.G.myTurn) {
           log('Not your turn!', 'dmg');
           return;
