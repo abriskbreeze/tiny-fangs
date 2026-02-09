@@ -871,7 +871,16 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 **v0.5.4:** Fixed remaining sync issues
 - Sync `hasAttacked`/`hasRetreated` flags to prevent infinite attacks
 - Store opponent's `handCount`/`deckCount`/`graveCount` for hash comparison
-- Fixes DESYNC caused by host drawing cards that guest doesn't know about
+
+**v0.5.5:** Fixed DESYNC root cause
+- Hash now uses synced counts (`_handCount`, `_deckCount`, `_graveCount`) for ALL players
+- Properly sync deck contents (not just counts)
+- Issue was: host does guest's draw → sync includes new deck count → but guest's local deck.length was stale
+
+**v0.5.6:** Additional fixes
+- Guard doAttack() with hasAttacked/hasRetreated checks
+- Added detailed hash data logging (JSON.stringify for debugging)
+- Added animation trigger debug logs
 
 **See:** `tasks/mp-refactor-plan.md` for architecture diagrams
 

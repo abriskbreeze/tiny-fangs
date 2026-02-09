@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.7] - 2026-02-08
+
+### Changed
+- Fix: hash uses consistent host/guest keys instead of me/opp
+
+---
+
+
 ## [0.5.6] - 2026-02-08
 
 ### Changed

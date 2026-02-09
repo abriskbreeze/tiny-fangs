@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.6</title>
+  <title>TINY FANGS v0.5.7</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.6 • Card Battler</p>
+    <p class="sub">v0.5.7 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.6 • Card Battler</p>
+    <p class="sub">v0.5.7 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.6</div>
+      <div class="logo">TINY FANGS v0.5.7</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4202,35 +4202,41 @@
     function computeStateHash() {
       if (!state.G) return '';
       
-      const hashData = {
-        turn: state.G.turn,
-        me: {
-          lp: state.G.me.lp,
-          mana: state.G.me.mana,
-          maxMana: state.G.me.maxMana,
-          activeUid: state.G.me.active?.uid || null,
-          benchUids: state.G.me.bench.map(c => c.uid).sort(),
-          // Use synced counts if available (guest receives counts from host)
-          handSize: state.G.me._handCount ?? state.G.me.hand.length,
-          deckSize: state.G.me._deckCount ?? state.G.me.deck.length,
-          graveSize: state.G.me._graveCount ?? state.G.me.grave.length,
-          setVerseUid: state.G.me.setVerse?.uid || null
-        },
-        opp: {
-          lp: state.G.opp.lp,
-          mana: state.G.opp.mana,
-          maxMana: state.G.opp.maxMana,
-          activeUid: state.G.opp.active?.uid || null,
-          benchUids: state.G.opp.bench.map(c => c.uid).sort(),
-          // Use synced counts for opp (hidden info) if available
-          handSize: state.G.opp._handCount ?? state.G.opp.hand.length,
-          deckSize: state.G.opp._deckCount ?? state.G.opp.deck.length,
-          graveSize: state.G.opp._graveCount ?? state.G.opp.grave.length,
-          setVerseUid: state.G.opp.setVerse?.uid || null
-        }
+      // Build player data objects
+      const meData = {
+        lp: state.G.me.lp,
+        mana: state.G.me.mana,
+        maxMana: state.G.me.maxMana,
+        activeUid: state.G.me.active?.uid || null,
+        benchUids: state.G.me.bench.map(c => c.uid).sort(),
+        handSize: state.G.me._handCount ?? state.G.me.hand.length,
+        deckSize: state.G.me._deckCount ?? state.G.me.deck.length,
+        graveSize: state.G.me._graveCount ?? state.G.me.grave.length,
+        setVerseUid: state.G.me.setVerse?.uid || null
       };
       
-      // Debug: Log hash data for comparison (detailed for debugging)
+      const oppData = {
+        lp: state.G.opp.lp,
+        mana: state.G.opp.mana,
+        maxMana: state.G.opp.maxMana,
+        activeUid: state.G.opp.active?.uid || null,
+        benchUids: state.G.opp.bench.map(c => c.uid).sort(),
+        handSize: state.G.opp._handCount ?? state.G.opp.hand.length,
+        deckSize: state.G.opp._deckCount ?? state.G.opp.deck.length,
+        graveSize: state.G.opp._graveCount ?? state.G.opp.grave.length,
+        setVerseUid: state.G.opp.setVerse?.uid || null
+      };
+      
+      // CRITICAL: Use consistent keys (host/guest) not perspective keys (me/opp)
+      // Host's me = host, Host's opp = guest
+      // Guest's me = guest, Guest's opp = host
+      const hashData = {
+        turn: state.G.turn,
+        host: state.G.isHost ? meData : oppData,
+        guest: state.G.isHost ? oppData : meData
+      };
+      
+      // Debug: Log hash data for comparison
       console.log('[computeStateHash] Full data:', JSON.stringify(hashData));
 
       // Simple hash: JSON stringify and compute basic hash
