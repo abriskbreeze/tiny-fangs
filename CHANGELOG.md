@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.5.5] - 2026-02-08
+
+### Changed
+- Fix guest animations - render DOM before animating
+
+---
+
+
 ## [0.5.8] - 2026-02-08
 
 ### Changed

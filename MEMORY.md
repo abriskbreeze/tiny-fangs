@@ -882,6 +882,14 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 - Added detailed hash data logging (JSON.stringify for debugging)
 - Added animation trigger debug logs
 
+**v0.5.7:** Fixed DESYNC false positives
+- Hash used `me`/`opp` keys which meant different things on host vs guest
+- Now uses consistent `host`/`guest` keys so both sides compute same hash
+
+**v0.5.8:** Fixed "can't attack on subsequent turns"
+- When host ends their turn, hasAttacked wasn't reset for guest's new turn
+- Now reset hasAttacked/hasRetreated for guest before sending sync
+
 **See:** `tasks/mp-refactor-plan.md` for architecture diagrams
 
 
