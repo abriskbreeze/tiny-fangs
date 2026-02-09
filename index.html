@@ -3423,28 +3423,43 @@
      * Detect state changes and trigger animations for guest
      */
     async function detectAndAnimateChanges(oldState) {
+      console.log('[Anim] detectAndAnimateChanges:', {
+        oldMeActive: oldState.me.activeUid,
+        newMeActive: state.G.me.active?.uid,
+        oldOppActive: oldState.opp.activeUid,
+        newOppActive: state.G.opp.active?.uid,
+        oldMeLp: oldState.me.lp,
+        newMeLp: state.G.me.lp,
+        oldOppLp: oldState.opp.lp,
+        newOppLp: state.G.opp.lp
+      });
+      
       // LP changes - show LP damage animation
       if (state.G.me.lp < oldState.me.lp) {
+        console.log('[Anim] Playing LP damage (me):', oldState.me.lp - state.G.me.lp);
         await Anim.lpDamage('me', oldState.me.lp - state.G.me.lp);
       }
       if (state.G.opp.lp < oldState.opp.lp) {
+        console.log('[Anim] Playing LP damage (opp):', oldState.opp.lp - state.G.opp.lp);
         await Anim.lpDamage('opp', oldState.opp.lp - state.G.opp.lp);
       }
 
       // Active creature changed - could be summon or KO
       if (state.G.me.active?.uid !== oldState.me.activeUid) {
         if (state.G.me.active && !oldState.me.activeUid) {
-          // New creature summoned
+          console.log('[Anim] Playing summon (me)');
           await Anim.summon('me');
         } else if (!state.G.me.active && oldState.me.activeUid) {
-          // Creature KO'd
+          console.log('[Anim] Playing KO (me)');
           await Anim.ko('me');
         }
       }
       if (state.G.opp.active?.uid !== oldState.opp.activeUid) {
         if (state.G.opp.active && !oldState.opp.activeUid) {
+          console.log('[Anim] Playing summon (opp)');
           await Anim.summon('opp');
         } else if (!state.G.opp.active && oldState.opp.activeUid) {
+          console.log('[Anim] Playing KO (opp)');
           await Anim.ko('opp');
         }
       }
