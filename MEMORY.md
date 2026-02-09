@@ -925,3 +925,37 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 
 **Still investigating:** User reports same hash mismatches after v0.4.60 - may need to verify the new bundle is deployed and cached properly. New bundle should be `index-CpL7ksj7.js`.
 
+
+### 2026-02-09 — Server-Based MP: Feature Complete (v0.4.48)
+
+**Pivoted from P2P to Server-Based MP** — NAT traversal issues, host disconnect problems, animation sync issues all solved by authoritative server.
+
+**Server Implementation Complete:**
+- Node.js + `ws` library (no framework bloat)
+- Cloudflare Tunnel for public access
+- Room management, deck selection, turn tracking
+
+**GameEngine Feature Complete (via 3 parallel subagents):**
+1. **All 10 Cast Verses:** ignite, banish, soulSiphon, secondWind, shellArmor, regenerate, fortify, unbreakable, bloodMoon, callOfTheWild
+2. **All 10 Set Verse Triggers:** phantomWall, spikeShield, brace, swarmShield, soulTrap, vengeance, graveRise, denMother, manaDrain, lastBreath
+3. **27/28 Creature Abilities:** All except skitter (needs optional action UI)
+
+**Selection UI for Targeting Cards:**
+- Selection happens in `castVerse()` BEFORE `dispatchAction()`
+- Cards: ignite, banish, soulSiphon (anyCreature), graveEcho (graveCreature), sacrifice (ownCreature)
+- MP sends: `targetUid`, `graveUid`, or `sacrificeUid` to server
+- Cancel returns card without spending mana
+
+**Server Files:** `server/index.js`, `server/GameEngine.js`, `server/cards.js`, `server/utils.js`
+
+**Current State:**
+- **Version:** v0.4.48
+- **Tunnel:** `wss://attract-travel-puzzles-karen.trycloudflare.com`
+- **Server session:** `tide-atlas`
+- **Tunnel session:** `delta-glade`
+- **Tests:** 262 passing
+
+**TODO:**
+- Skitter ability (reactive swap after damage)
+- Full MP playtesting
+

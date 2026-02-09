@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.49] - 2026-02-09
+
+### Changed
+- Skitter Scurry ability - optional swap after taking damage
+
+---
+
+
 ## [0.4.48] - 2026-02-09
 
 ### Changed

@@ -653,6 +653,22 @@ export function executeAction(state, playerIdx, action) {
           events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1, source: 'Fortify' });
         }
         
+        // === SKITTER: Optional swap after taking damage (if survived) ===
+        if (!ko && defender.id === 'skitter' && opponent.bench.length > 0) {
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Scurry' });
+          // Return with pendingAction - client will prompt for swap
+          return { 
+            state, 
+            events, 
+            pendingAction: {
+              type: 'skitterSwap',
+              side: oppSide,
+              creature: defender.name,
+              benchOptions: opponent.bench.map((c, idx) => ({ uid: c.uid, name: c.name, idx }))
+            }
+          };
+        }
+        
         // === ON DEATH TRIGGERS ===
         
         if (ko) {
@@ -1245,6 +1261,39 @@ export function executeAction(state, playerIdx, action) {
       
       events.push({ type: 'retreat', side, from: fromCreature.name, to: toCreature.name });
       state.hasRetreated = true;
+      break;
+    }
+    
+    case 'skitterSwap': {
+      // Skitter's Scurry ability - swap with bench creature after taking damage
+      // This is called by the OPPONENT (the one who owns skitter)
+      if (!player.active || player.active.id !== 'skitter') {
+        return { state, events, error: "No skitter in active slot" };
+      }
+      
+      if (player.bench.length === 0) {
+        return { state, events, error: "No bench creatures to swap with" };
+      }
+      
+      const benchIdx = action.benchIdx;
+      if (benchIdx === undefined || benchIdx < 0 || benchIdx >= player.bench.length) {
+        return { state, events, error: "Invalid bench index" };
+      }
+      
+      // Perform the swap
+      const skitter = player.active;
+      const benchCreature = player.bench[benchIdx];
+      
+      player.active = benchCreature;
+      player.bench[benchIdx] = skitter;
+      
+      events.push({ type: 'skitterSwap', side, from: skitter.name, to: benchCreature.name });
+      break;
+    }
+    
+    case 'skitterDecline': {
+      // Player declined to use Skitter's ability - just acknowledge
+      events.push({ type: 'skitterDecline', side });
       break;
     }
     

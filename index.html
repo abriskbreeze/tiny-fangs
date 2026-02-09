@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.48</title>
+  <title>TINY FANGS v0.4.49</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2367,7 +2367,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.48 • Card Battler</p>
+    <p class="sub">v0.4.49 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2536,7 +2536,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.48</div>
+      <div class="logo">TINY FANGS v0.4.49</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -2782,7 +2782,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     // Server URL - change for production
-    const WS_SERVER = 'wss://attract-travel-puzzles-karen.trycloudflare.com';
+    const WS_SERVER = 'wss://punk-vocal-remote-certificate.trycloudflare.com';
     
     let ws = null;
     let gameMode = 'solo'; // 'solo' or 'multi'
@@ -2858,7 +2858,7 @@
           
         case 'stateUpdate':
           console.log('📊 State update', msg.events);
-          updateFromServer(msg.state, msg.events);
+          updateFromServer(msg.state, msg.events, msg.pendingAction);
           break;
           
         case 'turnChange':
@@ -2964,7 +2964,7 @@
     }
     
     // Update client state from server
-    async function updateFromServer(serverState, events) {
+    async function updateFromServer(serverState, events, pendingAction) {
       // Play events for animations
       if (events && events.length > 0) {
         await playServerEvents(events);
@@ -2986,6 +2986,41 @@
       }
       
       render();
+      
+      // Handle pending action (e.g., Skitter swap prompt)
+      if (pendingAction) {
+        await handlePendingAction(pendingAction);
+      }
+    }
+    
+    // Handle pending actions that require player input
+    async function handlePendingAction(pending) {
+      if (pending.type === 'skitterSwap' && pending.side === 'me') {
+        // Skitter took damage - prompt for swap
+        const benchOptions = pending.benchOptions || [];
+        if (benchOptions.length === 0) return;
+        
+        const choice = await new Promise(resolve => {
+          showModal(`${pending.creature}'s Scurry - Swap with bench?`, [
+            ...benchOptions.map(opt => ({
+              name: opt.name,
+              sub: `Swap ${pending.creature} to bench`,
+              action: () => { closeModal(); resolve(opt.idx); }
+            })),
+            {
+              name: '← Decline',
+              sub: 'Stay in active slot',
+              action: () => { closeModal(); resolve(null); }
+            }
+          ]);
+        });
+        
+        if (choice !== null) {
+          sendAction({ action: 'skitterSwap', benchIdx: choice });
+        } else {
+          sendAction({ action: 'skitterDecline' });
+        }
+      }
     }
     
     // Play animation events from server
@@ -3040,6 +3075,58 @@
             break;
           case 'gameOver':
             // Handled separately
+            break;
+          case 'skitterSwap':
+            // Skitter swapped with bench creature
+            await Anim.benchToActive(side);
+            log(`${e.from} scurried to bench, ${e.to} is now active!`);
+            break;
+          case 'skitterDecline':
+            // Player declined Skitter swap - no animation needed
+            break;
+          case 'abilityTrigger':
+            // Show ability trigger log
+            log(`${e.creature}'s ${e.ability} triggered!`);
+            break;
+          case 'banish':
+            // Creature banished
+            await Anim.ko(side);
+            log(`${e.creature} was banished!`);
+            break;
+          case 'graveReturn':
+            // Creature returned from grave
+            log(`${e.creature} returned to hand!`);
+            break;
+          case 'sacrifice':
+            // Creature sacrificed
+            await Anim.ko(side);
+            log(`${e.creature} was sacrificed!`);
+            break;
+          case 'triggerVerse':
+            // Set verse triggered
+            log(`${e.verse} triggered!`);
+            break;
+          case 'damageReduced':
+            // Damage reduced by ability
+            log(`${e.source} reduced damage by ${e.amount}!`);
+            break;
+          case 'survival':
+            // Creature survived lethal
+            log(`${e.creature} survived at ${e.hp} HP!`);
+            break;
+          case 'setFlag':
+            // Flag set (no animation)
+            break;
+          case 'clearStatus':
+            // Status cleared (no animation)
+            break;
+          case 'atkBonus':
+            // ATK bonus applied
+            log(`+${e.amount} ATK from ${e.source}!`);
+            break;
+          case 'discard':
+            // Card discarded
+            log(`${e.card} discarded!`);
             break;
           default:
             console.log('Unknown event:', e.type);

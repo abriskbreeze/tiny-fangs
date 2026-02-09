@@ -96,15 +96,29 @@ class Room {
   }
 
   // Send personalized state to each player
-  broadcastState(events = []) {
+  broadcastState(events = [], pendingAction = null) {
     this.players.forEach(player => {
       if (player.ws.readyState === 1) {
         const state = getStateForPlayer(this.gameState, player.playerIdx);
-        player.ws.send(JSON.stringify({
+        const msg = {
           type: 'stateUpdate',
           state,
           events: this.mapEventsForPlayer(events, player.playerIdx)
-        }));
+        };
+        
+        // Add pendingAction if it's for this player
+        if (pendingAction) {
+          const targetSide = pendingAction.side;
+          const playerSide = player.playerIdx === 0 ? 'p1' : 'p2';
+          if (targetSide === playerSide) {
+            msg.pendingAction = {
+              ...pendingAction,
+              side: 'me' // Remap to player's perspective
+            };
+          }
+        }
+        
+        player.ws.send(JSON.stringify(msg));
       }
     });
   }
@@ -282,8 +296,8 @@ function handleAction(ws, message) {
   // Update game state
   room.gameState = result.state;
 
-  // Broadcast state + events to both players
-  room.broadcastState(result.events);
+  // Broadcast state + events to both players (include pendingAction if any)
+  room.broadcastState(result.events, result.pendingAction);
 
   // Check for game over
   if (room.gameState.winner !== null) {
