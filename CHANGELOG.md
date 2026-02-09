@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.54] - 2026-02-09
+
+### Changed
+- Fix MP state sync - send hasAttacked/hasRetreated/firstTurn from server
+
+---
+
+
 ## [0.4.53] - 2026-02-09
 
 ### Changed

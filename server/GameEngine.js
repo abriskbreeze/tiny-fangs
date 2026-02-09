@@ -1474,6 +1474,9 @@ export function getStateForPlayer(state, playerIdx) {
     currentPlayer: state.currentPlayer,
     yourTurn: state.currentPlayer === playerIdx + 1,
     winner: state.winner,
+    firstTurn: state.firstTurn,
+    hasAttacked: state.hasAttacked,
+    hasRetreated: state.hasRetreated,
     me: {
       lp: player.lp,
       mana: player.mana,
