@@ -4215,8 +4215,8 @@
         }
       };
       
-      // Debug: Log hash data for comparison
-      console.log('[computeStateHash] Data:', hashData);
+      // Debug: Log hash data for comparison (detailed for debugging)
+      console.log('[computeStateHash] Full data:', JSON.stringify(hashData));
 
       // Simple hash: JSON stringify and compute basic hash
       const jsonStr = JSON.stringify(hashData);
