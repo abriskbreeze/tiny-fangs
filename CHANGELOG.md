@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.52] - 2026-02-08
+
+### Changed
+- Use class selector for overlay removal - fix stuck waiting screen
+
+---
+
+
 ## [0.4.51] - 2026-02-08
 
 ### Changed
