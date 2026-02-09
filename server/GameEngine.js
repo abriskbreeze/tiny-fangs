@@ -117,6 +117,20 @@ export function applyDamage(creature, amount) {
 }
 
 /**
+ * Auto-swap bench creature to active if active is empty
+ * @param {object} player - Player object
+ * @param {string} side - 'p1' or 'p2'
+ * @param {array} events - Events array to push to
+ */
+function autoSwapBenchToActive(player, side, events) {
+  if (!player.active && player.bench.length > 0) {
+    const swapped = player.bench.shift();
+    player.active = swapped;
+    events.push({ type: 'benchToActive', side, creature: swapped.name });
+  }
+}
+
+/**
  * Get effective attack value for a creature
  * @param {object} creature - Attacking creature
  * @param {object} owner - Owner player
@@ -677,6 +691,9 @@ export function executeAction(state, playerIdx, action) {
           opponent.grave.push(defender);
           opponent.active = null;
           
+          // Auto-swap bench to active for defender
+          autoSwapBenchToActive(opponent, oppSide, events);
+          
           // CHECK: onKO trigger (defender's owner)
           const onKOTrigger = checkTriggers('onKO', { koedCreature, attacker }, player, opponent, side, oppSide);
           events.push(...onKOTrigger.events);
@@ -745,6 +762,9 @@ export function executeAction(state, playerIdx, action) {
             player.grave.push(attacker);
             player.active = null;
             
+            // Auto-swap bench to active for attacker
+            autoSwapBenchToActive(player, side, events);
+            
             // CHECK: onAllyKO trigger (for player's own triggers)
             const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
             events.push(...onAllyKOTrigger.events);
@@ -763,6 +783,9 @@ export function executeAction(state, playerIdx, action) {
             player.grave.push(attacker);
             player.active = null;
             
+            // Auto-swap bench to active for attacker
+            autoSwapBenchToActive(player, side, events);
+            
             // CHECK: onAllyKO trigger
             const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
             events.push(...onAllyKOTrigger.events);
@@ -780,6 +803,9 @@ export function executeAction(state, playerIdx, action) {
             const koedCreature = attacker;
             player.grave.push(attacker);
             player.active = null;
+            
+            // Auto-swap bench to active for attacker
+            autoSwapBenchToActive(player, side, events);
             
             // CHECK: onAllyKO trigger
             const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
@@ -832,6 +858,9 @@ export function executeAction(state, playerIdx, action) {
             player.grave.push(attacker);
             player.active = null;
             
+            // Auto-swap bench to active for attacker
+            autoSwapBenchToActive(player, side, events);
+            
             // CHECK: onAllyKO trigger
             const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
             events.push(...onAllyKOTrigger.events);
@@ -857,6 +886,9 @@ export function executeAction(state, playerIdx, action) {
             const koedCreature = attacker;
             player.grave.push(attacker);
             player.active = null;
+            
+            // Auto-swap bench to active for attacker
+            autoSwapBenchToActive(player, side, events);
             
             // CHECK: onAllyKO trigger
             const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.50</title>
+  <title>TINY FANGS v0.4.51</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.50 • Card Battler</p>
+    <p class="sub">v0.4.51 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.50</div>
+      <div class="logo">TINY FANGS v0.4.51</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -2986,22 +2986,24 @@
     async function updateFromServer(serverState, events, pendingAction) {
       // Preserve log before state update
       const oldLog = state.G?.log || [];
-      
-      // Play events for animations
-      if (events && events.length > 0) {
-        await playServerEvents(events);
-      }
-      
-      // Update state
       const oldTurn = state.G?.myTurn;
+      
+      // Update state FIRST so DOM has new data
       state.G = convertServerState(serverState);
       
       // Restore log entries
       state.G.log = oldLog;
       
+      // Render BEFORE animations so elements exist
+      render();
+      
+      // Play events for animations (now elements exist in DOM)
+      if (events && events.length > 0) {
+        await playServerEvents(events);
+      }
+      
       // Check for turn change
       if (oldTurn !== undefined && oldTurn !== state.G.myTurn) {
-        updateTurnUI();
         // Show turn banner on turn change
         showTurnBanner(state.G.myTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN');
       }
@@ -3017,6 +3019,7 @@
         showGameOver(youWon);
       }
       
+      // Re-render after animations complete
       render();
       
       // Handle pending action (e.g., Skitter swap prompt)
@@ -3083,6 +3086,11 @@
           case 'retreat':
             await Anim.benchToActive(side);
             break;
+          case 'benchToActive':
+            // Auto-swap from bench after KO
+            await Anim.benchToActive(side);
+            log(`${e.creature} moved to active!`);
+            break;
           case 'cast':
             await Anim.castVerse();
             break;
@@ -3135,8 +3143,9 @@
             log(`${e.creature} was sacrificed!`);
             break;
           case 'triggerVerse':
-            // Set verse triggered
+            // Set verse triggered - show simple notification
             log(`${e.verse} triggered!`);
+            await Anim.versePopup(e.verse);
             break;
           case 'damageReduced':
             // Damage reduced by ability

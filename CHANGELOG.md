@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.51] - 2026-02-09
+
+### Changed
+- MP fixes: render before animations, auto-swap after KO, trigger popups
+
+---
+
+
 ## [0.4.50] - 2026-02-09
 
 ### Changed
