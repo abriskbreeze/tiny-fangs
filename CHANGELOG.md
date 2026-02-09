@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.46] - 2026-02-08
+
+### Changed
+- Fix multiplayer deck select hang - add startGameMultiplayer() and GAME_START message
+
+---
+
+
 ## [0.4.45] - 2026-02-08
 
 ### Changed
