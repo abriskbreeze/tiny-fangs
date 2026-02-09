@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.52</title>
+  <title>TINY FANGS v0.4.53</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2691,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.52 • Card Battler</p>
+    <p class="sub">v0.4.53 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2769,7 +2769,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.52 • Card Battler</p>
+    <p class="sub">v0.4.53 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2891,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.52</div>
+      <div class="logo">TINY FANGS v0.4.53</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3295,13 +3295,15 @@
       
       // Apply state updates
       state.G.turn = syncState.turn;
-      state.G.myTurn = syncState.myTurn;
+      // IMPORTANT: Flip myTurn for guest (host's turn = not guest's turn)
+      state.G.myTurn = !syncState.myTurn;
       state.G.winner = syncState.winner;
       state.G.firstTurn = syncState.firstTurn;
       
-      // Merge state carefully - preserve local hidden info
-      mergePlayerState(state.G.me, syncState.me, true);
-      mergePlayerState(state.G.opp, syncState.opp, false);
+      // IMPORTANT: Swap me/opp for guest perspective
+      // Host's "me" is guest's "opp", and host's "opp" is guest's "me"
+      mergePlayerState(state.G.me, syncState.opp, true);   // Guest's me = host's opp
+      mergePlayerState(state.G.opp, syncState.me, false);  // Guest's opp = host's me
       
       // Update log
       if (syncState.log) {
@@ -4824,7 +4826,7 @@
       
       // Determine opponent deck and shuffle orders
       let myDeckUidOrder = null;
-      let oppDeckUidOrder = null;
+      let localOppDeckUidOrder = null;
       let opponentDeckId = null;
       
       if (selectedMode === 'multiplayer') {
@@ -4833,11 +4835,12 @@
         if (multiplayer.isHost) {
           // Host uses their own shuffles
           myDeckUidOrder = window.mpMyDeckUids;
-          oppDeckUidOrder = window.mpOppDeckUids;
+          localOppDeckUidOrder = window.mpOppDeckUids;
         } else {
-          // Guest uses host's shuffle for their deck
-          myDeckUidOrder = oppDeckUidOrder; // Received from host
-          // Opponent's (host's) deck will be created with host's shuffle (hidden from us)
+          // Guest uses host's shuffle for their deck (stored in module-level oppDeckUidOrder)
+          myDeckUidOrder = oppDeckUidOrder; // Module-level variable from handleOpponentReady
+          // Opponent's (host's) deck will be created without shuffle (we don't know it)
+          localOppDeckUidOrder = null;
         }
       } else {
         // AI mode
@@ -4846,7 +4849,7 @@
       
       state.G = {
         me: mkPlayer(deckId, myDeckUidOrder),
-        opp: mkPlayer(opponentDeckId, oppDeckUidOrder),
+        opp: mkPlayer(opponentDeckId, localOppDeckUidOrder),
         turn: 1,
         phase: 'main',
         log: [],

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.53] - 2026-02-08
+
+### Changed
+- Fix perspective swap - guest now correctly sees themselves as 'me'
+
+---
+
+
 ## [0.4.52] - 2026-02-08
 
 ### Changed
