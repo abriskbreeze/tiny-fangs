@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.58] - 2026-02-08
+
+### Changed
+- Fix hash to use host/guest keys (perspective-neutral), expose clearSavedGameState globally
+
+---
+
+
 ## [0.4.57] - 2026-02-08
 
 ### Changed

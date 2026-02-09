@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.57</title>
+  <title>TINY FANGS v0.4.58</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.57 • Card Battler</p>
+    <p class="sub">v0.4.58 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.57 • Card Battler</p>
+    <p class="sub">v0.4.58 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.57</div>
+      <div class="logo">TINY FANGS v0.4.58</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -4072,29 +4072,36 @@
     function computeStateHash() {
       if (!state.G) return '';
       
+      // Use consistent keys (host/guest) instead of me/opp to avoid perspective mismatch
+      // Host: me=host, opp=guest
+      // Guest: me=guest, opp=host (swapped)
+      // So we need to use isHost to determine which is which
+      const hostPlayer = state.G.isHost ? state.G.me : state.G.opp;
+      const guestPlayer = state.G.isHost ? state.G.opp : state.G.me;
+      
       const hashData = {
         turn: state.G.turn,
-        me: {
-          lp: state.G.me.lp,
-          mana: state.G.me.mana,
-          maxMana: state.G.me.maxMana,
-          activeUid: state.G.me.active?.uid || null,
-          benchUids: state.G.me.bench.map(c => c.uid).sort(),
-          handSize: state.G.me.hand.length,
-          deckSize: state.G.me.deck.length,
-          graveSize: state.G.me.grave.length,
-          setVerseUid: state.G.me.setVerse?.uid || null
+        host: {
+          lp: hostPlayer.lp,
+          mana: hostPlayer.mana,
+          maxMana: hostPlayer.maxMana,
+          activeUid: hostPlayer.active?.uid || null,
+          benchUids: hostPlayer.bench.map(c => c.uid).sort(),
+          handSize: hostPlayer.hand.length,
+          deckSize: hostPlayer.deck.length,
+          graveSize: hostPlayer.grave.length,
+          setVerseUid: hostPlayer.setVerse?.uid || null
         },
-        opp: {
-          lp: state.G.opp.lp,
-          mana: state.G.opp.mana,
-          maxMana: state.G.opp.maxMana,
-          activeUid: state.G.opp.active?.uid || null,
-          benchUids: state.G.opp.bench.map(c => c.uid).sort(),
-          handSize: state.G.opp.hand.length,
-          deckSize: state.G.opp.deck.length,
-          graveSize: state.G.opp.grave.length,
-          setVerseUid: state.G.opp.setVerse?.uid || null
+        guest: {
+          lp: guestPlayer.lp,
+          mana: guestPlayer.mana,
+          maxMana: guestPlayer.maxMana,
+          activeUid: guestPlayer.active?.uid || null,
+          benchUids: guestPlayer.bench.map(c => c.uid).sort(),
+          handSize: guestPlayer.hand.length,
+          deckSize: guestPlayer.deck.length,
+          graveSize: guestPlayer.grave.length,
+          setVerseUid: guestPlayer.setVerse?.uid || null
         }
       };
       
@@ -5141,6 +5148,8 @@
     window.selectMode = selectMode;
     window.showCreateRoom = showCreateRoom;
     window.showJoinRoom = showJoinRoom;
+    window.clearSavedGameState = clearSavedGameState;
+    window.showModeSelect = showModeSelect;
     window.joinRoom = joinRoom;
     window.copyRoomCode = copyRoomCode;
     window.leaveGame = leaveGame;
