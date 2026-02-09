@@ -3,7 +3,7 @@
 All notable changes to Tiny Fangs.
 
 
-## [0.5.5] - 2026-02-08
+## [0.5.9] - 2026-02-08
 
 ### Changed
 - Fix guest animations - render DOM before animating
@@ -35,7 +35,7 @@ All notable changes to Tiny Fangs.
 ---
 
 
-## [0.5.5] - 2026-02-08
+## [0.5.9] - 2026-02-08
 
 ### Changed
 - Fix: use synced counts for ALL players in hash, sync deck contents
