@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.5.10</title>
+  <title>TINY FANGS v0.5.11</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2711,7 +2711,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.10 • Card Battler</p>
+    <p class="sub">v0.5.11 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2790,7 +2790,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.5.10 • Card Battler</p>
+    <p class="sub">v0.5.11 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2912,7 +2912,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.5.10</div>
+      <div class="logo">TINY FANGS v0.5.11</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3356,13 +3356,15 @@
           lp: state.G.me.lp,
           activeUid: state.G.me.active?.uid || null,
           activeHp: state.G.me.active?.curHp || 0,
-          benchUids: state.G.me.bench.map(c => c.uid)
+          benchUids: state.G.me.bench.map(c => c.uid),
+          setVerseUid: state.G.me.setVerse?.uid || null
         },
         opp: {
           lp: state.G.opp.lp,
           activeUid: state.G.opp.active?.uid || null,
           activeHp: state.G.opp.active?.curHp || 0,
-          benchUids: state.G.opp.bench.map(c => c.uid)
+          benchUids: state.G.opp.bench.map(c => c.uid),
+          setVerseUid: state.G.opp.setVerse?.uid || null
         }
       };
 
@@ -3508,6 +3510,20 @@
             const oldIdx = old.benchUids.indexOf(oldBenchUid);
             console.log(`[Anim] Playing bench KO (${side}) at index ${oldIdx}`);
             await Anim.benchKo(side, oldIdx);
+          }
+        }
+        
+        // === SET VERSE CHANGES ===
+        const currentSetUid = current.setVerse?.uid || null;
+        if (old.setVerseUid !== currentSetUid) {
+          if (old.setVerseUid && !currentSetUid) {
+            // Set verse was triggered/used (disappeared)
+            console.log(`[Anim] Set verse triggered (${side})`);
+            // Animation already plays via showTriggerReveal on host, but we can add effect here
+          } else if (!old.setVerseUid && currentSetUid) {
+            // New set verse placed
+            console.log(`[Anim] Set verse placed (${side})`);
+            Anim.setVerse(side);
           }
         }
       }
@@ -6538,6 +6554,26 @@
         }
       }
 
+      // Pre-check for Second Wind - need damaged active creature
+      if (c.id === 'secondWind') {
+        if (!state.G.me.active) {
+          showModal('Second Wind', [{
+            name: 'No active creature!',
+            sub: 'Nothing to heal...',
+            action: () => closeModal()
+          }]);
+          return;
+        }
+        if (state.G.me.active.curHp >= state.G.me.active.hp) {
+          showModal('Second Wind', [{
+            name: 'Already at full HP!',
+            sub: `${state.G.me.active.name} is healthy`,
+            action: () => closeModal()
+          }]);
+          return;
+        }
+      }
+
       // Pre-check for anyCreature selection - need creatures on field
       if (c.selection?.type === 'anyCreature') {
         const hasCreatures = state.G.me.active || state.G.me.bench.length > 0 ||
@@ -6852,6 +6888,9 @@
           // Selection already done before mana spend
           if (selectionResult) {
             state.G.me.grave = state.G.me.grave.filter(x => x.uid !== selectionResult.uid);
+            // FIX: Reset HP when returning to hand (creature was KO'd with 0 HP)
+            selectionResult.curHp = selectionResult.hp;
+            selectionResult.status = null; // Clear poison/etc
             state.G.me.hand.push(selectionResult);
             log(`Returned ${selectionResult.name} to hand`);
             render();
@@ -8326,6 +8365,9 @@
           if (graveCr.length) {
             const pick = graveCr[0];
             ai.grave = ai.grave.filter(c => c.uid !== pick.uid);
+            // FIX: Reset HP when returning to hand
+            pick.curHp = pick.hp;
+            pick.status = null;
             ai.hand.push(pick);
             log(`Rival returned ${pick.name}`);
           }
@@ -9064,12 +9106,15 @@
                 log(`Rival drew ${drawCount}`, 'mana');
                 break;
               case 'graveEcho':
-                const graveCr = ai.grave.filter(x => x.cardType === 'creature');
-                if (graveCr.length) {
-                  const pick = graveCr[0];
-                  ai.grave = ai.grave.filter(x => x.uid !== pick.uid);
-                  ai.hand.push(pick);
-                  log(`Rival returned ${pick.name}`);
+                const graveCreatures = ai.grave.filter(x => x.cardType === 'creature');
+                if (graveCreatures.length) {
+                  const picked = graveCreatures[0];
+                  ai.grave = ai.grave.filter(x => x.uid !== picked.uid);
+                  // FIX: Reset HP when returning to hand
+                  picked.curHp = picked.hp;
+                  picked.status = null;
+                  ai.hand.push(picked);
+                  log(`Rival returned ${picked.name}`);
                 }
                 break;
               case 'callOfTheWild':
