@@ -813,5 +813,43 @@ const guestPlayer = state.G.isHost ? state.G.opp : state.G.me;
 3. Hash/comparison functions must use consistent keys, not perspective-based keys
 
 **Tests:** 262 passing
-**Version:** v0.4.59
+
+
+### 2026-02-08 Night — MP Deck UID Mismatch (v0.4.60)
+
+**THE CRITICAL BUG:**
+Guest's deck had completely different UIDs than what host expected!
+
+**Root Cause:**
+```
+Host: mkDeck(oppDeckId) → cards get UIDs [abc, def, ...]
+Host: sends uidOrder: [abc, def, ...] to guest
+Guest: mkDeck(deckId, uidOrder) → creates NEW cards with NEW UIDs [xyz, uvw, ...]
+Guest: shuffleByUidOrder tries to find abc, def → NOTHING MATCHES!
+```
+
+The `mkCreature` and `mkVerse` functions call `uid()` which generates a NEW unique ID each time. So the guest's cards had completely different UIDs.
+
+**Why this broke everything:**
+- Guest summons card with UID `xyz`
+- Host validates by looking for `xyz` in `oppPlayer.hand` → NOT FOUND
+- Host sends "Card not in hand" error
+- Host's `oppPlayer.active` is null (from host's perspective)
+- Guest tries to attack, host says "No active creature"
+
+**Fix:**
+Host now sends `deckCards: [{uid, cardId}, ...]` so guest can create cards with the EXACT same UIDs:
+```javascript
+// Host sends:
+{ uid: 'abc123', cardId: 'whisper' },
+{ uid: 'def456', cardId: 'gloom' }, ...
+
+// Guest creates cards with those exact UIDs
+```
+
+**Lesson Learned:**
+When syncing deck state across network, you must sync BOTH the card identity (cardId) AND the unique instance ID (uid). Just sending one or the other isn't enough.
+
+**Tests:** 262 passing
+**Version:** v0.4.60
 
