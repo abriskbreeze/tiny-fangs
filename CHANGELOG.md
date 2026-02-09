@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.50] - 2026-02-08
+
+### Changed
+- Fix GAME_START flow, add logging, improve waiting UI
+
+---
+
+
 ## [0.4.49] - 2026-02-08
 
 ### Changed

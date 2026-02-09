@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.49</title>
+  <title>TINY FANGS v0.4.50</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2691,7 +2691,7 @@
   <!-- MODE SELECT (shows before deck select) -->
   <div id="mode-select" class="mode-select">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.49 • Card Battler</p>
+    <p class="sub">v0.4.50 • Card Battler</p>
     <h2>Choose Game Mode</h2>
     <div class="mode-buttons">
       <button class="mode-btn" onclick="selectMode('ai')">
@@ -2769,7 +2769,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup hidden">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.49 • Card Battler</p>
+    <p class="sub">v0.4.50 • Card Battler</p>
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
       <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
@@ -2891,7 +2891,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.49</div>
+      <div class="logo">TINY FANGS v0.4.50</div>
       <div class="right">
         <span>Turn <span id="d-turn">1</span></span>
         <span id="d-time">0:00</span>
@@ -3657,7 +3657,7 @@
           // Guest: Received shuffle from host, wait for coin flip
           closeModal();
           // Show waiting screen while host picks heads/tails
-          showModal('Waiting for coin flip...', [], { noCancel: true });
+          showModal('Host is calling the coin flip...', [], { noCancel: true });
         }
       }
     }
@@ -3717,6 +3717,11 @@
       // Note: state.G doesn't exist yet, use selectedMode and multiplayer.isHost
       if (selectedMode !== 'multiplayer' || multiplayer.isHost) return;
       
+      console.log('[MP] Guest received COIN_FLIP:', msg);
+      
+      // Close any waiting modals
+      closeModal();
+      
       // Guest receives host's coin flip result
       const result = msg.result; // 'heads' or 'tails'
       const hostWon = msg.hostWon;
@@ -3733,12 +3738,12 @@
           { name: 'Go Second', sub: 'You can attack on turn 1', action: () => startGameMultiplayer(false) }
         ], { noCancel: true });
       } else {
-        // Host won - they choose, guest waits for READY message with firstPlayer info
-        const msg = document.createElement('div');
-        msg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;';
-        msg.innerHTML = `<div style="margin-bottom:8px;">${result.toUpperCase()}! Opponent won</div><div style="color:var(--text);font-size:14px;">Waiting for opponent to choose...</div>`;
-        document.body.appendChild(msg);
-        // Don't remove - will be removed when GAME_START message arrives
+        // Host won - they choose, guest waits for GAME_START message
+        const waitOverlay = document.createElement('div');
+        waitOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;';
+        waitOverlay.innerHTML = `<div style="margin-bottom:8px;">${result.toUpperCase()}! Opponent won</div><div style="color:var(--text);font-size:14px;">Waiting for opponent to choose...</div>`;
+        document.body.appendChild(waitOverlay);
+        // handleGameStart will remove this overlay and start game
       }
     }
     
@@ -3752,10 +3757,15 @@
       closeModal();
       
       // Send GAME_START to peer with turn info
-      multiplayer.send({
+      console.log('[MP] Sending GAME_START:', { senderGoesFirst: iGoFirst });
+      const sent = multiplayer.send({
         type: 'GAME_START',
         senderGoesFirst: iGoFirst
       });
+      
+      if (!sent) {
+        console.error('[MP] Failed to send GAME_START!');
+      }
       
       // Start the game locally
       await startGame(pendingDeckId, iGoFirst);
@@ -3765,12 +3775,15 @@
      * Handle GAME_START message (peer chose who goes first)
      */
     async function handleGameStart(msg) {
+      console.log('[MP] Received GAME_START:', msg);
+      
       // Remove any waiting overlays
       document.querySelectorAll('div[style*="z-index:9999"]').forEach(el => el.remove());
       closeModal();
       
       // Sender goes first means WE go second (and vice versa)
       const iGoFirst = !msg.senderGoesFirst;
+      console.log('[MP] Starting game, I go first:', iGoFirst);
       
       // Start the game locally
       await startGame(pendingDeckId, iGoFirst);
