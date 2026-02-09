@@ -7543,6 +7543,15 @@
     }
     
     async function endTurn(isOpponentTurn = false) {
+      // Debug: Log who called endTurn and why
+      console.log('[MP DEBUG] endTurn called:', {
+        isOpponentTurn,
+        myTurn: state.G?.myTurn,
+        turn: state.G?.turn,
+        hasActive: !!state.G?.me?.active,
+        stack: new Error().stack?.split('\n').slice(1, 4).join(' <- ')
+      });
+      
       if (state.G.winner) return;
       if (state.animating) return; // Block during animations
       
