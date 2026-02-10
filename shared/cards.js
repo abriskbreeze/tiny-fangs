@@ -368,9 +368,9 @@ export const VERSES = {
   manaDrain: { id:'manaDrain', name:'Mana Drain', type:'set', cost:1,
     art: ' ○→\n[  ]\n ○→',
     flavor: 'Your words mean nothing here.',
-    trigger:'When opponent plays Cast Verse', text:'Negate the next spell your opponent casts.',
+    trigger:'When opponent plays Cast Verse', text:'Negate spell. Gain 2 mana.',
     triggerDef: { event: 'onCast', condition: { caster: 'opp' } },
-    effects: [{ type: 'negateSpell' }] },
+    effects: [{ type: 'negateSpell' }, { type: 'gainMana', amount: 2 }] },
   lastBreath: { id:'lastBreath', name:'Last Breath', type:'set', cost:1,
     art: ' ~♥~\n<  >\n ~♥~',
     flavor: 'Not yet. Not today.',
@@ -425,9 +425,9 @@ export const VERSES = {
   swarmShield: { id:'swarmShield', name:'Swarm Shield', type:'set', cost:1,
     art: '◄▓▓▓►\n SHIELD\n◄▓▓▓►',
     flavor: 'The swarm protects its own.',
-    trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.',
+    trigger:'When your active would take damage', text:'Reduce damage by 10 per bench creature.',
     triggerDef: { event: 'beforeDamage', condition: { target: 'me.active', hasBench: true }, optional: true },
-    effects: [{ type: 'reduceDamage', amount: 15 }] },
+    effects: [{ type: 'reduceDamage', perBench: 10 }] },
   
   // Shell Pack verses
   shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,

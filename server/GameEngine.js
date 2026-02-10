@@ -15,6 +15,7 @@ import {
   mkPlayer as sharedMkPlayer,
   createGame as sharedCreateGame
 } from '../shared/index.js';
+import { processEffects } from '../shared/effects.js';
 
 // ═══════════════════════════════════════════════════════════════
 // GAME INITIALIZATION (Re-export from shared)
@@ -171,6 +172,27 @@ export function getAtkModifiers(creature, owner, opponent) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Build context object for processEffects from server variables
+ * Maps server naming (owner/enemy) to shared module naming (me/opp)
+ */
+function buildEffectsContext(context, owner, enemy, ownerSide, enemySide) {
+  return {
+    me: owner,
+    opp: enemy,
+    meSide: ownerSide,
+    oppSide: enemySide,
+    attacker: context.attacker,
+    defender: context.defender,
+    summoned: context.creature,
+    koedCreature: context.koedCreature,
+    damage: context.damage,
+    // Add attackerOwner/attackerOwnerKey for damage to attacker
+    attackerOwner: enemy,
+    attackerOwnerKey: 'opp',
+  };
+}
+
+/**
  * Check if a verse matches a trigger event
  * @param {object} verse - Set verse card
  * @param {string} event - Event type to check
@@ -211,100 +233,129 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
   events.push({ type: 'triggerVerse', side: ownerSide, verse: verse.name });
   
   switch (verse.id) {
-    case 'phantomWall':
-      console.log('[DEBUG] Phantom Wall triggered - dealing 10 damage to', context.attacker?.name);
-      // beforeAttack: Negate the attack
-      negated = true;
-      // Deal 10 damage to attacker
-      if (context.attacker) {
-        const ko = applyDamage(context.attacker, 10);
-        events.push({ type: 'damage', side: enemySide, amount: 10, source: 'Phantom Wall' });
-        if (ko) {
-          events.push({ type: 'ko', side: enemySide, creature: context.attacker.name });
-          enemy.grave.push(context.attacker);
+    case 'phantomWall': {
+      // Use processEffects from shared module
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.attackNegated) negated = true;
+      // Handle KOs from damage effects
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
+      }
+      break;
+    }
+      
+    case 'spikeShield': {
+      // Use processEffects from shared module
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      // Handle KOs from damage effects
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
+      }
+      break;
+    }
+      
+    case 'brace': {
+      // Use processEffects from shared module
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.damageReduction) {
+        damageReduction = result.modifiedContext.damageReduction;
+      }
+      break;
+    }
+      
+    case 'swarmShield': {
+      // Use processEffects from shared module (perBench computed amount)
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.damageReduction) {
+        damageReduction = result.modifiedContext.damageReduction;
+      }
+      break;
+    }
+      
+    case 'soulTrap': {
+      // Use processEffects from shared module
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      // Handle KOs from damage effects
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        // Remove from board (could be active or bench for summoned creatures)
+        if (enemy.active?.uid === koInfo.creature.uid) {
           enemy.active = null;
+        } else {
+          enemy.bench = enemy.bench.filter(c => c.uid !== koInfo.creature.uid);
         }
       }
       break;
+    }
       
-    case 'spikeShield':
-      // beforeAttack: Deal 15 damage to attacker
-      if (context.attacker) {
-        const ko = applyDamage(context.attacker, 15);
-        events.push({ type: 'damage', side: enemySide, amount: 15, source: 'Spike Shield' });
-        if (ko) {
-          events.push({ type: 'ko', side: enemySide, creature: context.attacker.name });
-          enemy.grave.push(context.attacker);
-          enemy.active = null;
-        }
-      }
-      break;
+    case 'vengeance': {
+      // Use processEffects from shared module (negateKO + destroy attacker)
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      // Set target to defender for negateKO's setHP effect
+      ctx.target = context.defender;
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
       
-    case 'brace':
-      // beforeDamage: Reduce damage by 15
-      damageReduction = 15;
-      break;
-      
-    case 'swarmShield':
-      // beforeDamage: Reduce damage by 10 per bench creature
-      damageReduction = owner.bench.length * 10;
-      break;
-      
-    case 'soulTrap':
-      // onSummon: Deal 20 damage to summoned creature
-      if (context.creature) {
-        const ko = applyDamage(context.creature, 20);
-        events.push({ type: 'damage', side: enemySide, amount: 20, source: 'Soul Trap' });
-        if (ko) {
-          events.push({ type: 'ko', side: enemySide, creature: context.creature.name });
-          // Move to grave and clear from board
-          enemy.grave.push(context.creature);
-          if (enemy.active && enemy.active.uid === context.creature.uid) {
-            enemy.active = null;
-          } else {
-            enemy.bench = enemy.bench.filter(c => c.uid !== context.creature.uid);
-          }
-        }
-      }
-      break;
-      
-    case 'vengeance':
-      // onLethalDamage: Survive at 1 HP, destroy attacker
-      if (context.defender && context.attacker) {
-        context.defender.curHp = 1;
-        events.push({ type: 'heal', side: ownerSide, amount: 1, source: 'Vengeance' });
-        // Destroy attacker
-        enemy.grave.push(context.attacker);
-        enemy.active = null;
-        events.push({ type: 'ko', side: enemySide, creature: context.attacker.name, source: 'Vengeance' });
+      if (result.modifiedContext?.koNegated && context.defender) {
+        // Defender survives at 1 HP (set by negateKO)
         modifiedDamage = context.defender.hp - 1; // Prevent KO
       }
-      break;
       
-    case 'graveRise':
-      // onKO: Summon creature from graveyard
-      if (owner.grave.length > 0) {
-        const graveCreatures = owner.grave.filter(c => c.cardType === 'creature');
-        if (graveCreatures.length > 0) {
-          // Summon the most recently added creature
-          const summonedCreature = graveCreatures[graveCreatures.length - 1];
-          summonedCreature.curHp = summonedCreature.hp; // Restore to full HP
-          owner.grave = owner.grave.filter(c => c.uid !== summonedCreature.uid);
-          
-          // Place in active or bench
-          if (!owner.active) {
-            owner.active = summonedCreature;
-            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'active', source: 'Grave Rise' });
-          } else if (owner.bench.length < 2) {
-            owner.bench.push(summonedCreature);
-            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'bench', source: 'Grave Rise' });
-          }
+      if (result.modifiedContext?.destroyed && result.modifiedContext?.destroyedOwner) {
+        // Attacker was destroyed - already handled by destroy effect
+        events.push({ type: 'ko', side: enemySide, creature: context.attacker?.name, source: 'Vengeance' });
+      }
+      break;
+    }
+      
+    case 'graveRise': {
+      // Use processEffects from shared module (summonFromGrave)
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      
+      // Convert shared module events to server events
+      for (const evt of result.events) {
+        if (evt.type === 'summonBench') {
+          // Find the creature that was just added to bench
+          const creature = owner.bench[owner.bench.length - 1];
+          events.push({ type: 'summon', side: ownerSide, creature: creature?.name, slot: 'bench', source: 'Grave Rise' });
+        } else if (evt.type === 'log') {
+          // Skip log events for now (different format)
+        } else {
+          events.push(evt);
         }
       }
       break;
+    }
       
     case 'denMother':
-      // onAllyKO: Summon 1-cost creature from deck
+      // CUSTOM: onAllyKO - Summon 1-cost creature from deck
+      // Kept as custom because:
+      // 1. Searches deck for specific cost creature (not random)
+      // 2. Complex placement logic: active > bench > grave
+      // 3. The 'summon' effect doesn't support the "send to grave if full" fallback
       if (context.koedCreature) {
         // Find a 1-cost creature in deck
         const oneCostIdx = owner.deck.findIndex(c => c.cardType === 'creature' && c.cost === 1);
@@ -326,15 +377,29 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       }
       break;
       
-    case 'manaDrain':
-      // onCast: Negate the spell, gain 2 mana
-      negated = true;
-      owner.mana = Math.min(owner.maxMana, owner.mana + 2);
+    case 'manaDrain': {
+      // Use processEffects from shared module (negateSpell + gainMana)
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      
+      if (result.modifiedContext?.negated) {
+        negated = true;
+      }
+      // Cap mana at maxMana (gainMana doesn't do this)
+      owner.mana = Math.min(owner.maxMana, owner.mana);
+      // Add server-format mana gain event
       events.push({ type: 'manaGain', side: ownerSide, amount: 2, source: 'Mana Drain' });
       break;
+    }
       
-    case 'lastBreath':
-      // onLifeLoss: Negate LP loss only when this damage would kill (LP <= damage amount)
+    case 'lastBreath': {
+      // CUSTOM: onLifeLoss - Negate lethal LP loss (once per game)
+      // Kept as custom because:
+      // 1. One-time-use flag (usedLastBreath) checked BEFORE triggering
+      // 2. Condition depends on runtime state (LP vs damage amount)
+      // 3. The triggerDef condition system doesn't support "notUsed" flag checks
       const damageAmount = context.amount || 1;
       if (!owner.usedLastBreath && owner.lp <= damageAmount) {
         negated = true;
@@ -342,6 +407,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
         events.push({ type: 'triggerVerse', side: ownerSide, verse: 'Last Breath' });
       }
       break;
+    }
   }
   
   return { events, negated, damageReduction, modifiedDamage };

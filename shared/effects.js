@@ -556,9 +556,15 @@ const Effects = {
 
   /**
    * Reduce incoming damage
+   * @param {number} amount - Fixed reduction amount
+   * @param {number} perBench - Per-bench-creature reduction (e.g., 10 = 10 * bench.length)
    */
-  reduceDamage(ctx, { amount }) {
-    ctx.damageReduction = (ctx.damageReduction || 0) + amount;
+  reduceDamage(ctx, { amount, perBench }) {
+    let reduction = amount || 0;
+    if (perBench) {
+      reduction = (ctx.me?.bench?.length || 0) * perBench;
+    }
+    ctx.damageReduction = (ctx.damageReduction || 0) + reduction;
     return { events: [], modifiedContext: { damageReduction: ctx.damageReduction } };
   },
 
@@ -722,9 +728,10 @@ const Effects = {
       selected = candidates[0];
     } else if (ctx.promptGraveSelect) {
       // Note: This would need to be handled async by the caller
-      selected = candidates[0]; // Fallback
+      selected = candidates[candidates.length - 1]; // Default to most recent
     } else {
-      selected = candidates[0];
+      // Select most recently added (last in grave = most recent KO)
+      selected = candidates[candidates.length - 1];
     }
     
     if (!selected) return { events: [], summoned: false, reason: 'cancelled' };
