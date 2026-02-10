@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.72] - 2026-02-10
+
+### Changed
+- Fix cast verse and LP damage animations - cache positions before state update
+
+---
+
+
 ## [0.4.71] - 2026-02-10
 
 ### Changed

@@ -370,10 +370,12 @@ export const Anim = {
   },
   
   // Cast verse - returns promise
-  castVerse() {
+  castVerse(side = 'me') {
     return new Promise(resolve => {
-      this.floatText('*', 'gold', null);
-      setTimeout(resolve, 200);
+      const pos = this.getAnimPosition(side);
+      this.floatText('✦ CAST ✦', 'gold', pos);
+      this.screenFlash('gold');
+      setTimeout(resolve, 300);
     });
   },
   

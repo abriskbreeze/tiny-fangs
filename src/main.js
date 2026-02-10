@@ -117,7 +117,7 @@
         Anim.setVerse(sideKey(e.side));
         return Promise.resolve();
       },
-      cast: (e) => Anim.castVerse(),
+      cast: (e) => Anim.castVerse(sideKey(e.side)),
       triggerVerse: async (e) => {
         // Show trigger reveal modal - need verse data from VERSES
         const verse = VERSES[e.verseId] || { name: e.verse, text: '' };
@@ -265,6 +265,9 @@
         log(result.error, 'dmg');
         return result;
       }
+      
+      // Cache element positions BEFORE state update (for animations like lpDamage, damage floats)
+      Anim.cacheActivePositions();
       
       // Update state and render FIRST so animations have elements to target
       state.G = sharedToClientState(result.state, state.G);
