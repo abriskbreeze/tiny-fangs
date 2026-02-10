@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.66] - 2026-02-10
+
+### Changed
+- Full effects migration - 21 cards now use processEffects
+
+---
+
+
 ## [0.4.65] - 2026-02-10
 
 ### Changed
