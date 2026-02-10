@@ -13,7 +13,11 @@ import {
   mkVerse,
   mkDeck,
   mkPlayer as sharedMkPlayer,
-  createGame as sharedCreateGame
+  createGame as sharedCreateGame,
+  getEffectiveAtk,
+  checkCondition,
+  applyDamage as pureApplyDamage,
+  autoSwapBenchToActive as pureAutoSwap
 } from '../shared/index.js';
 import { processEffects } from '../shared/effects.js';
 
@@ -53,20 +57,22 @@ export function draw(player) {
 }
 
 /**
- * Apply damage to a creature
- * @param {object} creature - Creature to damage
+ * Apply damage to a creature (mutable wrapper around shared pure function)
+ * @param {object} creature - Creature to damage (mutated in place)
  * @param {number} amount - Damage amount
  * @returns {boolean} - True if creature was KO'd
  */
 export function applyDamage(creature, amount) {
-  creature.curHp -= amount;
-  return creature.curHp <= 0;
+  const result = pureApplyDamage(creature, amount);
+  creature.curHp = result.creature.curHp;
+  return result.ko;
 }
 
 /**
- * Auto-swap bench creature to active if active is empty
- * @param {object} player - Player object
- * @param {string} side - 'p1' or 'p2'
+ * Auto-swap bench creature to active if active is empty (mutable wrapper)
+ * Server version includes 'side' in the event for client sync
+ * @param {object} player - Player object (mutated in place)
+ * @param {string} side - 'p1' or 'p2' (added to event)
  * @param {array} events - Events array to push to
  */
 function autoSwapBenchToActive(player, side, events) {
@@ -77,81 +83,8 @@ function autoSwapBenchToActive(player, side, events) {
   }
 }
 
-/**
- * Get effective attack value for a creature
- * @param {object} creature - Attacking creature
- * @param {object} owner - Owner player
- * @param {object} opponent - Opponent player
- * @returns {number} - Effective attack value
- */
-export function getEffectiveAtk(creature, owner, opponent) {
-  let atk = creature.atk;
-  
-  // Apply passive abilities
-  if (creature.ability?.passive?.type === 'atkBonus') {
-    const bonus = creature.ability.passive.amount;
-    const condition = creature.ability.passive.condition;
-    
-    if (!condition || checkCondition(condition, owner, opponent, creature)) {
-      if (typeof bonus === 'number') {
-        atk += bonus;
-      }
-    }
-  }
-  
-  // Apply creature-specific attack bonuses (from triggered abilities like Duskfang's Pack Call)
-  if (creature.atkBonuses) {
-    for (const bonus of creature.atkBonuses) {
-      atk += bonus.value;
-    }
-  }
-  
-  // Apply temporary attack bonuses (player-level, like Predator's Mark)
-  for (const bonus of owner.attackBonuses) {
-    atk += bonus.value;
-  }
-  
-  // Echomask: ATK equals enemy creature's ATK
-  if (creature.id === 'echomask' && opponent.active) {
-    atk = opponent.active.atk;
-  }
-  
-  // Alpha Rally: Bench creatures assist (+10 each)
-  if (creature.id === 'alpha') {
-    atk += owner.bench.length * 10;
-  }
-  
-  // Pack Bond: +10 ATK per other creature
-  if (creature.id === 'fangpup') {
-    const otherCreatures = (owner.active && owner.active.uid !== creature.uid ? 1 : 0) + 
-                          (owner.bench.filter(c => c.uid !== creature.uid).length);
-    atk += otherCreatures * 10;
-  }
-  
-  return atk;
-}
-
-/**
- * Check if a condition is met
- */
-function checkCondition(condition, owner, opponent, creature) {
-  if (condition === 'me.bench.empty') {
-    return owner.bench.length === 0;
-  }
-  if (condition === 'me.bench.notEmpty') {
-    return owner.bench.length > 0;
-  }
-  if (condition === 'me.grave.hasCreature') {
-    return owner.grave.some(c => c.cardType === 'creature');
-  }
-  if (condition === 'opp.active') {
-    return opponent.active !== null;
-  }
-  if (condition === 'opp.active.belowHalf') {
-    return opponent.active && opponent.active.curHp < opponent.active.hp / 2;
-  }
-  return true;
-}
+// Re-export getEffectiveAtk for backwards compatibility (logic lives in shared)
+export { getEffectiveAtk };
 
 /**
  * Get ATK modifiers for display

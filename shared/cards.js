@@ -280,7 +280,7 @@ export const VERSES = {
     flavor: 'What flows out must flow in.',
     text:'Deal 20 damage to any creature. Heal your creature 10 if damage was dealt.',
     requiresSelection: true,
-    selection: { type: 'anyCreature', prompt: 'Choose a creature to drain' },
+    selection: { type: 'creature', filter: 'any', location: 'board', prompt: 'Choose a creature to drain', required: true },
     effects: [
       { type: 'damage', target: 'selected', amount: 20 },
       { type: 'heal', target: 'me.active', amount: 10, condition: 'damageWasDealt' }
@@ -298,7 +298,7 @@ export const VERSES = {
     flavor: 'The dead still whisper.',
     text:'Return a creature from your graveyard to your hand.',
     requiresSelection: true,
-    selection: { type: 'graveCreature', prompt: 'Choose creature to return' },
+    selection: { type: 'creature', filter: 'friendly', location: 'grave', prompt: 'Choose creature to return', required: true },
     effects: [
       { type: 'moveCard', from: 'me.grave', to: 'me.hand', target: 'selected' }
     ] },
@@ -322,7 +322,7 @@ export const VERSES = {
     flavor: 'Gone. Not dead. Worse.',
     text:'Destroy any creature. Remove from game.',
     requiresSelection: true,
-    selection: { type: 'anyCreature', prompt: 'Choose a creature to banish' },
+    selection: { type: 'creature', filter: 'any', location: 'board', prompt: 'Choose a creature to banish', required: true },
     effects: [
       { type: 'banish', target: 'selected' }
     ] },
@@ -386,7 +386,7 @@ export const VERSES = {
     flavor: 'Some things just need to burn.',
     text:'Deal 15 damage to any creature.',
     requiresSelection: true,
-    selection: { type: 'anyCreature', prompt: 'Choose a creature to ignite' },
+    selection: { type: 'creature', filter: 'any', location: 'board', prompt: 'Choose a creature to ignite', required: true },
     effects: [
       { type: 'damage', target: 'selected', amount: 15 }
     ] },
@@ -411,7 +411,7 @@ export const VERSES = {
     flavor: 'One falls. Two rise.',
     text:'KO one of your creatures. Draw 2 cards.',
     requiresSelection: true,
-    selection: { type: 'ownCreature', prompt: 'Choose creature to sacrifice' },
+    selection: { type: 'creature', filter: 'friendly', location: 'board', prompt: 'Choose creature to sacrifice', required: true },
     effects: [
       { type: 'koSelected' },
       { type: 'draw', count: 2 }

@@ -72,22 +72,25 @@ global.log = () => {};
 
 describe('Target Selector Cards', () => {
   describe('Card Definitions', () => {
-    it('BUG-07: Ignite should require anyCreature selection', () => {
+    it('BUG-07: Ignite should require creature selection', () => {
       const ignite = VERSES.ignite;
       expect(ignite.requiresSelection).toBe(true);
-      expect(ignite.selection.type).toBe('anyCreature');
+      expect(ignite.selection.type).toBe('creature');
+      expect(ignite.selection.filter).toBe('any');
     });
 
-    it('BUG-08: Banish should require anyCreature selection', () => {
+    it('BUG-08: Banish should require creature selection', () => {
       const banish = VERSES.banish;
       expect(banish.requiresSelection).toBe(true);
-      expect(banish.selection.type).toBe('anyCreature');
+      expect(banish.selection.type).toBe('creature');
+      expect(banish.selection.filter).toBe('any');
     });
 
-    it('BUG-09: Soul Siphon should require anyCreature selection', () => {
+    it('BUG-09: Soul Siphon should require creature selection', () => {
       const soulSiphon = VERSES.soulSiphon;
       expect(soulSiphon.requiresSelection).toBe(true);
-      expect(soulSiphon.selection.type).toBe('anyCreature');
+      expect(soulSiphon.selection.type).toBe('creature');
+      expect(soulSiphon.selection.filter).toBe('any');
     });
 
     it('Ignite effects should target selected', () => {

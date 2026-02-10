@@ -31,5 +31,9 @@ export {
   mkVerse,
   mkDeck,
   mkPlayer,
-  applyDamage
+  applyDamage,
+  autoSwapBenchToActive,
+  getEffectiveAtk,
+  checkCondition,
+  resolveSelection
 } from './engine.js';

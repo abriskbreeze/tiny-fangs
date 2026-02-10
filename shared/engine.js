@@ -224,6 +224,114 @@ export function autoSwapBenchToActive(player, events = []) {
 }
 
 /**
+ * Resolve selection from action based on selection config
+ * @param {Object} state - Current game state
+ * @param {Number} playerIdx - Player index (0 or 1)
+ * @param {Object} action - Action containing targetUid
+ * @param {Object} selectionConfig - Selection requirements from card
+ * @returns {Object} - { creature, location, owner, idx } or { needsSelection } or { error }
+ */
+export function resolveSelection(state, playerIdx, action, selectionConfig) {
+  if (!selectionConfig) return null;
+  
+  if (!action.targetUid && selectionConfig.required) {
+    return { needsSelection: true, config: selectionConfig };
+  }
+  
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  
+  let target = null;
+  let location = null;
+  let owner = null;
+  let idx = -1;
+  
+  // Helper to check a player's creatures
+  const checkPlayer = (p, ownerKey) => {
+    // Check active
+    if (p.active?.uid === action.targetUid) {
+      target = p.active;
+      location = 'active';
+      owner = ownerKey;
+      return true;
+    }
+    // Check bench
+    const benchIdx = p.bench.findIndex(c => c.uid === action.targetUid);
+    if (benchIdx !== -1) {
+      target = p.bench[benchIdx];
+      location = 'bench';
+      owner = ownerKey;
+      idx = benchIdx;
+      return true;
+    }
+    // Check grave
+    const graveIdx = p.grave.findIndex(c => c.uid === action.targetUid);
+    if (graveIdx !== -1) {
+      target = p.grave[graveIdx];
+      location = 'grave';
+      owner = ownerKey;
+      idx = graveIdx;
+      return true;
+    }
+    return false;
+  };
+  
+  // Search based on filter (friendly first, then enemy)
+  if (selectionConfig.filter === 'friendly' || selectionConfig.filter === 'any') {
+    checkPlayer(player, 'me');
+  }
+  if (!target && (selectionConfig.filter === 'enemy' || selectionConfig.filter === 'any')) {
+    checkPlayer(opponent, 'opp');
+  }
+  
+  if (!target) {
+    return { error: 'Invalid target' };
+  }
+  
+  // Validate location constraint
+  if (selectionConfig.location) {
+    const locMatch = 
+      selectionConfig.location === 'board' && (location === 'active' || location === 'bench') ||
+      selectionConfig.location === 'grave' && location === 'grave' ||
+      selectionConfig.location === 'active' && location === 'active' ||
+      selectionConfig.location === 'bench' && location === 'bench';
+    
+    if (!locMatch) {
+      return { error: 'Target not in valid location' };
+    }
+  }
+  
+  return { creature: target, location, owner, idx };
+}
+
+/**
+ * Check if a condition is met (for conditional abilities)
+ * @param {String} condition - Condition string
+ * @param {Object} owner - Owner player
+ * @param {Object} opponent - Opponent player
+ * @param {Object} creature - The creature with the ability
+ * @returns {Boolean} - Whether condition is met
+ */
+export function checkCondition(condition, owner, opponent, creature) {
+  if (condition === 'me.bench.empty') {
+    return owner.bench.length === 0;
+  }
+  if (condition === 'me.bench.notEmpty') {
+    return owner.bench.length > 0;
+  }
+  if (condition === 'me.grave.hasCreature') {
+    return owner.grave.some(c => c.cardType === 'creature');
+  }
+  if (condition === 'opp.active') {
+    return opponent.active !== null;
+  }
+  if (condition === 'opp.active.belowHalf') {
+    return opponent.active && opponent.active.curHp < opponent.active.hp / 2;
+  }
+  return true;
+}
+
+/**
  * Get effective attack value for a creature
  * @param {Object} creature - Attacking creature
  * @param {Object} owner - Owner player
@@ -235,23 +343,39 @@ export function getEffectiveAtk(creature, owner, opponent) {
   
   // Apply passive abilities
   if (creature.ability?.passive?.type === 'atkBonus') {
-    atk += creature.ability.passive.amount;
+    const bonus = creature.ability.passive.amount;
+    const condition = creature.ability.passive.condition;
+    
+    if (!condition || checkCondition(condition, owner, opponent, creature)) {
+      if (typeof bonus === 'number') {
+        atk += bonus;
+      }
+    }
   }
   
-  // Apply temporary attack bonuses
+  // Apply creature-specific attack bonuses (from triggered abilities like Duskfang's Pack Call)
+  if (creature.atkBonuses) {
+    for (const bonus of creature.atkBonuses) {
+      atk += bonus.value;
+    }
+  }
+  
+  // Apply temporary attack bonuses (player-level, like Predator's Mark)
   for (const bonus of owner.attackBonuses || []) {
     atk += bonus.value;
   }
   
-  // Special cases
+  // Echomask: ATK equals enemy creature's ATK
   if (creature.id === 'echomask' && opponent.active) {
     atk = opponent.active.atk;
   }
   
+  // Alpha Rally: Bench creatures assist (+10 each)
   if (creature.id === 'alpha') {
     atk += owner.bench.length * 10;
   }
   
+  // Pack Bond: +10 ATK per other creature
   if (creature.id === 'fangpup') {
     const otherCreatures = (owner.active && owner.active.uid !== creature.uid ? 1 : 0) +
                           owner.bench.filter(c => c.uid !== creature.uid).length;
@@ -540,6 +664,7 @@ export default {
   applyDamage,
   autoSwapBenchToActive,
   getEffectiveAtk,
+  resolveSelection,
   
   // Card creation
   mkCreature,
