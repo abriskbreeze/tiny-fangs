@@ -4699,6 +4699,7 @@
     function doCast() {
       if (state.animating) return; // Block during animations
       const casts = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
+      console.log('🎯 doCast - cast verses in hand:', casts.map(c => ({ name: c.name, selection: c.selection })));
       if (!casts.length) return;
       
       showModal('Cast Verse', casts.map(c => ({
