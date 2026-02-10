@@ -80,7 +80,26 @@ const Effects = {
     const creature = resolveTarget(ctx, target);
     if (!creature) return { events: [], ko: null };
     
+    const events = [];
     let finalAmount = amount;
+    
+    // Check for damage reduction abilities (Shellkin Harden, Titanback Juggernaut, etc.)
+    if (creature.id === 'shellkin' && !creature.shellkinUsed && finalAmount > 0) {
+      const reduction = Math.min(10, finalAmount);
+      finalAmount -= reduction;
+      creature.shellkinUsed = true;
+      events.push({ type: 'abilityTrigger', creature: creature.name, ability: 'Harden' });
+      events.push({ type: 'damageReduced', amount: reduction, source: 'Harden' });
+    }
+    
+    if (creature.id === 'titanback' && !creature.titanbackUsed && finalAmount > 0) {
+      const reduction = Math.min(15, finalAmount);
+      finalAmount -= reduction;
+      creature.titanbackUsed = true;
+      events.push({ type: 'abilityTrigger', creature: creature.name, ability: 'Juggernaut' });
+      events.push({ type: 'damageReduced', amount: reduction, source: 'Juggernaut' });
+    }
+    
     creature.curHp -= finalAmount;
     
     // Track that damage was dealt
@@ -124,7 +143,6 @@ const Effects = {
       benchIndex = owner.bench?.indexOf(creature) ?? 0;
     }
     
-    const events = [];
     if (finalAmount > 0) {
       events.push({
         type: 'damage',

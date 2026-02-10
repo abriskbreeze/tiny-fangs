@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.73] - 2026-02-10
+
+### Changed
+- Fix 3 bugs: Shellkin vs spells, Echomask 0 ATK, Mana Drain no mana
+
+---
+
+
 ## [0.4.72] - 2026-02-10
 
 ### Changed

@@ -1045,13 +1045,15 @@ export function attack(state, playerIdx) {
       }
       
     } else {
-      // Direct attack on life points
-      const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
-      events.push(...onLifeLossTrigger.events);
-      
-      if (!onLifeLossTrigger.negated) {
-        opponent.lp -= 1;
-        events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
+      // Direct attack on life points (only if damage > 0)
+      if (damage > 0) {
+        const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
+        events.push(...onLifeLossTrigger.events);
+        
+        if (!onLifeLossTrigger.negated) {
+          opponent.lp -= 1;
+          events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
+        }
       }
     }
   }
