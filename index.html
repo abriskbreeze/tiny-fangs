@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.55</title>
+  <title>TINY FANGS v0.4.56</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.55 • Card Battler</p>
+    <p class="sub">v0.4.56 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.55</div>
+      <div class="logo">TINY FANGS v0.4.56</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -2872,12 +2872,14 @@
           
         case 'gameStart':
           console.log('🎮 Game starting!', msg);
-          // Show coin flip result before starting
-          const coinMsg = msg.coinFlip === 'won' ? 'You won the coin flip! You go first.' : 'Opponent won the coin flip. They go first.';
+          // Show coin flip result before starting (longer delay so player sees it)
+          const coinMsg = msg.coinFlip === 'won' 
+            ? '🪙 COIN FLIP: YOU GO FIRST!' 
+            : '🪙 COIN FLIP: OPPONENT FIRST';
           showTurnBanner(coinMsg);
           setTimeout(() => {
             startMultiplayerGame(msg.state, msg.yourTurn, msg.you);
-          }, 1500);
+          }, 2500); // 2.5s to read coin flip result
           break;
           
         case 'stateUpdate':
@@ -3022,8 +3024,8 @@
         showGameOver(youWon);
       }
       
-      // Re-render after animations complete
-      render();
+      // Note: We already rendered before animations, no need to render again
+      // Double render was causing double animations
       
       // Handle pending action (e.g., Skitter swap prompt)
       if (pendingAction) {
@@ -4413,8 +4415,8 @@
     async function executeDrop(card, zone) {
       // Use unified dispatcher for all actions
       if (zone.type === 'cast') {
-        const target = zone.type === 'summon-bench' ? 'bench' : 'active';
-        await dispatchAction('cast', { card, cardUid: card.uid });
+        // Use castVerse() to handle selection before dispatch
+        await castVerse(card);
         return;
       }
       

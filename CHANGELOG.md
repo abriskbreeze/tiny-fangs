@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.56] - 2026-02-09
+
+### Changed
+- Fix drag-to-cast bypass, double animations, coin flip visibility
+
+---
+
+
 ## [0.4.55] - 2026-02-09
 
 ### Changed
