@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.63] - 2026-02-10
+
+### Changed
+- Architecture unification + multiplayer fixes (optional triggers, mana, debug logging)
+
+---
+
+
 ## [0.4.62] - 2026-02-09
 
 ### Changed
