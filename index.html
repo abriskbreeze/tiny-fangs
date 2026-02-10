@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.58</title>
+  <title>TINY FANGS v0.4.59</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.58 • Card Battler</p>
+    <p class="sub">v0.4.59 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.58</div>
+      <div class="logo">TINY FANGS v0.4.59</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -3061,123 +3061,68 @@
     }
     
     // Play animation events from server
+    // Server event handlers - maps event types to handler functions
+    const serverEventHandlers = {
+      summon: async (e, side) => {
+        if (e.slot === 'bench') await Anim.summonBench(side, 0);
+        else await Anim.summon(side);
+      },
+      attack: async (e, side) => await Anim.attack(side, side === 'me' ? 'opp' : 'me', e.damage),
+      damage: async (e, side) => await Anim.damage(side, e.amount),
+      heal: async (e, side) => await Anim.heal(side, e.amount),
+      ko: async (e, side) => await Anim.ko(side),
+      retreat: async (e, side) => await Anim.benchToActive(side),
+      benchToActive: async (e, side) => {
+        await Anim.benchToActive(side);
+        log(`${e.creature} moved to active!`);
+      },
+      cast: async () => await Anim.castVerse(),
+      setVerse: (e, side) => Anim.setVerse(side),
+      draw: async () => await Anim.wait(100),
+      lpDamage: async (e, side) => await Anim.lpDamage(side, e.amount || 1),
+      manaGain: async () => await Anim.manaGain(),
+      turnStart: () => {}, // Handled by turnChange message
+      gameOver: () => {}, // Handled separately
+      skitterSwap: async (e, side) => {
+        await Anim.benchToActive(side);
+        log(`${e.from} scurried to bench, ${e.to} is now active!`);
+      },
+      skitterDecline: () => {},
+      abilityTrigger: async (e) => {
+        const creature = Object.values(CREATURES).find(c => c.name === e.creature);
+        if (creature?.ability) await showTriggerReveal(creature);
+        log(`${e.creature}'s ${e.ability} triggered!`);
+      },
+      banish: async (e, side) => {
+        await Anim.ko(side);
+        log(`${e.creature} was banished!`);
+      },
+      graveReturn: (e) => log(`${e.creature} returned to hand!`),
+      sacrifice: async (e, side) => {
+        await Anim.ko(side);
+        log(`${e.creature} was sacrificed!`);
+      },
+      triggerVerse: async (e) => {
+        const verse = Object.values(VERSES).find(v => v.name === e.verse);
+        if (verse) await showTriggerReveal(verse);
+        log(`${e.verse} triggered!`);
+      },
+      damageReduced: (e) => log(`${e.source} reduced damage by ${e.amount}!`),
+      survival: (e) => log(`${e.creature} survived at ${e.hp} HP!`),
+      setFlag: () => {},
+      clearStatus: () => {},
+      atkBonus: (e) => log(`+${e.amount} ATK from ${e.source}!`),
+      discard: (e) => log(`${e.card} discarded!`),
+      setStatus: () => {} // Status applied (handled by render)
+    };
+    
     async function playServerEvents(events) {
       for (const e of events) {
-        const side = e.side; // Already mapped to 'me' or 'opp' by server
-        
-        switch (e.type) {
-          case 'summon':
-            if (e.slot === 'bench') {
-              await Anim.summonBench(side, 0);
-            } else {
-              await Anim.summon(side);
-            }
-            break;
-          case 'attack':
-            await Anim.attack(side, side === 'me' ? 'opp' : 'me', e.damage);
-            break;
-          case 'damage':
-            await Anim.damage(side, e.amount);
-            break;
-          case 'heal':
-            await Anim.heal(side, e.amount);
-            break;
-          case 'ko':
-            await Anim.ko(side);
-            break;
-          case 'retreat':
-            await Anim.benchToActive(side);
-            break;
-          case 'benchToActive':
-            // Auto-swap from bench after KO
-            await Anim.benchToActive(side);
-            log(`${e.creature} moved to active!`);
-            break;
-          case 'cast':
-            await Anim.castVerse();
-            break;
-          case 'setVerse':
-            Anim.setVerse(side);
-            break;
-          case 'draw':
-            // No draw animation - just a brief pause
-            await Anim.wait(100);
-            break;
-          case 'lpDamage':
-            await Anim.lpDamage(side, e.amount || 1);
-            break;
-          case 'manaGain':
-            await Anim.manaGain();
-            break;
-          case 'turnStart':
-            // Banner is handled by turnChange message (personalized per player)
-            // Don't show banner here - it has wrong yourTurn for one player
-            break;
-          case 'gameOver':
-            // Handled separately
-            break;
-          case 'skitterSwap':
-            // Skitter swapped with bench creature
-            await Anim.benchToActive(side);
-            log(`${e.from} scurried to bench, ${e.to} is now active!`);
-            break;
-          case 'skitterDecline':
-            // Player declined Skitter swap - no animation needed
-            break;
-          case 'abilityTrigger':
-            // Find creature by name for ability display
-            const triggerCreature = Object.values(CREATURES).find(c => c.name === e.creature);
-            if (triggerCreature && triggerCreature.ability) {
-              await showTriggerReveal(triggerCreature);
-            }
-            log(`${e.creature}'s ${e.ability} triggered!`);
-            break;
-          case 'banish':
-            // Creature banished
-            await Anim.ko(side);
-            log(`${e.creature} was banished!`);
-            break;
-          case 'graveReturn':
-            // Creature returned from grave
-            log(`${e.creature} returned to hand!`);
-            break;
-          case 'sacrifice':
-            // Creature sacrificed
-            await Anim.ko(side);
-            log(`${e.creature} was sacrificed!`);
-            break;
-          case 'triggerVerse':
-            // Find the verse card by name and show full modal
-            const triggerVerse = Object.values(VERSES).find(v => v.name === e.verse);
-            if (triggerVerse) {
-              await showTriggerReveal(triggerVerse);
-            }
-            log(`${e.verse} triggered!`);
-            break;
-          case 'damageReduced':
-            // Damage reduced by ability
-            log(`${e.source} reduced damage by ${e.amount}!`);
-            break;
-          case 'survival':
-            // Creature survived lethal
-            log(`${e.creature} survived at ${e.hp} HP!`);
-            break;
-          case 'setFlag':
-            // Flag set (no animation)
-            break;
-          case 'clearStatus':
-            // Status cleared (no animation)
-            break;
-          case 'atkBonus':
-            // ATK bonus applied
-            log(`+${e.amount} ATK from ${e.source}!`);
-            break;
-          case 'discard':
-            // Card discarded
-            log(`${e.card} discarded!`);
-            break;
-          default:
-            console.log('Unknown event:', e.type);
+        const handler = serverEventHandlers[e.type];
+        if (handler) {
+          await handler(e, e.side);
+        } else {
+          console.log('Unknown event:', e.type);
         }
       }
     }
@@ -3312,28 +3257,24 @@
         return;
       }
       
-      // Solo mode: execute locally
-      switch (type) {
-        case 'summon':
-          await executeLocalSummon(params.card);
-          break;
-        case 'cast':
-          await executeLocalCast(params.card, params.selection);
-          break;
-        case 'set':
-          await executeLocalSet(params.card);
-          break;
-        case 'attack':
-          await executeLocalAttack();
-          break;
-        case 'retreat':
-          await executeLocalRetreat(params.benchIdx);
-          break;
-        case 'endTurn':
-          await executeLocalEndTurn();
-          break;
+      // Solo mode: execute locally via executor map
+      const executor = localExecutors[type];
+      if (executor) {
+        await executor(params);
+      } else {
+        console.warn('Unknown action type:', type);
       }
     }
+    
+    // Local action executors (solo mode) - maps action types to handlers
+    const localExecutors = {
+      summon: (params) => executeLocalSummon(params.card),
+      cast: (params) => executeLocalCast(params.card, params.selection),
+      set: (params) => executeLocalSet(params.card),
+      attack: () => executeLocalAttack(),
+      retreat: (params) => executeLocalRetreat(params.benchIdx),
+      endTurn: () => executeLocalEndTurn()
+    };
     
     // Expose for onclick handlers
     window.dispatchAction = dispatchAction;
@@ -5521,14 +5462,13 @@
         name: c.name,
         sub: `Cost ${c.cost} | ${c.trigger}`,
         disabled: c.cost > state.G.me.mana || (c.id === 'lastBreath' && state.G.me.usedLastBreath),
-        action: () => setVerse(c)
+        action: () => playCard(c)  // Use unified playCard
       })));
     }
     
-    // Wrapper
+    // Legacy alias
     async function setVerse(c) {
-      closeModal();
-      await dispatchAction('set', { card: c, cardUid: c.uid });
+      await playSetVerse(c);
     }
     
     // Local execution (solo mode only)

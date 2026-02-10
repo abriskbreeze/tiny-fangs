@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.59] - 2026-02-09
+
+### Changed
+- Unified code patterns: playCard, localExecutors map, serverEventHandlers map
+
+---
+
+
 ## [0.4.58] - 2026-02-09
 
 ### Changed
