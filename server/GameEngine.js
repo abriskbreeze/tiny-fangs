@@ -377,10 +377,11 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       break;
       
     case 'lastBreath':
-      // onLifeLoss: Negate LP loss (once)
-      if (!owner.usedLastBreath) {
+      // onLifeLoss: Negate LP loss only when at 1 LP (would die)
+      if (!owner.usedLastBreath && owner.lp === 1) {
         negated = true;
         owner.usedLastBreath = true;
+        events.push({ type: 'triggerVerse', side: ownerSide, verse: 'Last Breath' });
       }
       break;
   }
@@ -1437,7 +1438,10 @@ export function endTurn(state, playerIdx) {
   state.hasRetreated = false;
   
   // Next player: increment mana and draw
-  nextPlayer.maxMana = Math.min(5, nextPlayer.maxMana + 1);
+  // Don't increment mana on very first turn end (P2's first turn starts with 1 mana like P1)
+  if (!state.firstTurn) {
+    nextPlayer.maxMana = Math.min(5, nextPlayer.maxMana + 1);
+  }
   nextPlayer.mana = nextPlayer.maxMana;
   events.push({ type: 'manaGain', side: nextPlayerIdx === 0 ? 'p1' : 'p2' });
   

@@ -247,11 +247,13 @@ function handleDeckSelect(ws, message) {
     // Send gameStart to both players with their perspective
     room.players.forEach(player => {
       const state = getStateForPlayer(room.gameState, player.playerIdx);
+      const goesFirst = player.playerIdx === 0;
       send(player.ws, {
         type: 'gameStart',
         state,
-        yourTurn: player.playerIdx === 0,  // Player 0 goes first
-        you: player.playerIdx === 0 ? 'p1' : 'p2'
+        yourTurn: goesFirst,
+        you: goesFirst ? 'p1' : 'p2',
+        coinFlip: goesFirst ? 'won' : 'lost'  // Tell player if they won coin flip
       });
     });
   } else {

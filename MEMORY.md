@@ -959,3 +959,39 @@ When syncing deck state across network, you must sync BOTH the card identity (ca
 - Skitter ability (reactive swap after damage)
 - Full MP playtesting
 
+
+
+### 2026-02-09 — MP State Sync & Animation Fixes
+
+**Critical MP Bugs Fixed:**
+1. **Animations in wrong place** - Render state BEFORE playing animations (DOM needs elements first)
+2. **Double turn banner** - Use personalized `turnChange` message, not shared `turnStart` event
+3. **P2 cant attack** - Server must send `hasAttacked`, `hasRetreated`, `firstTurn` flags
+4. **No auto-swap after KO** - Added `autoSwapBenchToActive()` helper
+
+**Server State Sync Pattern:**
+```javascript
+// getStateForPlayer must include ALL game flags
+return {
+  turn, yourTurn, winner,
+  firstTurn: state.firstTurn,      // Was missing!
+  hasAttacked: state.hasAttacked,  // Was missing!
+  hasRetreated: state.hasRetreated,// Was missing!
+  me: { ... },
+  opp: { ... }
+};
+```
+
+**Client Animation Order:**
+```javascript
+// CORRECT order in updateFromServer:
+state.G = convertServerState(serverState);  // 1. Update state
+render();                                    // 2. Render (creates DOM elements)
+await playServerEvents(events);              // 3. THEN animate
+```
+
+**Current Tunnel:** Changes frequently. Check `marine-lobster` session or restart with:
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+

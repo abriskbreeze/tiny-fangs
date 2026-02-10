@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.55] - 2026-02-09
+
+### Changed
+- Fix Last Breath (only at 1 LP), P2 mana (no bonus first turn), add coin flip banner
+
+---
+
+
 ## [0.4.54] - 2026-02-09
 
 ### Changed
