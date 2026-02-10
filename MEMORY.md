@@ -1065,3 +1065,33 @@ shared/
 - Server: `node index.js` in `~/clawd/tiny-fangs/server` on port 3001
 - Tunnel URL hardcoded in `index.html` line 2804
 - Deployed to gh-pages after fixes
+
+
+### 2026-02-10 — Trigger Refactor (v0.4.65)
+
+**Problem:** Server had hardcoded effect values in switch statements that could drift from `shared/cards.js`.
+
+**Solution:** Refactored `executeTrigger()` to use `processEffects()` from shared module.
+
+**8 triggers migrated:**
+- phantomWall, spikeShield, soulTrap, brace
+- swarmShield (with new `perBench` computed amount)
+- manaDrain, vengeance, graveRise
+
+**2 kept as custom (documented):**
+- denMother — deck search + complex placement
+- lastBreath — one-time-use flag checking
+
+**Key changes:**
+- `shared/effects.js` — added `perBench` param to reduceDamage
+- `server/GameEngine.js` — imports processEffects, new `buildEffectsContext()` helper
+
+**Pattern:**
+```
+OLD:  switch(verse.id) { amount: 15 }  ← hardcoded
+NEW:  processEffects(verse, ctx)       ← reads from verse.effects[]
+```
+
+**Result:** Balance changes now only need to update `shared/cards.js`.
+
+**Tests:** 262 passing
