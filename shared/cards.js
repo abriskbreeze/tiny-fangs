@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// CARD DATABASE (Server-side)
+// CARD DATABASE
 // ═══════════════════════════════════════════════════════════════
 
 export const CREATURES = {
@@ -7,7 +7,7 @@ export const CREATURES = {
     ability: {
       name: 'Elusive',
       text: 'Cannot be targeted by Set Verses the turn it is summoned.',
-      procedural: true
+      procedural: true  // Handled via summonedThisTurn flag check
     },
     flavor:'"A flicker in the corner of your eye."',
     art:' /\\_/\\\n(  ·.·)\n > ~ <' },
@@ -24,7 +24,7 @@ export const CREATURES = {
     ability: {
       name: 'Frenzy',
       text: 'Attacks twice, but takes 10 self-damage.',
-      procedural: true
+      procedural: true  // Handled in doAttack() - modifies attack flow
     },
     flavor:'"Burns fast. Burns everything."',
     art:'  ~~\n=(Φ ω Φ)=\n  \\|/' },
@@ -41,7 +41,7 @@ export const CREATURES = {
     ability: {
       name: 'Rend',
       text: 'Attacks deal +10 damage.',
-      passive: { type: 'atkBonus', amount: 10 }
+      passive: { type: 'atkBonus', amount: 10 }  // Passive modifier, always active
     },
     flavor:'"Forged in forgotten wars."',
     art:' /\\_╱\\\n<(⚔ ⚔)>\n  ╲═╱' },
@@ -58,13 +58,14 @@ export const CREATURES = {
     ability: {
       name: 'Sonic Strike',
       text: 'First attack each game deals double damage.',
-      procedural: true
+      procedural: true  // Handled via firstAtk flag in doAttack()
     },
     flavor:'"One perfect strike."',
     art:' >(°□°)>\n  ├──┤\n  /| |\\' },
   hexweaver: { id:'hexweaver', name:'Hexweaver', subtitle:'Curse Spider', cost:2, hp:40, atk:20,
     ability: {
       name: 'Venom Thread',
+      // BUG-A5 FIX: Updated text to clarify poison mechanic
       text: 'On hit, enemy takes 10 damage at end of each turn until cured.',
       trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true, defenderAlive: true } },
       effects: [{ type: 'setStatus', target: 'defender', status: 'poison' }]
@@ -84,7 +85,7 @@ export const CREATURES = {
     ability: {
       name: 'Digest',
       text: 'When it KO\'s a creature, heal 30 HP.',
-      trigger: { event: 'afterAttack', condition: { attacker: 'self', causedKO: true } },
+      trigger: { event: 'onHit', condition: { attacker: 'self', causedKO: true } },
       effects: [{ type: 'healSelf', amount: 30 }]
     },
     flavor:'"She feeds on ambition."',
@@ -107,6 +108,10 @@ export const CREATURES = {
     },
     flavor:'"It wears your face."',
     art:' .-----.\n(  ???  )\n `-----\'' },
+  
+  // === NEW CARDS ===
+  
+  // Shadow Pack additions
   shadePup: { id:'shadePup', name:'Shade Pup', subtitle:'Lone Shadow', cost:1, hp:25, atk:15,
     ability: {
       name: 'Orphan',
@@ -115,6 +120,8 @@ export const CREATURES = {
     },
     flavor:'"Stronger alone."',
     art:'  /\\_/\\\n (;_;)\n  / \\' },
+  
+  // Fang Pack additions  
   emberfang: { id:'emberfang', name:'Emberfang', subtitle:'Spark Ferret', cost:1, hp:25, atk:25,
     ability: {
       name: 'Spark',
@@ -124,15 +131,19 @@ export const CREATURES = {
     },
     flavor:'"First blood."',
     art:'  ~火~\n=(ΦωΦ)=\n  \\|/' },
+  
+  // Venom Pack additions
   leechling: { id:'leechling', name:'Leechling', subtitle:'Blood Mite', cost:1, hp:20, atk:15,
     ability: {
       name: 'Drain',
       text: 'Heal HP equal to damage dealt.',
-      trigger: { event: 'afterAttack', condition: { attacker: 'self', didDamage: true } },
+      trigger: { event: 'onHit', condition: { attacker: 'self', didDamage: true } },
       effects: [{ type: 'healSelf', amount: 'damageDealt' }]
     },
     flavor:'"It gives nothing back."',
     art:'  ┌○┐\n  │▓│\n  └─┘' },
+  
+  // Swarm Pack (new)
   fangpup: { id:'fangpup', name:'Fangpup', subtitle:'Pack Whelp', cost:1, hp:25, atk:20,
     ability: {
       name: 'Pack Bond',
@@ -179,7 +190,7 @@ export const CREATURES = {
     ability: {
       name: 'Rally',
       text: 'Your bench creatures can assist attacks (+10 each).',
-      procedural: true
+      procedural: true  // Handled in damage calculation - complex bench synergy
     },
     flavor:'"They follow without question."',
     art:'  ∧___∧\n (▀ ͜͞ʖ▀)\n /|███|\\' },
@@ -187,11 +198,14 @@ export const CREATURES = {
     ability: {
       name: 'Spawn',
       text: 'End of your turn, summon a 10/10 Antling to bench (max 2).',
+      // BUG-C3 FIX: Added myTurn condition - only fires on owner's turn
       trigger: { event: 'turnEnd', condition: { self: 'active', myTurn: true } },
       effects: [{ type: 'summonToken', token: 'antling', location: 'bench', maxBench: 2 }]
     },
     flavor:'"The swarm is eternal."',
     art:' ╱╲___╱╲\n(  ◎ ◎  )\n ╲▓▓▓▓▓╱' },
+  
+  // Shell Pack (defensive theme)
   shellkin: { id:'shellkin', name:'Shellkin', subtitle:'Armored Pup', cost:1, hp:20, atk:10,
     ability: {
       name: 'Harden',
@@ -253,13 +267,14 @@ export const CREATURES = {
     ability: {
       name: 'Juggernaut',
       text: 'Resists first 15 damage per turn. When KO\'d deal 25 damage to enemy creature.',
-      procedural: true
+      procedural: true  // Handled in damage calc + onKO - dual ability
     },
     flavor:'"Mountains move slowly."',
     art:' ╔══════╗\n(  ◉  ◉  )\n ╚══════╝' },
 };
 
 export const VERSES = {
+  // Cast Verses (with declarative effects)
   soulSiphon: { id:'soulSiphon', name:'Soul Siphon', type:'cast', cost:2,
     art: ' ◇~◇\n<soul>\n ◇~◇',
     flavor: 'What flows out must flow in.',
@@ -325,6 +340,7 @@ export const VERSES = {
     effects: [
       { type: 'heal', target: 'me.active', amount: 40, condition: 'me.active' }
     ] },
+  // Set Verses (with declarative triggers for future migration)
   phantomWall: { id:'phantomWall', name:'Phantom Wall', type:'set', cost:1,
     art: '|░░░░|\n|WALL|\n|░░░░|',
     flavor: 'You cannot strike what is not there.',
@@ -361,6 +377,10 @@ export const VERSES = {
     trigger:'When you would lose your last life', text:'Survive with 1 life instead. Once per game.',
     triggerDef: { event: 'beforeLifeLoss', condition: { owner: 'me', lastLife: true }, priority: 2 },
     effects: [{ type: 'negateLifeLoss' }] },
+  
+  // === NEW VERSES ===
+  
+  // Fang Pack addition
   ignite: { id:'ignite', name:'Ignite', type:'cast', cost:1,
     art: ' )\\ /(\n( ⚬ )\n )/\\(',
     flavor: 'Some things just need to burn.',
@@ -370,6 +390,8 @@ export const VERSES = {
     effects: [
       { type: 'damage', target: 'selected', amount: 15 }
     ] },
+  
+  // Swarm Pack verses
   packTactics: { id:'packTactics', name:'Pack Tactics', type:'cast', cost:1,
     art: '◄►◄►\nPACK\n◄►◄►',
     flavor: 'Together, we see everything.',
@@ -406,6 +428,8 @@ export const VERSES = {
     trigger:'When your active would take damage', text:'If you have bench, reduce damage by 15.',
     triggerDef: { event: 'beforeDamage', condition: { target: 'me.active', hasBench: true }, optional: true },
     effects: [{ type: 'reduceDamage', amount: 15 }] },
+  
+  // Shell Pack verses
   shellArmor: { id:'shellArmor', name:'Shell Armor', type:'cast', cost:1,
     art: ' /==\\\n| ♥ |\n \\==/',
     flavor: 'Hard outside, soft inside.',
@@ -444,28 +468,38 @@ export const VERSES = {
     art: ' ◆\n<◆>\n ◆',
     flavor: 'Diamonds do not shatter.',
     text:'Prevent the next instance of damage to your creatures.',
-    customHandler: true },
+    customHandler: true },  // Player-level flag, not creature-specific
 };
 
 export const DECKS = {
   shadow: {
+    // 8 creatures: 2 whisper, 2 gloom, 2 shadePup (new!), 1 mireveil, 1 duskfang
     creatures: ['whisper','whisper','gloom','gloom','shadePup','shadePup','mireveil','duskfang'],
+    // 12 verses
     verses: ['darkPact','darkPact','darkPact','graveEcho','graveEcho','soulSiphon','soulSiphon','soulTrap','soulTrap','graveRise','graveRise','manaDrain']
   },
   fang: {
+    // 8 creatures: 2 emberfang (new!), 2 cindermaw, 2 bladewhisker, 1 pulsefin, 1 stormtalon
     creatures: ['emberfang','emberfang','cindermaw','cindermaw','bladewhisker','bladewhisker','pulsefin','stormtalon'],
+    // 12 verses: now with ignite!
     verses: ['ignite','ignite','ignite','predatorsMark','predatorsMark','bloodMoon','bloodMoon','phantomWall','phantomWall','vengeance','vengeance','lastBreath']
   },
   venom: {
+    // 8 creatures: 2 leechling (new!), 2 thornling, 2 hexweaver, 1 sundewqueen, 1 echomask
     creatures: ['leechling','leechling','thornling','thornling','hexweaver','hexweaver','sundewqueen','echomask'],
+    // 12 verses
     verses: ['secondWind','secondWind','soulSiphon','soulSiphon','soulSiphon','banish','banish','soulTrap','soulTrap','phantomWall','phantomWall','lastBreath']
   },
   swarm: {
+    // 8 creatures: pack synergy focus (includes Hollowfox for defense, Broodmother for spawning)
     creatures: ['fangpup','fangpup','hiveling','hiveling','skitter','hollowfox','alpha','broodmother'],
+    // 12 verses: draw, summon, bench synergy
     verses: ['packTactics','packTactics','packTactics','callOfTheWild','callOfTheWild','sacrifice','sacrifice','denMother','denMother','swarmShield','swarmShield','lastBreath']
   },
   shell: {
+    // 8 creatures: defensive wall, damage reduction
     creatures: ['shellkin','shellkin','pebbleback','pebbleback','ironhide','coilshell','bulwark','titanback'],
+    // 12 verses: healing, damage prevention, retaliation
     verses: ['shellArmor','shellArmor','shellArmor','regenerate','regenerate','fortify','fortify','brace','brace','spikeShield','spikeShield','unbreakable']
   }
 };

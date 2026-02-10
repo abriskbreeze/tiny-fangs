@@ -1,85 +1,31 @@
 // ═══════════════════════════════════════════════════════════════
 // GAME ENGINE (Server-side)
 // ═══════════════════════════════════════════════════════════════
+// Phase 2 Migration: Now uses shared/ for card creation and game initialization
+// Complex effects logic still here - will move to shared/ in Phase 3/4
 
-import { CREATURES, VERSES, DECKS } from './cards.js';
-import { uid, shuffle } from './utils.js';
-
-// ═══════════════════════════════════════════════════════════════
-// CARD CREATION
-// ═══════════════════════════════════════════════════════════════
-
-function mkCreature(id) {
-  const t = CREATURES[id];
-  return { 
-    ...t, 
-    cardType: 'creature', 
-    curHp: t.hp, 
-    status: null, 
-    uid: uid(), 
-    firstAtk: true,
-    summonedThisTurn: false  // For Whisper's Elusive
-  };
-}
-
-function mkVerse(id) {
-  const t = VERSES[id];
-  return { ...t, cardType: 'verse', uid: uid() };
-}
-
-function mkDeck(deckId) {
-  const def = DECKS[deckId];
-  const cards = [
-    ...def.creatures.map(mkCreature),
-    ...def.verses.map(mkVerse)
-  ];
-  return shuffle(cards);
-}
+// Import from shared module (single source of truth)
+import {
+  CREATURES,
+  VERSES,
+  DECKS,
+  mkCreature,
+  mkVerse,
+  mkDeck,
+  mkPlayer as sharedMkPlayer,
+  createGame as sharedCreateGame
+} from '../shared/index.js';
 
 // ═══════════════════════════════════════════════════════════════
-// PLAYER CREATION
+// GAME INITIALIZATION (Re-export from shared)
 // ═══════════════════════════════════════════════════════════════
 
 export function mkPlayer(deckId) {
-  const deck = mkDeck(deckId);
-  const hand = deck.splice(0, 5);
-  return {
-    lp: 3,
-    mana: 1,
-    maxMana: 1,
-    deck,
-    hand,
-    active: null,
-    bench: [],
-    grave: [],
-    setVerse: null,
-    usedManaSurge: false,
-    usedLastBreath: false,
-    attackBonuses: [], // [{source, value}]
-    poisoned: false,
-    chainLightning: 0,
-    unbreakable: false  // For Unbreakable verse
-  };
+  return sharedMkPlayer(deckId);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GAME CREATION
-// ═══════════════════════════════════════════════════════════════
-
 export function createGame(deck1Id, deck2Id) {
-  return {
-    turn: 1,
-    currentPlayer: 1,  // 1 or 2
-    players: [
-      mkPlayer(deck1Id),  // Player 1 (index 0)
-      mkPlayer(deck2Id)   // Player 2 (index 1)
-    ],
-    log: [],
-    winner: null,
-    firstTurn: true,
-    hasAttacked: false,  // Track if current player attacked this turn
-    hasRetreated: false  // Track if current player retreated this turn
-  };
+  return sharedCreateGame(deck1Id, deck2Id);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -268,6 +214,16 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
     case 'phantomWall':
       // beforeAttack: Negate the attack
       negated = true;
+      // Deal 10 damage to attacker
+      if (context.attacker) {
+        const ko = applyDamage(context.attacker, 10);
+        events.push({ type: 'damage', side: enemySide, amount: 10, source: 'Phantom Wall' });
+        if (ko) {
+          events.push({ type: 'ko', side: enemySide, creature: context.attacker.name });
+          enemy.grave.push(context.attacker);
+          enemy.active = null;
+        }
+      }
       break;
       
     case 'spikeShield':
@@ -1426,13 +1382,14 @@ export function endTurn(state, playerIdx) {
   // Switch turn
   state.currentPlayer = nextPlayerIdx + 1;
   state.turn += (nextPlayerIdx === 0 ? 1 : 0);  // Increment turn when it cycles back to player 1
+  const wasFirstTurn = state.firstTurn;
   state.firstTurn = false;
   state.hasAttacked = false;
   state.hasRetreated = false;
   
   // Next player: increment mana and draw
   // Don't increment mana on very first turn end (P2's first turn starts with 1 mana like P1)
-  if (!state.firstTurn) {
+  if (!wasFirstTurn) {
     nextPlayer.maxMana = Math.min(5, nextPlayer.maxMana + 1);
   }
   nextPlayer.mana = nextPlayer.maxMana;

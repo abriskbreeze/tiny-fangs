@@ -2809,6 +2809,10 @@
     let isHost = false;
     let selectedDeckId = null;
     
+    // Update queue for batching server state updates
+    let updateQueue = [];
+    let processingQueue = false;
+    
     function connectWebSocket() {
       return new Promise((resolve, reject) => {
         ws = new WebSocket(WS_SERVER);
@@ -2881,7 +2885,7 @@
           
         case 'stateUpdate':
           console.log('📊 State update', msg.events);
-          updateFromServer(msg.state, msg.events, msg.pendingAction);
+          queueUpdate(msg.state, msg.events, msg.pendingAction);
           break;
           
         case 'turnChange':
@@ -2987,44 +2991,51 @@
       }
     }
     
-    // Update client state from server
-    async function updateFromServer(serverState, events, pendingAction) {
-      // Preserve log before state update
+    // Queue update to prevent animations from being interrupted
+    async function queueUpdate(serverState, events, pendingAction) {
+      updateQueue.push({ serverState, events, pendingAction });
+      if (!processingQueue) {
+        processingQueue = true;
+        while (updateQueue.length > 0) {
+          const update = updateQueue.shift();
+          await processUpdate(update.serverState, update.events, update.pendingAction);
+        }
+        processingQueue = false;
+      }
+    }
+    
+    // Process a single state update from server
+    async function processUpdate(serverState, events, pendingAction) {
       const oldLog = state.G?.log || [];
-      const oldTurn = state.G?.myTurn;
       
-      // Update state FIRST so DOM has new data
-      state.G = convertServerState(serverState);
-      
-      // Restore log entries
-      state.G.log = oldLog;
-      
-      // Render BEFORE animations so elements exist
-      render();
-      
-      // Play events for animations (now elements exist in DOM)
-      if (events && events.length > 0) {
+      if (!events || events.length === 0) {
+        state.G = convertServerState(serverState);
+        state.G.log = oldLog;
+        render();
+      } else {
+        // Render CURRENT state first (elements must exist)
+        render();
+        
+        // Play animations on current state
         await playServerEvents(events);
+        
+        // NOW update to final state
+        state.G = convertServerState(serverState);
+        state.G.log = oldLog;
+        render();
       }
       
-      // Turn banner is handled by turnStart event in playServerEvents
-      // Don't duplicate it here
+      renderLog();
       
-      // Make sure turn indicator is updated
       if (state.G.isMultiplayer) {
         updateTurnUI();
       }
       
-      // Check for game over
       if (state.G.winner !== null) {
         const youWon = state.G.winner === 'me';
         showGameOver(youWon);
       }
       
-      // Note: We already rendered before animations, no need to render again
-      // Double render was causing double animations
-      
-      // Handle pending action (e.g., Skitter swap prompt)
       if (pendingAction) {
         await handlePendingAction(pendingAction);
       }

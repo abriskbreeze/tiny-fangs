@@ -667,6 +667,13 @@ tiny-fangs/
 ├── MEMORY.md           # Project memory
 ├── README.md           # Quick start
 │
+├── shared/             # Shared logic (client + server)
+│   ├── cards.js        # Card definitions (29 creatures, 26 verses)
+│   ├── effects.js      # Effect primitives (28 types)
+│   ├── triggers.js     # Trigger matching (priority-based)
+│   ├── engine.js       # Core game operations
+│   └── index.js        # Module exports (23 exports)
+│
 ├── src/                # Modules
 │   ├── state.js        # Global state management
 │   ├── cards.js        # Card definitions (CREATURES, VERSES, DECKS)
@@ -694,6 +701,106 @@ tiny-fangs/
 └── tasks/              # Planning docs
     └── *.md            # Task tracking
 ```
+
+---
+
+## Multiplayer Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       MULTIPLAYER NETWORK FLOW                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   PLAYER 1 (Host)                    PLAYER 2 (Guest)                   │
+│   ┌─────────────┐                    ┌─────────────┐                   │
+│   │   Browser   │                    │   Browser   │                   │
+│   │  index.html │                    │  index.html │                   │
+│   └──────┬──────┘                    └──────┬──────┘                   │
+│          │ WebSocket                        │ WebSocket                 │
+│          ▼                                  ▼                           │
+│   ┌─────────────────────────────────────────────────────┐              │
+│   │                    SERVER (Node.js)                  │              │
+│   │                                                      │              │
+│   │   Room Manager ──▶ Shared Engine ──▶ Broadcast       │              │
+│   │                                                      │              │
+│   └─────────────────────────────────────────────────────┘              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Shared Module Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         SHARED MODULE (shared/)                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│   │  cards.js   │  │ effects.js  │  │ triggers.js │  │  engine.js  │  │
+│   │  (29 crea-  │  │ (28 effect  │  │ (priority   │  │ (core game  │  │
+│   │   tures,    │  │  primitives)│  │  matching)  │  │  operations)│  │
+│   │  26 verses) │  │             │  │             │  │             │  │
+│   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  │
+│          └─────────────────┴─────────────────┴─────────────────┘        │
+│                                    │                                    │
+│                            ┌───────┴───────┐                           │
+│                            │   index.js    │                           │
+│                            │ (23 exports)  │                           │
+│                            └───────────────┘                           │
+│                                    │                                    │
+│              ┌─────────────────────┼─────────────────────┐             │
+│              ▼                                           ▼             │
+│   ┌─────────────────────┐                   ┌─────────────────────┐   │
+│   │   CLIENT (Browser)  │                   │   SERVER (Node.js)  │   │
+│   │  + Animation layer  │                   │  + WebSocket layer  │   │
+│   └─────────────────────┘                   └─────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Single Source of Truth
+
+The `shared/` module embodies a key architectural principle: **single source of truth for game logic**.
+
+### Why It Exists
+
+**Problem:** Prior to v0.4.0, game logic existed in two places:
+- Client: `src/cards.js`, `src/effects.js`, `src/triggers.js`
+- Server: Hardcoded switch cases in `server/GameEngine.js`
+
+This led to:
+- **Bugs:** Server missing effects (e.g., Phantom Wall not dealing damage)
+- **Drift:** Changes made in one place but not the other
+- **Maintenance burden:** Every rule change required dual implementation
+
+**Solution:** Extract all game rules into `shared/` module, used by both client and server.
+
+### What Goes in `shared/`
+
+✅ **Belongs in shared:**
+- Card definitions (stats, abilities, effects)
+- Effect primitives (damage, heal, summon, etc.)
+- Trigger matching logic
+- Core game operations (attack, summon, cast)
+- Win/loss conditions
+- Turn phase logic
+
+❌ **Does NOT belong in shared:**
+- Animation (client-only)
+- WebSocket code (server-only)
+- AI decision logic (client-only for now)
+- DOM rendering (client-only)
+- Session management (server-only)
+
+### Benefits
+
+1. **Correctness:** One implementation = one truth
+2. **Testability:** Shared logic can be tested once
+3. **Maintainability:** Change a card once, works everywhere
+4. **Multiplayer parity:** Client and server always agree on rules
 
 ---
 
