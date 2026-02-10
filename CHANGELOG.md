@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.64] - 2026-02-10
+
+### Changed
+- Multiplayer fixes: Ignite damage, animation positioning, Last Breath, deck/hand counts
+
+---
+
+
 ## [0.4.63] - 2026-02-10
 
 ### Changed
