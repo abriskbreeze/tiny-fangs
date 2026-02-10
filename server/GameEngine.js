@@ -976,8 +976,8 @@ export function executeAction(state, playerIdx, action) {
           return { state, events, error: 'Invalid target' };
         }
         
-        const ko = applyDamage(target, 30);
-        events.push({ type: 'damage', side: oppSide, amount: 30, target: target.name });
+        const ko = applyDamage(target, 15);
+        events.push({ type: 'damage', side: oppSide, amount: 15, target: target.name });
         
         if (ko) {
           events.push({ type: 'ko', side: oppSide, creature: target.name });

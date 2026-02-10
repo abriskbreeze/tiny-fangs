@@ -4094,10 +4094,10 @@
       $('d-opp-mana-pips').innerHTML = renderManaPips(state.G.opp.mana, state.G.opp.maxMana);
       
       // Stats
-      $('d-deck').textContent = state.G.me.deck.length;
+      $('d-deck').textContent = state.G.me.deckCount ?? state.G.me.deck?.length ?? 0;
       $('d-grave').textContent = state.G.me.grave.length;
-      $('d-opp-deck').textContent = state.G.opp.deck.length;
-      $('d-opp-hand').textContent = state.G.opp.hand.length;
+      $('d-opp-deck').textContent = state.G.opp.deckCount ?? state.G.opp.deck?.length ?? 0;
+      $('d-opp-hand').textContent = state.G.opp.handCount ?? state.G.opp.hand?.length ?? 0;
       $('d-opp-grave').textContent = state.G.opp.grave.length;
       $('m-my-grave-ct').textContent = state.G.me.grave.length;
       $('m-opp-grave-ct').textContent = state.G.opp.grave.length;
@@ -4128,8 +4128,8 @@
       $('d-opp-bench').innerHTML = renderBench(state.G.opp.bench);
       
       // Hand
-      $('m-hand-ct').textContent = state.G.me.hand.length;
-      $('d-hand-ct').textContent = state.G.me.hand.length;
+      $('m-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
+      $('d-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
       $('m-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, false, state.selectedCard)).join('');
       $('d-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, true, state.selectedCard)).join('');
       
@@ -7382,7 +7382,7 @@
       state.G.me.mana = state.G.me.maxMana;
       
       try {
-        if (state.G.me.deck.length > 0) {
+        if (state.G.me.deck && state.G.me.deck.length > 0) {
           state.G.me.hand.push(state.G.me.deck.pop());
         }
         render();
