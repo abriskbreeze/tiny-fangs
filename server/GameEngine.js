@@ -557,6 +557,17 @@ export function executeAction(state, playerIdx, action) {
         break; // Attack negated - don't process further
       }
       
+      // Cindermaw: Frenzy - attacks twice
+      const attackCount = attacker.id === 'cindermaw' ? 2 : 1;
+      if (attacker.id === 'cindermaw') {
+        events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Frenzy' });
+      }
+      
+      // Attack loop (Cindermaw attacks twice, others once)
+      for (let hit = 0; hit < attackCount; hit++) {
+        // Skip if attacker died (from reflection damage, etc.)
+        if (!player.active || player.active.uid !== attacker.uid) break;
+        
       // Calculate damage
       let damage = getEffectiveAtk(attacker, player, opponent);
       
@@ -847,26 +858,6 @@ export function executeAction(state, playerIdx, action) {
           events.push({ type: 'heal', side, amount: 30 });
         }
         
-        // === CINDERMAW SELF-DAMAGE (always after attack) ===
-        
-        if (attacker.id === 'cindermaw' && player.active && player.active.uid === attacker.uid) {
-          const selfKo = applyDamage(attacker, 10);
-          events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Frenzy' });
-          events.push({ type: 'damage', side, amount: 10, source: 'Frenzy' });
-          if (selfKo) {
-            events.push({ type: 'ko', side, creature: attacker.name });
-            const koedCreature = attacker;
-            player.grave.push(attacker);
-            player.active = null;
-            
-            // Auto-swap bench to active for attacker
-            autoSwapBenchToActive(player, side, events);
-            
-            // CHECK: onAllyKO trigger
-            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
-            events.push(...onAllyKOTrigger.events);
-          }
-        }
       } else {
         // Direct attack on life points
         // CHECK: onLifeLoss trigger (before LP decrement)
@@ -878,23 +869,25 @@ export function executeAction(state, playerIdx, action) {
           events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
         }
         
-        // Cindermaw self-damage even on direct attack
-        if (attacker.id === 'cindermaw') {
-          const selfKo = applyDamage(attacker, 10);
-          events.push({ type: 'damage', side, amount: 10, source: 'Frenzy' });
-          if (selfKo) {
-            events.push({ type: 'ko', side, creature: attacker.name });
-            const koedCreature = attacker;
-            player.grave.push(attacker);
-            player.active = null;
-            
-            // Auto-swap bench to active for attacker
-            autoSwapBenchToActive(player, side, events);
-            
-            // CHECK: onAllyKO trigger
-            const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
-            events.push(...onAllyKOTrigger.events);
-          }
+      }
+      } // End attack loop
+      
+      // Cindermaw self-damage (once after all attacks)
+      if (attacker.id === 'cindermaw' && player.active && player.active.uid === attacker.uid) {
+        const selfKo = applyDamage(attacker, 10);
+        events.push({ type: 'damage', side, amount: 10, source: 'Frenzy (Burnout)' });
+        if (selfKo) {
+          events.push({ type: 'ko', side, creature: attacker.name });
+          const koedCreature = attacker;
+          player.grave.push(attacker);
+          player.active = null;
+          
+          // Auto-swap bench to active for attacker
+          autoSwapBenchToActive(player, side, events);
+          
+          // CHECK: onAllyKO trigger
+          const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature }, player, opponent, side, oppSide);
+          events.push(...onAllyKOTrigger.events);
         }
       }
       

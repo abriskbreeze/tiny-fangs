@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.61] - 2026-02-09
+
+### Changed
+- Cindermaw double attack on server, new tunnel URL
+
+---
+
+
 ## [0.4.60] - 2026-02-09
 
 ### Changed
