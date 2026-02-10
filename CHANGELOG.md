@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.65] - 2026-02-10
+
+### Changed
+- Trigger refactor: 8 set verses now use processEffects from shared module
+
+---
+
+
 ## [0.4.64] - 2026-02-10
 
 ### Changed
