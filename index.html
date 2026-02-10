@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.57</title>
+  <title>TINY FANGS v0.4.58</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.57 • Card Battler</p>
+    <p class="sub">v0.4.58 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.57</div>
+      <div class="logo">TINY FANGS v0.4.58</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -4470,23 +4470,13 @@
     }
     
     async function executeDrop(card, zone) {
-      // Use unified dispatcher for all actions
-      if (zone.type === 'cast') {
-        // Use castVerse() to handle selection before dispatch
-        await castVerse(card);
-        return;
-      }
+      // Use unified playCard for all card plays
+      // This handles selection, validation, and dispatch
+      await playCard(card);
+      return;
       
-      if (zone.type === 'summon-active' || zone.type === 'summon-bench') {
-        const target = zone.type === 'summon-bench' ? 'bench' : 'active';
-        await dispatchAction('summon', { card, cardUid: card.uid, target });
-        return;
-      }
-      
-      if (zone.type === 'set-verse') {
-        await dispatchAction('set', { card, cardUid: card.uid });
-        return;
-      }
+      // Legacy code below - kept for reference but unreachable
+      // TODO: Remove after confirming playCard works for all cases
       
       // For other types, deduct mana and remove from hand
       state.G.me.mana -= card.cost;
@@ -4678,6 +4668,49 @@
     // ACTIONS
     // ═══════════════════════════════════════════════════════════════
     
+    // ═══════════════════════════════════════════════════════════════
+    // UNIFIED CARD PLAY - Single entry point for all card plays
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * Play a card from hand - unified entry point for drag, click, modal
+     * Routes to appropriate handler based on card type
+     * @param {object} card - Card to play
+     */
+    async function playCard(card) {
+      if (!card) return;
+      if (state.animating) return;
+      
+      if (card.cardType === 'creature') {
+        await playCreature(card);
+      } else if (card.cardType === 'verse') {
+        if (card.type === 'cast') {
+          await playCastVerse(card);
+        } else if (card.type === 'set') {
+          await playSetVerse(card);
+        }
+      }
+    }
+    
+    /**
+     * Play a creature card
+     */
+    async function playCreature(card) {
+      closeModal();
+      const target = !state.G.me.active ? 'active' : 'bench';
+      await dispatchAction('summon', { card, cardUid: card.uid, target });
+    }
+    
+    /**
+     * Play a set verse
+     */
+    async function playSetVerse(card) {
+      closeModal();
+      await dispatchAction('set', { card, cardUid: card.uid });
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    
     function doSummon() {
       if (state.animating) return; // Block during animations
       const creatures = state.G.me.hand.filter(c => c.cardType === 'creature');
@@ -4687,15 +4720,13 @@
         name: c.name,
         sub: `Cost ${c.cost} | ${c.hp} HP | ${c.atk} ATK`,
         disabled: c.cost > state.G.me.mana,
-        action: () => summonCreature(c)
+        action: () => playCard(c)
       })));
     }
     
-    // Wrapper - all entry points should use this
+    // Legacy alias for backwards compatibility
     async function summonCreature(c) {
-      closeModal();
-      const target = !state.G.me.active ? 'active' : 'bench';
-      await dispatchAction('summon', { card: c, cardUid: c.uid, target });
+      await playCreature(c);
     }
     
     // Local execution (solo mode only)
@@ -4765,16 +4796,16 @@
         name: c.name,
         sub: `Cost ${c.cost} | ${c.text}`,
         disabled: c.cost > state.G.me.mana || (c.id === 'manaSurge' && state.G.me.usedManaSurge),
-        action: () => castVerse(c)
+        action: () => playCard(c)
       })));
     }
     
-    // Wrapper - handles selection BEFORE dispatchAction for both solo and MP
-    async function castVerse(c) {
+    // Cast verse handler - handles selection BEFORE dispatchAction
+    async function playCastVerse(c) {
       closeModal();
       
       // DEBUG: Log card data to verify selection property
-      console.log('🎯 castVerse called with:', c.name);
+      console.log('🎯 playCastVerse called with:', c.name);
       console.log('🎯 Card object:', JSON.stringify(c, null, 2));
       console.log('🎯 c.selection:', c.selection);
       console.log('🎯 c.selection?.type:', c.selection?.type);

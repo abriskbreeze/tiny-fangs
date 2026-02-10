@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.58] - 2026-02-09
+
+### Changed
+- Unified playCard() entry point for all card plays
+
+---
+
+
 ## [0.4.57] - 2026-02-09
 
 ### Changed
