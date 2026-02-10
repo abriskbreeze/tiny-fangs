@@ -1095,3 +1095,32 @@ NEW:  processEffects(verse, ctx)       ← reads from verse.effects[]
 **Result:** Balance changes now only need to update `shared/cards.js`.
 
 **Tests:** 262 passing
+
+
+### 2026-02-10 — Full Effects Migration (v0.4.66)
+
+**Goal:** All cards use `processEffects()` for future-proofing (hundreds of cards planned).
+
+**21 cards migrated:**
+
+Creature Abilities (10):
+- onSummon: Duskfang, Emberfang, Hiveling
+- afterAttack: Thornling, Mireveil, Hexweaver, Coilshell, Reflector
+- onKO/onHit: Gloom, Sundew Queen, Leechling
+
+Cast Verses (11):
+- ignite, secondWind, shellArmor, regenerate, manaSurge
+- predatorsMark, fortify, soulSiphon, darkPact, banish, bloodMoon
+
+Kept Custom:
+- graveEcho, packTactics, callOfTheWild, sacrifice (complex logic)
+- echomask, alpha, fangpup (special mechanics)
+
+**Infrastructure:**
+- `processCastVerseEffects()` helper added
+- `buildEffectsContext()` enhanced with selected target
+- `getEffectiveAtk()` fixed for creature-specific bonuses
+
+**Result:** New cards = just define effects array. Balance = edit shared/cards.js only.
+
+**Tests:** 262 passing
