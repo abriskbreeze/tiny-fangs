@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.70] - 2026-02-10
+
+### Changed
+- Extract JS to src/main.js - index.html now 390 lines
+
+---
+
+
 ## [0.4.69] - 2026-02-10
 
 ### Changed

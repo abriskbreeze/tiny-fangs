@@ -163,16 +163,24 @@ Major milestones:
 
 ## Architecture Milestone (2026-02-10)
 
-**Shared Engine Refactor Complete**
-- Server GameEngine: 1,724 → 149 lines (thin wrapper only)
-- All game logic now in `shared/engine.js` (1,583 lines)
-- Single source of truth for solo AND multiplayer
-- 262 tests passing
+**Shared Engine + Client Unification Complete (v0.4.69)**
 
-**Next opportunity: Client unification**
-- index.html has ~2,000 lines duplicate game logic for solo mode
-- Could import shared module, cut ~2,000 lines
-- Would guarantee solo/multiplayer parity forever
+| Component | Before | After |
+|-----------|--------|-------|
+| Server | 1,724 lines | 149 lines |
+| Client | 8,103 lines | 4,062 lines |
+| Tests | 262 | 281 |
+
+**Final architecture:**
+- `shared/engine.js` (1,583 lines) = ALL game logic
+- `server/GameEngine.js` (149 lines) = thin multiplayer wrapper
+- `index.html` (4,062 lines) = UI + animations + AI decisions
+- `src/styles.css` (2,371 lines) = extracted CSS
+
+**Key wins:**
+- Solo/multiplayer use identical code paths
+- Balance changes = edit `shared/cards.js` only
+- 7 phases executed via subagents in ~45 minutes
 
 ---
 
