@@ -20,6 +20,9 @@ export const ANIM_TIMING = {
 };
 
 export const Anim = {
+  // Cached element positions (set before state updates to preserve positions for animations)
+  cachedPositions: {},
+  
   // Add animation class, remove after duration. Returns promise.
   play(el, animClass, durationMs = 300) {
     return new Promise(resolve => {
@@ -52,19 +55,55 @@ export const Anim = {
     return elements[index] || elements[0] || null;
   },
   
-  // Floating damage/heal number
-  floatText(text, type, targetEl) {
+  // Get element center position (for caching before DOM changes)
+  getElementCenter(selector) {
+    const el = this.getVisibleElement(selector);
+    if (!el || el.offsetParent === null) return null;
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  },
+  
+  // Cache current positions of active creatures (call before state updates)
+  cacheActivePositions() {
+    this.cachedPositions = {
+      me: this.getElementCenter('#m-my-active .card-active, #d-my-active .card-active'),
+      opp: this.getElementCenter('#m-opp-active .card-active, #d-opp-active .card-active'),
+      myLp: this.getElementCenter('#m-my-lp, #d-my-lp'),
+      oppLp: this.getElementCenter('#m-opp-lp, #d-opp-lp')
+    };
+  },
+  
+  // Get position for animation (cached or live)
+  getAnimPosition(side) {
+    return this.cachedPositions[side] || this.getElementCenter(
+      side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : 
+      side === 'opp' ? '#m-opp-active .card-active, #d-opp-active .card-active' :
+      side === 'myLp' ? '#m-my-lp, #d-my-lp' :
+      '#m-opp-lp, #d-opp-lp'
+    );
+  },
+  
+  // Floating damage/heal number - accepts targetEl OR coords {x, y}
+  floatText(text, type, targetElOrCoords) {
     const el = document.createElement('div');
     el.className = `float-text ${type}`;
     el.textContent = text;
     
-    // Position centered on target or center screen
-    if (targetEl && targetEl.offsetParent !== null) {
-      const rect = targetEl.getBoundingClientRect();
+    // Handle coordinate object directly (for cached positions)
+    if (targetElOrCoords && typeof targetElOrCoords === 'object' && 'x' in targetElOrCoords) {
+      el.style.left = targetElOrCoords.x + 'px';
+      el.style.top = targetElOrCoords.y + 'px';
+      el.style.transform = 'translate(-50%, -50%)';
+    }
+    // Handle DOM element
+    else if (targetElOrCoords && targetElOrCoords.offsetParent !== null) {
+      const rect = targetElOrCoords.getBoundingClientRect();
       el.style.left = rect.left + rect.width / 2 + 'px';
       el.style.top = rect.top + rect.height / 2 + 'px';
       el.style.transform = 'translate(-50%, -50%)';
-    } else {
+    }
+    // Fallback to center screen
+    else {
       el.style.left = '50%';
       el.style.top = '40%';
       el.style.transform = 'translate(-50%, -50%)';
@@ -114,7 +153,7 @@ export const Anim = {
   // Attack animation sequence - returns promise that resolves when complete
   attack(attackerSide, defenderSide, damage) {
     return new Promise(resolve => {
-      const defEl = this.getCardEl(null, defenderSide);
+      const defPos = this.getAnimPosition(defenderSide);
       
       // Lunge animation
       const lungeClass = attackerSide === 'me' ? 'anim-lunge-up' : 'anim-lunge-down';
@@ -127,7 +166,7 @@ export const Anim = {
       this.screenFlash('red');
       this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
       this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
-      this.floatText(`-${damage}`, 'damage', defEl);
+      this.floatText(`-${damage}`, 'damage', defPos);
       
       // Resolve after full sequence
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
@@ -150,14 +189,15 @@ export const Anim = {
   },
   
   // Damage animation (non-combat) - returns promise
-  damage(side, amount, targetEl) {
+  damage(side, amount) {
     return new Promise(resolve => {
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const pos = this.getAnimPosition(side);
       // Same hit effects as attack: screen flash, tilt wobble, red flash
       this.screenFlash('red');
       this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
       this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH);
-      this.floatText(`-${amount}`, 'damage', targetEl || this.getCardEl(null, side));
+      this.floatText(`-${amount}`, 'damage', pos);
       setTimeout(resolve, ANIM_TIMING.SHAKE);
     });
   },
@@ -184,10 +224,10 @@ export const Anim = {
   // Heal animation - returns promise
   heal(side, amount) {
     return new Promise(resolve => {
-      const el = this.getCardEl(null, side);
+      const pos = this.getAnimPosition(side);
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
       this.playOn(selector, 'anim-flash-green', ANIM_TIMING.FLASH);
-      this.floatText(`+${amount}`, 'heal', el);
+      this.floatText(`+${amount}`, 'heal', pos);
       setTimeout(resolve, ANIM_TIMING.FLASH);
     });
   },
@@ -198,13 +238,13 @@ export const Anim = {
       // Screen flash for LP hits
       this.screenFlash('red');
       const selector = side === 'me' ? '#m-my-lp, #d-my-lp' : '#m-opp-lp, #d-opp-lp';
+      const pos = this.getAnimPosition(side === 'me' ? 'myLp' : 'oppLp');
       this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH + 100);
       this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
       this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
-      const el = this.getVisibleElement(selector);
       // Show hearts lost instead of number
       const hearts = '-' + '♥'.repeat(amount);
-      this.floatText(hearts, 'damage', el);
+      this.floatText(hearts, 'damage', pos);
       setTimeout(resolve, ANIM_TIMING.SHAKE + 100);
     });
   },
@@ -303,10 +343,10 @@ export const Anim = {
   // KO animation - returns promise
   ko(side) {
     return new Promise(resolve => {
-      const el = this.getCardEl(null, side);
+      const pos = this.getAnimPosition(side);
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
       this.playOn(selector, 'anim-ko', ANIM_TIMING.KO);
-      this.floatText('KO!', 'ko', el);
+      this.floatText('KO!', 'ko', pos);
       setTimeout(resolve, ANIM_TIMING.KO);
     });
   },
@@ -354,9 +394,9 @@ export const Anim = {
   poisonTick(side) {
     return new Promise(resolve => {
       const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const pos = this.getAnimPosition(side);
       this.playOn(selector, 'anim-poison', 500);
-      const el = this.getCardEl(null, side);
-      this.floatText('-10', 'damage', el); // Red like regular damage
+      this.floatText('-10', 'damage', pos); // Red like regular damage
       setTimeout(resolve, 500);
     });
   },

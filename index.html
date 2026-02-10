@@ -3008,6 +3008,9 @@
     async function processUpdate(serverState, events, pendingAction) {
       const oldLog = state.G?.log || [];
       
+      // Cache element positions BEFORE state update (for animations that need them)
+      Anim.cacheActivePositions();
+      
       // Always update state FIRST so DOM elements exist for animations
       // (summon needs element in DOM, KO animation handles missing elements gracefully)
       state.G = convertServerState(serverState);

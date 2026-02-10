@@ -334,8 +334,9 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       break;
       
     case 'lastBreath':
-      // onLifeLoss: Negate LP loss only when at 1 LP (would die)
-      if (!owner.usedLastBreath && owner.lp === 1) {
+      // onLifeLoss: Negate LP loss only when this damage would kill (LP <= damage amount)
+      const damageAmount = context.amount || 1;
+      if (!owner.usedLastBreath && owner.lp <= damageAmount) {
         negated = true;
         owner.usedLastBreath = true;
         events.push({ type: 'triggerVerse', side: ownerSide, verse: 'Last Breath' });
