@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.69] - 2026-02-10
+
+### Changed
+- Client unification complete - 8103 to 4062 lines
+
+---
+
+
 ## [0.4.68] - 2026-02-10
 
 ### Changed

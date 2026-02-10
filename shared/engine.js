@@ -223,7 +223,7 @@ export function resolveSelection(state, playerIdx, action, selectionConfig) {
   
   const player = state.players[playerIdx];
   const opponent = state.players[1 - playerIdx];
-  const targetUid = action.targetUid || action.graveUid || action.sacrificeUid;
+  const targetUid = action.targetUid || action.graveUid || action.sacrificeUid || action.selectedUid;
   
   if (!targetUid && selectionConfig.required !== false) {
     return { needsSelection: true, config: selectionConfig };
@@ -235,8 +235,8 @@ export function resolveSelection(state, playerIdx, action, selectionConfig) {
   let ownerKey = null;
   let idx = -1;
   
-  // Search based on selection type
-  const checkPlayer = (p, key) => {
+  // Search for target by UID in specified locations
+  const checkBoard = (p, key) => {
     if (p.active?.uid === targetUid) {
       target = p.active;
       location = 'active';
@@ -253,6 +253,10 @@ export function resolveSelection(state, playerIdx, action, selectionConfig) {
       idx = benchIdx;
       return true;
     }
+    return false;
+  };
+  
+  const checkGrave = (p, key) => {
     const graveIdx = p.grave.findIndex(c => c.uid === targetUid && c.cardType === 'creature');
     if (graveIdx !== -1) {
       target = p.grave[graveIdx];
@@ -265,22 +269,36 @@ export function resolveSelection(state, playerIdx, action, selectionConfig) {
     return false;
   };
   
-  // Check appropriate players based on selection type
-  const type = selectionConfig.type;
-  if (type === 'anyCreature' || type === 'ownCreature') {
-    checkPlayer(player, 'me');
-  }
-  if (!target && (type === 'anyCreature' || type === 'enemyCreature')) {
-    checkPlayer(opponent, 'opp');
-  }
-  if (!target && type === 'graveCreature') {
-    const graveIdx = player.grave.findIndex(c => c.uid === targetUid && c.cardType === 'creature');
-    if (graveIdx !== -1) {
-      target = player.grave[graveIdx];
-      location = 'grave';
-      owner = player;
-      ownerKey = 'me';
-      idx = graveIdx;
+  // Normalize selection config format
+  // New format: { type: 'creature', filter: 'any'|'friendly'|'enemy', location: 'board'|'grave' }
+  // Old format: { type: 'anyCreature'|'ownCreature'|'graveCreature'|'enemyCreature' }
+  const configType = selectionConfig.type;
+  const filter = selectionConfig.filter;
+  const loc = selectionConfig.location;
+  
+  // Handle new declarative format
+  if (configType === 'creature') {
+    const checkFriendly = filter === 'any' || filter === 'friendly';
+    const checkEnemy = filter === 'any' || filter === 'enemy';
+    
+    if (loc === 'board') {
+      if (checkFriendly) checkBoard(player, 'me');
+      if (!target && checkEnemy) checkBoard(opponent, 'opp');
+    } else if (loc === 'grave') {
+      if (checkFriendly) checkGrave(player, 'me');
+      if (!target && checkEnemy) checkGrave(opponent, 'opp');
+    }
+  } 
+  // Handle old format for backwards compatibility
+  else {
+    if (configType === 'anyCreature' || configType === 'ownCreature') {
+      checkBoard(player, 'me');
+    }
+    if (!target && (configType === 'anyCreature' || configType === 'enemyCreature')) {
+      checkBoard(opponent, 'opp');
+    }
+    if (!target && configType === 'graveCreature') {
+      checkGrave(player, 'me');
     }
   }
   
@@ -656,6 +674,30 @@ export function summon(state, playerIdx, cardUid, target) {
         events.push({ type: 'ko', side: oppSide, creature: koInfo.creature.name });
         opponent.grave.push(koInfo.creature);
         if (opponent.active?.uid === koInfo.creature.uid) opponent.active = null;
+      }
+    }
+  }
+  
+  // Chain Lightning: damage newly summoned creature
+  if (player.chainLightning > 0) {
+    const chainDamage = player.chainLightning;
+    player.chainLightning = 0;
+    
+    // Find the card (might be on board or already KO'd)
+    const onBoard = player.active?.uid === card.uid || player.bench.some(c => c.uid === card.uid);
+    if (onBoard) {
+      card.curHp -= chainDamage;
+      events.push({ type: 'damage', side, amount: chainDamage, source: 'Chain Lightning' });
+      
+      if (card.curHp <= 0) {
+        events.push({ type: 'ko', side, creature: card.name, source: 'Chain Lightning' });
+        player.grave.push(card);
+        if (player.active?.uid === card.uid) {
+          player.active = null;
+          autoSwapBenchToActive(player, side, events);
+        } else {
+          player.bench = player.bench.filter(c => c.uid !== card.uid);
+        }
       }
     }
   }
@@ -1059,7 +1101,13 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
   if (verseTemplate?.selection) {
     const selection = resolveSelection(state, playerIdx, action, verseTemplate.selection);
     if (selection?.needsSelection) {
-      return { state, events, error: verseTemplate.selection.prompt || 'Select a target' };
+      // Return structured response so client can show selection UI
+      return { 
+        state, 
+        events, 
+        needsSelection: true, 
+        selectionConfig: { ...verseTemplate.selection, cardUid } 
+      };
     }
     if (selection?.error) {
       return { state, events, error: selection.error };
