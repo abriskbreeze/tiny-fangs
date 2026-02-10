@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.62] - 2026-02-09
+
+### Changed
+- Fix double trigger execution & Ironhide Iron Skin
+
+---
+
+
 ## [0.4.61] - 2026-02-09
 
 ### Changed

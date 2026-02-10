@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.61</title>
+  <title>TINY FANGS v0.4.62</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.61 • Card Battler</p>
+    <p class="sub">v0.4.62 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.61</div>
+      <div class="logo">TINY FANGS v0.4.62</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -5681,24 +5681,23 @@
           // getEffectiveAtk handles bladewhisker/echomask modifiers
           let dmg = hit === 0 ? baseDmg : getEffectiveAtk(attacker, state.G.me, state.G.opp);
           
-          // Emit beforeDamage event for trigger system (first hit only for set verses)
-          let triggerReduction = 0;
-          if (hit === 0) {
-            const beforeDamageCtx = await processTriggers('beforeDamage', {
-              targetOwner: 'opp',
-              targetLocation: 'active',
-              target: state.G.opp.active,
-              attacker,
-              defender: state.G.opp.active,
-              damage: dmg,
-              damageReduction: 0
-            }, state, {
-              promptTrigger,
-              showTriggerReveal,
-              log
-            });
-            triggerReduction = beforeDamageCtx.damageReduction || 0;
-          }
+          // Emit beforeDamage event for trigger system
+          // Set verses are consumed after first trigger; creature abilities (Ironhide) fire every hit
+          // Shellkin's Harden has perTurn:true flag which the trigger system checks
+          const beforeDamageCtx = await processTriggers('beforeDamage', {
+            targetOwner: 'opp',
+            targetLocation: 'active',
+            target: state.G.opp.active,
+            attacker,
+            defender: state.G.opp.active,
+            damage: dmg,
+            damageReduction: 0
+          }, state, {
+            promptTrigger,
+            showTriggerReveal,
+            log
+          });
+          const triggerReduction = beforeDamageCtx.damageReduction || 0;
           
           // Apply damage reduction (creature abilities + trigger system)
           let reduction = getEffectiveDamageReduction(state.G.opp.active, state.G.opp, false);
@@ -5707,13 +5706,8 @@
           
           if (reduction > 0) {
             dmg = Math.max(0, dmg - reduction);
-            if (hit === 0) { // Only collect sources once
-              reductionSources = getDamageReductionSources(state.G.opp.active, state.G.opp, false);
-              // Mark Harden as used this turn
-              if (state.G.opp.active.id === 'shellkin') {
-                state.G.opp.active.hardenUsed = true;
-              }
-            }
+            // Collect sources for logging (trigger system already logged its reductions)
+            reductionSources = getDamageReductionSources(state.G.opp.active, state.G.opp, false);
           }
           
           const hitNum = isCindermaw ? ` (hit ${hit + 1})` : '';
@@ -5891,7 +5885,7 @@
         // Check KO
         if (defenderKo) {
           // NOTE: Sundew Queen Digest now handled by afterAttack event trigger
-          await Anim.ko('opp');
+          // NOTE: Anim.ko() now called inside ko() after beforeKO triggers (fixes Vengeance animation bug)
           await ko(defender, state.G.opp, state.G.me.active, state.G.me);
         }
         
@@ -6675,24 +6669,23 @@
         // Recalculate damage for second hit (no bonuses)
         let dmg = hit === 0 ? baseDmg : getEffectiveAtk(attacker, ai, player);
         
-        // Emit beforeDamage event for trigger system (first hit only for set verses)
-        let triggerReduction = 0;
-        if (hit === 0) {
-          const beforeDamageCtx = await processTriggers('beforeDamage', {
-            targetOwner: 'me',
-            targetLocation: 'active',
-            target: player.active,
-            attacker: attacker,
-            defender: player.active,
-            damage: dmg,
-            damageReduction: 0
-          }, state, {
-            promptTrigger,
-            showTriggerReveal,
-            log
-          });
-          triggerReduction = beforeDamageCtx.damageReduction || 0;
-        }
+        // Emit beforeDamage event for trigger system
+        // Set verses are consumed after first trigger; creature abilities (Ironhide) fire every hit
+        // Shellkin's Harden has perTurn:true flag which the trigger system checks
+        const beforeDamageCtx = await processTriggers('beforeDamage', {
+          targetOwner: 'me',
+          targetLocation: 'active',
+          target: player.active,
+          attacker: attacker,
+          defender: player.active,
+          damage: dmg,
+          damageReduction: 0
+        }, state, {
+          promptTrigger,
+          showTriggerReveal,
+          log
+        });
+        const triggerReduction = beforeDamageCtx.damageReduction || 0;
         
         // Damage reduction (creature abilities + trigger system results)
         let reduction = getEffectiveDamageReduction(player.active, player, false);
@@ -6701,13 +6694,8 @@
         
         if (reduction > 0) {
           dmg = Math.max(0, dmg - reduction);
-          if (hit === 0) { // Only collect sources once
-            reductionSources = getDamageReductionSources(player.active, player, false);
-            // Mark Harden as used this turn
-            if (player.active.id === 'shellkin') {
-              player.active.hardenUsed = true;
-            }
-          }
+          // Collect sources for logging (trigger system already logged its reductions)
+          reductionSources = getDamageReductionSources(player.active, player, false);
         }
         
         // Unbreakable - prevent damage entirely (player-level flag, first hit only)
@@ -6878,7 +6866,7 @@
           hp: player.active?.curHp,
           playerKo 
         });
-        await Anim.ko('me');
+        // NOTE: Anim.ko() now called inside ko() after beforeKO triggers (fixes Vengeance animation bug)
         await ko(player.active, player, attacker, ai);
       } else if (player.active && player.active.curHp <= 0) {
         // DEBUG: Detect 0 HP without KO flag
@@ -6888,7 +6876,7 @@
           playerKo
         });
         // Force KO to prevent 0 HP creatures from staying on field
-        await Anim.ko('me');
+        // NOTE: Anim.ko() now called inside ko() after beforeKO triggers
         await ko(player.active, player, attacker, ai);
       }
       
@@ -7446,6 +7434,10 @@
           return;
         }
       }
+      
+      // Play KO animation AFTER beforeKO triggers (Vengeance can negate)
+      // This fixes the bug where KO animation plays even when negated
+      await Anim.ko(ownerKey);
       
       log(`${creature.name} KO'd!`, 'dmg');
       

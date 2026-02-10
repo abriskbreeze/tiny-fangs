@@ -410,6 +410,9 @@ async function processTriggers(event, context, state, gameCtx) {
     const effects = match.card.effects || match.card.ability?.effects;
 
     // Execute effects if card has them
+    // Track which effects are handled inline vs need processEffects
+    let needsProcessEffects = false;
+    
     if (effects) {
       for (const effect of effects) {
         // Handle damage reduction effect directly
@@ -446,27 +449,33 @@ async function processTriggers(event, context, state, gameCtx) {
             gameCtx.log(`${match.ownerKey === 'me' ? 'You' : 'Rival'} gained ${effect.amount} mana`);
           }
         }
-        // Other effects handled by processEffects
-        else if (gameCtx.processEffects) {
-          const effectCtx = {
-            state,
-            me: match.owner,
-            opp: match.owner === state.G.me ? state.G.opp : state.G.me,
-            log: gameCtx.log,
-            render: gameCtx.render,
-            promptGraveSelect: gameCtx.promptGraveSelect,
-            card: match.card,  // The card that triggered (for ability name in atkBonus)
-            self: match.type === 'ability' || match.type === 'summonAbility' || match.type === 'survivalAbility' || match.type === 'deathAbility' 
-              ? match.card   // For creature abilities, self = the creature
-              : null,
-            ...modifiedContext
-          };
-          const result = await gameCtx.processEffects(match.card, effectCtx);
-          
-          // Merge any modifications
-          if (result?.modifiedContext) {
-            modifiedContext = { ...modifiedContext, ...result.modifiedContext };
-          }
+        // Other effects need processEffects - mark for later
+        else {
+          needsProcessEffects = true;
+        }
+      }
+      
+      // BUG FIX: Call processEffects ONCE for all non-inline effects
+      // Previously called per-effect, which ran ALL effects multiple times
+      if (needsProcessEffects && gameCtx.processEffects) {
+        const effectCtx = {
+          state,
+          me: match.owner,
+          opp: match.owner === state.G.me ? state.G.opp : state.G.me,
+          log: gameCtx.log,
+          render: gameCtx.render,
+          promptGraveSelect: gameCtx.promptGraveSelect,
+          card: match.card,  // The card that triggered (for ability name in atkBonus)
+          self: match.type === 'ability' || match.type === 'summonAbility' || match.type === 'survivalAbility' || match.type === 'deathAbility' 
+            ? match.card   // For creature abilities, self = the creature
+            : null,
+          ...modifiedContext
+        };
+        const result = await gameCtx.processEffects(match.card, effectCtx);
+        
+        // Merge any modifications
+        if (result?.modifiedContext) {
+          modifiedContext = { ...modifiedContext, ...result.modifiedContext };
         }
       }
     }
