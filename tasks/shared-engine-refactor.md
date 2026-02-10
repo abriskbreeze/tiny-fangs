@@ -1,37 +1,41 @@
 # Shared Engine Refactor — Full Plan
 
-## Goal
-Server becomes a thin wrapper around shared/engine.js. All game logic lives in shared module.
+## ✅ COMPLETED (2026-02-10)
 
-## Current Problems
-1. Server duplicates: applyDamage, getEffectiveAtk, autoSwapBenchToActive
-2. Server has 1400+ lines of game logic that should be in shared
-3. Card-specific `if` statements for target selection
-4. SP (client) and MP (server) can drift
+**Server:** 1,724 → 149 lines (-91%)
 
-## Target Architecture
+## Achieved Architecture
 
 ```
-shared/                    — ALL game logic (pure functions)
-├── cards.js               — Card data + selection configs
-├── effects.js             — Effect primitives
-├── triggers.js            — Trigger matching  
-├── engine.js              — State transitions
-└── index.js               — Exports
-
-server/                    — Multiplayer wrapper only
-├── index.js               — WebSocket server
-└── GameEngine.js          — Thin wrapper (~200 lines)
-    - Room management
-    - Action validation
-    - Calls shared/engine.js
-    - State sync
-
-src/                       — Client only
-├── effects.js             — Wraps shared + animations
-├── cards.js               — Re-exports shared
-└── ... (ai, anim, render, multiplayer)
+┌─────────────────────────────────────────────────────────────┐
+│                         SHARED                              │
+├─────────────────────────────────────────────────────────────┤
+│  shared/engine.js (1,583 lines) — ALL game logic            │
+│  ├── executeAction() — main dispatcher                      │
+│  ├── summon(), attack(), castVerse(), endTurn()...          │
+│  ├── processEffects(), checkTriggers()                      │
+│  └── resolveSelection()                                     │
+│                                                             │
+│  shared/cards.js — Card data + selection configs            │
+│  shared/effects.js — Effect primitives                      │
+│  shared/triggers.js — Trigger matching                      │
+└─────────────────────────────────────────────────────────────┘
+          │                           │
+          ▼                           ▼
+┌──────────────────────┐    ┌──────────────────────┐
+│  server/GameEngine   │    │  src/main.js         │
+│  (149 lines)         │    │  (3,672 lines)       │
+│  - WebSocket wrapper │    │  - UI/animations     │
+│  - Room management   │    │  - AI decisions      │
+│  - Calls shared      │    │  - Calls shared      │
+└──────────────────────┘    └──────────────────────┘
 ```
+
+## Problems Solved
+1. ✅ Server duplicates removed (applyDamage, getEffectiveAtk, etc.)
+2. ✅ Server is now thin wrapper (149 lines)
+3. ✅ Card selection uses declarative configs
+4. ✅ SP and MP use identical code paths
 
 ---
 

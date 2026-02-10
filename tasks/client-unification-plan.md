@@ -1,16 +1,25 @@
 # Client Unification Plan
 
-**Goal:** Replace ~2,000 lines of duplicate game logic in index.html with imports from shared/engine.js
+## ✅ COMPLETED (2026-02-10)
 
-**Current state:**
-- index.html: 8,103 lines (2,400 CSS + 5,700 JS)
-- Solo mode has full game engine that duplicates shared/engine.js
-- Multiplayer already uses server (which uses shared)
+**Goal:** Replace duplicate game logic in index.html with shared/engine.js
 
-**Target state:**
-- index.html: ~6,000 lines
-- Solo mode calls `executeAction()` from shared
+**Results:**
+```
+┌────────────────┬──────────┬──────────┬─────────┐
+│ File           │ Before   │ After    │ Change  │
+├────────────────┼──────────┼──────────┼─────────┤
+│ index.html     │ 8,103    │ 390      │ -95%    │
+│ src/main.js    │ (inline) │ 3,672    │ extracted│
+│ src/styles.css │ (inline) │ 2,371    │ extracted│
+│ Tests          │ 262      │ 281      │ +19     │
+└────────────────┴──────────┴──────────┴─────────┘
+```
+
+**Architecture achieved:**
+- Solo mode calls `dispatchLocalAction()` → `shared/engine.js`
 - Single source of truth for ALL game logic
+- CSS and JS extracted to separate files
 
 ---
 

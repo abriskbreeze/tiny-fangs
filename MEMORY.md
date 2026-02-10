@@ -163,24 +163,47 @@ Major milestones:
 
 ## Architecture Milestone (2026-02-10)
 
-**Shared Engine + Client Unification Complete (v0.4.69)**
+**Shared Engine + Client Unification Complete (v0.4.72)**
 
-| Component | Before | After |
-|-----------|--------|-------|
-| Server | 1,724 lines | 149 lines |
-| Client | 8,103 lines | 4,062 lines |
-| Tests | 262 | 281 |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     TINY FANGS v0.4.72                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  index.html (390 lines) ─── Pure HTML structure             │
+│       │                                                     │
+│       ├── src/styles.css (2,371 lines) ─── All CSS          │
+│       │                                                     │
+│       └── src/main.js (3,672 lines)                         │
+│              │  UI, animations, AI decisions                │
+│              │                                              │
+│              └──► shared/engine.js (1,583 lines)            │
+│                      ALL game logic                         │
+│                      ├── executeAction()                    │
+│                      ├── processEffects()                   │
+│                      ├── checkTriggers()                    │
+│                      └── resolveSelection()                 │
+│                                                             │
+│  server/GameEngine.js (149 lines) ─── MP wrapper only       │
+│       └──► shared/engine.js                                 │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  shared/cards.js ─── Card definitions (single source)       │
+│  shared/effects.js ─── Effect processing                    │
+│  shared/triggers.js ─── Trigger system                      │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Final architecture:**
-- `shared/engine.js` (1,583 lines) = ALL game logic
-- `server/GameEngine.js` (149 lines) = thin multiplayer wrapper
-- `index.html` (4,062 lines) = UI + animations + AI decisions
-- `src/styles.css` (2,371 lines) = extracted CSS
+| Component | Before | After | Change |
+|-----------|--------|-------|--------|
+| index.html | 8,103 | 390 | -95% |
+| Server | 1,724 | 149 | -91% |
+| Tests | 262 | 281 | +19 |
 
 **Key wins:**
 - Solo/multiplayer use identical code paths
 - Balance changes = edit `shared/cards.js` only
-- 7 phases executed via subagents in ~45 minutes
+- Clean separation: HTML / CSS / JS / Game Logic
 
 ---
 

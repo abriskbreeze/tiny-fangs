@@ -36,18 +36,35 @@ npm run build    # Build (GitHub Actions deploys dist/)
 ## Architecture
 
 ```
-src/
-├── cards.js      # Card database (creatures, verses, decks)
-├── effects.js    # 20 effect primitives (damage, heal, draw...)
-├── events.js     # Event emitter (GameEvents)
-├── triggers.js   # Priority-based trigger processor
-├── abilities.js  # Creature ability calculations
-├── ai.js         # Enemy AI
-├── anim.js       # ASCII animations
-└── render.js     # Board rendering
+┌─────────────────────────────────────────────────────────────┐
+│  index.html (390 lines) ─── Pure HTML structure             │
+│       │                                                     │
+│       ├── src/styles.css ─── All CSS                        │
+│       │                                                     │
+│       └── src/main.js ─── UI, animations, AI                │
+│              │                                              │
+│              └──► shared/engine.js ─── ALL game logic       │
+│                                                             │
+│  server/GameEngine.js ─── Multiplayer wrapper               │
+│       └──► shared/engine.js                                 │
+└─────────────────────────────────────────────────────────────┘
+
+shared/                    # Single source of truth
+├── engine.js              # Game logic (executeAction, triggers)
+├── cards.js               # Card database (creatures, verses, decks)
+├── effects.js             # 20 effect primitives
+└── triggers.js            # Priority-based trigger processor
+
+src/                       # Client modules
+├── main.js                # UI, animations, AI decisions
+├── styles.css             # All styling
+├── anim.js                # ASCII animations
+├── render.js              # Board rendering
+├── ai.js                  # Enemy AI logic
+└── *.js                   # Other client utilities
 ```
 
-See [`dist/ARCHITECTURE.md`](dist/ARCHITECTURE.md) for full documentation.
+See [`MEMORY.md`](MEMORY.md) for full documentation.
 
 ## Card Authoring
 
