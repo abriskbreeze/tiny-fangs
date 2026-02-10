@@ -5670,9 +5670,12 @@
         let totalDamageDealt = 0;
         let defenderKo = false;
         
+        console.log(`🔥 Attack loop: attackCount=${attackCount}, isCindermaw=${isCindermaw}`);
+        
         for (let hit = 0; hit < attackCount; hit++) {
-          if (defenderKo) break; // Stop if defender already KO'd
-          if (!state.G.opp.active) break; // Defender might be replaced
+          console.log(`🔥 Attack hit ${hit + 1}/${attackCount}`);
+          if (defenderKo) { console.log('🔥 Breaking - defender KO'); break; }
+          if (!state.G.opp.active) { console.log('🔥 Breaking - no active defender'); break; }
           
           // Recalculate damage for second hit (no Den Mother/Predator's Mark bonus)
           // getEffectiveAtk handles bladewhisker/echomask modifiers
@@ -5753,9 +5756,11 @@
           
           // Brief pause between Cindermaw hits
           if (isCindermaw && hit < attackCount - 1 && !defenderKo) {
-            await Anim.wait(150);
+            console.log(`🔥 Pause before hit ${hit + 2}`);
+            await Anim.wait(400); // Longer pause for visual clarity
           }
         }
+        console.log(`🔥 Attack loop complete, totalDamage=${totalDamageDealt}`);
         
         // B2: Cindermaw self-damage (10 Burnout) happens ONCE after all attacks
         if (isCindermaw && state.G.me.active) {
