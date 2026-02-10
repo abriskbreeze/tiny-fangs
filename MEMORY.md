@@ -995,3 +995,32 @@ await playServerEvents(events);              // 3. THEN animate
 cloudflared tunnel --url http://localhost:3001
 ```
 
+
+
+### 2026-02-09 — Double Trigger Execution Fix (v0.4.62)
+
+**3 Major Bugs Fixed in Singleplayer:**
+
+**BUG 1: Double damage/animations (Phantom Wall doing 20, Vengeance KO animation twice)**
+- **Root cause:** In `processTriggers()`, for each effect in a card's effects array, if it wasn't handled inline, it called `processEffects(card, ctx)`. But `processEffects()` runs ALL effects on the card!
+- Example: Phantom Wall has `effects: [negateAttack, damage]`. Loop iterated twice, called processEffects twice, each time running BOTH effects = 2x damage!
+- **Fix:** Added `needsProcessEffects` flag. Loop marks which cards need processEffects, then calls it ONCE after the loop.
+- **Pattern:** When delegating to a function that handles "all items", don't call it inside a "for each item" loop.
+
+**BUG 2: Ironhide's Iron Skin not reducing second Cindermaw hit**
+- **Root cause:** `processTriggers('beforeDamage', ...)` only ran on first hit (`if (hit === 0)`)
+- Comment said "first hit only for set verses" but creature abilities use the same trigger system
+- Set verses are auto-consumed after triggering, so they won't fire twice anyway
+- **Fix:** Removed `if (hit === 0)` guard. Triggers now fire on every hit. Shellkin's Harden has `perTurn: true` flag which the trigger system respects.
+- **Pattern:** Don't restrict trigger processing based on assumptions about card types — the trigger system handles those cases.
+
+**BUG 3: Vengeance KO animation playing before KO is negated**
+- **Root cause:** Caller did `await Anim.ko(); await ko(creature, ...)`. But inside `ko()`, Vengeance's beforeKO could negate the KO — but animation already played!
+- **Fix:** Moved `Anim.ko()` call INSIDE `ko()` function, AFTER beforeKO triggers resolve. If negated, early return before animation.
+- **Pattern:** Animation should play AFTER the action is confirmed, not before checks that could cancel it.
+
+**Files Changed:**
+- `src/triggers.js` — processEffects called once per card, not per effect
+- `index.html` — beforeDamage triggers on every hit; Anim.ko moved inside ko()
+
+**Tests:** 262 passing
