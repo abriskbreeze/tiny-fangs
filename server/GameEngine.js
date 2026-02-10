@@ -212,6 +212,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
   
   switch (verse.id) {
     case 'phantomWall':
+      console.log('[DEBUG] Phantom Wall triggered - dealing 10 damage to', context.attacker?.name);
       // beforeAttack: Negate the attack
       negated = true;
       // Deal 10 damage to attacker
@@ -356,14 +357,32 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
  * @returns {object} - { events: [], negated: boolean, damageReduction: number, modifiedDamage: number }
  */
 function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide, inactiveSide) {
+  console.log('[DEBUG] checkTriggers called:', event, 'defender verse:', inactivePlayer.setVerse?.id, 'attacker verse:', activePlayer.setVerse?.id);
   const events = [];
   let negated = false;
   let damageReduction = 0;
   let modifiedDamage = null;
+  let pendingAction = null;
   
   // Check inactive player's set verse first (defender advantage)
   const defenderVerse = inactivePlayer.setVerse;
   if (defenderVerse && matchesTrigger(defenderVerse, event)) {
+    // Check if optional trigger
+    const verseTemplate = VERSES[defenderVerse.id];
+    if (verseTemplate?.triggerDef?.optional) {
+      // Return pending action instead of executing
+      pendingAction = {
+        type: 'optionalTrigger',
+        side: inactiveSide,
+        verseId: defenderVerse.id,
+        verseName: defenderVerse.name,
+        prompt: `Activate ${defenderVerse.name}?`,
+        context: { ...context }
+      };
+      return { events, negated, damageReduction, modifiedDamage, pendingAction };
+    }
+    
+    // Non-optional - execute immediately
     const result = executeTrigger(defenderVerse, context, inactivePlayer, activePlayer, inactiveSide, activeSide);
     events.push(...result.events);
     if (result.negated) negated = true;
@@ -378,6 +397,22 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   // Check active player's set verse (for their own triggers like onAllyKO, onLifeLoss)
   const attackerVerse = activePlayer.setVerse;
   if (attackerVerse && matchesTrigger(attackerVerse, event) && !negated) {
+    // Check if optional trigger
+    const verseTemplate = VERSES[attackerVerse.id];
+    if (verseTemplate?.triggerDef?.optional) {
+      // Return pending action instead of executing
+      pendingAction = {
+        type: 'optionalTrigger',
+        side: activeSide,
+        verseId: attackerVerse.id,
+        verseName: attackerVerse.name,
+        prompt: `Activate ${attackerVerse.name}?`,
+        context: { ...context }
+      };
+      return { events, negated, damageReduction, modifiedDamage, pendingAction };
+    }
+    
+    // Non-optional - execute immediately
     const result = executeTrigger(attackerVerse, context, activePlayer, inactivePlayer, activeSide, inactiveSide);
     events.push(...result.events);
     if (result.negated) negated = true;
@@ -389,7 +424,7 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
     activePlayer.setVerse = null;
   }
   
-  return { events, negated, damageReduction, modifiedDamage };
+  return { events, negated, damageReduction, modifiedDamage, pendingAction };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -606,6 +641,9 @@ export function executeAction(state, playerIdx, action) {
         const wouldBeLethal = defender.curHp - damage <= 0;
         if (wouldBeLethal) {
           const lethalTrigger = checkTriggers('onLethalDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
+          if (lethalTrigger.pendingAction) {
+            return { state, events, pendingAction: lethalTrigger.pendingAction };
+          }
           events.push(...lethalTrigger.events);
           if (lethalTrigger.modifiedDamage !== null) {
             damage = lethalTrigger.modifiedDamage;
@@ -1276,6 +1314,59 @@ export function executeAction(state, playerIdx, action) {
     case 'skitterDecline': {
       // Player declined to use Skitter's ability - just acknowledge
       events.push({ type: 'skitterDecline', side });
+      break;
+    }
+    
+    case 'respondOptionalTrigger': {
+      // Handle optional trigger response (e.g., Vengeance)
+      const { confirmed, verseId, context: serializedContext } = action;
+      
+      if (!player.setVerse || player.setVerse.id !== verseId) {
+        return { state, events, error: "No matching verse set" };
+      }
+      
+      const verse = player.setVerse;
+      
+      // Reconstruct context with actual game state references
+      // Context was serialized, so we need to map back to actual objects
+      const damage = serializedContext?.damage || 0;
+      const defender = player.active;  // The defender is the player who owns the trigger
+      const attacker = opponent.active;  // The attacker is the opponent's active creature
+      
+      const triggerContext = { attacker, defender, damage };
+      
+      if (confirmed) {
+        // Execute the trigger
+        const result = executeTrigger(verse, triggerContext, player, opponent, side, oppSide);
+        events.push(...result.events);
+        
+        // Consume the verse
+        player.grave.push(verse);
+        player.setVerse = null;
+        
+        // For onLethalDamage triggers (like Vengeance), the trigger has already modified
+        // the game state (e.g., set defender HP to 1, destroyed attacker)
+        // No need to apply additional damage
+      } else {
+        // Player declined - consume verse and apply original lethal damage
+        player.grave.push(verse);
+        player.setVerse = null;
+        events.push({ type: 'triggerDeclined', side, verse: verse.name });
+        
+        // Apply the lethal damage that was pending
+        if (defender && damage > 0) {
+          // Apply damage
+          const ko = applyDamage(defender, damage);
+          events.push({ type: 'damage', side, amount: damage });
+          
+          if (ko) {
+            // Move to grave
+            player.grave.push(defender);
+            player.active = null;
+            events.push({ type: 'ko', side, creature: defender.name });
+          }
+        }
+      }
       break;
     }
     

@@ -3063,6 +3063,31 @@
           sendAction({ action: 'skitterDecline' });
         }
       }
+      
+      if (pending.type === 'optionalTrigger' && pending.side === 'me') {
+        // Optional trigger (e.g., Vengeance) - prompt for activation
+        const confirmed = await new Promise(resolve => {
+          showModal(pending.prompt, [
+            {
+              name: 'Yes',
+              sub: `Activate ${pending.verseName}`,
+              action: () => { closeModal(); resolve(true); }
+            },
+            {
+              name: 'No',
+              sub: 'Don\'t activate',
+              action: () => { closeModal(); resolve(false); }
+            }
+          ]);
+        });
+        
+        sendAction({ 
+          action: 'respondOptionalTrigger', 
+          confirmed, 
+          verseId: pending.verseId,
+          context: pending.context
+        });
+      }
     }
     
     // Play animation events from server
@@ -3122,6 +3147,7 @@
     };
     
     async function playServerEvents(events) {
+      console.log('[DEBUG] Playing events:', events.map(e => `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`));
       for (const e of events) {
         const handler = serverEventHandlers[e.type];
         if (handler) {
