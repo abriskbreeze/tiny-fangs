@@ -1024,3 +1024,44 @@ cloudflared tunnel --url http://localhost:3001
 - `index.html` — beforeDamage triggers on every hit; Anim.ko moved inside ko()
 
 **Tests:** 262 passing
+
+
+### 2026-02-09 — Shared Module Architecture + MP Bug Fixes
+
+**Major Architecture Change: shared/ Module**
+Created unified module for client/server code sharing:
+```
+shared/
+├── cards.js     — Card definitions (CREATURES, VERSES)
+├── effects.js   — Effect primitives (damage, heal, etc.)
+├── triggers.js  — Trigger processing
+├── engine.js    — Core game logic
+└── index.js     — 23 exports total
+```
+
+**Migration:**
+- Server migrated to use `shared/`, deleted duplicate `server/cards.js`
+- Client's `src/effects.js` now wraps shared + adds animations
+- Client's `src/cards.js` re-exports from shared
+
+**5 Multiplayer Bugs Fixed:**
+1. **Mana bug** — Captured `wasFirstTurn` before mutation in `server/GameEngine.js` ~line 1385
+2. **Phantom Wall damage** — Added 10 damage logic in server ~line 214
+3. **Battle log rendering** — Added `renderLog()` call in client
+4. **Animation queue** — State updates before animations (elements must exist for summons)
+5. **Optional triggers** — Vengeance now prompts "Activate Vengeance?" with Yes/No buttons
+
+**Optional Triggers UI:**
+- Uses `pendingAction` flow with Yes/No button prompts
+- Server sends `awaitingOptional: true` when optional trigger available
+- Client shows prompt, sends `triggerResponse: true/false`
+
+**Key Decisions:**
+- State before animations: Update state FIRST, then play animations
+- Queue system: `queueUpdate()` processes sequentially to prevent pile-up
+- Single source of truth: All game logic in `shared/` module
+
+**Infrastructure:**
+- Server: `node index.js` in `~/clawd/tiny-fangs/server` on port 3001
+- Tunnel URL hardcoded in `index.html` line 2804
+- Deployed to gh-pages after fixes

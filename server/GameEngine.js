@@ -251,10 +251,10 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       break;
       
     case 'soulTrap':
-      // onSummon: Deal 15 damage to summoned creature
+      // onSummon: Deal 20 damage to summoned creature
       if (context.creature) {
-        const ko = applyDamage(context.creature, 15);
-        events.push({ type: 'damage', side: enemySide, amount: 15, source: 'Soul Trap' });
+        const ko = applyDamage(context.creature, 20);
+        events.push({ type: 'damage', side: enemySide, amount: 20, source: 'Soul Trap' });
         if (ko) {
           events.push({ type: 'ko', side: enemySide, creature: context.creature.name });
           // Move to grave and clear from board
@@ -944,7 +944,7 @@ export function executeAction(state, playerIdx, action) {
         events.push({ type: 'manaGain', side, amount: 2 });
       }
       
-      // ignite - Deal 30 damage to target creature
+      // ignite - Deal 15 damage to target creature
       if (card.id === 'ignite') {
         if (!action.targetUid) {
           // Refund - put card back in hand
