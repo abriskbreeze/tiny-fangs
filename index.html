@@ -3008,21 +3008,15 @@
     async function processUpdate(serverState, events, pendingAction) {
       const oldLog = state.G?.log || [];
       
-      if (!events || events.length === 0) {
-        state.G = convertServerState(serverState);
-        state.G.log = oldLog;
-        render();
-      } else {
-        // Render CURRENT state first (elements must exist)
-        render();
-        
-        // Play animations on current state
+      // Always update state FIRST so DOM elements exist for animations
+      // (summon needs element in DOM, KO animation handles missing elements gracefully)
+      state.G = convertServerState(serverState);
+      state.G.log = oldLog;
+      render();
+      
+      // Then play animations (elements now exist)
+      if (events && events.length > 0) {
         await playServerEvents(events);
-        
-        // NOW update to final state
-        state.G = convertServerState(serverState);
-        state.G.log = oldLog;
-        render();
       }
       
       renderLog();
