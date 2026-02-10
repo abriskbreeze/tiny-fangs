@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.67] - 2026-02-10
+
+### Changed
+- Unified server with shared module + declarative selection
+
+---
+
+
 ## [0.4.66] - 2026-02-10
 
 ### Changed
