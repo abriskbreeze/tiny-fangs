@@ -266,12 +266,12 @@
         return result;
       }
       
-      // Play animations for events
-      await playEvents(result.events);
-      
-      // Convert result state back to client format
+      // Update state and render FIRST so animations have elements to target
       state.G = sharedToClientState(result.state, state.G);
       render();
+      
+      // Play animations AFTER render (so elements exist)
+      await playEvents(result.events);
       
       // Handle pending actions (Skitter swap, optional triggers, etc.)
       if (result.pendingAction) {
@@ -2547,32 +2547,30 @@
      * Prevents divergence bugs by centralizing: turnEnd triggers, mana, flags, transition
      */
     async function endAiTurn(ai, pause) {
-      // Emit turnEnd event for trigger system (Broodmother Spawn, etc.)
-      await processTriggers('turnEnd', {
-        activePlayer: ai,
-        activePlayerKey: 'opp'
-      }, state, {
-        log,
-        render,
-        processEffects: async (card, ctx) => {
-          return await processEffects(card, { ...ctx, self: card, state });
-        }
-      });
-
-      // Increment max mana (capped at 5)
-      if (ai.maxMana < 5) ai.maxMana++;
-
-      // After first turn, attacking is allowed
-      state.G.firstTurn = false;
-
-      // Clear summonedThisTurn flags on AI creatures
-      if (ai.active) ai.active.summonedThisTurn = false;
-      for (const c of ai.bench) c.summonedThisTurn = false;
+      // Use shared engine for end turn - this handles:
+      // - Poison damage
+      // - Broodmother spawn trigger
+      // - Player's maxMana increment
+      // - Player's mana refill
+      // - Player's draw
+      // - Turn switch
+      const result = await dispatchLocalAction({ type: 'endTurn' }, 1);
+      
+      if (result.error) {
+        console.error('AI endTurn failed:', result.error);
+      }
 
       // Transition to player turn
       await pause();
       await playTurnEndAnimation();
-      if (!state.G.winner) startPlayerTurn();
+      
+      if (!state.G.winner) {
+        // Mark that player setup was done by shared engine
+        state.G._playerSetupDone = true;
+        state.G.myTurn = true;
+        log('Your turn', 'mana');
+        render();
+      }
     }
 
     /**
@@ -2920,11 +2918,15 @@
       if (state.G.winner) return;
 
       try {
-        // Mana phase: refill to max (increment happens at end of turn)
-        state.G.me.mana = state.G.me.maxMana;
+        // If shared engine already set up player turn (via AI's endTurn), skip manual setup
+        if (!state.G._playerSetupDone) {
+          // Mana phase: refill to max (increment happens at end of turn)
+          state.G.me.mana = state.G.me.maxMana;
 
-        // Draw
-        draw(state.G.me);
+          // Draw
+          draw(state.G.me);
+        }
+        state.G._playerSetupDone = false; // Reset flag for next turn
 
         // C3: Reset attack/retreat flags for new turn
         state.G.hasAttacked = false;

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.71] - 2026-02-10
+
+### Changed
+- Fix summon animation timing and mana refill bugs
+
+---
+
+
 ## [0.4.70] - 2026-02-10
 
 ### Changed
