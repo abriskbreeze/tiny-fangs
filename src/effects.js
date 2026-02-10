@@ -102,8 +102,12 @@ const Effects = {
       ctxOwnerKey = ctx.selected?.ownerKey || 'opp';
       owner = ctxOwnerKey === 'me' ? ctx.me : ctx.opp;
     } else if (target === 'summoned') {
+      // summoningPlayer is relative to ORIGINAL summon event, not trigger owner
+      // Use state.G to get absolute reference
       ctxOwnerKey = ctx.summoningPlayer || ctx.creatureOwnerKey || 'opp';
-      owner = ctxOwnerKey === 'me' ? ctx.me : ctx.opp;
+      owner = ctxOwnerKey === 'me' ? ctx.state?.G?.me : ctx.state?.G?.opp;
+      // Fallback to ctx if state not available
+      if (!owner) owner = ctxOwnerKey === 'me' ? ctx.me : ctx.opp;
     } else if (target === 'attacker') {
       owner = ctx.attackerOwner;
       ctxOwnerKey = ctx.attackerOwnerKey;

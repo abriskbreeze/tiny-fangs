@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.60] - 2026-02-09
+
+### Changed
+- Fix Soul Trap animation playing on wrong side
+
+---
+
+
 ## [0.4.59] - 2026-02-09
 
 ### Changed
