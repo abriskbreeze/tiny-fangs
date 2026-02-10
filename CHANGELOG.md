@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.57] - 2026-02-09
+
+### Changed
+- Add MP coin flip animation
+
+---
+
+
 ## [0.4.56] - 2026-02-09
 
 ### Changed

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.56</title>
+  <title>TINY FANGS v0.4.57</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -2384,7 +2384,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.56 • Card Battler</p>
+    <p class="sub">v0.4.57 • Card Battler</p>
     
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -2554,7 +2554,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.56</div>
+      <div class="logo">TINY FANGS v0.4.57</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -2872,14 +2872,11 @@
           
         case 'gameStart':
           console.log('🎮 Game starting!', msg);
-          // Show coin flip result before starting (longer delay so player sees it)
-          const coinMsg = msg.coinFlip === 'won' 
-            ? '🪙 COIN FLIP: YOU GO FIRST!' 
-            : '🪙 COIN FLIP: OPPONENT FIRST';
-          showTurnBanner(coinMsg);
-          setTimeout(() => {
+          // Play coin flip animation before starting
+          (async () => {
+            await playMPCoinFlip(msg.coinFlip === 'won');
             startMultiplayerGame(msg.state, msg.yourTurn, msg.you);
-          }, 2500); // 2.5s to read coin flip result
+          })();
           break;
           
         case 'stateUpdate':
@@ -3901,6 +3898,66 @@
         msg.remove();
         startGame(pendingDeckId, !aiGoesFirst);
       }
+    }
+    
+    // MP coin flip animation (server already decided, just show result)
+    async function playMPCoinFlip(playerWon) {
+      const result = playerWon ? 'heads' : 'tails';
+      
+      const coinSmall = {
+        heads: '▓███▓\n█ H █\n▓███▓',
+        tails: '▓███▓\n█ T █\n▓███▓',
+        edge:  '▌▐\n▌▐\n▌▐'
+      };
+      const coinMed = {
+        heads: '░▒▓████▓▒░\n█        █\n█   H    █\n█        █\n░▒▓████▓▒░',
+        tails: '░▒▓████▓▒░\n█        █\n█   T    █\n█        █\n░▒▓████▓▒░',
+        edge:  ' ▌▐\n ▌▐\n ▌▐\n ▌▐\n ▌▐'
+      };
+      const coinBig = {
+        heads: '░░▒▓██████▓▒░░\n█            █\n█     H      █\n█            █\n░░▒▓██████▓▒░░',
+        tails: '░░▒▓██████▓▒░░\n█            █\n█     T      █\n█            █\n░░▒▓██████▓▒░░',
+        edge:  '  ▌▐\n  ▌▐\n  ▌▐\n  ▌▐\n  ▌▐'
+      };
+      const fontSize = { small: '10px', med: '14px', big: '18px' };
+      
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      const coinDisplay = document.createElement('pre');
+      coinDisplay.style.cssText = 'color:var(--text);text-align:center;font-family:monospace;transition:transform 0.08s ease-out;line-height:1.2;';
+      overlay.appendChild(coinDisplay);
+      document.body.appendChild(overlay);
+      
+      const frames = [
+        { art: coinSmall.edge, size: 'small', delay: 80 },
+        { art: coinMed.heads, size: 'med', delay: 80 },
+        { art: coinBig.tails, size: 'big', delay: 50 },
+        { art: coinBig.edge, size: 'big', delay: 50 },
+        { art: coinBig.heads, size: 'big', delay: 50 },
+        { art: coinBig.edge, size: 'big', delay: 50 },
+        { art: coinMed.tails, size: 'med', delay: 60 },
+        { art: coinSmall.edge, size: 'small', delay: 80 },
+        { art: coinMed[result], size: 'med', delay: 100, bounce: true },
+        { art: coinSmall[result], size: 'small', delay: 400 },
+      ];
+      
+      for (const frame of frames) {
+        coinDisplay.textContent = frame.art;
+        coinDisplay.style.fontSize = fontSize[frame.size];
+        if (frame.bounce) {
+          coinDisplay.style.transform = 'translateY(-20px)';
+          await Anim.wait(60);
+          coinDisplay.style.transform = 'translateY(0)';
+        }
+        await Anim.wait(frame.delay);
+      }
+      
+      // Show result text
+      const resultText = playerWon ? 'YOU GO FIRST!' : 'OPPONENT GOES FIRST';
+      coinDisplay.textContent = `${coinBig[result]}\n\n${resultText}`;
+      await Anim.wait(1500);
+      
+      overlay.remove();
     }
     
     async function playBeginAnimation() {
