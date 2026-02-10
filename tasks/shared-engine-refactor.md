@@ -314,3 +314,30 @@ Move to shared/triggers.js.
 - **Tests first:** Run tests after each change
 - **MP testing:** Manual test after each phase
 - **Git branches:** Can revert if needed
+
+---
+
+## Completion Status
+
+### Phase 1: ✅ COMPLETE
+- Helpers unified in shared/engine.js
+- Server imports from shared
+
+### Phase 2: ✅ COMPLETE  
+- Selection configs added to cards.js
+- resolveSelection() function in shared/engine.js
+- Cast verses use generic selection system
+
+### Phase 3: ✅ COMPLETE (2024-02-10)
+**Changes made:**
+- Enhanced shared/engine.js with comprehensive action handlers (1583 lines)
+- All game logic moved to shared: attack, summon, castVerse, setVerse, retreat, endTurn
+- All trigger handling in shared: checkTriggers, executeTrigger
+- All special actions in shared: skitterSwap, skitterDecline, respondOptionalTrigger
+- Server's executeAction now just 3 lines (delegates to shared)
+
+**Results:**
+- Server GameEngine.js: 149 lines (down from ~1724)
+- All 262 tests pass
+- All game logic in shared/
+- executeAction in server is < 100 lines (it's 3 lines!)

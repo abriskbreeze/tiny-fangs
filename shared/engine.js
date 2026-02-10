@@ -2,26 +2,20 @@
 // GAME ENGINE (Pure Functions)
 // ═══════════════════════════════════════════════════════════════
 // Core game operations - all functions are pure (no mutations)
-// Each returns { state: newState, events: [...] }
+// Phase 3: Server delegates to these functions
 
 import { CREATURES, VERSES, DECKS } from './cards.js';
 import { processEffects } from './effects.js';
-import { findMatchingTriggers, sortByPriority } from './triggers.js';
+import { findMatchingTriggers, sortByPriority, matchesTrigger } from './triggers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Generate a unique ID
- */
 function uid() {
   return Math.random().toString(36).substr(2, 9);
 }
 
-/**
- * Shuffle an array (Fisher-Yates)
- */
 function shuffle(arr) {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -31,22 +25,10 @@ function shuffle(arr) {
   return copy;
 }
 
-/**
- * Deep clone an object
- */
-function clone(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}
-
 // ═══════════════════════════════════════════════════════════════
 // CARD CREATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Create a creature instance from template
- * @param {String} id - Creature ID from CREATURES
- * @returns {Object} - Creature instance
- */
 export function mkCreature(id) {
   const template = CREATURES[id];
   if (!template) throw new Error(`Unknown creature: ${id}`);
@@ -62,11 +44,6 @@ export function mkCreature(id) {
   };
 }
 
-/**
- * Create a verse instance from template
- * @param {String} id - Verse ID from VERSES
- * @returns {Object} - Verse instance
- */
 export function mkVerse(id) {
   const template = VERSES[id];
   if (!template) throw new Error(`Unknown verse: ${id}`);
@@ -78,11 +55,6 @@ export function mkVerse(id) {
   };
 }
 
-/**
- * Create a shuffled deck from deck definition
- * @param {String} deckId - Deck ID from DECKS
- * @returns {Array} - Shuffled deck of card instances
- */
 export function mkDeck(deckId) {
   const def = DECKS[deckId];
   if (!def) throw new Error(`Unknown deck: ${deckId}`);
@@ -95,11 +67,6 @@ export function mkDeck(deckId) {
   return shuffle(cards);
 }
 
-/**
- * Create a player state
- * @param {String} deckId - Deck ID from DECKS
- * @returns {Object} - Player state
- */
 export function mkPlayer(deckId) {
   const deck = mkDeck(deckId);
   const hand = deck.splice(0, 5);
@@ -123,16 +90,6 @@ export function mkPlayer(deckId) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GAME CREATION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Create initial game state
- * @param {String} deck1Id - Player 1 deck ID
- * @param {String} deck2Id - Player 2 deck ID
- * @returns {Object} - Initial game state
- */
 export function createGame(deck1Id, deck2Id) {
   return {
     turn: 1,
@@ -154,189 +111,44 @@ export function createGame(deck1Id, deck2Id) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Draw a card from player's deck (PURE - returns new player state)
- * @param {Object} player - Player state
- * @returns {Object} - { player: newPlayer, success: boolean, events: [] }
+ * Draw a card from player's deck (mutates player)
  */
 export function draw(player) {
   const events = [];
   
   if (player.deck.length === 0) {
-    return { player, success: false, events };
+    return { success: false, events };
   }
   
-  const newDeck = [...player.deck];
-  const card = newDeck.pop();
-  const newHand = [...player.hand, card];
-  
-  const newPlayer = {
-    ...player,
-    deck: newDeck,
-    hand: newHand
-  };
-  
+  const card = player.deck.pop();
+  player.hand.push(card);
   events.push({ type: 'draw', count: 1 });
   
-  return { player: newPlayer, success: true, events };
+  return { success: true, events };
 }
 
 /**
- * Apply damage to a creature (PURE - returns new creature and KO status)
- * @param {Object} creature - Creature to damage
- * @param {Number} amount - Damage amount
- * @returns {Object} - { creature: newCreature, ko: boolean }
+ * Apply damage to a creature (mutates creature)
+ * @returns {boolean} - True if creature was KO'd
  */
 export function applyDamage(creature, amount) {
-  const newCreature = {
-    ...creature,
-    curHp: creature.curHp - amount
-  };
-  
-  return {
-    creature: newCreature,
-    ko: newCreature.curHp <= 0
-  };
+  creature.curHp -= amount;
+  return creature.curHp <= 0;
 }
 
 /**
- * Auto-swap bench creature to active if active is empty (PURE)
- * @param {Object} player - Player state
- * @param {Array} events - Events array to append to
- * @returns {Object} - { player: newPlayer, events }
+ * Auto-swap bench creature to active if active is empty (mutates player)
  */
-export function autoSwapBenchToActive(player, events = []) {
-  if (player.active || player.bench.length === 0) {
-    return { player, events };
+export function autoSwapBenchToActive(player, side, events) {
+  if (!player.active && player.bench.length > 0) {
+    const swapped = player.bench.shift();
+    player.active = swapped;
+    events.push({ type: 'benchToActive', side, creature: swapped.name });
   }
-  
-  const newBench = [...player.bench];
-  const swapped = newBench.shift();
-  
-  const newPlayer = {
-    ...player,
-    active: swapped,
-    bench: newBench
-  };
-  
-  events.push({ type: 'benchToActive', creature: swapped.name });
-  
-  return { player: newPlayer, events };
-}
-
-/**
- * Resolve selection from action based on selection config
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Player index (0 or 1)
- * @param {Object} action - Action containing targetUid
- * @param {Object} selectionConfig - Selection requirements from card
- * @returns {Object} - { creature, location, owner, idx } or { needsSelection } or { error }
- */
-export function resolveSelection(state, playerIdx, action, selectionConfig) {
-  if (!selectionConfig) return null;
-  
-  if (!action.targetUid && selectionConfig.required) {
-    return { needsSelection: true, config: selectionConfig };
-  }
-  
-  const player = state.players[playerIdx];
-  const opponent = state.players[1 - playerIdx];
-  
-  let target = null;
-  let location = null;
-  let owner = null;
-  let idx = -1;
-  
-  // Helper to check a player's creatures
-  const checkPlayer = (p, ownerKey) => {
-    // Check active
-    if (p.active?.uid === action.targetUid) {
-      target = p.active;
-      location = 'active';
-      owner = ownerKey;
-      return true;
-    }
-    // Check bench
-    const benchIdx = p.bench.findIndex(c => c.uid === action.targetUid);
-    if (benchIdx !== -1) {
-      target = p.bench[benchIdx];
-      location = 'bench';
-      owner = ownerKey;
-      idx = benchIdx;
-      return true;
-    }
-    // Check grave
-    const graveIdx = p.grave.findIndex(c => c.uid === action.targetUid);
-    if (graveIdx !== -1) {
-      target = p.grave[graveIdx];
-      location = 'grave';
-      owner = ownerKey;
-      idx = graveIdx;
-      return true;
-    }
-    return false;
-  };
-  
-  // Search based on filter (friendly first, then enemy)
-  if (selectionConfig.filter === 'friendly' || selectionConfig.filter === 'any') {
-    checkPlayer(player, 'me');
-  }
-  if (!target && (selectionConfig.filter === 'enemy' || selectionConfig.filter === 'any')) {
-    checkPlayer(opponent, 'opp');
-  }
-  
-  if (!target) {
-    return { error: 'Invalid target' };
-  }
-  
-  // Validate location constraint
-  if (selectionConfig.location) {
-    const locMatch = 
-      selectionConfig.location === 'board' && (location === 'active' || location === 'bench') ||
-      selectionConfig.location === 'grave' && location === 'grave' ||
-      selectionConfig.location === 'active' && location === 'active' ||
-      selectionConfig.location === 'bench' && location === 'bench';
-    
-    if (!locMatch) {
-      return { error: 'Target not in valid location' };
-    }
-  }
-  
-  return { creature: target, location, owner, idx };
-}
-
-/**
- * Check if a condition is met (for conditional abilities)
- * @param {String} condition - Condition string
- * @param {Object} owner - Owner player
- * @param {Object} opponent - Opponent player
- * @param {Object} creature - The creature with the ability
- * @returns {Boolean} - Whether condition is met
- */
-export function checkCondition(condition, owner, opponent, creature) {
-  if (condition === 'me.bench.empty') {
-    return owner.bench.length === 0;
-  }
-  if (condition === 'me.bench.notEmpty') {
-    return owner.bench.length > 0;
-  }
-  if (condition === 'me.grave.hasCreature') {
-    return owner.grave.some(c => c.cardType === 'creature');
-  }
-  if (condition === 'opp.active') {
-    return opponent.active !== null;
-  }
-  if (condition === 'opp.active.belowHalf') {
-    return opponent.active && opponent.active.curHp < opponent.active.hp / 2;
-  }
-  return true;
 }
 
 /**
  * Get effective attack value for a creature
- * @param {Object} creature - Attacking creature
- * @param {Object} owner - Owner player
- * @param {Object} opponent - Opponent player
- * @returns {Number} - Effective attack value
  */
 export function getEffectiveAtk(creature, owner, opponent) {
   let atk = creature.atk;
@@ -353,14 +165,14 @@ export function getEffectiveAtk(creature, owner, opponent) {
     }
   }
   
-  // Apply creature-specific attack bonuses (from triggered abilities like Duskfang's Pack Call)
+  // Apply creature-specific attack bonuses
   if (creature.atkBonuses) {
     for (const bonus of creature.atkBonuses) {
       atk += bonus.value;
     }
   }
   
-  // Apply temporary attack bonuses (player-level, like Predator's Mark)
+  // Apply temporary attack bonuses
   for (const bonus of owner.attackBonuses || []) {
     atk += bonus.value;
   }
@@ -377,206 +189,1059 @@ export function getEffectiveAtk(creature, owner, opponent) {
   
   // Pack Bond: +10 ATK per other creature
   if (creature.id === 'fangpup') {
-    const otherCreatures = (owner.active && owner.active.uid !== creature.uid ? 1 : 0) +
-                          owner.bench.filter(c => c.uid !== creature.uid).length;
+    const otherCreatures = (owner.active && owner.active.uid !== creature.uid ? 1 : 0) + 
+                          (owner.bench.filter(c => c.uid !== creature.uid).length);
     atk += otherCreatures * 10;
   }
   
   return atk;
 }
 
+function checkCondition(condition, owner, opponent, creature) {
+  if (condition === 'me.bench.empty') return owner.bench.length === 0;
+  if (condition === 'me.bench.notEmpty') return owner.bench.length > 0;
+  if (condition === 'me.grave.hasCreature') return owner.grave.some(c => c.cardType === 'creature');
+  if (condition === 'opp.active') return opponent.active !== null;
+  if (condition === 'opp.active.belowHalf') return opponent.active && opponent.active.curHp < opponent.active.hp / 2;
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════════
-// CORE GAME OPERATIONS
+// SELECTION RESOLVER
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Attack with active creature (PURE)
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Attacking player index (0 or 1)
- * @returns {Object} - { state: newState, events: [] }
+ * Resolve target selection from action
+ * @param {object} state - Game state
+ * @param {number} playerIdx - Acting player index
+ * @param {object} action - Action with targetUid, graveUid, etc.
+ * @param {object} selectionConfig - Card's selection configuration
+ * @returns {{ creature?, location?, owner?, ownerKey?, idx?, error?, needsSelection? }}
  */
+export function resolveSelection(state, playerIdx, action, selectionConfig) {
+  if (!selectionConfig) return null;
+  
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const targetUid = action.targetUid || action.graveUid || action.sacrificeUid;
+  
+  if (!targetUid && selectionConfig.required !== false) {
+    return { needsSelection: true, config: selectionConfig };
+  }
+  
+  let target = null;
+  let location = null;
+  let owner = null;
+  let ownerKey = null;
+  let idx = -1;
+  
+  // Search based on selection type
+  const checkPlayer = (p, key) => {
+    if (p.active?.uid === targetUid) {
+      target = p.active;
+      location = 'active';
+      owner = p;
+      ownerKey = key;
+      return true;
+    }
+    const benchIdx = p.bench.findIndex(c => c.uid === targetUid);
+    if (benchIdx !== -1) {
+      target = p.bench[benchIdx];
+      location = 'bench';
+      owner = p;
+      ownerKey = key;
+      idx = benchIdx;
+      return true;
+    }
+    const graveIdx = p.grave.findIndex(c => c.uid === targetUid && c.cardType === 'creature');
+    if (graveIdx !== -1) {
+      target = p.grave[graveIdx];
+      location = 'grave';
+      owner = p;
+      ownerKey = key;
+      idx = graveIdx;
+      return true;
+    }
+    return false;
+  };
+  
+  // Check appropriate players based on selection type
+  const type = selectionConfig.type;
+  if (type === 'anyCreature' || type === 'ownCreature') {
+    checkPlayer(player, 'me');
+  }
+  if (!target && (type === 'anyCreature' || type === 'enemyCreature')) {
+    checkPlayer(opponent, 'opp');
+  }
+  if (!target && type === 'graveCreature') {
+    const graveIdx = player.grave.findIndex(c => c.uid === targetUid && c.cardType === 'creature');
+    if (graveIdx !== -1) {
+      target = player.grave[graveIdx];
+      location = 'grave';
+      owner = player;
+      ownerKey = 'me';
+      idx = graveIdx;
+    }
+  }
+  
+  if (!target) return { error: 'Invalid target' };
+  
+  return { creature: target, location, owner, ownerKey, idx };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRIGGER SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+function buildEffectsContext(context, owner, enemy, ownerSide, enemySide) {
+  return {
+    me: owner,
+    opp: enemy,
+    meSide: ownerSide,
+    oppSide: enemySide,
+    attacker: context.attacker,
+    defender: context.defender,
+    summoned: context.creature,
+    koedCreature: context.koedCreature,
+    damage: context.damage,
+    selected: context.selected,
+    attackerOwner: enemy,
+    attackerOwnerKey: 'opp',
+  };
+}
+
+/**
+ * Process cast verse effects using shared processEffects
+ */
+function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
+  const verseTemplate = VERSES[card.id];
+  const result = processEffects(verseTemplate, ctx);
+  const events = [...result.events];
+  
+  // Handle KOs from effects
+  for (const koInfo of result.kos || []) {
+    const koOwner = koInfo.owner || (koInfo.ownerKey === 'me' ? player : opponent);
+    const koSide = koOwner === player ? side : oppSide;
+    
+    events.push({ type: 'ko', side: koSide, creature: koInfo.creature.name });
+    koOwner.grave.push(koInfo.creature);
+    
+    if (koOwner.active?.uid === koInfo.creature.uid) {
+      koOwner.active = null;
+      autoSwapBenchToActive(koOwner, koSide, events);
+    } else {
+      koOwner.bench = koOwner.bench.filter(c => c.uid !== koInfo.creature.uid);
+    }
+  }
+  
+  return { events, result };
+}
+
+/**
+ * Check if a verse matches a trigger event
+ */
+function matchesVerseTrigger(verse, event) {
+  const triggers = {
+    phantomWall: 'beforeAttack',
+    spikeShield: 'beforeAttack',
+    brace: 'beforeDamage',
+    swarmShield: 'beforeDamage',
+    soulTrap: 'onSummon',
+    vengeance: 'onLethalDamage',
+    graveRise: 'onKO',
+    denMother: 'onAllyKO',
+    manaDrain: 'onCast',
+    lastBreath: 'onLifeLoss'
+  };
+  return triggers[verse.id] === event;
+}
+
+/**
+ * Execute a triggered verse
+ */
+function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
+  const events = [];
+  let negated = false;
+  let damageReduction = 0;
+  let modifiedDamage = null;
+  
+  events.push({ type: 'triggerVerse', side: ownerSide, verse: verse.name });
+  
+  switch (verse.id) {
+    case 'phantomWall': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.attackNegated) negated = true;
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
+      }
+      break;
+    }
+      
+    case 'spikeShield': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
+      }
+      break;
+    }
+      
+    case 'brace': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.damageReduction) {
+        damageReduction = result.modifiedContext.damageReduction;
+      }
+      break;
+    }
+      
+    case 'swarmShield': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      if (result.modifiedContext?.damageReduction) {
+        damageReduction = result.modifiedContext.damageReduction;
+      }
+      break;
+    }
+      
+    case 'soulTrap': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
+        enemy.grave.push(koInfo.creature);
+        if (enemy.active?.uid === koInfo.creature.uid) {
+          enemy.active = null;
+        } else {
+          enemy.bench = enemy.bench.filter(c => c.uid !== koInfo.creature.uid);
+        }
+      }
+      break;
+    }
+      
+    case 'vengeance': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      ctx.target = context.defender;
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      
+      if (result.modifiedContext?.koNegated && context.defender) {
+        modifiedDamage = context.defender.hp - 1;
+      }
+      
+      if (result.modifiedContext?.destroyed && result.modifiedContext?.destroyedOwner) {
+        events.push({ type: 'ko', side: enemySide, creature: context.attacker?.name, source: 'Vengeance' });
+      }
+      break;
+    }
+      
+    case 'graveRise': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      
+      for (const evt of result.events) {
+        if (evt.type === 'summonBench') {
+          const creature = owner.bench[owner.bench.length - 1];
+          events.push({ type: 'summon', side: ownerSide, creature: creature?.name, slot: 'bench', source: 'Grave Rise' });
+        } else if (evt.type !== 'log') {
+          events.push(evt);
+        }
+      }
+      break;
+    }
+      
+    case 'denMother':
+      if (context.koedCreature) {
+        const oneCostIdx = owner.deck.findIndex(c => c.cardType === 'creature' && c.cost === 1);
+        if (oneCostIdx !== -1) {
+          const summonedCreature = owner.deck.splice(oneCostIdx, 1)[0];
+          
+          if (!owner.active) {
+            owner.active = summonedCreature;
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'active', source: 'Den Mother' });
+          } else if (owner.bench.length < 2) {
+            owner.bench.push(summonedCreature);
+            events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'bench', source: 'Den Mother' });
+          } else {
+            owner.grave.push(summonedCreature);
+          }
+        }
+      }
+      break;
+      
+    case 'manaDrain': {
+      const verseTemplate = VERSES[verse.id];
+      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const result = processEffects(verseTemplate, ctx);
+      events.push(...result.events);
+      
+      if (result.modifiedContext?.negated) {
+        negated = true;
+      }
+      owner.mana = Math.min(owner.maxMana, owner.mana);
+      events.push({ type: 'manaGain', side: ownerSide, amount: 2, source: 'Mana Drain' });
+      break;
+    }
+      
+    case 'lastBreath': {
+      const damageAmount = context.amount || 1;
+      if (!owner.usedLastBreath && owner.lp <= damageAmount) {
+        negated = true;
+        owner.usedLastBreath = true;
+        events.push({ type: 'triggerVerse', side: ownerSide, verse: 'Last Breath' });
+      }
+      break;
+    }
+  }
+  
+  return { events, negated, damageReduction, modifiedDamage };
+}
+
+/**
+ * Check for and execute triggered set verses
+ */
+function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide, inactiveSide) {
+  const events = [];
+  let negated = false;
+  let damageReduction = 0;
+  let modifiedDamage = null;
+  let pendingAction = null;
+  
+  // Check inactive player's set verse first (defender advantage)
+  const defenderVerse = inactivePlayer.setVerse;
+  if (defenderVerse && matchesVerseTrigger(defenderVerse, event)) {
+    const verseTemplate = VERSES[defenderVerse.id];
+    if (verseTemplate?.triggerDef?.optional) {
+      pendingAction = {
+        type: 'optionalTrigger',
+        side: inactiveSide,
+        verseId: defenderVerse.id,
+        verseName: defenderVerse.name,
+        prompt: `Activate ${defenderVerse.name}?`,
+        context: { ...context }
+      };
+      return { events, negated, damageReduction, modifiedDamage, pendingAction };
+    }
+    
+    const result = executeTrigger(defenderVerse, context, inactivePlayer, activePlayer, inactiveSide, activeSide);
+    events.push(...result.events);
+    if (result.negated) negated = true;
+    if (result.damageReduction) damageReduction = result.damageReduction;
+    if (result.modifiedDamage !== null) modifiedDamage = result.modifiedDamage;
+    
+    inactivePlayer.grave.push(defenderVerse);
+    inactivePlayer.setVerse = null;
+  }
+  
+  // Check active player's set verse
+  const attackerVerse = activePlayer.setVerse;
+  if (attackerVerse && matchesVerseTrigger(attackerVerse, event) && !negated) {
+    const verseTemplate = VERSES[attackerVerse.id];
+    if (verseTemplate?.triggerDef?.optional) {
+      pendingAction = {
+        type: 'optionalTrigger',
+        side: activeSide,
+        verseId: attackerVerse.id,
+        verseName: attackerVerse.name,
+        prompt: `Activate ${attackerVerse.name}?`,
+        context: { ...context }
+      };
+      return { events, negated, damageReduction, modifiedDamage, pendingAction };
+    }
+    
+    const result = executeTrigger(attackerVerse, context, activePlayer, inactivePlayer, activeSide, inactiveSide);
+    events.push(...result.events);
+    if (result.negated) negated = true;
+    if (result.damageReduction) damageReduction += result.damageReduction;
+    if (result.modifiedDamage !== null) modifiedDamage = result.modifiedDamage;
+    
+    activePlayer.grave.push(attackerVerse);
+    activePlayer.setVerse = null;
+  }
+  
+  return { events, negated, damageReduction, modifiedDamage, pendingAction };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION: SUMMON
+// ═══════════════════════════════════════════════════════════════
+
+export function summon(state, playerIdx, cardUid, target) {
+  const events = [];
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const oppSide = playerIdx === 0 ? 'p2' : 'p1';
+  
+  const card = player.hand.find(c => c.uid === cardUid);
+  if (!card || card.cardType !== 'creature') {
+    return { state, events, error: "Invalid card" };
+  }
+  
+  if (card.cost > player.mana) {
+    return { state, events, error: "Not enough mana" };
+  }
+  
+  player.mana -= card.cost;
+  player.hand = player.hand.filter(c => c.uid !== cardUid);
+  
+  const location = target || (!player.active ? 'active' : 'bench');
+  
+  if (location === 'active') {
+    if (player.active) {
+      return { state, events, error: "Active slot occupied" };
+    }
+    player.active = card;
+    card.summonedThisTurn = true;
+    events.push({ type: 'summon', side, creature: card.name, slot: 'active' });
+  } else {
+    if (player.bench.length >= 2) {
+      return { state, events, error: "Bench full" };
+    }
+    player.bench.push(card);
+    card.summonedThisTurn = true;
+    events.push({ type: 'summon', side, creature: card.name, slot: 'bench' });
+  }
+  
+  // CHECK: onSummon trigger
+  const onSummonTrigger = checkTriggers('onSummon', { creature: card }, player, opponent, side, oppSide);
+  events.push(...onSummonTrigger.events);
+  
+  // Creature on-summon abilities
+  const creatureCard = CREATURES[card.id];
+  if (creatureCard?.ability?.trigger?.event === 'onSummon') {
+    const locationCondition = creatureCard.ability.trigger.condition?.location;
+    const locationMatches = !locationCondition || locationCondition === location;
+    
+    if (locationMatches) {
+      const ctx = buildEffectsContext({ creature: card }, player, opponent, side, oppSide);
+      ctx.card = creatureCard;
+      ctx.self = card;
+      ctx.draw = () => draw(player);
+      
+      const result = processEffects(creatureCard.ability, ctx);
+      
+      if (result.events.length > 0 || result.kos?.length > 0) {
+        events.push({ type: 'abilityTrigger', side, creature: card.name, ability: creatureCard.ability.name });
+      }
+      
+      for (const evt of result.events) {
+        if (evt.type === 'damage') {
+          events.push({ type: 'damage', side: oppSide, amount: evt.amount, source: creatureCard.ability.name });
+        } else if (evt.type === 'draw') {
+          events.push(evt);
+        } else if (evt.type !== 'log') {
+          events.push(evt);
+        }
+      }
+      
+      for (const koInfo of result.kos || []) {
+        events.push({ type: 'ko', side: oppSide, creature: koInfo.creature.name });
+        opponent.grave.push(koInfo.creature);
+        if (opponent.active?.uid === koInfo.creature.uid) opponent.active = null;
+      }
+    }
+  }
+  
+  return { state, events };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION: ATTACK
+// ═══════════════════════════════════════════════════════════════
+
 export function attack(state, playerIdx) {
   const events = [];
-  let newState = clone(state);
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const oppSide = playerIdx === 0 ? 'p2' : 'p1';
   
-  const player = newState.players[playerIdx];
-  const opponent = newState.players[1 - playerIdx];
-  
-  // Validation
   if (!player.active) {
     return { state, events, error: "No active creature" };
   }
   
-  if (newState.hasAttacked) {
+  if (state.firstTurn) {
+    return { state, events, error: "Cannot attack on first turn" };
+  }
+  
+  if (state.hasAttacked) {
     return { state, events, error: "Already attacked this turn" };
+  }
+  
+  if (state.hasRetreated) {
+    return { state, events, error: "Cannot attack after retreating" };
   }
   
   const attacker = player.active;
   const defender = opponent.active;
   
-  // Calculate damage
-  const damage = getEffectiveAtk(attacker, player, opponent);
+  // CHECK: beforeAttack trigger
+  const beforeAttackTrigger = checkTriggers('beforeAttack', { attacker, defender }, player, opponent, side, oppSide);
+  events.push(...beforeAttackTrigger.events);
+  if (beforeAttackTrigger.negated) {
+    state.hasAttacked = true;
+    return { state, events };
+  }
   
-  events.push({ type: 'attack', damage });
+  // Cindermaw: Frenzy - attacks twice
+  const attackCount = attacker.id === 'cindermaw' ? 2 : 1;
+  if (attacker.id === 'cindermaw') {
+    events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Frenzy' });
+  }
   
-  if (defender) {
-    // Attack creature
-    const damageResult = applyDamage(defender, damage);
-    opponent.active = damageResult.creature;
+  for (let hit = 0; hit < attackCount; hit++) {
+    if (!player.active || player.active.uid !== attacker.uid) break;
     
-    events.push({ type: 'damage', amount: damage, target: defender.name });
+    let damage = getEffectiveAtk(attacker, player, opponent);
     
-    if (damageResult.ko) {
-      events.push({ type: 'ko', creature: defender.name });
-      opponent.grave.push(damageResult.creature);
-      opponent.active = null;
+    // Pulsefin: First attack deals double damage
+    if (attacker.id === 'pulsefin' && attacker.firstAtk) {
+      damage *= 2;
+      attacker.firstAtk = false;
+      events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Sonic Strike' });
+      events.push({ type: 'atkBonus', side, amount: damage / 2, source: 'Sonic Strike' });
+    }
+    
+    player.attackBonuses = [];
+    
+    if (defender) {
+      events.push({ type: 'attack', side, damage });
       
-      // Auto-swap bench to active
-      const swapResult = autoSwapBenchToActive(opponent, events);
-      newState.players[1 - playerIdx] = swapResult.player;
-      events.push(...swapResult.events);
+      // CHECK: beforeDamage trigger
+      const beforeDamageTrigger = checkTriggers('beforeDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
+      events.push(...beforeDamageTrigger.events);
+      
+      if (beforeDamageTrigger.damageReduction) {
+        damage = Math.max(0, damage - beforeDamageTrigger.damageReduction);
+      }
+      
+      // Unbreakable verse
+      if (opponent.unbreakable) {
+        damage = 0;
+        opponent.unbreakable = false;
+        events.push({ type: 'damageNegated', side: oppSide, source: 'Unbreakable' });
+      }
+      
+      // Passive damage reduction
+      if (defender.id === 'ironhide' && damage > 0) {
+        const reduction = Math.min(10, damage);
+        damage -= reduction;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Iron Skin' });
+        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Iron Skin' });
+      }
+      
+      if (defender.id === 'pebbleback' && damage > 0) {
+        const reduction = Math.min(5, damage);
+        damage -= reduction;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Sturdy' });
+        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Sturdy' });
+      }
+      
+      if (defender.id === 'shellkin' && !defender.shellkinUsed && damage > 0) {
+        const reduction = Math.min(10, damage);
+        damage -= reduction;
+        defender.shellkinUsed = true;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Harden' });
+        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Harden' });
+      }
+      
+      if (defender.id === 'titanback' && !defender.titanbackUsed && damage > 0) {
+        const reduction = Math.min(15, damage);
+        damage -= reduction;
+        defender.titanbackUsed = true;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Juggernaut' });
+        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Juggernaut' });
+      }
+      
+      if (defender.id === 'hollowfox' && opponent.bench.length > 0 && damage > 0) {
+        const reduction = Math.min(10, damage);
+        damage -= reduction;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Den Guard' });
+        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Den Guard' });
+      }
+      
+      // Check for lethal damage and vengeance trigger
+      const wouldBeLethal = defender.curHp - damage <= 0;
+      if (wouldBeLethal) {
+        const lethalTrigger = checkTriggers('onLethalDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
+        if (lethalTrigger.pendingAction) {
+          return { state, events, pendingAction: lethalTrigger.pendingAction };
+        }
+        events.push(...lethalTrigger.events);
+        if (lethalTrigger.modifiedDamage !== null) {
+          damage = lethalTrigger.modifiedDamage;
+        }
+      }
+      
+      // Apply damage
+      let ko = applyDamage(defender, damage);
+      events.push({ type: 'damage', side: oppSide, amount: damage });
+      
+      // Survival mechanics
+      if (ko && defender.id === 'bulwark' && !defender.bulwarkUsed) {
+        defender.curHp = 1;
+        defender.bulwarkUsed = true;
+        ko = false;
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Fortress' });
+        events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1 });
+      }
+      
+      if (ko && defender.fortified) {
+        defender.curHp = 1;
+        defender.fortified = false;
+        ko = false;
+        events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1, source: 'Fortify' });
+      }
+      
+      // Skitter: Optional swap after taking damage
+      if (!ko && defender.id === 'skitter' && opponent.bench.length > 0) {
+        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Scurry' });
+        return { 
+          state, 
+          events, 
+          pendingAction: {
+            type: 'skitterSwap',
+            side: oppSide,
+            creature: defender.name,
+            benchOptions: opponent.bench.map((c, idx) => ({ uid: c.uid, name: c.name, idx }))
+          }
+        };
+      }
+      
+      // On death triggers
+      if (ko) {
+        events.push({ type: 'ko', side: oppSide, creature: defender.name });
+        const koedCreature = defender;
+        opponent.grave.push(defender);
+        opponent.active = null;
+        
+        autoSwapBenchToActive(opponent, oppSide, events);
+        
+        const onKOTrigger = checkTriggers('onKO', { koedCreature, attacker }, player, opponent, side, oppSide);
+        events.push(...onKOTrigger.events);
+        
+        const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature, attacker }, opponent, player, oppSide, side);
+        events.push(...onAllyKOTrigger.events);
+        
+        // Gloom: onKO trigger
+        const koedCard = CREATURES[koedCreature.id];
+        if (koedCard?.ability?.trigger?.event === 'onKO' && 
+            koedCard.ability.trigger.condition?.target === 'self' &&
+            koedCard.ability.effects?.some(e => e.type === 'discard')) {
+          const ctx = buildEffectsContext({ koedCreature, attacker }, opponent, player, oppSide, side);
+          ctx.card = koedCard;
+          ctx.self = koedCreature;
+          
+          const handBefore = [...player.hand];
+          const result = processEffects(koedCard.ability, ctx);
+          
+          if (result.modifiedContext?.discarded || (handBefore.length > player.hand.length)) {
+            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: koedCard.ability.name });
+            const discardedCard = handBefore.find(c => !player.hand.some(h => h.uid === c.uid));
+            if (discardedCard) {
+              events.push({ type: 'discard', side, card: discardedCard.name });
+            }
+          }
+        }
+        
+        // Echomask: Enemy loses 1 life
+        if (koedCreature.id === 'echomask') {
+          const echomaskLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+          events.push(...echomaskLifeLossTrigger.events);
+          
+          if (!echomaskLifeLossTrigger.negated) {
+            player.lp -= 1;
+            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Reflection' });
+            events.push({ type: 'lpDamage', side, amount: 1 });
+          }
+        }
+        
+        // Stormtalon: Set chainLightning flag
+        if (koedCreature.id === 'stormtalon') {
+          player.chainLightning = 20;
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Chain Lightning' });
+          events.push({ type: 'setFlag', side, flag: 'chainLightning', value: 20 });
+        }
+        
+        // Titanback: Deal 25 damage to attacker on death
+        if (koedCreature.id === 'titanback') {
+          const recoilKo = applyDamage(attacker, 25);
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Juggernaut' });
+          events.push({ type: 'damage', side, amount: 25, source: 'Juggernaut' });
+          if (recoilKo) {
+            events.push({ type: 'ko', side, creature: attacker.name });
+            player.grave.push(attacker);
+            player.active = null;
+            
+            const atkKoTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+            events.push(...atkKoTrigger.events);
+          }
+        }
+      }
+      
+      // Reflection damage
+      const defenderCard = CREATURES[defender.id];
+      if (defenderCard?.ability?.trigger?.event === 'afterAttack' && 
+          defenderCard.ability.trigger.condition?.defender === 'self') {
+        const ctx = buildEffectsContext({ attacker, defender, damage }, player, opponent, side, oppSide);
+        ctx.card = defenderCard;
+        ctx.self = defender;
+        ctx.attackerOwner = player;
+        ctx.attackerOwnerKey = 'me';
+        
+        const result = processEffects(defenderCard.ability, ctx);
+        
+        if (result.events.length > 0 || result.kos?.length > 0) {
+          events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: defenderCard.ability.name });
+        }
+        
+        for (const evt of result.events) {
+          if (evt.type === 'damage') {
+            events.push({ type: 'damage', side, amount: evt.amount, source: defenderCard.ability.name });
+          } else if (evt.type !== 'log') {
+            events.push(evt);
+          }
+        }
+        
+        for (const koInfo of result.kos || []) {
+          events.push({ type: 'ko', side, creature: attacker.name });
+          player.grave.push(attacker);
+          player.active = null;
+          
+          autoSwapBenchToActive(player, side, events);
+          
+          const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+          events.push(...onAllyKOTrigger.events);
+        }
+      }
+      
+      // Attacker on-hit triggers
+      if (!ko && defender && damage > 0) {
+        const attackerCard = CREATURES[attacker.id];
+        if (attackerCard?.ability?.trigger?.event === 'afterAttack' || 
+            attackerCard?.ability?.trigger?.event === 'onHit') {
+          const triggerCondition = attackerCard.ability.trigger.condition;
+          const isAttackerAbility = triggerCondition?.attacker === 'self';
+          const didDamageOk = !triggerCondition?.didDamage || damage > 0;
+          const defenderAliveOk = !triggerCondition?.defenderAlive || !ko;
+          
+          if (isAttackerAbility && didDamageOk && defenderAliveOk) {
+            const ctx = buildEffectsContext({ attacker, defender, damage }, player, opponent, side, oppSide);
+            ctx.card = attackerCard;
+            ctx.self = attacker;
+            ctx.damageDealt = damage;
+            ctx.attackerOwner = player;
+            ctx.attackerOwnerKey = 'me';
+            ctx.defenderOwner = opponent;
+            
+            const result = processEffects(attackerCard.ability, ctx);
+            
+            if (result.events.length > 0) {
+              events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: attackerCard.ability.name });
+            }
+            
+            for (const evt of result.events) {
+              if (evt.type === 'log') {
+                if (evt.message?.includes('Poisoned')) {
+                  events.push({ type: 'setStatus', side: oppSide, status: 'poison' });
+                } else if (evt.message?.includes('Trapped')) {
+                  events.push({ type: 'setStatus', side: oppSide, status: 'trapped' });
+                }
+              } else if (evt.type === 'heal') {
+                events.push({ type: 'heal', side, amount: evt.amount });
+              } else {
+                events.push(evt);
+              }
+            }
+          }
+        }
+      }
+      
+      // Attacker on-kill triggers
+      if (ko) {
+        const attackerCard = CREATURES[attacker.id];
+        if (attackerCard?.ability?.trigger?.event === 'onHit' && 
+            attackerCard.ability.trigger.condition?.causedKO) {
+          const ctx = buildEffectsContext({ attacker, defender }, player, opponent, side, oppSide);
+          ctx.card = attackerCard;
+          ctx.self = attacker;
+          ctx.attackerOwner = player;
+          ctx.attackerOwnerKey = 'me';
+          
+          const result = processEffects(attackerCard.ability, ctx);
+          
+          if (result.events.length > 0) {
+            events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: attackerCard.ability.name });
+          }
+          
+          for (const evt of result.events) {
+            if (evt.type === 'heal') {
+              events.push({ type: 'heal', side, amount: evt.amount });
+            } else if (evt.type !== 'log') {
+              events.push(evt);
+            }
+          }
+        }
+      }
+      
+    } else {
+      // Direct attack on life points
+      const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
+      events.push(...onLifeLossTrigger.events);
+      
+      if (!onLifeLossTrigger.negated) {
+        opponent.lp -= 1;
+        events.push({ type: 'lpDamage', side: oppSide, amount: 1 });
+      }
     }
-  } else {
-    // Direct attack on life points
-    opponent.lp -= 1;
-    events.push({ type: 'lpDamage', amount: 1 });
   }
   
-  newState.hasAttacked = true;
+  // Cindermaw self-damage
+  if (attacker.id === 'cindermaw' && player.active && player.active.uid === attacker.uid) {
+    const selfKo = applyDamage(attacker, 10);
+    events.push({ type: 'damage', side, amount: 10, source: 'Frenzy (Burnout)' });
+    if (selfKo) {
+      events.push({ type: 'ko', side, creature: attacker.name });
+      player.grave.push(attacker);
+      player.active = null;
+      
+      autoSwapBenchToActive(player, side, events);
+      
+      const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+      events.push(...onAllyKOTrigger.events);
+    }
+  }
   
-  return { state: newState, events };
+  state.hasAttacked = true;
+  return { state, events };
 }
 
-/**
- * Summon a creature (PURE)
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Summoning player index
- * @param {String} cardUid - UID of card in hand
- * @param {String} slot - 'active' or 'bench'
- * @returns {Object} - { state: newState, events: [] }
- */
-export function summon(state, playerIdx, cardUid, slot = 'auto') {
+// ═══════════════════════════════════════════════════════════════
+// ACTION: CAST VERSE
+// ═══════════════════════════════════════════════════════════════
+
+export function castVerse(state, playerIdx, cardUid, action = {}) {
   const events = [];
-  let newState = clone(state);
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const oppSide = playerIdx === 0 ? 'p2' : 'p1';
   
-  const player = newState.players[playerIdx];
-  
-  // Find card in hand
-  const cardIdx = player.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) {
-    return { state, events, error: "Card not in hand" };
-  }
-  
-  const card = player.hand[cardIdx];
-  
-  if (card.cardType !== 'creature') {
-    return { state, events, error: "Card is not a creature" };
+  const card = player.hand.find(c => c.uid === cardUid);
+  if (!card || card.cardType !== 'verse' || card.type !== 'cast') {
+    return { state, events, error: "Invalid card" };
   }
   
   if (card.cost > player.mana) {
     return { state, events, error: "Not enough mana" };
   }
   
-  // Deduct mana and remove from hand
-  player.mana -= card.cost;
-  player.hand.splice(cardIdx, 1);
-  
-  // Determine summon location
-  const targetSlot = slot === 'auto' ? (!player.active ? 'active' : 'bench') : slot;
-  
-  if (targetSlot === 'active') {
-    if (player.active) {
-      return { state, events, error: "Active slot occupied" };
+  // Check selection requirements
+  const verseTemplate = VERSES[card.id];
+  if (verseTemplate?.selection) {
+    const selection = resolveSelection(state, playerIdx, action, verseTemplate.selection);
+    if (selection?.needsSelection) {
+      return { state, events, error: verseTemplate.selection.prompt || 'Select a target' };
     }
-    card.summonedThisTurn = true;
-    player.active = card;
-    events.push({ type: 'summon', creature: card.name, slot: 'active' });
-  } else {
-    if (player.bench.length >= 2) {
-      return { state, events, error: "Bench full" };
+    if (selection?.error) {
+      return { state, events, error: selection.error };
     }
-    card.summonedThisTurn = true;
-    player.bench.push(card);
-    events.push({ type: 'summon', creature: card.name, slot: 'bench' });
+    action.selected = selection;
   }
   
-  return { state: newState, events };
-}
-
-/**
- * Cast a verse (PURE)
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Casting player index
- * @param {String} cardUid - UID of verse in hand
- * @param {Object} selection - Target selection (varies by verse)
- * @returns {Object} - { state: newState, events: [] }
- */
-export function castVerse(state, playerIdx, cardUid, selection = {}) {
-  const events = [];
-  let newState = clone(state);
-  
-  const player = newState.players[playerIdx];
-  const opponent = newState.players[1 - playerIdx];
-  
-  // Find card in hand
-  const cardIdx = player.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) {
-    return { state, events, error: "Card not in hand" };
-  }
-  
-  const card = player.hand[cardIdx];
-  
-  if (card.cardType !== 'verse' || card.type !== 'cast') {
-    return { state, events, error: "Card is not a cast verse" };
-  }
-  
-  if (card.cost > player.mana) {
-    return { state, events, error: "Not enough mana" };
-  }
-  
-  // Deduct mana and move to grave
   player.mana -= card.cost;
-  player.hand.splice(cardIdx, 1);
+  player.hand = player.hand.filter(c => c.uid !== cardUid);
+  
+  // CHECK: onCast trigger
+  const onCastTrigger = checkTriggers('onCast', { spell: card }, player, opponent, side, oppSide);
+  events.push(...onCastTrigger.events);
+  
+  if (onCastTrigger.negated) {
+    player.grave.push(card);
+    return { state, events };
+  }
+  
   player.grave.push(card);
+  events.push({ type: 'cast', side, verse: card.name });
   
-  events.push({ type: 'cast', verse: card.name });
+  // Execute verse effects
+  const ctx = buildEffectsContext({ selected: action.selected }, player, opponent, side, oppSide);
   
-  // Process effects (using effects.js)
-  const effectsResult = processEffects(card.effects || [], {
-    state: newState,
-    playerIdx,
-    selection
-  });
+  switch (card.id) {
+    case 'darkPact': {
+      const darkPactLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+      events.push(...darkPactLifeLossTrigger.events);
+      
+      if (!darkPactLifeLossTrigger.negated) {
+        const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
+        events.push(...cardEvents);
+      } else {
+        draw(player);
+        draw(player);
+        events.push({ type: 'draw', count: 2 });
+      }
+      break;
+    }
+    
+    case 'predatorsMark':
+    case 'manaSurge':
+    case 'secondWind':
+    case 'shellArmor':
+    case 'regenerate':
+    case 'fortify':
+    case 'bloodMoon': {
+      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
+      events.push(...cardEvents);
+      break;
+    }
+    
+    case 'unbreakable': {
+      player.unbreakable = true;
+      events.push({ type: 'setFlag', side, flag: 'unbreakable' });
+      break;
+    }
+    
+    case 'ignite':
+    case 'banish':
+    case 'soulSiphon': {
+      if (!action.selected) {
+        player.mana += card.cost;
+        player.hand.push(card);
+        player.grave = player.grave.filter(c => c.uid !== card.uid);
+        return { state, events, error: verseTemplate?.selection?.prompt || 'Select target creature' };
+      }
+      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
+      events.push(...cardEvents);
+      if (card.id === 'banish') {
+        events.push({ type: 'banish', side: action.selected.ownerKey === 'me' ? side : oppSide, creature: action.selected.creature.name });
+      }
+      break;
+    }
+    
+    case 'callOfTheWild': {
+      const oneCostCreatures = player.deck.filter(c => c.cardType === 'creature' && c.cost === 1);
+      if (oneCostCreatures.length > 0 && player.bench.length < 2) {
+        const randIdx = Math.floor(Math.random() * oneCostCreatures.length);
+        const creature = oneCostCreatures[randIdx];
+        player.deck = player.deck.filter(c => c.uid !== creature.uid);
+        
+        if (!player.active) {
+          player.active = creature;
+          creature.summonedThisTurn = true;
+          events.push({ type: 'summon', side, creature: creature.name, slot: 'active', source: 'Call of the Wild' });
+        } else {
+          player.bench.push(creature);
+          creature.summonedThisTurn = true;
+          events.push({ type: 'summon', side, creature: creature.name, slot: 'bench', source: 'Call of the Wild' });
+        }
+      }
+      break;
+    }
+    
+    case 'graveEcho': {
+      if (!action.graveUid) {
+        player.mana += card.cost;
+        player.hand.push(card);
+        player.grave = player.grave.filter(c => c.uid !== card.uid);
+        return { state, events, error: 'Select creature from graveyard' };
+      }
+      const graveIdx = player.grave.findIndex(c => c.uid === action.graveUid && c.cardType === 'creature');
+      if (graveIdx === -1) {
+        player.mana += card.cost;
+        player.hand.push(card);
+        player.grave = player.grave.filter(c => c.uid !== card.uid);
+        return { state, events, error: 'Invalid graveyard target' };
+      }
+      const creature = player.grave[graveIdx];
+      player.grave.splice(graveIdx, 1);
+      player.hand.push(creature);
+      events.push({ type: 'graveReturn', side, creature: creature.name });
+      break;
+    }
+    
+    case 'sacrifice': {
+      if (!action.sacrificeUid) {
+        player.mana += card.cost;
+        player.hand.push(card);
+        player.grave = player.grave.filter(c => c.uid !== card.uid);
+        return { state, events, error: 'Select creature to sacrifice' };
+      }
+      
+      let target = null;
+      let targetLocation = null;
+      let targetIdx = -1;
+      
+      if (player.active && player.active.uid === action.sacrificeUid) {
+        target = player.active;
+        targetLocation = 'active';
+      } else {
+        targetIdx = player.bench.findIndex(c => c.uid === action.sacrificeUid);
+        if (targetIdx !== -1) {
+          target = player.bench[targetIdx];
+          targetLocation = 'bench';
+        }
+      }
+      
+      if (!target) {
+        player.mana += card.cost;
+        player.hand.push(card);
+        player.grave = player.grave.filter(c => c.uid !== card.uid);
+        return { state, events, error: 'Invalid sacrifice target' };
+      }
+      
+      events.push({ type: 'sacrifice', side, creature: target.name });
+      player.grave.push(target);
+      if (targetLocation === 'active') {
+        player.active = null;
+      } else {
+        player.bench.splice(targetIdx, 1);
+      }
+      
+      draw(player);
+      draw(player);
+      events.push({ type: 'draw', side, count: 2 });
+      break;
+    }
+    
+    default:
+      // Generic verse - try processEffects
+      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
+      events.push(...cardEvents);
+  }
   
-  newState = effectsResult.state;
-  events.push(...effectsResult.events);
-  
-  return { state: newState, events };
+  return { state, events };
 }
 
-/**
- * Set a verse face-down (PURE)
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Setting player index
- * @param {String} cardUid - UID of verse in hand
- * @returns {Object} - { state: newState, events: [] }
- */
+// ═══════════════════════════════════════════════════════════════
+// ACTION: SET VERSE
+// ═══════════════════════════════════════════════════════════════
+
 export function setVerse(state, playerIdx, cardUid) {
   const events = [];
-  let newState = clone(state);
+  const player = state.players[playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
   
-  const player = newState.players[playerIdx];
-  
-  // Find card in hand
-  const cardIdx = player.hand.findIndex(c => c.uid === cardUid);
-  if (cardIdx === -1) {
-    return { state, events, error: "Card not in hand" };
-  }
-  
-  const card = player.hand[cardIdx];
-  
-  if (card.cardType !== 'verse' || card.type !== 'set') {
-    return { state, events, error: "Card is not a set verse" };
+  const card = player.hand.find(c => c.uid === cardUid);
+  if (!card || card.cardType !== 'verse' || card.type !== 'set') {
+    return { state, events, error: "Invalid card" };
   }
   
   if (card.cost > player.mana) {
@@ -587,63 +1252,298 @@ export function setVerse(state, playerIdx, cardUid) {
     return { state, events, error: "Already have a set verse" };
   }
   
-  // Deduct mana and remove from hand
   player.mana -= card.cost;
-  player.hand.splice(cardIdx, 1);
+  player.hand = player.hand.filter(c => c.uid !== cardUid);
   player.setVerse = card;
   
-  events.push({ type: 'setVerse', verse: card.name });
-  
-  return { state: newState, events };
+  events.push({ type: 'setVerse', side, verse: card.name });
+  return { state, events };
 }
 
-/**
- * End turn and switch players (PURE)
- * @param {Object} state - Current game state
- * @param {Number} playerIdx - Ending player index
- * @returns {Object} - { state: newState, events: [] }
- */
+// ═══════════════════════════════════════════════════════════════
+// ACTION: RETREAT
+// ═══════════════════════════════════════════════════════════════
+
+export function retreat(state, playerIdx, benchIdx) {
+  const events = [];
+  const player = state.players[playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  
+  if (!player.active) {
+    return { state, events, error: "No active creature" };
+  }
+  
+  if (player.bench.length === 0) {
+    return { state, events, error: "No bench creatures" };
+  }
+  
+  if (state.hasAttacked) {
+    return { state, events, error: "Cannot retreat after attacking" };
+  }
+  
+  if (state.hasRetreated) {
+    return { state, events, error: "Already retreated this turn" };
+  }
+  
+  if (player.active.status === 'trapped') {
+    return { state, events, error: "Active creature is trapped" };
+  }
+  
+  if (benchIdx < 0 || benchIdx >= player.bench.length) {
+    return { state, events, error: "Invalid bench index" };
+  }
+  
+  const fromCreature = player.active;
+  const toCreature = player.bench[benchIdx];
+  
+  player.active = toCreature;
+  player.bench[benchIdx] = fromCreature;
+  
+  events.push({ type: 'retreat', side, from: fromCreature.name, to: toCreature.name });
+  state.hasRetreated = true;
+  
+  return { state, events };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION: END TURN
+// ═══════════════════════════════════════════════════════════════
+
 export function endTurn(state, playerIdx) {
   const events = [];
-  let newState = clone(state);
+  const player = state.players[playerIdx];
+  const nextPlayerIdx = 1 - playerIdx;
+  const nextPlayer = state.players[nextPlayerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const nextSide = playerIdx === 0 ? 'p2' : 'p1';
   
-  const player = newState.players[playerIdx];
-  
-  // Reset turn flags
-  player.attackBonuses = [];
-  if (player.active) {
-    player.active.summonedThisTurn = false;
-  }
+  // Clear summonedThisTurn flags
+  if (player.active) player.active.summonedThisTurn = false;
   player.bench.forEach(c => c.summonedThisTurn = false);
   
-  // Switch players
-  newState.currentPlayer = newState.currentPlayer === 1 ? 2 : 1;
-  newState.hasAttacked = false;
-  newState.hasRetreated = false;
-  newState.firstTurn = false;
+  // Clear trapped status at end of turn
+  if (player.active && player.active.status === 'trapped') {
+    player.active.status = null;
+    events.push({ type: 'clearStatus', side, status: 'trapped' });
+  }
   
-  const nextPlayer = newState.players[newState.currentPlayer - 1];
+  // Reset per-turn damage reduction flags
+  if (nextPlayer.active) {
+    nextPlayer.active.shellkinUsed = false;
+    nextPlayer.active.titanbackUsed = false;
+  }
+  nextPlayer.bench.forEach(c => {
+    c.shellkinUsed = false;
+    c.titanbackUsed = false;
+  });
   
-  // Draw phase for next player
-  const drawResult = draw(nextPlayer);
-  newState.players[newState.currentPlayer - 1] = drawResult.player;
-  events.push(...drawResult.events);
+  // Poison damage at end of turn
+  if (player.active && player.active.status === 'poison') {
+    const ko = applyDamage(player.active, 10);
+    events.push({ type: 'damage', side, amount: 10, source: 'Poison' });
+    if (ko) {
+      events.push({ type: 'ko', side, creature: player.active.name });
+      player.grave.push(player.active);
+      player.active = null;
+      autoSwapBenchToActive(player, side, events);
+    }
+  }
   
-  // Mana phase
-  if (nextPlayer.maxMana < 5) {
-    nextPlayer.maxMana += 1;
+  // Broodmother spawn
+  if (player.active && player.active.id === 'broodmother' && player.bench.length < 2) {
+    const antling = mkCreature('hiveling');
+    antling.name = 'Antling';
+    antling.hp = 10;
+    antling.curHp = 10;
+    antling.atk = 10;
+    player.bench.push(antling);
+    events.push({ type: 'abilityTrigger', side, creature: player.active.name, ability: 'Spawn' });
+    events.push({ type: 'summon', side, creature: 'Antling', slot: 'bench' });
+  }
+  
+  // Switch turn
+  state.currentPlayer = nextPlayerIdx + 1;
+  state.turn += (nextPlayerIdx === 0 ? 1 : 0);
+  const wasFirstTurn = state.firstTurn;
+  state.firstTurn = false;
+  state.hasAttacked = false;
+  state.hasRetreated = false;
+  
+  // Next player: increment mana and draw
+  if (!wasFirstTurn) {
+    nextPlayer.maxMana = Math.min(5, nextPlayer.maxMana + 1);
   }
   nextPlayer.mana = nextPlayer.maxMana;
-  events.push({ type: 'manaGain', amount: nextPlayer.mana });
+  events.push({ type: 'manaGain', side: nextSide });
   
-  // Increment turn counter (when returning to player 1)
-  if (newState.currentPlayer === 1) {
-    newState.turn += 1;
+  const drawResult = draw(nextPlayer);
+  if (drawResult.success) {
+    events.push(...drawResult.events);
+  } else {
+    state.winner = playerIdx;
+    events.push({ type: 'gameOver', winner: side, reason: 'Deck out' });
   }
   
-  events.push({ type: 'turnEnd', nextPlayer: newState.currentPlayer });
+  events.push({ type: 'turnStart', yourTurn: false });
   
-  return { state: newState, events };
+  return { state, events };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION: SPECIAL ACTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export function skitterSwap(state, playerIdx, benchIdx) {
+  const events = [];
+  const player = state.players[playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  
+  if (!player.active || player.active.id !== 'skitter') {
+    return { state, events, error: "No skitter in active slot" };
+  }
+  
+  if (player.bench.length === 0) {
+    return { state, events, error: "No bench creatures to swap with" };
+  }
+  
+  if (benchIdx === undefined || benchIdx < 0 || benchIdx >= player.bench.length) {
+    return { state, events, error: "Invalid bench index" };
+  }
+  
+  const skitter = player.active;
+  const benchCreature = player.bench[benchIdx];
+  
+  player.active = benchCreature;
+  player.bench[benchIdx] = skitter;
+  
+  events.push({ type: 'skitterSwap', side, from: skitter.name, to: benchCreature.name });
+  return { state, events };
+}
+
+export function skitterDecline(state, playerIdx) {
+  const events = [];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  events.push({ type: 'skitterDecline', side });
+  return { state, events };
+}
+
+export function respondOptionalTrigger(state, playerIdx, action) {
+  const events = [];
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const oppSide = playerIdx === 0 ? 'p2' : 'p1';
+  
+  const { confirmed, verseId, context: serializedContext } = action;
+  
+  if (!player.setVerse || player.setVerse.id !== verseId) {
+    return { state, events, error: "No matching verse set" };
+  }
+  
+  const verse = player.setVerse;
+  const damage = serializedContext?.damage || 0;
+  const defender = player.active;
+  const attacker = opponent.active;
+  const triggerContext = { attacker, defender, damage };
+  
+  if (confirmed) {
+    const result = executeTrigger(verse, triggerContext, player, opponent, side, oppSide);
+    events.push(...result.events);
+    
+    player.grave.push(verse);
+    player.setVerse = null;
+  } else {
+    player.grave.push(verse);
+    player.setVerse = null;
+    events.push({ type: 'triggerDeclined', side, verse: verse.name });
+    
+    if (defender && damage > 0) {
+      const ko = applyDamage(defender, damage);
+      events.push({ type: 'damage', side, amount: damage });
+      
+      if (ko) {
+        player.grave.push(defender);
+        player.active = null;
+        events.push({ type: 'ko', side, creature: defender.name });
+      }
+    }
+  }
+  
+  return { state, events };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN EXECUTE ACTION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Execute a game action
+ * @param {object} state - Game state
+ * @param {number} playerIdx - Player index (0 or 1)
+ * @param {object} action - Action object
+ * @returns {object} - { state, events, error?, pendingAction? }
+ */
+export function executeAction(state, playerIdx, action) {
+  // Validate turn (except for special actions)
+  const specialActions = ['skitterSwap', 'skitterDecline', 'respondOptionalTrigger'];
+  if (!specialActions.includes(action.action) && state.currentPlayer !== playerIdx + 1) {
+    return { state, events: [], error: "Not your turn" };
+  }
+  
+  let result;
+  
+  switch (action.action) {
+    case 'summon':
+      result = summon(state, playerIdx, action.cardUid, action.target);
+      break;
+    case 'attack':
+      result = attack(state, playerIdx);
+      break;
+    case 'cast':
+      result = castVerse(state, playerIdx, action.cardUid, action);
+      break;
+    case 'set':
+      result = setVerse(state, playerIdx, action.cardUid);
+      break;
+    case 'retreat':
+      result = retreat(state, playerIdx, action.benchIdx);
+      break;
+    case 'endTurn':
+      result = endTurn(state, playerIdx);
+      break;
+    case 'skitterSwap':
+      result = skitterSwap(state, playerIdx, action.benchIdx);
+      break;
+    case 'skitterDecline':
+      result = skitterDecline(state, playerIdx);
+      break;
+    case 'respondOptionalTrigger':
+      result = respondOptionalTrigger(state, playerIdx, action);
+      break;
+    default:
+      return { state, events: [], error: "Unknown action" };
+  }
+  
+  // Check win conditions
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const side = playerIdx === 0 ? 'p1' : 'p2';
+  const oppSide = playerIdx === 0 ? 'p2' : 'p1';
+  
+  if (player.lp <= 0) {
+    state.winner = 1 - playerIdx;
+    result.events.push({ type: 'gameOver', winner: oppSide, reason: 'LP depleted' });
+  }
+  if (opponent.lp <= 0) {
+    state.winner = playerIdx;
+    result.events.push({ type: 'gameOver', winner: side, reason: 'LP depleted' });
+  }
+  if (opponent.deck.length === 0 && opponent.hand.length === 0) {
+    state.winner = playerIdx;
+    result.events.push({ type: 'gameOver', winner: side, reason: 'Deck out' });
+  }
+  
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -651,13 +1551,22 @@ export function endTurn(state, playerIdx) {
 // ═══════════════════════════════════════════════════════════════
 
 export default {
+  // Main action handler
+  executeAction,
+  
   // Core operations
   createGame,
   attack,
   summon,
   castVerse,
   setVerse,
+  retreat,
   endTurn,
+  
+  // Special actions
+  skitterSwap,
+  skitterDecline,
+  respondOptionalTrigger,
   
   // Helpers
   draw,

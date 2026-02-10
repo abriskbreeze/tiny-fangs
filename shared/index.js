@@ -20,20 +20,33 @@ export {
 
 // Game engine
 export {
+  // Main action handler
+  executeAction,
+  
+  // Core operations
   createGame,
   attack,
   summon,
   castVerse,
   setVerse,
+  retreat,
   endTurn,
+  
+  // Special actions
+  skitterSwap,
+  skitterDecline,
+  respondOptionalTrigger,
+  
+  // Helpers
   draw,
-  mkCreature,
-  mkVerse,
-  mkDeck,
-  mkPlayer,
   applyDamage,
   autoSwapBenchToActive,
   getEffectiveAtk,
-  checkCondition,
-  resolveSelection
+  resolveSelection,
+  
+  // Card creation
+  mkCreature,
+  mkVerse,
+  mkDeck,
+  mkPlayer
 } from './engine.js';

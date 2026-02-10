@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.68] - 2026-02-10
+
+### Changed
+- Shared engine refactor complete - server now 149 lines
+
+---
+
+
 ## [0.4.67] - 2026-02-10
 
 ### Changed

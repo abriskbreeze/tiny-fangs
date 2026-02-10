@@ -161,6 +161,21 @@ Major milestones:
 
 ---
 
+## Architecture Milestone (2026-02-10)
+
+**Shared Engine Refactor Complete**
+- Server GameEngine: 1,724 → 149 lines (thin wrapper only)
+- All game logic now in `shared/engine.js` (1,583 lines)
+- Single source of truth for solo AND multiplayer
+- 262 tests passing
+
+**Next opportunity: Client unification**
+- index.html has ~2,000 lines duplicate game logic for solo mode
+- Could import shared module, cut ~2,000 lines
+- Would guarantee solo/multiplayer parity forever
+
+---
+
 ## Session Log
 
 ### 2026-02-02 — Initial Build
