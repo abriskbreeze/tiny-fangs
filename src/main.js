@@ -124,8 +124,9 @@
       },
       cast: (e) => Anim.castVerse(sideKey(e.side)),
       triggerVerse: async (e) => {
-        // Show trigger reveal modal - need verse data from VERSES
-        const verse = VERSES[e.verseId] || { name: e.verse, text: '' };
+        // Show trigger reveal modal - look up verse by name
+        const verse = Object.values(VERSES).find(v => v.name === e.verse) 
+          || { name: e.verse, text: '', trigger: '' };
         if (typeof showTriggerReveal === 'function') {
           await showTriggerReveal(verse);
         }
@@ -133,9 +134,10 @@
       
       // Ability events
       abilityTrigger: async (e) => {
-        // Show ability reveal if we have the creature data
+        // Show ability reveal - look up creature by name
         if (e.creature && typeof showTriggerReveal === 'function') {
-          const creature = CREATURES[e.creatureId] || { name: e.creature, ability: { name: e.ability, text: '' } };
+          const creature = Object.values(CREATURES).find(c => c.name === e.creature)
+            || { name: e.creature, ability: { name: e.ability, text: '' } };
           await showTriggerReveal(creature);
         }
         log(`${e.creature}'s ${e.ability}!`, 'mana');

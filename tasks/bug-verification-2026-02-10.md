@@ -11,7 +11,7 @@ Verifying old bug list from `tasks/todo.md` (Feb 7) against current codebase (v0
 | A3: Echomask copies BASE not MODIFIED ATK | ✅ FIXED | getEffectiveAtk properly handles Echomask (engine.js:181) |
 | A4: Thornling causes negative HP | ✅ FIXED | Trigger damage properly handles KO in shared engine |
 | A5: Poison not dealing damage | ✅ FIXED | endTurn handles poison (engine.js:1389-1398) |
-| A6: Duskfang ATK stacks on resummon | ⚠️ NEEDS TEST | atkBonuses may need clearing in ko/return paths |
+| A6: Duskfang ATK stacks on resummon | ✅ FIXED v0.4.74 | prepareForGrave() clears atkBonuses |
 
 ## GROUP B: Card Effects
 
@@ -46,12 +46,13 @@ Verifying old bug list from `tasks/todo.md` (Feb 7) against current codebase (v0
 
 | Status | Count |
 |--------|-------|
-| ✅ FIXED | 6 |
-| ❌ OPEN | 3 |
-| ⚠️ NEEDS TEST | 9 |
+| ✅ FIXED | 10 |
+| ❌ OPEN | 0 |
+| ⚠️ NEEDS TEST | 8 |
 
-## Definite Fixes Needed
+## All Critical Bugs Fixed ✅
 
-1. **A1: Shellkin Harden for spell damage** — Effects.damage should check damage reduction abilities
-2. **A2: Echomask 0 ATK direct** — Check damage > 0 before LP loss
-3. **B1: Mana Drain** — Remove `gainMana` effect from cards.js
+- A1: Shellkin Harden — Fixed in v0.4.73
+- A2: Echomask 0 ATK — Fixed in v0.4.73
+- A6: Duskfang stacking — Fixed in v0.4.74
+- B1: Mana Drain — Fixed in v0.4.73

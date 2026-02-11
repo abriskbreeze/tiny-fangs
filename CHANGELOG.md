@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.76] - 2026-02-10
+
+### Changed
+- Fix trigger reveal lookups - use name instead of missing ID fields
+
+---
+
+
 ## [0.4.75] - 2026-02-10
 
 ### Changed
