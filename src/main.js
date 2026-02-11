@@ -1703,8 +1703,7 @@
       if (!card && state.G.opp.setVerse?.uid === uid) card = state.G.opp.setVerse;
       if (!card) return;
 
-      // Prevent touch scrolling
-      if (e?.cancelable) e.preventDefault();
+      // Don't preventDefault here - allow scrolling until we confirm it's a drag
 
       // Non-hand cards: only allow hold-to-zoom, no drag
       if (!handCard) {
@@ -1751,9 +1750,6 @@
     function onDragMove(e) {
       if (!state.drag) return;
 
-      // Prevent scrolling during drag
-      if (e.cancelable) e.preventDefault();
-
       const clientX = e.clientX ?? 0;
       const clientY = e.clientY ?? 0;
       state.drag.currentX = clientX;
@@ -1762,6 +1758,11 @@
       const dx = clientX - state.drag.startX;
       const dy = clientY - state.drag.startY;
       const dist = Math.sqrt(dx*dx + dy*dy);
+
+      // Only prevent scrolling once we've confirmed it's a drag (past threshold)
+      if (state.drag.active && e.cancelable) {
+        e.preventDefault();
+      }
 
       // Check if we should enter drag mode
       if (!state.drag.active && dist > DRAG_THRESHOLD) {

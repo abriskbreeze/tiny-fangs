@@ -533,6 +533,10 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
     }
       
     case 'lastBreath': {
+      // Last Breath only triggers if the OWNER is the one losing LP
+      if (context.targetSide && context.targetSide !== ownerSide) {
+        break; // Not my LP being lost
+      }
       const damageAmount = context.amount || 1;
       if (!owner.usedLastBreath && owner.lp <= damageAmount) {
         negated = true;
@@ -920,7 +924,7 @@ export function attack(state, playerIdx) {
         
         // Echomask: Enemy loses 1 life
         if (koedCreature.id === 'echomask') {
-          const echomaskLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+          const echomaskLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1, targetSide: side }, opponent, player, oppSide, side);
           events.push(...echomaskLifeLossTrigger.events);
           
           if (!echomaskLifeLossTrigger.negated) {
@@ -1063,7 +1067,7 @@ export function attack(state, playerIdx) {
       if (damage > 0) {
         events.push({ type: 'attack', side, damage, direct: true });
         
-        const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
+        const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1, targetSide: oppSide }, player, opponent, side, oppSide);
         events.push(...onLifeLossTrigger.events);
         
         if (!onLifeLossTrigger.negated) {
@@ -1153,7 +1157,7 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
   
   switch (card.id) {
     case 'darkPact': {
-      const darkPactLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, opponent, player, oppSide, side);
+      const darkPactLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1, targetSide: side }, opponent, player, oppSide, side);
       events.push(...darkPactLifeLossTrigger.events);
       
       if (!darkPactLifeLossTrigger.negated) {

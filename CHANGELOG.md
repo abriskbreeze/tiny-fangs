@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.76] - 2026-02-10
+
+### Changed
+- Fix Last Breath only triggers for LP owner; Fix mobile hand scrolling
+
+---
+
+
 ## [0.4.75] - 2026-02-10
 
 ### Changed

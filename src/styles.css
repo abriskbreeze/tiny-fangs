@@ -558,9 +558,9 @@
       filter: grayscale(0.8);
     }
 
-    /* Prevent touch scrolling on hand cards */
+    /* Allow horizontal scroll, prevent vertical (for drag-to-play) */
     .hand-card, .d-hand-card {
-      touch-action: none;
+      touch-action: pan-x;
       user-select: none;
     }
 
