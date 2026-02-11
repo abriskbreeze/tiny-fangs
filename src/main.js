@@ -696,82 +696,22 @@
 
     // Play animation events from server
     // Server event handlers - maps event types to handler functions
-    const serverEventHandlers = {
-      summon: async (e, side) => {
-        if (e.slot === 'bench') await Anim.summonBench(side, 0);
-        else await Anim.summon(side);
-      },
-      attack: async (e, side) => await Anim.attack(side, side === 'me' ? 'opp' : 'me', e.damage),
-      damage: async (e, side) => await Anim.damage(side, e.amount),
-      heal: async (e, side) => await Anim.heal(side, e.amount),
-      ko: async (e, side) => await Anim.ko(side),
-      retreat: async (e, side) => await Anim.benchToActive(side),
-      benchToActive: async (e, side) => {
-        await Anim.benchToActive(side);
-        log(`${e.creature} moved to active!`);
-      },
-      cast: async (e) => {
-        const verse = Object.values(VERSES).find(v => v.name === e.verse)
-          || { name: e.verse || 'Verse', text: '' };
-        await Anim.castVerse();
-        if (typeof showCastReveal === 'function') {
-          await showCastReveal(verse);
-        }
-        log(`${verse.name} cast!`);
-      },
-      setVerse: async (e, side) => {
-        Anim.setVerse(side);
-        if (side === 'me' && typeof showSetReveal === 'function') {
-          await showSetReveal();
-        }
-      },
-      draw: async () => await Anim.wait(100),
-      lpDamage: async (e, side) => await Anim.lpDamage(side, e.amount || 1),
-      manaGain: async () => await Anim.manaGain(),
-      turnStart: () => {}, // Handled by turnChange message
-      gameOver: () => {}, // Handled separately
-      skitterSwap: async (e, side) => {
-        await Anim.benchToActive(side);
-        log(`${e.from} scurried to bench, ${e.to} is now active!`);
-      },
-      skitterDecline: () => {},
-      abilityTrigger: async (e) => {
-        const creature = Object.values(CREATURES).find(c => c.name === e.creature);
-        if (creature?.ability) await showTriggerReveal(creature);
-        log(`${e.creature}'s ${e.ability} triggered!`);
-      },
-      banish: async (e, side) => {
-        await Anim.ko(side);
-        log(`${e.creature} was banished!`);
-      },
-      graveReturn: (e) => log(`${e.creature} returned to hand!`),
-      sacrifice: async (e, side) => {
-        await Anim.ko(side);
-        log(`${e.creature} was sacrificed!`);
-      },
-      triggerVerse: async (e) => {
-        const verse = Object.values(VERSES).find(v => v.name === e.verse);
-        if (verse) await showTriggerReveal(verse);
-        log(`${e.verse} triggered!`);
-      },
-      damageReduced: (e) => log(`${e.source} reduced damage by ${e.amount}!`),
-      survival: (e) => log(`${e.creature} survived at ${e.hp} HP!`),
-      setFlag: () => {},
-      clearStatus: () => {},
-      atkBonus: (e) => log(`+${e.amount} ATK from ${e.source}!`),
-      discard: (e) => log(`${e.card} discarded!`),
-      setStatus: () => {} // Status applied (handled by render)
-    };
-
     async function playServerEvents(events) {
       console.log('[DEBUG] Playing events:', events.map(e => `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`));
+      // Use unified EVENT_HANDLERS - sideKey handles both numeric and string sides
       for (const e of events) {
-        const handler = serverEventHandlers[e.type];
+        const handler = EVENT_HANDLERS[e.type];
         if (handler) {
-          await handler(e, e.side);
+          try {
+            await handler(e);
+          } catch (err) {
+            console.error(`Error playing event ${e.type}:`, err);
+          }
         } else {
           console.log('Unknown event:', e.type);
         }
+        // Small delay between events for readability
+        await Anim.wait(50);
       }
     }
 

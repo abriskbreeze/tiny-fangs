@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.77] - 2026-02-10
+
+### Changed
+- Unify EVENT_HANDLERS for solo and MP - single animation source
+
+---
+
+
 ## [0.4.76] - 2026-02-10
 
 ### Changed
