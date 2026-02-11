@@ -118,9 +118,12 @@
       },
       
       // Verse events
-      setVerse: (e) => {
+      setVerse: async (e) => {
         Anim.setVerse(sideKey(e.side));
-        return Promise.resolve();
+        // Only show popup for player's own set verse (opponent's is hidden)
+        if (sideKey(e.side) === 'me' && typeof showSetReveal === 'function') {
+          await showSetReveal();
+        }
       },
       cast: async (e) => {
         const verse = Object.values(VERSES).find(v => v.name === e.verse)
@@ -716,7 +719,12 @@
         }
         log(`${verse.name} cast!`);
       },
-      setVerse: (e, side) => Anim.setVerse(side),
+      setVerse: async (e, side) => {
+        Anim.setVerse(side);
+        if (side === 'me' && typeof showSetReveal === 'function') {
+          await showSetReveal();
+        }
+      },
       draw: async () => await Anim.wait(100),
       lpDamage: async (e, side) => await Anim.lpDamage(side, e.amount || 1),
       manaGain: async () => await Anim.manaGain(),

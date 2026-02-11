@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.75] - 2026-02-10
+
+### Changed
+- Wire up showSetReveal popup when placing set verses
+
+---
+
+
 ## [0.4.74] - 2026-02-10
 
 ### Changed
