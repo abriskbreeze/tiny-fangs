@@ -6,8 +6,8 @@ Verifying old bug list from `tasks/todo.md` (Feb 7) against current codebase (v0
 
 | Bug | Status | Notes |
 |-----|--------|-------|
-| A1: Shellkin Harden vs Ignite | ❌ OPEN | Harden only checked in attack path (engine.js:800), spell damage in Effects.damage bypasses it |
-| A2: Echomask 0 ATK direct attack | ❌ OPEN | Direct LP damage doesn't check if damage > 0 (engine.js:1054) |
+| A1: Shellkin Harden vs Ignite | ✅ FIXED v0.4.73 | Effects.damage now checks Shellkin/Titanback |
+| A2: Echomask 0 ATK direct attack | ✅ FIXED v0.4.73 | Added damage > 0 check before LP loss |
 | A3: Echomask copies BASE not MODIFIED ATK | ✅ FIXED | getEffectiveAtk properly handles Echomask (engine.js:181) |
 | A4: Thornling causes negative HP | ✅ FIXED | Trigger damage properly handles KO in shared engine |
 | A5: Poison not dealing damage | ✅ FIXED | endTurn handles poison (engine.js:1389-1398) |
@@ -17,7 +17,7 @@ Verifying old bug list from `tasks/todo.md` (Feb 7) against current codebase (v0
 
 | Bug | Status | Notes |
 |-----|--------|-------|
-| B1: Mana Drain remove mana gain | ❌ OPEN | Still has `gainMana: 2` in cards.js |
+| B1: Mana Drain remove mana gain | ✅ FIXED v0.4.73 | Removed gainMana effect |
 | B2: Soul Siphon damages ALL bench | ✅ FIXED | Selection system now properly limits target |
 | B3: Soul Siphon missing log entries | ⚠️ NEEDS TEST | May be fixed with event system |
 | B4: Banish not sending to grave | ✅ INTENDED | Banish removes from game per card text |

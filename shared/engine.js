@@ -137,6 +137,19 @@ export function applyDamage(creature, amount) {
 }
 
 /**
+ * Prepare creature for grave - clears temporary state
+ * Call this before pushing creature to grave to prevent stacking bugs
+ */
+function prepareForGrave(creature) {
+  if (!creature) return;
+  creature.atkBonuses = [];
+  creature.shellkinUsed = false;
+  creature.titanbackUsed = false;
+  creature.firstAtk = true;
+  creature.summonedThisTurn = false;
+}
+
+/**
  * Auto-swap bench creature to active if active is empty (mutates player)
  */
 export function autoSwapBenchToActive(player, side, events) {
@@ -342,6 +355,7 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
     const koSide = koOwner === player ? side : oppSide;
     
     events.push({ type: 'ko', side: koSide, creature: koInfo.creature.name });
+    prepareForGrave(koInfo.creature);
     koOwner.grave.push(koInfo.creature);
     
     if (koOwner.active?.uid === koInfo.creature.uid) {
@@ -394,7 +408,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       if (result.modifiedContext?.attackNegated) negated = true;
       for (const koInfo of result.kos || []) {
         events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
-        enemy.grave.push(koInfo.creature);
+        prepareForGrave(koInfo.creature); enemy.grave.push(koInfo.creature);
         if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
       }
       break;
@@ -407,7 +421,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       events.push(...result.events);
       for (const koInfo of result.kos || []) {
         events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
-        enemy.grave.push(koInfo.creature);
+        prepareForGrave(koInfo.creature); enemy.grave.push(koInfo.creature);
         if (enemy.active?.uid === koInfo.creature.uid) enemy.active = null;
       }
       break;
@@ -442,7 +456,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       events.push(...result.events);
       for (const koInfo of result.kos || []) {
         events.push({ type: 'ko', side: enemySide, creature: koInfo.creature.name });
-        enemy.grave.push(koInfo.creature);
+        prepareForGrave(koInfo.creature); enemy.grave.push(koInfo.creature);
         if (enemy.active?.uid === koInfo.creature.uid) {
           enemy.active = null;
         } else {
@@ -498,7 +512,7 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
             owner.bench.push(summonedCreature);
             events.push({ type: 'summon', side: ownerSide, creature: summonedCreature.name, slot: 'bench', source: 'Den Mother' });
           } else {
-            owner.grave.push(summonedCreature);
+            prepareForGrave(summonedCreature); owner.grave.push(summonedCreature);
           }
         }
       }
@@ -672,7 +686,7 @@ export function summon(state, playerIdx, cardUid, target) {
       
       for (const koInfo of result.kos || []) {
         events.push({ type: 'ko', side: oppSide, creature: koInfo.creature.name });
-        opponent.grave.push(koInfo.creature);
+        prepareForGrave(koInfo.creature); opponent.grave.push(koInfo.creature);
         if (opponent.active?.uid === koInfo.creature.uid) opponent.active = null;
       }
     }
@@ -872,7 +886,7 @@ export function attack(state, playerIdx) {
       if (ko) {
         events.push({ type: 'ko', side: oppSide, creature: defender.name });
         const koedCreature = defender;
-        opponent.grave.push(defender);
+        prepareForGrave(defender); opponent.grave.push(defender);
         opponent.active = null;
         
         autoSwapBenchToActive(opponent, oppSide, events);
@@ -930,7 +944,7 @@ export function attack(state, playerIdx) {
           events.push({ type: 'damage', side, amount: 25, source: 'Juggernaut' });
           if (recoilKo) {
             events.push({ type: 'ko', side, creature: attacker.name });
-            player.grave.push(attacker);
+            prepareForGrave(attacker); player.grave.push(attacker);
             player.active = null;
             
             const atkKoTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
@@ -965,7 +979,7 @@ export function attack(state, playerIdx) {
         
         for (const koInfo of result.kos || []) {
           events.push({ type: 'ko', side, creature: attacker.name });
-          player.grave.push(attacker);
+          prepareForGrave(attacker); player.grave.push(attacker);
           player.active = null;
           
           autoSwapBenchToActive(player, side, events);
@@ -1064,7 +1078,7 @@ export function attack(state, playerIdx) {
     events.push({ type: 'damage', side, amount: 10, source: 'Frenzy (Burnout)' });
     if (selfKo) {
       events.push({ type: 'ko', side, creature: attacker.name });
-      player.grave.push(attacker);
+      prepareForGrave(attacker); player.grave.push(attacker);
       player.active = null;
       
       autoSwapBenchToActive(player, side, events);
@@ -1393,7 +1407,7 @@ export function endTurn(state, playerIdx) {
     events.push({ type: 'damage', side, amount: 10, source: 'Poison' });
     if (ko) {
       events.push({ type: 'ko', side, creature: player.active.name });
-      player.grave.push(player.active);
+      prepareForGrave(player.active); player.grave.push(player.active);
       player.active = null;
       autoSwapBenchToActive(player, side, events);
     }
@@ -1512,7 +1526,7 @@ export function respondOptionalTrigger(state, playerIdx, action) {
       events.push({ type: 'damage', side, amount: damage });
       
       if (ko) {
-        player.grave.push(defender);
+        prepareForGrave(defender); player.grave.push(defender);
         player.active = null;
         events.push({ type: 'ko', side, creature: defender.name });
       }

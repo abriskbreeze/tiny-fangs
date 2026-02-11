@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.74] - 2026-02-10
+
+### Changed
+- Fix A6: Clear atkBonuses when creature goes to grave
+
+---
+
+
 ## [0.4.73] - 2026-02-10
 
 ### Changed
