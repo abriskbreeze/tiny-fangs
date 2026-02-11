@@ -2374,20 +2374,7 @@
       if (result.error) return;
 
       log(`Switched to ${state.G.me.active.name}`);
-
-      // Chain Lightning triggers when new creature becomes active
-      // NOTE: Shared engine doesn't handle this yet - handled client-side
-      if (state.G.me.chainLightning > 0) {
-        await Anim.wait(300);
-        const chainKo = applyDamage(state.G.me.active, state.G.me.chainLightning);
-        log(`Chain Lightning: -${state.G.me.chainLightning}`, 'dmg');
-        await Anim.damage('me', state.G.me.chainLightning);
-        state.G.me.chainLightning = 0;
-        if (chainKo) {
-          await Anim.ko('me');
-          await ko(state.G.me.active, state.G.me);
-        }
-      }
+      // Chain Lightning now handled by shared engine - events drive animations
 
       highlightEndTurn(true);
     }

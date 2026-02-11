@@ -151,12 +151,31 @@ function prepareForGrave(creature) {
 
 /**
  * Auto-swap bench creature to active if active is empty (mutates player)
+ * Also handles chainLightning damage to the new active
  */
 export function autoSwapBenchToActive(player, side, events) {
   if (!player.active && player.bench.length > 0) {
     const swapped = player.bench.shift();
     player.active = swapped;
     events.push({ type: 'benchToActive', side, creature: swapped.name });
+    
+    // Chain Lightning: damage newly active creature after bench swap
+    if (player.chainLightning > 0) {
+      const chainDamage = player.chainLightning;
+      player.chainLightning = 0;
+      
+      swapped.curHp -= chainDamage;
+      events.push({ type: 'damage', side, amount: chainDamage, source: 'Chain Lightning' });
+      
+      if (swapped.curHp <= 0) {
+        events.push({ type: 'ko', side, creature: swapped.name, source: 'Chain Lightning' });
+        prepareForGrave(swapped);
+        player.grave.push(swapped);
+        player.active = null;
+        // Recursive call to get next bench creature if available
+        autoSwapBenchToActive(player, side, events);
+      }
+    }
   }
 }
 
@@ -1371,6 +1390,24 @@ export function retreat(state, playerIdx, benchIdx) {
   
   events.push({ type: 'retreat', side, from: fromCreature.name, to: toCreature.name });
   state.hasRetreated = true;
+  
+  // Chain Lightning: damage newly active creature after retreat
+  if (player.chainLightning > 0) {
+    const chainDamage = player.chainLightning;
+    player.chainLightning = 0;
+    
+    const newActive = player.active;
+    newActive.curHp -= chainDamage;
+    events.push({ type: 'damage', side, amount: chainDamage, source: 'Chain Lightning' });
+    
+    if (newActive.curHp <= 0) {
+      events.push({ type: 'ko', side, creature: newActive.name, source: 'Chain Lightning' });
+      prepareForGrave(newActive);
+      player.grave.push(newActive);
+      player.active = null;
+      autoSwapBenchToActive(player, side, events);
+    }
+  }
   
   return { state, events };
 }

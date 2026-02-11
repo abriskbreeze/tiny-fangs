@@ -336,3 +336,65 @@ describe('resolveSelection', () => {
     expect(result.location).toBe('grave');
   });
 });
+
+describe('retreat action with chain lightning', () => {
+  it('applies chain lightning damage after retreat', () => {
+    const state = createTestState();
+    const active = createCreature({ id: 'emberfang', hp: 40, curHp: 40 });
+    const bench = createCreature({ id: 'thornback', hp: 50, curHp: 50 });
+    state.players[0].active = active;
+    state.players[0].bench.push(bench);
+    state.players[0].chainLightning = 20;
+
+    const result = executeAction(state, 0, { action: 'retreat', benchIdx: 0 });
+
+    expect(result.error).toBeUndefined();
+    expect(state.players[0].active).toBe(bench);
+    expect(bench.curHp).toBe(30); // 50 - 20 chain lightning
+    expect(state.players[0].chainLightning).toBe(0); // Consumed
+    expect(result.events.some(e => e.type === 'damage' && e.source === 'Chain Lightning')).toBe(true);
+  });
+
+  it('chain lightning can KO creature during retreat and auto-swap', () => {
+    const state = createTestState();
+    const active = createCreature({ id: 'emberfang', hp: 40, curHp: 40 });
+    const bench = createCreature({ id: 'thornback', hp: 20, curHp: 20 });
+    state.players[0].active = active;
+    state.players[0].bench.push(bench);
+    state.players[0].chainLightning = 25;
+
+    const result = executeAction(state, 0, { action: 'retreat', benchIdx: 0 });
+
+    expect(result.error).toBeUndefined();
+    // After retreat: active = bench (thornback), bench = [emberfang]
+    // Chain lightning deals 25 to thornback (20 hp) → KO
+    // Auto-swap brings emberfang back as active
+    expect(state.players[0].active).toBe(active); // emberfang swapped back
+    expect(state.players[0].grave).toContain(bench); // thornback KO'd
+    expect(result.events.some(e => e.type === 'ko' && e.source === 'Chain Lightning')).toBe(true);
+    expect(result.events.some(e => e.type === 'benchToActive')).toBe(true);
+  });
+
+  it('chain lightning triggers bench auto-swap after KO in retreat', () => {
+    const state = createTestState();
+    const active = createCreature({ id: 'emberfang', hp: 40, curHp: 40 });
+    const bench1 = createCreature({ id: 'thornback', hp: 20, curHp: 20 });
+    const bench2 = createCreature({ id: 'ironhide', hp: 60, curHp: 60 });
+    state.players[0].active = active;
+    state.players[0].bench.push(bench1);
+    state.players[0].bench.push(bench2);
+    state.players[0].chainLightning = 25;
+
+    const result = executeAction(state, 0, { action: 'retreat', benchIdx: 0 });
+
+    expect(result.error).toBeUndefined();
+    // Retreat: active (emberfang) goes to bench[0], bench1 (thornback) becomes active
+    // After retreat: bench = [emberfang, bench2], active = bench1
+    // Chain lightning hits bench1 (thornback, 20hp), KO'd
+    // autoSwapBenchToActive grabs emberfang (first in bench)
+    expect(state.players[0].active).toBe(active); // emberfang swapped back from bench
+    expect(state.players[0].bench).toContain(bench2); // bench2 still on bench
+    expect(state.players[0].grave).toContain(bench1); // thornback KO'd
+    expect(result.events.some(e => e.type === 'benchToActive')).toBe(true);
+  });
+});

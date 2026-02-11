@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.78] - 2026-02-10
+
+### Changed
+- Unify chain lightning in shared engine
+
+---
+
+
 ## [0.4.77] - 2026-02-10
 
 ### Changed
