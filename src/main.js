@@ -81,10 +81,15 @@
       
       // Combat events
       attack: async (e) => {
-        // Play attack animation - attacker side is in e.side, defender is opposite
         const attackerSide = sideKey(e.side);
         const defenderSide = attackerSide === 'me' ? 'opp' : 'me';
-        await Anim.attack(attackerSide, defenderSide, e.damage);
+        if (e.direct) {
+          // Direct attack on LP - just lunge animation
+          await Anim.attackDirect(attackerSide);
+        } else {
+          // Normal attack on defender creature
+          await Anim.attack(attackerSide, defenderSide, e.damage);
+        }
       },
       
       // KO events
@@ -266,15 +271,23 @@
         return result;
       }
       
-      // Cache element positions BEFORE state update (for animations like lpDamage, damage floats)
+      // Cache element positions BEFORE state update (for animations on existing elements)
       Anim.cacheActivePositions();
       
-      // Update state and render FIRST so animations have elements to target
+      // Split events: pre-render (destructive) vs post-render (constructive)
+      const preRenderTypes = ['attack', 'damage', 'ko', 'lpDamage', 'damageReduced', 'damageNegated', 'heal', 'abilityTrigger', 'triggerVerse', 'cast', 'setStatus', 'survival'];
+      const preRenderEvents = result.events.filter(e => preRenderTypes.includes(e.type));
+      const postRenderEvents = result.events.filter(e => !preRenderTypes.includes(e.type));
+      
+      // Play pre-render animations (attack, damage, ko - while elements still exist)
+      await playEvents(preRenderEvents);
+      
+      // Update state and render
       state.G = sharedToClientState(result.state, state.G);
       render();
       
-      // Play animations AFTER render (so elements exist)
-      await playEvents(result.events);
+      // Play post-render animations (summon - after elements are created)
+      await playEvents(postRenderEvents);
       
       // Handle pending actions (Skitter swap, optional triggers, etc.)
       if (result.pendingAction) {

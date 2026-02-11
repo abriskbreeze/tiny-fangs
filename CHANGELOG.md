@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.75] - 2026-02-10
+
+### Changed
+- Fix animation timing: pre-render for attack/ko/damage, post-render for summon
+
+---
+
+
 ## [0.4.74] - 2026-02-10
 
 ### Changed

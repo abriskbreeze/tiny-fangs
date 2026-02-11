@@ -1061,6 +1061,8 @@ export function attack(state, playerIdx) {
     } else {
       // Direct attack on life points (only if damage > 0)
       if (damage > 0) {
+        events.push({ type: 'attack', side, damage, direct: true });
+        
         const onLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1 }, player, opponent, side, oppSide);
         events.push(...onLifeLossTrigger.events);
         
