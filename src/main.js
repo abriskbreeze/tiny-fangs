@@ -122,7 +122,14 @@
         Anim.setVerse(sideKey(e.side));
         return Promise.resolve();
       },
-      cast: (e) => Anim.castVerse(sideKey(e.side)),
+      cast: async (e) => {
+        const verse = Object.values(VERSES).find(v => v.name === e.verse)
+          || { name: e.verse, text: '' };
+        await Anim.castVerse(sideKey(e.side));
+        if (typeof showCastReveal === 'function') {
+          await showCastReveal(verse);
+        }
+      },
       triggerVerse: async (e) => {
         // Show trigger reveal modal - look up verse by name
         const verse = Object.values(VERSES).find(v => v.name === e.verse) 
@@ -700,7 +707,15 @@
         await Anim.benchToActive(side);
         log(`${e.creature} moved to active!`);
       },
-      cast: async () => await Anim.castVerse(),
+      cast: async (e) => {
+        const verse = Object.values(VERSES).find(v => v.name === e.verse)
+          || { name: e.verse || 'Verse', text: '' };
+        await Anim.castVerse();
+        if (typeof showCastReveal === 'function') {
+          await showCastReveal(verse);
+        }
+        log(`${verse.name} cast!`);
+      },
       setVerse: (e, side) => Anim.setVerse(side),
       draw: async () => await Anim.wait(100),
       lpDamage: async (e, side) => await Anim.lpDamage(side, e.amount || 1),
