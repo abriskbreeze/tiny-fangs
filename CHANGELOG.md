@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.81] - 2026-02-16
+
+### Changed
+- Prevent text selection on hold-to-end button (mobile)
+
+---
+
+
 ## [0.4.80] - 2026-02-16
 
 ### Changed
