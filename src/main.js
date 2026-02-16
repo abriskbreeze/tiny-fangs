@@ -174,7 +174,12 @@
         log(`${e.source}! -${e.amount} damage`, 'heal');
         return Promise.resolve();
       },
-      damageNegated: (e) => Anim.negateX(),
+      damageNegated: (e) => {
+        // Show negate X and float text on the protected creature's side
+        const pos = Anim.getAnimPosition(sideKey(e.side));
+        Anim.floatText('BLOCKED!', 'gold', pos);
+        return Anim.negateX();
+      },
       atkBonus: (e) => Promise.resolve(), // Log only
       survival: (e) => {
         // Creature survived lethal

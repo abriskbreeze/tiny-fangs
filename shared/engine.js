@@ -816,9 +816,14 @@ export function attack(state, playerIdx) {
     if (defender) {
       events.push({ type: 'attack', side, damage });
       
-      // CHECK: beforeDamage trigger
+      // CHECK: beforeDamage trigger (Swarm Shield, Brace, etc.)
       const beforeDamageTrigger = checkTriggers('beforeDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
       events.push(...beforeDamageTrigger.events);
+      
+      // Optional trigger (e.g., Swarm Shield) - return pendingAction for user prompt
+      if (beforeDamageTrigger.pendingAction) {
+        return { state, events, pendingAction: beforeDamageTrigger.pendingAction };
+      }
       
       if (beforeDamageTrigger.damageReduction) {
         damage = Math.max(0, damage - beforeDamageTrigger.damageReduction);
@@ -1571,6 +1576,21 @@ export function respondOptionalTrigger(state, playerIdx, action) {
     
     player.grave.push(verse);
     player.setVerse = null;
+    
+    // Apply reduced damage after trigger (for damage reduction triggers like Swarm Shield, Brace)
+    if (defender && damage > 0) {
+      const reducedDamage = Math.max(0, damage - (result.damageReduction || 0));
+      if (reducedDamage > 0) {
+        const ko = applyDamage(defender, reducedDamage);
+        events.push({ type: 'damage', side, amount: reducedDamage });
+        
+        if (ko) {
+          prepareForGrave(defender); player.grave.push(defender);
+          player.active = null;
+          events.push({ type: 'ko', side, creature: defender.name });
+        }
+      }
+    }
   } else {
     player.grave.push(verse);
     player.setVerse = null;
