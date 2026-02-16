@@ -1,30 +1,32 @@
 # Architecture Gaps Analysis
 
-## Current State
+## Current State (v0.4.86)
 
 ### ✅ Properly Shared
 - `shared/cards.js` — Card definitions (CREATURES, VERSES, DECKS)
 - `shared/effects.js` — Effect primitives + processEffects
 - `shared/triggers.js` — Trigger matching
+- `shared/engine.js` — All game logic (1,670 lines)
+- `server/GameEngine.js` — Thin wrapper (149 lines, 91% reduction)
 
-### ⚠️ Duplicated Logic
+### ✅ Declarative Selection (completed v0.4.86)
 
-**Server has its own implementations that should use shared:**
+All targeting cards now use declarative `selection` config:
+- ignite, banish, soulSiphon — `{ type: 'creature', filter: 'any', location: 'board' }`
+- graveEcho — `{ type: 'creature', filter: 'friendly', location: 'grave' }`  
+- sacrifice — `{ type: 'creature', filter: 'friendly', location: 'board' }`
 
-| Function | shared/engine.js | server/GameEngine.js | Status |
-|----------|-----------------|---------------------|--------|
-| `applyDamage` | ✅ Pure | ✅ Has own | DUPLICATE |
-| `getEffectiveAtk` | ✅ Pure | ✅ Has own | DUPLICATE |
-| `attack` | ✅ Pure | In executeAction | DUPLICATE |
-| `summon` | ✅ Pure | In executeAction | DUPLICATE |
-| `castVerse` | ✅ Pure | In executeAction | DUPLICATE |
-| `autoSwapBenchToActive` | ✅ Pure | ✅ Has own | DUPLICATE |
+These go through `resolveSelection()` → `action.selected` → `processEffects()`.
+No more card-specific switch cases for selection handling.
 
-### 🔧 Better Design for Custom Cards
+### ✅ Custom Handlers (intentionally kept)
 
-**Current Problem:** Card-specific `if` statements for target selection
+These triggers have complex logic that doesn't fit effect primitives:
 
-**Proposed Solution:** Declarative selection in card data
+**denMother** — Searches deck for 1-cost creature, summons to active/bench/grave based on availability
+**lastBreath** — Checks owner perspective, one-time-use flag, negates life loss
+
+Per Karpathy: "No abstractions for single-use code." Custom handlers are appropriate here.
 
 ```javascript
 // In shared/cards.js

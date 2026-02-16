@@ -373,7 +373,7 @@ const Effects = {
   moveCard(ctx, { from, to, target }) {
     let card = null;
     if (target === 'selected') {
-      card = ctx.selected;
+      card = ctx.selected?.creature || ctx.selected;
     }
     if (!card) return { events: [] };
     
@@ -558,13 +558,14 @@ const Effects = {
     
     return { 
       events,
-      ko: true, 
-      creature, 
-      owner,
-      ownerKey,
-      location,
+      ko: { 
+        creature, 
+        owner,
+        ownerKey,
+        location,
+        isSacrifice: true
+      },
       needsReplacement: location === 'active' && owner.bench.length > 0,
-      isSacrifice: true,
       modifiedContext: {
         sacrificedCreature: creature,
         sacrificeLocation: location

@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.86] - 2026-02-16
+
+### Changed
+- Declarative selection: graveEcho + sacrifice now use processEffects
+
+---
+
+
 ## [0.4.85] - 2026-02-16
 
 ### Changed
