@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.79] - 2026-02-16
+
+### Changed
+- Fix Soul Trap triggering on owner's own summons
+
+---
+
+
 ## [0.4.78] - 2026-02-10
 
 ### Changed

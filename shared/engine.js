@@ -391,7 +391,7 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
 /**
  * Check if a verse matches a trigger event
  */
-function matchesVerseTrigger(verse, event) {
+function matchesVerseTrigger(verse, event, isOwnerAction = false) {
   const triggers = {
     phantomWall: 'beforeAttack',
     spikeShield: 'beforeAttack',
@@ -404,7 +404,17 @@ function matchesVerseTrigger(verse, event) {
     manaDrain: 'onCast',
     lastBreath: 'onLifeLoss'
   };
-  return triggers[verse.id] === event;
+  
+  if (triggers[verse.id] !== event) return false;
+  
+  // Check owner condition - Soul Trap should only trigger on opponent's summons
+  const verseTemplate = VERSES[verse.id];
+  if (verseTemplate?.triggerDef?.condition?.owner === 'opp') {
+    // If condition is 'opp', only trigger when opponent did the action (not owner)
+    return !isOwnerAction;
+  }
+  
+  return true;
 }
 
 /**
@@ -580,8 +590,9 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   let pendingAction = null;
   
   // Check inactive player's set verse first (defender advantage)
+  // isOwnerAction = false because the activePlayer (opponent) is performing the action
   const defenderVerse = inactivePlayer.setVerse;
-  if (defenderVerse && matchesVerseTrigger(defenderVerse, event)) {
+  if (defenderVerse && matchesVerseTrigger(defenderVerse, event, false)) {
     const verseTemplate = VERSES[defenderVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {
@@ -606,8 +617,9 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   }
   
   // Check active player's set verse
+  // isOwnerAction = true because the activePlayer owns this verse and is performing the action
   const attackerVerse = activePlayer.setVerse;
-  if (attackerVerse && matchesVerseTrigger(attackerVerse, event) && !negated) {
+  if (attackerVerse && matchesVerseTrigger(attackerVerse, event, true) && !negated) {
     const verseTemplate = VERSES[attackerVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {

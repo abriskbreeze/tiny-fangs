@@ -168,6 +168,28 @@ describe('summon action', () => {
     expect(state.players[0].active).toBe(creature); // Still on board
     expect(state.players[0].grave).not.toContain(creature);
   });
+
+  it('Soul Trap does NOT trigger on owner summon (only opponent summons)', () => {
+    const state = createTestState();
+    // Player 0 has their OWN Soul Trap set
+    const soulTrap = createVerse({ id: 'soulTrap', cardType: 'verse', type: 'set' });
+    state.players[0].setVerse = soulTrap;
+
+    // Player 0 summons a creature - their OWN Soul Trap should NOT trigger
+    const creature = createCreature({ id: 'emberfang', cost: 2, hp: 20, curHp: 20 });
+    state.players[0].hand.push(creature);
+    state.players[0].mana = 5;
+
+    const result = summon(state, 0, creature.uid);
+
+    expect(result.error).toBeUndefined();
+    // Creature should NOT be damaged (Soul Trap has condition: owner: 'opp')
+    expect(creature.curHp).toBe(20);
+    expect(state.players[0].active).toBe(creature);
+    // Soul Trap should still be set (not triggered/consumed)
+    expect(state.players[0].setVerse).toBe(soulTrap);
+    expect(state.players[0].grave).not.toContain(soulTrap);
+  });
 });
 
 describe('castVerse action', () => {

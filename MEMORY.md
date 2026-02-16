@@ -1170,3 +1170,25 @@ Kept Custom:
 **Result:** New cards = just define effects array. Balance = edit shared/cards.js only.
 
 **Tests:** 262 passing
+
+
+### 2026-02-10 — Chain Lightning Unification (v0.4.78)
+
+**Goal:** Move chain lightning handling from client to shared engine.
+
+**Changes:**
+1. `retreat()` now handles chain lightning after swap
+2. `autoSwapBenchToActive()` now handles chain lightning after bench replacement
+3. Client's `executeLocalRetreat()` simplified (removed duplicate logic)
+
+**How it works:**
+- Stormtalon sets `player.chainLightning = 20` on KO
+- Any creature becoming active (retreat, bench swap) takes that damage
+- Chain lightning consumed after use (set to 0)
+- If creature dies from chain lightning, recursive auto-swap continues
+
+**Still in client (for AI turns):**
+- Client's `ko()` function still has chain lightning for AI turn handling
+- Eventually AI should use shared engine too, but that's a bigger refactor
+
+**Tests:** 284 passing (+3 new chain lightning retreat tests)
