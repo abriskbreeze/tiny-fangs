@@ -2192,12 +2192,8 @@
             showModal(sel.prompt || 'Choose your creature', options.map(opt => ({
               name: opt.creature.name,
               sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
-              action: () => { closeModal(); resolve({ type: 'own', uid: opt.creature.uid }); }
-            })).concat([{
-              name: '← Cancel',
-              sub: 'Return to hand',
-              action: () => { closeModal(); resolve(null); }
-            }]));
+              action: () => { window._modalOnClose = null; closeModal(); resolve({ type: 'own', uid: opt.creature.uid }); }
+            })), { onClose: resolve });
           });
           if (!selection) return;
         } else if (sel.location === 'board' && sel.filter === 'any') {
@@ -2234,12 +2230,8 @@
           showModal(prompt || 'Choose creature from graveyard', graveCr.map(creature => ({
             name: creature.name,
             sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
-            action: () => { closeModal(); resolve({ uid: creature.uid }); }
-          })).concat([{
-            name: '← Cancel',
-            sub: 'Return to hand',
-            action: () => { closeModal(); resolve(null); }
-          }]));
+            action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: creature.uid }); }
+          })), { onClose: resolve });
         });
       }
       
@@ -2261,12 +2253,8 @@
           showModal(prompt || 'Choose your creature', options.map(opt => ({
             name: opt.creature.name,
             sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
-            action: () => { closeModal(); resolve({ uid: opt.creature.uid }); }
-          })).concat([{
-            name: '← Cancel',
-            sub: 'Return to hand',
-            action: () => { closeModal(); resolve(null); }
-          }]));
+            action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: opt.creature.uid }); }
+          })), { onClose: resolve });
         });
       }
       
@@ -3155,6 +3143,8 @@
         `).join('');
       }
       window._modalActions = options.map(o => o.action);
+      // Store onClose callback for Close button
+      window._modalOnClose = opts.onClose || null;
       // Hide cancel button if noCancel option is set
       const cancelBtn = $('modal').querySelector('.cancel');
       if (cancelBtn) cancelBtn.style.display = opts.noCancel ? 'none' : '';
@@ -3169,6 +3159,11 @@
 
     function closeModal() {
       $('modal').classList.remove('open');
+      // Call onClose callback if set (for selection modals to resolve with null)
+      if (window._modalOnClose) {
+        window._modalOnClose(null);
+        window._modalOnClose = null;
+      }
     }
 
     /**

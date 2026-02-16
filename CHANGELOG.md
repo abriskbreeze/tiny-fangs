@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.82] - 2026-02-16
+
+### Changed
+- Fix mobile modal taps + remove redundant cancel buttons
+
+---
+
+
 ## [0.4.81] - 2026-02-16
 
 ### Changed
