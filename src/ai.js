@@ -343,8 +343,10 @@ function scoreSet(card, ai, player) {
       return hasOneCostGrave ? 50 : 30;
       
     case 'lastBreath':
-      // Draw on KO — insurance
-      return 30;
+      // Survive lethal LP loss — only valuable at 1 LP
+      if (ai.lp === 1) return 100;  // Critical - must set now
+      if (ai.lp === 2) return 40;   // Getting dangerous
+      return -50;  // Don't waste it early
       
     case 'denMother':
       // +10 next attack on KO

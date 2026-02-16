@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.84] - 2026-02-16
+
+### Changed
+- Fix Last Breath triggering for wrong player + AI only uses at 1 LP
+
+---
+
+
 ## [0.4.83] - 2026-02-16
 
 ### Changed

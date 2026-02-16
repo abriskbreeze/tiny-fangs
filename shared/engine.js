@@ -391,7 +391,7 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
 /**
  * Check if a verse matches a trigger event
  */
-function matchesVerseTrigger(verse, event, isOwnerAction = false) {
+function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, ownerSide = null) {
   const triggers = {
     phantomWall: 'beforeAttack',
     spikeShield: 'beforeAttack',
@@ -407,11 +407,19 @@ function matchesVerseTrigger(verse, event, isOwnerAction = false) {
   
   if (triggers[verse.id] !== event) return false;
   
-  // Check owner condition - Soul Trap should only trigger on opponent's summons
   const verseTemplate = VERSES[verse.id];
-  if (verseTemplate?.triggerDef?.condition?.owner === 'opp') {
+  const condition = verseTemplate?.triggerDef?.condition;
+  
+  // Check owner condition - Soul Trap should only trigger on opponent's summons
+  if (condition?.owner === 'opp') {
     // If condition is 'opp', only trigger when opponent did the action (not owner)
     return !isOwnerAction;
+  }
+  
+  // Check owner condition - Last Breath should only trigger when OWNER loses LP
+  if (condition?.owner === 'me' && context.targetSide && ownerSide) {
+    // If condition is 'me', only trigger when the verse owner is the target
+    if (context.targetSide !== ownerSide) return false;
   }
   
   return true;
@@ -592,7 +600,7 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   // Check inactive player's set verse first (defender advantage)
   // isOwnerAction = false because the activePlayer (opponent) is performing the action
   const defenderVerse = inactivePlayer.setVerse;
-  if (defenderVerse && matchesVerseTrigger(defenderVerse, event, false)) {
+  if (defenderVerse && matchesVerseTrigger(defenderVerse, event, false, context, inactiveSide)) {
     const verseTemplate = VERSES[defenderVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {
@@ -619,7 +627,7 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   // Check active player's set verse
   // isOwnerAction = true because the activePlayer owns this verse and is performing the action
   const attackerVerse = activePlayer.setVerse;
-  if (attackerVerse && matchesVerseTrigger(attackerVerse, event, true) && !negated) {
+  if (attackerVerse && matchesVerseTrigger(attackerVerse, event, true, context, activeSide) && !negated) {
     const verseTemplate = VERSES[attackerVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {
