@@ -1192,3 +1192,20 @@ Kept Custom:
 - Eventually AI should use shared engine too, but that's a bigger refactor
 
 **Tests:** 284 passing (+3 new chain lightning retreat tests)
+
+
+### 2026-02-16 — Soul Trap Owner Condition Fix (v0.4.79)
+
+**Bug:** Player's Soul Trap triggered on their own creature summons (should only trigger on opponent summons)
+
+**Root Cause:** `matchesVerseTrigger()` only checked event type match, ignoring `triggerDef.condition.owner: 'opp'`.
+
+**Fix:**
+- Added `isOwnerAction` parameter to `matchesVerseTrigger(verse, event, isOwnerAction)`
+- Active player's set verse check: `isOwnerAction = true` (owner is acting)
+- Inactive player's set verse check: `isOwnerAction = false` (opponent is acting)
+- If `condition.owner === 'opp'`, return false when `isOwnerAction` is true
+
+**Pattern:** Trigger conditions must be validated at match time, not just event type. The `triggerDef.condition` field exists precisely for cases like Soul Trap.
+
+**Tests:** 285 passing (+1 new test for owner summon case)

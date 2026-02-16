@@ -631,6 +631,28 @@
       margin-bottom: 2px;
     }
 
+    /* Hold-to-activate button */
+    .hold-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .hold-btn .hold-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0%;
+      background: rgba(239, 68, 68, 0.4);
+      transition: none;
+      pointer-events: none;
+    }
+    .hold-btn.holding .hold-fill {
+      transition: width 0.5s linear;
+      width: 100%;
+    }
+    .hold-btn .hold-text {
+      position: relative;
+      z-index: 1;
+    }
+
     /* Log */
     .m-log {
       padding: 8px 12px;

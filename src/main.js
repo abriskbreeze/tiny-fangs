@@ -3640,3 +3640,55 @@
       else if (e.ctrlKey && k === '9') { Anim.summon('me'); log('TEST: summon'); }
       else if (e.ctrlKey && k === '0') { showTriggerReveal(VERSES.phantomWall); log('TEST: trigger reveal'); }
     });
+
+    // ═══════════════════════════════════════════════════════════════
+    // HOLD-TO-END-TURN BUTTONS
+    // ═══════════════════════════════════════════════════════════════
+
+    const HOLD_DURATION = 500; // ms to hold before ending turn
+
+    function setupHoldButton(btn) {
+      if (!btn) return;
+      
+      let holdTimeout = null;
+      let isHolding = false;
+
+      function startHold(e) {
+        if (btn.disabled) return;
+        if (!state.G || state.G.winner || !state.G.myTurn) return;
+        if (state.animating) return;
+        
+        e.preventDefault();
+        isHolding = true;
+        btn.classList.add('holding');
+        
+        holdTimeout = setTimeout(() => {
+          if (isHolding) {
+            btn.classList.remove('holding');
+            endTurn();
+          }
+        }, HOLD_DURATION);
+      }
+
+      function cancelHold() {
+        isHolding = false;
+        btn.classList.remove('holding');
+        if (holdTimeout) {
+          clearTimeout(holdTimeout);
+          holdTimeout = null;
+        }
+      }
+
+      // Pointer events (works for both touch and mouse)
+      btn.addEventListener('pointerdown', startHold);
+      btn.addEventListener('pointerup', cancelHold);
+      btn.addEventListener('pointerleave', cancelHold);
+      btn.addEventListener('pointercancel', cancelHold);
+      
+      // Prevent context menu on long press (mobile)
+      btn.addEventListener('contextmenu', e => e.preventDefault());
+    }
+
+    // Initialize hold buttons
+    setupHoldButton(document.getElementById('m-btn-end'));
+    setupHoldButton(document.getElementById('d-btn-end'));

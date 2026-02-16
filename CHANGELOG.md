@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.80] - 2026-02-16
+
+### Changed
+- Hold-to-end-turn button to prevent accidental turn ends
+
+---
+
+
 ## [0.4.79] - 2026-02-16
 
 ### Changed
