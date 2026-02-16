@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.85] - 2026-02-16
+
+### Changed
+- AI Last Breath only critical when desperate (1 LP + weak board)
+
+---
+
+
 ## [0.4.84] - 2026-02-16
 
 ### Changed

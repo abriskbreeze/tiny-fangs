@@ -343,9 +343,14 @@ function scoreSet(card, ai, player) {
       return hasOneCostGrave ? 50 : 30;
       
     case 'lastBreath':
-      // Survive lethal LP loss — only valuable at 1 LP
-      if (ai.lp === 1) return 100;  // Critical - must set now
-      if (ai.lp === 2) return 40;   // Getting dangerous
+      // Survive lethal LP loss — last ditch effort only
+      const creaturesOnField = (ai.active ? 1 : 0) + ai.bench.length;
+      const creaturesInHand = ai.hand.filter(c => c.cardType === 'creature').length;
+      const desperate = creaturesOnField <= 1 && creaturesInHand === 0;
+      
+      if (ai.lp === 1 && desperate) return 100;  // Critical - true last ditch
+      if (ai.lp === 1) return 50;   // Low LP but has board presence
+      if (ai.lp === 2 && desperate) return 40;   // Getting dangerous and weak
       return -50;  // Don't waste it early
       
     case 'denMother':
