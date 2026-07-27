@@ -461,9 +461,18 @@ function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, 
     if (context.targetSide && context.targetSide !== ownerSide) return false;
     if (context.koOwnerSide && context.koOwnerSide !== ownerSide) return false;
   }
+
+  // caster: 'opp' | 'me' — relative to verse owner (Mana Drain: only opponent Cast Verses)
+  if (condition?.caster === 'opp' && isOwnerAction) return false;
+  if (condition?.caster === 'me' && !isOwnerAction) return false;
   
   if (condition?.hasOneCostInGrave && owner) {
-    const hasOneCost = owner.grave.some(c => c.cardType === 'creature' && c.cost === 1);
+    const costOf = (c) => c?.cost ?? CREATURES[c?.id]?.cost;
+    const isOneCostCreature = (c) =>
+      c && (c.cardType === 'creature' || CREATURES[c.id]?.id) && costOf(c) === 1;
+    const hasOneCost =
+      owner.grave.some(isOneCostCreature) ||
+      isOneCostCreature(context.koedCreature);
     if (!hasOneCost) return false;
   }
   if (condition?.benchNotFull && owner) {
@@ -615,11 +624,10 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       const result = processEffects(verseTemplate, ctx);
       events.push(...result.events);
       
-      if (result.modifiedContext?.negated) {
+      if (result.modifiedContext?.negated || result.modifiedContext?.spellNegated) {
         negated = true;
       }
-      owner.mana = Math.min(owner.maxMana, owner.mana);
-      events.push({ type: 'manaGain', side: ownerSide, amount: 2, source: 'Mana Drain' });
+      // Card text: negate only — no mana gain
       break;
     }
       

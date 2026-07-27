@@ -474,6 +474,136 @@ describe('Grave Rise (onKO optional trigger)', () => {
     expect(result.pendingAction).toBeFalsy();
     expect(state.players[1].setVerse?.id).toBe('graveRise');
   });
+
+  it('offers Grave Rise when the only grave creature is the 1-cost that just died', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('fangpup'); // cost 1
+    defender.curHp = 5;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].grave = [];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const attackResult = attack(state, 0);
+    expect(attackResult.pendingAction?.verseId).toBe('graveRise');
+    expect(state.players[1].grave.some(c => c.id === 'fangpup')).toBe(true);
+
+    const confirm = respondOptionalTrigger(state, 1, {
+      confirmed: true,
+      verseId: 'graveRise',
+      context: attackResult.pendingAction.context
+    });
+
+    expect(confirm.error).toBeUndefined();
+    expect(state.players[1].bench.some(c => c.id === 'fangpup')).toBe(true);
+  });
+
+  it('still offers Grave Rise when the KO\'d creature also has an onKO ability (Gloom)', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    state.players[0].active = attacker;
+    state.players[0].hand = [mkCreature('whisper')];
+
+    const defender = mkCreature('gloom');
+    defender.curHp = 5;
+    const pupInGrave = mkCreature('fangpup');
+    pupInGrave.curHp = 0;
+
+    state.players[1].active = defender;
+    state.players[1].grave = [pupInGrave];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const result = attack(state, 0);
+    expect(result.pendingAction?.verseId).toBe('graveRise');
+    expect(result.events.some(e => e.type === 'discard' || e.type === 'abilityTrigger')).toBe(true);
+  });
+
+  it('offers Grave Rise to revive Gloom itself when it is the only 1-cost in grave', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    state.players[0].active = attacker;
+    state.players[0].hand = [mkCreature('whisper')];
+
+    const defender = mkCreature('gloom'); // cost 1 + onKO Fade
+    defender.curHp = 5;
+    state.players[1].active = defender;
+    state.players[1].grave = [];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const attackResult = attack(state, 0);
+    expect(attackResult.pendingAction?.verseId).toBe('graveRise');
+
+    respondOptionalTrigger(state, 1, {
+      confirmed: true,
+      verseId: 'graveRise',
+      context: attackResult.pendingAction.context
+    });
+    expect(state.players[1].bench.some(c => c.id === 'gloom')).toBe(true);
+  });
+});
+
+describe('Mana Drain caster condition', () => {
+  it('does not fire when the Mana Drain owner casts their own spell', () => {
+    const state = createTestState();
+    state.players[0].mana = 5;
+    state.players[0].hand = [mkVerse('darkPact')];
+    state.players[0].deck = [mkCreature('fangpup'), mkCreature('fangpup'), mkCreature('fangpup')];
+    state.players[0].setVerse = mkVerse('manaDrain');
+    state.players[0].active = mkCreature('emberfang');
+
+    const result = castVerse(state, 0, state.players[0].hand[0].uid, {});
+
+    expect(state.players[0].setVerse?.id).toBe('manaDrain');
+    expect(result.events.some(e => e.verse === 'Mana Drain')).toBe(false);
+    expect(state.players[0].lp).toBe(2); // Dark Pact resolved
+  });
+
+  it('negates an opponent Cast Verse', () => {
+    const state = createTestState();
+    state.players[0].mana = 5;
+    state.players[0].hand = [mkVerse('darkPact')];
+    state.players[0].deck = [mkCreature('fangpup'), mkCreature('fangpup'), mkCreature('fangpup')];
+    state.players[0].active = mkCreature('emberfang');
+    state.players[1].setVerse = mkVerse('manaDrain');
+
+    const result = castVerse(state, 0, state.players[0].hand[0].uid, {});
+
+    expect(state.players[1].setVerse).toBeNull();
+    expect(result.events.some(e => e.type === 'triggerVerse' && e.verse === 'Mana Drain')).toBe(true);
+    expect(state.players[0].lp).toBe(3); // Dark Pact negated — no life loss
+  });
+});
+
+describe('Dark Pact lpDamage side', () => {
+  it('emits lpDamage on the caster side', () => {
+    const state = createTestState();
+    state.players[0].mana = 5;
+    state.players[0].hand = [mkVerse('darkPact')];
+    state.players[0].deck = [mkCreature('fangpup'), mkCreature('fangpup'), mkCreature('fangpup')];
+    state.players[0].lp = 3;
+    state.players[1].lp = 3;
+
+    const result = castVerse(state, 0, state.players[0].hand[0].uid, {});
+    const lpEvent = result.events.find(e => e.type === 'lpDamage');
+    expect(lpEvent).toBeTruthy();
+    expect(lpEvent.side).toBe('p1');
+    expect(state.players[0].lp).toBe(2);
+    expect(state.players[1].lp).toBe(3);
+  });
 });
 
 describe('endTurn poison (solo parity)', () => {

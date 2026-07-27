@@ -27,7 +27,9 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
       }
     },
     lpDamage: async (e) => {
-      await Anim.lpDamage(sideKey(e.side), e.amount);
+      // Prefer absolute engine side (p1/p2); fall back to client animKey
+      const side = e.side != null ? sideKey(e.side) : e.animKey;
+      await Anim.lpDamage(side, e.amount);
       log('Direct hit! Lost a life!', 'dmg');
     },
 

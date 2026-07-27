@@ -283,7 +283,8 @@ const Effects = {
     return {
       events: [{
         type: 'lpDamage',
-        animKey: 'me',
+        // Absolute engine side (p1/p2) — never relative animKey 'me'
+        side: ctx.meSide,
         amount: count
       }]
     };
@@ -715,12 +716,10 @@ const Effects = {
   loseLifeOpp(ctx, { count }) {
     ctx.opp.lp -= count;
     
-    const oppKey = ctx.me === ctx.state?.G?.me ? 'opp' : 'me';
-    
     return {
       events: [{
         type: 'lpDamage',
-        animKey: oppKey,
+        side: ctx.oppSide,
         amount: count
       }],
       lifeLost: count
