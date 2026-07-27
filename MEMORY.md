@@ -8,7 +8,7 @@ ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny preda
 - **MP server:** http://localhost:3001 (`cd server && node index.js`)
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
 - **Repo:** github.com/abriskbreeze/tiny-fangs (public for GH Pages)
-- **Version:** v0.4.86 | **Tests:** 294 passing
+- **Version:** v0.4.87 | **Tests:** 298 passing
 
 ## Tech Stack
 - Vanilla HTML/CSS/JS, single `index.html`
@@ -153,7 +153,7 @@ Later rules override earlier ones at same specificity. When adding overrides, ch
 
 See `VERSION` file and `CHANGELOG.md` for full history.
 
-Current: **v0.4.86** (294 tests)
+Current: **v0.4.87** (298 tests)
 
 Major milestones:
 - v2.0: Initial v2 rewrite
@@ -162,6 +162,7 @@ Major milestones:
 - v0.4.0: Shared engine architecture
 - v0.4.72: Client unification (index.html → 390 lines)
 - v0.4.86: Declarative selection for all targeting cards
+- v0.4.87: Fix AI freeze after end turn (runtime.dispatchLocalAction)
 
 ---
 
@@ -1233,4 +1234,4 @@ Kept Custom:
 - Fixed `server/index.js` ws import for Node ESM (`WebSocketServer || Server`)
 - Verified create-room over `ws://127.0.0.1:3001`
 
-**Tests:** 294 passing
+**Tests:** 298 passing

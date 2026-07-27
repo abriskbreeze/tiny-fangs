@@ -9,13 +9,15 @@ export function createSoloAi(deps) {
     Anim,
     ANIM_TIMING,
     log,
-    render,
-    draw,
-    dispatchLocalAction,
     getScoredMoves,
     pickBestMove,
-    playTurnEndAnimation,
   } = deps;
+
+  // Late-bound from runtime bag (assigned in bindRuntimeModules)
+  const render = (...args) => deps.render(...args);
+  const draw = (...args) => deps.draw(...args);
+  const dispatchLocalAction = (...args) => deps.dispatchLocalAction(...args);
+  const playTurnEndAnimation = (...args) => deps.playTurnEndAnimation(...args);
 
   /**
    * Hunter AI (Difficulty 2) - Score-based decision making

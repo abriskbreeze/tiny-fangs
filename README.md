@@ -104,13 +104,13 @@ See [`guides/CARD-AUTHORING.md`](guides/CARD-AUTHORING.md) for full guide.
 
 ## Version
 
-**v0.4.86** — [Changelog](CHANGELOG.md)
+**v0.4.87** — [Changelog](CHANGELOG.md)
 
 ## Tech Stack
 
 - Vanilla HTML/CSS/JS (no framework)
 - Vite for build/dev server
-- Vitest for testing (294 tests)
+- Vitest for testing (298 tests)
 - GitHub Pages for hosting
 
 ---

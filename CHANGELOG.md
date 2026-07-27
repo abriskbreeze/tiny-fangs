@@ -3,6 +3,14 @@
 All notable changes to Tiny Fangs.
 
 
+## [0.4.87] - 2026-07-27
+
+### Changed
+- Fix AI freeze after end turn (missing dispatchLocalAction on runtime)
+
+---
+
+
 ## [0.4.86] - 2026-02-16
 
 ### Changed

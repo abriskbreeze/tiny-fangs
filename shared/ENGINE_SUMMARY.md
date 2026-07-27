@@ -1,6 +1,6 @@
 # Shared Engine Summary
 
-**Status:** Production — v0.4.86  
+**Status:** Production — v0.4.87  
 **Last Updated:** 2026-07-27
 
 ## Overview

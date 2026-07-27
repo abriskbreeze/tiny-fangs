@@ -1,6 +1,6 @@
 # Tiny Fangs — Architecture Reference
 
-**Version:** 0.4.86  
+**Version:** 0.4.87  
 **Last Updated:** 2026-07-27
 
 ---
@@ -9,7 +9,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         TINY FANGS v0.4.86                          │
+│                         TINY FANGS v0.4.87                          │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │
 │  │   index.    │  │    src/     │  │   tests/    │  │   dist/    │  │
@@ -661,7 +661,7 @@
 ```
 tiny-fangs/
 ├── index.html          # HTML structure + setup screens (390 LOC)
-├── VERSION             # Current version (v0.4.86)
+├── VERSION             # Current version (v0.4.87)
 ├── CHANGELOG.md        # Version history
 ├── ARCHITECTURE.md     # This file
 ├── MEMORY.md           # Project memory
@@ -839,4 +839,4 @@ This led to:
 
 ---
 
-*Last updated: v0.4.86 — 2026-07-27*
+*Last updated: v0.4.87 — 2026-07-27*

@@ -4,13 +4,13 @@
 ```bash
 # From repo root
 npm install
-npm test              # 294 tests (Vitest)
+npm test              # 298 tests (Vitest)
 npm run dev           # Vite dev server → http://localhost:5173
 npm run build         # Build to dist/ (GitHub Actions deploys on push to main)
 ```
 
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
-- **Version:** `v0.4.86` (see `VERSION`, `package.json`, `index.html`)
+- **Version:** `v0.4.87` (see `VERSION`, `package.json`, `index.html`)
 - **Repo:** github.com/abriskbreeze/tiny-fangs
 
 ## Architecture (v0.4.x)
@@ -82,7 +82,7 @@ const result = executeAction(state, playerIdx, action);
 
 ## Testing
 ```bash
-npm test                        # All 294 tests
+npm test                        # All 298 tests
 npm test -- tests/engine.test.js  # Single file
 ```
 

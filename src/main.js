@@ -70,6 +70,7 @@
     runtime.playServerEvents = playServerEvents;
 
     const { dispatchLocalAction, handleLocalPendingAction } = createSoloDispatch(runtime);
+    runtime.dispatchLocalAction = dispatchLocalAction;
 
     const mp = createMpClient(runtime);
     const {
@@ -96,6 +97,7 @@
       runtime.playTurnEndAnimation = playTurnEndAnimation;
       runtime.playMPCoinFlip = playMPCoinFlip;
       runtime.draw = draw;
+      runtime.dispatchLocalAction = dispatchLocalAction;
 
       const ai = createSoloAi(runtime);
       aiTurn = ai.aiTurn;
@@ -714,7 +716,14 @@
         log('Rival goes first');
         render();
         // AI takes first turn
-        setTimeout(aiTurn, 600);
+        if (typeof aiTurn === 'function') {
+          setTimeout(() => {
+            Promise.resolve(aiTurn()).catch(err => {
+              console.error('[AI] First turn failed:', err);
+              log(`(AI error: ${err.message || err})`, 'dmg');
+            });
+          }, 600);
+        }
       }
     }
 
@@ -1618,8 +1627,18 @@
       // TURN END animation
       await playTurnEndAnimation();
 
-      // AI turn
-      setTimeout(aiTurn, 600);
+      // AI turn (guard — undefined if bindRuntimeModules failed)
+      if (typeof aiTurn === 'function') {
+        setTimeout(() => {
+          Promise.resolve(aiTurn()).catch(err => {
+            console.error('[AI] Turn failed:', err);
+            log(`(AI error: ${err.message || err})`, 'dmg');
+          });
+        }, 600);
+      } else {
+        console.error('[AI] aiTurn not bound — cannot start rival turn');
+        log('(AI failed to start)', 'dmg');
+      }
     }
 
     // AI lives in solo-ai.js (bound via bindRuntimeModules)
