@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { summon, castVerse, executeAction, resolveSelection } from '../shared/engine.js';
+import {
+  summon,
+  castVerse,
+  attack,
+  respondOptionalTrigger,
+  executeAction,
+  resolveSelection,
+  mkCreature,
+  mkVerse
+} from '../shared/engine.js';
 import { createCreature, createVerse } from '../src/game.js';
 
 function createTestState() {
@@ -356,6 +365,114 @@ describe('resolveSelection', () => {
     
     expect(result.creature).toBe(creature);
     expect(result.location).toBe('grave');
+  });
+});
+
+describe('Grave Rise (onKO optional trigger)', () => {
+  it('returns pendingAction when defender with Grave Rise is KO\'d and 1-cost is in grave', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+    state.turn = 2;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('whisper');
+    defender.curHp = 5;
+    const pupInGrave = mkCreature('fangpup');
+    pupInGrave.curHp = 0;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].grave = [pupInGrave];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const result = attack(state, 0);
+
+    expect(result.pendingAction).toBeTruthy();
+    expect(result.pendingAction.type).toBe('optionalTrigger');
+    expect(result.pendingAction.verseId).toBe('graveRise');
+    expect(result.pendingAction.side).toBe('p2');
+    expect(state.players[1].setVerse?.id).toBe('graveRise'); // still set until response
+  });
+
+  it('summons 1-cost from grave to bench when Grave Rise is confirmed', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('duskfang'); // cost 3 — not a revive candidate itself
+    defender.curHp = 5;
+    const pupInGrave = mkCreature('fangpup');
+    pupInGrave.curHp = 0;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].grave = [pupInGrave];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const attackResult = attack(state, 0);
+    expect(attackResult.pendingAction?.verseId).toBe('graveRise');
+
+    const confirm = respondOptionalTrigger(state, 1, {
+      confirmed: true,
+      verseId: 'graveRise',
+      context: attackResult.pendingAction.context
+    });
+
+    expect(confirm.error).toBeUndefined();
+    expect(state.players[1].setVerse).toBeNull();
+    expect(state.players[1].bench).toHaveLength(1);
+    expect(state.players[1].bench[0].id).toBe('fangpup');
+    expect(state.players[1].bench[0].curHp).toBe(state.players[1].bench[0].hp);
+    expect(state.players[1].grave.some(c => c.id === 'fangpup')).toBe(false);
+    expect(state.players[1].grave.some(c => c.id === 'graveRise')).toBe(true);
+    expect(confirm.events.some(e => e.type === 'summon' && e.source === 'Grave Rise')).toBe(true);
+  });
+
+  it('does not offer Grave Rise to the attacker who scored the KO', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('whisper');
+    defender.curHp = 5;
+    const pupInGrave = mkCreature('fangpup');
+
+    state.players[0].active = attacker;
+    state.players[0].grave = [pupInGrave];
+    state.players[0].setVerse = mkVerse('graveRise');
+    state.players[1].active = defender;
+
+    const result = attack(state, 0);
+
+    expect(result.pendingAction).toBeFalsy();
+    expect(state.players[0].setVerse?.id).toBe('graveRise');
+  });
+
+  it('does not offer Grave Rise when no 1-cost creature is in grave', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('duskfang'); // cost 3
+    defender.curHp = 5;
+    const expensiveInGrave = mkCreature('titanback'); // cost > 1
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].grave = [expensiveInGrave];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('graveRise');
+
+    const result = attack(state, 0);
+
+    expect(result.pendingAction).toBeFalsy();
+    expect(state.players[1].setVerse?.id).toBe('graveRise');
   });
 });
 

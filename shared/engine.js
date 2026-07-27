@@ -367,11 +367,14 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
   const verseTemplate = VERSES[card.id];
   const result = processEffects(verseTemplate, ctx);
   const events = [...result.events];
+  let pendingAction = null;
   
   // Handle KOs from effects
   for (const koInfo of result.kos || []) {
     const koOwner = koInfo.owner || (koInfo.ownerKey === 'me' ? player : opponent);
     const koSide = koOwner === player ? side : oppSide;
+    const other = koOwner === player ? opponent : player;
+    const otherSide = koOwner === player ? oppSide : side;
     
     events.push({ type: 'ko', side: koSide, creature: koInfo.creature.name });
     prepareForGrave(koInfo.creature);
@@ -383,15 +386,26 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
     } else {
       koOwner.bench = koOwner.bench.filter(c => c.uid !== koInfo.creature.uid);
     }
+    
+    // Grave Rise / death set-verses for the KO'd creature's owner
+    const onKOTrigger = checkTriggers(
+      'onKO',
+      { koedCreature: koInfo.creature, koOwnerSide: koSide },
+      other, koOwner, otherSide, koSide
+    );
+    events.push(...onKOTrigger.events);
+    if (!pendingAction && onKOTrigger.pendingAction) {
+      pendingAction = onKOTrigger.pendingAction;
+    }
   }
   
-  return { events, result };
+  return { events, result, pendingAction };
 }
 
 /**
  * Check if a verse matches a trigger event
  */
-function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, ownerSide = null) {
+function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, ownerSide = null, owner = null) {
   const triggers = {
     phantomWall: 'beforeAttack',
     spikeShield: 'beforeAttack',
@@ -416,10 +430,20 @@ function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, 
     return !isOwnerAction;
   }
   
-  // Check owner condition - Last Breath should only trigger when OWNER loses LP
-  if (condition?.owner === 'me' && context.targetSide && ownerSide) {
-    // If condition is 'me', only trigger when the verse owner is the target
-    if (context.targetSide !== ownerSide) return false;
+  // Check owner condition - Last Breath / Grave Rise: only when OWNER is affected
+  if (condition?.owner === 'me' && ownerSide) {
+    if (context.targetSide && context.targetSide !== ownerSide) return false;
+    // onKO: only the KO'd creature's owner may activate (not the attacker)
+    if (context.koOwnerSide && context.koOwnerSide !== ownerSide) return false;
+  }
+  
+  // Grave Rise prerequisites
+  if (condition?.hasOneCostInGrave && owner) {
+    const hasOneCost = owner.grave.some(c => c.cardType === 'creature' && c.cost === 1);
+    if (!hasOneCost) return false;
+  }
+  if (condition?.benchNotFull && owner) {
+    if (owner.bench.length >= 2) return false;
   }
   
   return true;
@@ -600,7 +624,7 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   // Check inactive player's set verse first (defender advantage)
   // isOwnerAction = false because the activePlayer (opponent) is performing the action
   const defenderVerse = inactivePlayer.setVerse;
-  if (defenderVerse && matchesVerseTrigger(defenderVerse, event, false, context, inactiveSide)) {
+  if (defenderVerse && matchesVerseTrigger(defenderVerse, event, false, context, inactiveSide, inactivePlayer)) {
     const verseTemplate = VERSES[defenderVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {
@@ -627,7 +651,7 @@ function checkTriggers(event, context, activePlayer, inactivePlayer, activeSide,
   // Check active player's set verse
   // isOwnerAction = true because the activePlayer owns this verse and is performing the action
   const attackerVerse = activePlayer.setVerse;
-  if (attackerVerse && matchesVerseTrigger(attackerVerse, event, true, context, activeSide) && !negated) {
+  if (attackerVerse && matchesVerseTrigger(attackerVerse, event, true, context, activeSide, activePlayer) && !negated) {
     const verseTemplate = VERSES[attackerVerse.id];
     if (verseTemplate?.triggerDef?.optional) {
       pendingAction = {
@@ -772,6 +796,7 @@ export function attack(state, playerIdx) {
   const opponent = state.players[1 - playerIdx];
   const side = playerIdx === 0 ? 'p1' : 'p2';
   const oppSide = playerIdx === 0 ? 'p2' : 'p1';
+  let pendingAction = null;
   
   if (!player.active) {
     return { state, events, error: "No active creature" };
@@ -939,11 +964,23 @@ export function attack(state, playerIdx) {
         
         autoSwapBenchToActive(opponent, oppSide, events);
         
-        const onKOTrigger = checkTriggers('onKO', { koedCreature, attacker }, player, opponent, side, oppSide);
+        const onKOTrigger = checkTriggers(
+          'onKO',
+          { koedCreature, attacker, koOwnerSide: oppSide },
+          player, opponent, side, oppSide
+        );
         events.push(...onKOTrigger.events);
+        if (onKOTrigger.pendingAction) pendingAction = onKOTrigger.pendingAction;
         
-        const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature, attacker }, opponent, player, oppSide, side);
+        const onAllyKOTrigger = checkTriggers(
+          'onAllyKO',
+          { koedCreature, attacker, koOwnerSide: oppSide },
+          opponent, player, oppSide, side
+        );
         events.push(...onAllyKOTrigger.events);
+        if (!pendingAction && onAllyKOTrigger.pendingAction) {
+          pendingAction = onAllyKOTrigger.pendingAction;
+        }
         
         // Gloom: onKO trigger
         const koedCard = CREATURES[koedCreature.id];
@@ -995,8 +1032,25 @@ export function attack(state, playerIdx) {
             prepareForGrave(attacker); player.grave.push(attacker);
             player.active = null;
             
-            const atkKoTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+            const atkKoTrigger = checkTriggers(
+              'onKO',
+              { koedCreature: attacker, koOwnerSide: side },
+              player, opponent, side, oppSide
+            );
             events.push(...atkKoTrigger.events);
+            if (!pendingAction && atkKoTrigger.pendingAction) {
+              pendingAction = atkKoTrigger.pendingAction;
+            }
+            
+            const atkAllyKoTrigger = checkTriggers(
+              'onAllyKO',
+              { koedCreature: attacker, koOwnerSide: side },
+              player, opponent, side, oppSide
+            );
+            events.push(...atkAllyKoTrigger.events);
+            if (!pendingAction && atkAllyKoTrigger.pendingAction) {
+              pendingAction = atkAllyKoTrigger.pendingAction;
+            }
           }
         }
       }
@@ -1032,8 +1086,25 @@ export function attack(state, playerIdx) {
           
           autoSwapBenchToActive(player, side, events);
           
-          const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+          const onKOTrigger = checkTriggers(
+            'onKO',
+            { koedCreature: attacker, koOwnerSide: side },
+            player, opponent, side, oppSide
+          );
+          events.push(...onKOTrigger.events);
+          if (!pendingAction && onKOTrigger.pendingAction) {
+            pendingAction = onKOTrigger.pendingAction;
+          }
+          
+          const onAllyKOTrigger = checkTriggers(
+            'onAllyKO',
+            { koedCreature: attacker, koOwnerSide: side },
+            player, opponent, side, oppSide
+          );
           events.push(...onAllyKOTrigger.events);
+          if (!pendingAction && onAllyKOTrigger.pendingAction) {
+            pendingAction = onAllyKOTrigger.pendingAction;
+          }
         }
       }
       
@@ -1133,13 +1204,30 @@ export function attack(state, playerIdx) {
       
       autoSwapBenchToActive(player, side, events);
       
-      const onAllyKOTrigger = checkTriggers('onAllyKO', { koedCreature: attacker }, player, opponent, side, oppSide);
+      const onKOTrigger = checkTriggers(
+        'onKO',
+        { koedCreature: attacker, koOwnerSide: side },
+        player, opponent, side, oppSide
+      );
+      events.push(...onKOTrigger.events);
+      if (!pendingAction && onKOTrigger.pendingAction) {
+        pendingAction = onKOTrigger.pendingAction;
+      }
+      
+      const onAllyKOTrigger = checkTriggers(
+        'onAllyKO',
+        { koedCreature: attacker, koOwnerSide: side },
+        player, opponent, side, oppSide
+      );
       events.push(...onAllyKOTrigger.events);
+      if (!pendingAction && onAllyKOTrigger.pendingAction) {
+        pendingAction = onAllyKOTrigger.pendingAction;
+      }
     }
   }
   
   state.hasAttacked = true;
-  return { state, events };
+  return { state, events, pendingAction };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1152,6 +1240,14 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
   const opponent = state.players[1 - playerIdx];
   const side = playerIdx === 0 ? 'p1' : 'p2';
   const oppSide = playerIdx === 0 ? 'p2' : 'p1';
+  let pendingAction = null;
+  
+  const applyCastEffects = (cardRef, ctxRef) => {
+    const { events: cardEvents, pendingAction: castPending } =
+      processCastVerseEffects(cardRef, ctxRef, player, opponent, side, oppSide);
+    events.push(...cardEvents);
+    if (!pendingAction && castPending) pendingAction = castPending;
+  };
   
   const card = player.hand.find(c => c.uid === cardUid);
   if (!card || card.cardType !== 'verse' || card.type !== 'cast') {
@@ -1205,8 +1301,7 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
       events.push(...darkPactLifeLossTrigger.events);
       
       if (!darkPactLifeLossTrigger.negated) {
-        const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
-        events.push(...cardEvents);
+        applyCastEffects(card, ctx);
       } else {
         draw(player);
         draw(player);
@@ -1222,8 +1317,7 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
     case 'regenerate':
     case 'fortify':
     case 'bloodMoon': {
-      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
-      events.push(...cardEvents);
+      applyCastEffects(card, ctx);
       break;
     }
     
@@ -1242,8 +1336,7 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
         player.grave = player.grave.filter(c => c.uid !== card.uid);
         return { state, events, error: verseTemplate?.selection?.prompt || 'Select target creature' };
       }
-      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
-      events.push(...cardEvents);
+      applyCastEffects(card, ctx);
       if (card.id === 'banish') {
         events.push({ type: 'banish', side: action.selected.ownerKey === 'me' ? side : oppSide, creature: action.selected.creature.name });
       }
@@ -1272,11 +1365,10 @@ export function castVerse(state, playerIdx, cardUid, action = {}) {
     
     default:
       // Generic verse - try processEffects
-      const { events: cardEvents } = processCastVerseEffects(card, ctx, player, opponent, side, oppSide);
-      events.push(...cardEvents);
+      applyCastEffects(card, ctx);
   }
   
-  return { state, events };
+  return { state, events, pendingAction };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1501,17 +1593,31 @@ export function respondOptionalTrigger(state, playerIdx, action) {
   const side = playerIdx === 0 ? 'p1' : 'p2';
   const oppSide = playerIdx === 0 ? 'p2' : 'p1';
   
-  const { confirmed, verseId, context: serializedContext } = action;
+  const { confirmed, verseId, context: serializedContext = {} } = action;
   
   if (!player.setVerse || player.setVerse.id !== verseId) {
     return { state, events, error: "No matching verse set" };
   }
   
   const verse = player.setVerse;
-  const damage = serializedContext?.damage || 0;
+  const verseTemplate = VERSES[verseId];
+  const triggerEvent = verseTemplate?.triggerDef?.event;
+  const damage = serializedContext.damage || 0;
   const defender = player.active;
   const attacker = opponent.active;
-  const triggerContext = { attacker, defender, damage };
+  // Merge live board refs with pending context (koedCreature, etc.)
+  const triggerContext = {
+    ...serializedContext,
+    attacker: attacker || serializedContext.attacker,
+    defender: defender || serializedContext.defender,
+    damage
+  };
+  
+  // Damage was deferred for beforeDamage / lethal gates — not for post-KO verses
+  const defersDamage = triggerEvent === 'beforeDamage' ||
+    triggerEvent === 'beforeKO' ||
+    triggerEvent === 'onLethalDamage' ||
+    ['swarmShield', 'brace', 'vengeance'].includes(verseId);
   
   if (confirmed) {
     const result = executeTrigger(verse, triggerContext, player, opponent, side, oppSide);
@@ -1520,17 +1626,20 @@ export function respondOptionalTrigger(state, playerIdx, action) {
     player.grave.push(verse);
     player.setVerse = null;
     
-    // Apply reduced damage after trigger (for damage reduction triggers like Swarm Shield, Brace)
-    if (defender && damage > 0) {
-      const reducedDamage = Math.max(0, damage - (result.damageReduction || 0));
-      if (reducedDamage > 0) {
-        const ko = applyDamage(defender, reducedDamage);
-        events.push({ type: 'damage', side, amount: reducedDamage });
+    // Apply deferred damage after trigger (Swarm Shield / Brace / Vengeance)
+    if (defersDamage && defender && damage > 0) {
+      const finalDamage = (result.modifiedDamage !== null && result.modifiedDamage !== undefined)
+        ? result.modifiedDamage
+        : Math.max(0, damage - (result.damageReduction || 0));
+      if (finalDamage > 0) {
+        const ko = applyDamage(defender, finalDamage);
+        events.push({ type: 'damage', side, amount: finalDamage });
         
         if (ko) {
           prepareForGrave(defender); player.grave.push(defender);
           player.active = null;
           events.push({ type: 'ko', side, creature: defender.name });
+          autoSwapBenchToActive(player, side, events);
         }
       }
     }
@@ -1539,7 +1648,7 @@ export function respondOptionalTrigger(state, playerIdx, action) {
     player.setVerse = null;
     events.push({ type: 'triggerDeclined', side, verse: verse.name });
     
-    if (defender && damage > 0) {
+    if (defersDamage && defender && damage > 0) {
       const ko = applyDamage(defender, damage);
       events.push({ type: 'damage', side, amount: damage });
       
@@ -1547,6 +1656,7 @@ export function respondOptionalTrigger(state, playerIdx, action) {
         prepareForGrave(defender); player.grave.push(defender);
         player.active = null;
         events.push({ type: 'ko', side, creature: defender.name });
+        autoSwapBenchToActive(player, side, events);
       }
     }
   }
