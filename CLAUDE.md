@@ -2,157 +2,111 @@
 
 ## Quick Start
 ```bash
-cd ~/clawd/tiny-fangs
-npm test              # Run tests (162 should pass)
-npm run build         # Build (GitHub Actions deploys dist/) for GitHub Pages
-launchctl stop com.tinyfangs.v2 && launchctl start com.tinyfangs.v2  # Restart local server
+# From repo root (tiny-fangs/)
+npm install
+npm test              # 285 tests (Vitest)
+npm run dev           # Vite dev server → http://localhost:5173
+npm run build         # Build to dist/ (GitHub Actions deploys on push to main)
 ```
 
-- **Local:** http://localhost:3004
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
-- **Version file:** `VERSION` (currently 0.2.4)
+- **Version:** `v0.4.86` (see `VERSION`, `package.json`, `index.html`)
+- **Repo:** github.com/abriskbreeze/tiny-fangs
 
-## Version Numbering
-- Format: `0.X.Y` where Y can go past 9 (0.2.9 → 0.2.10 → 0.2.11)
-- **DO NOT bump from 0.2.x to 0.3.x without Rico's approval**
-- Update version in ALL 4 places:
-  1. `VERSION` file (just the number, e.g. `0.2.5`)
-  2. `<title>TINY FANGS v0.2.X</title>` in index.html (line ~6)
-  3. `<p class="sub">v0.2.X • Card Battler</p>` in index.html (deck selection screen)
-  4. `<div class="logo">TINY FANGS v0.2.X</div>` in index.html (mobile header)
-- Also update `TODO.md` version history
+## Architecture (v0.4.x)
 
-## Architecture
-
-### Files
 ```
-index.html          # Main game (monolith, ~3600 lines)
-src/
-  state.js          # Game state singleton (state.G)
-  game.js           # applyDamage() helper
-  abilities.js      # ATK modifiers, damage reduction, ability effects
-  anim.js           # All animations + ANIM_TIMING constants
-  render.js         # Card rendering functions
-  cards.js          # CREATURES, VERSES, DECKS definitions
-  helpers.js        # Utility functions
-tests/              # Vitest tests (162 total)
-dist/               # Built output for GitHub Pages
+index.html (390 lines)     Pure HTML structure + setup screens
+├── src/styles.css         All CSS
+└── src/main.js            UI, animations, AI, multiplayer client
+       └── shared/engine.js   ALL game rules (single source of truth)
+
+server/GameEngine.js (149 lines)   Thin wrapper for multiplayer
+       └── shared/engine.js
 ```
 
-### Key Patterns
+### Shared module (`shared/`)
+- `cards.js` — 29 creatures, 26 verses, 5 decks
+- `effects.js` — 28 effect primitives + `processEffects()`
+- `triggers.js` — Priority-based trigger matching
+- `engine.js` — `executeAction()`, attack, summon, cast, endTurn, etc.
 
-**State Access:**
+### Client-only (`src/`)
+- `main.js` — Game UI, event playback, solo + multiplayer
+- `anim.js` — ASCII animations (all return Promises)
+- `render.js` — DOM rendering
+- `ai.js` — Hunter AI (Pup/Hunter difficulty levels)
+- `effects.js` — Wraps shared effects + animation layer
+- `triggers.js` — Client trigger processing + UI prompts
+- `multiplayer.js` — Legacy P2P (PeerJS); active MP uses WebSocket server
+
+### Server (`server/`)
+- `index.js` — WebSocket room server (port 3001)
+- `GameEngine.js` — Delegates to `shared/engine.js`
+
+## Game Design
+
+**Win:** Reduce opponent LP to 0 (3 hearts) or deck them out.
+
+**Turn:** Draw 1 → +1 mana (max 5) → main phase (summon, attack, cast/set verse, retreat) → end turn (poison tick, turnEnd triggers).
+
+**Card types:**
+- Creatures — active slot + bench (max 2), attack enemy
+- Cast verses — immediate effect, to graveyard
+- Set verses — face-down traps with trigger conditions
+
+**Decks (5):** Shadow, Fang, Venom, Swarm, Shell (20 cards each: 8 creatures + 12 verses)
+
+## Key Patterns
+
+**State:**
 ```js
 import { state } from './src/state.js';
-state.G.me        // Player state
-state.G.opp       // AI opponent state
-state.G.myTurn    // Boolean
+state.G.me / state.G.opp   // Player objects
+state.G.myTurn             // Boolean
 ```
 
-**Player/Opponent Structure:**
+**Shared engine actions:**
 ```js
-{
-  active: creature | null,
-  bench: [creature, creature],  // Max 2
-  hand: [card...],
-  deck: [card...],
-  grave: [card...],
-  setVerse: verse | null,
-  lp: 3,                        // Lives
-  mana: 0, maxMana: 5,
-  denMotherBonus: 0             // One-shot attack buff
-}
+import { executeAction } from '../shared/engine.js';
+const result = executeAction(state, playerIdx, action);
+// result: { state, events, error?, pendingAction? }
 ```
 
-**Damage Application:**
-```js
-import { applyDamage } from './src/game.js';
-const isKO = applyDamage(creature, amount);  // Clamps HP to 0, returns true if KO
-```
+**Animations:** Always `await` before `render()` to avoid killing CSS classes mid-animation.
 
-**ATK Modifiers (for display):**
-```js
-import { getAtkModifiers } from './src/abilities.js';
-const { baseAtk, effectiveAtk, modifiers } = getAtkModifiers(creature, owner, enemy);
-// modifiers = [{ name: 'Rally', value: 20, desc: '2 benched' }, ...]
-```
+**Card authoring:** Cards are data in `shared/cards.js`. See `guides/CARD-AUTHORING.md`.
 
-**Animations:**
-```js
-import { Anim, ANIM_TIMING } from './src/anim.js';
-await Anim.summon('me');           // Active summon
-await Anim.summonBench('me', idx); // Bench summon with spark burst
-await Anim.benchToActive('me');    // Bench → active slide
-await Anim.attack('me', 'opp', dmg);
-Anim.floatText('SUMMON!', 'gold', element);
-Anim.sparkBurst(element, 'purple'); // 'gold' or 'purple'
-```
+## Multiplayer
 
-**Modals:**
-```js
-showModal('Title', [
-  { name: 'Option', sub: 'description', action: () => { closeModal(); /* do thing */ } }
-]);
-```
-
-### Card Types
-- **Creatures:** Have HP, ATK, ability
-- **Cast Verses:** One-time effect (gold border)
-- **Set Verses:** Face-down trap with trigger (purple border)
-
-### Abilities Implemented
-| Creature | Ability | Effect |
-|----------|---------|--------|
-| Shade Pup | Orphan | +15 ATK when bench empty |
-| Fangpup | Pack Bond | +10 ATK per benched creature |
-| Alpha | Rally | +10 ATK per benched creature |
-| Piranix | Feeding Frenzy | +15 ATK if enemy <50% HP |
-| Vulpix | Den Guard | -10 damage from attacks (not verses) |
-| Skitter | Scurry | When damaged, may swap with bench |
-| Emberfang | Spark | Deal 5 on summon |
-| Leechling | Drain | Heal equal to damage dealt |
-| Hiveling | Swarm | Draw 1 on summon if 2+ creatures |
-| Broodmother | Spawn | Summon Antling token end of turn |
-
-### Set Verse Triggers
-- `denMother`: On KO → next attack +10 (stored as `owner.denMotherBonus`)
-- `swarmShield`: On attack received → -15 damage if has bench
-- `graveRise`: On KO → revive 1-cost from grave (player chooses)
-- `mirrorForce`: On KO from attack → survive at 1 HP, KO attacker
-
-### Common Bugs Fixed (Reference)
-1. **Animation in wrong place:** Use `getVisibleElement()` not `querySelector()` for elements that exist in both mobile/desktop
-2. **Float text off-center:** Animation keyframes must include `translate(-50%, -50%)`
-3. **Mana spent on failed cast:** Pre-check conditions before deducting mana
-4. **Wrong selector:** Verify class names match (e.g., `.card-mini` not `.mini-card`)
+- Server-authoritative WebSocket model (not P2P)
+- Client connects to Cloudflare tunnel URL in `src/main.js` (`WS_SERVER`)
+- Server creates/shuffles decks; client sends actions, receives state + events
+- Start server: `cd server && node index.js`
 
 ## Testing
 ```bash
-npm test                    # All tests
-npm test -- tests/game.test.js  # Single file
-```
-
-Tests use Vitest. Mock state with:
-```js
-import { state, clearGame, setGame } from '../src/state.js';
-beforeEach(() => clearGame());
+npm test                        # All 285 tests
+npm test -- tests/engine.test.js  # Single file
 ```
 
 ## Deployment
-**IMPORTANT:** GitHub Actions deploys `dist/` to GitHub Pages, NOT root `index.html`!
-1. Edit `index.html` in root
-2. **Run `npm run build`** → copies to `dist/`
-3. `git push` → GitHub Pages auto-deploys from `dist/`
-4. Restart local: `launchctl stop/start com.tinyfangs.v2`
+GitHub Actions builds `dist/` on push to `main` and deploys to GitHub Pages.
+Always run `npm run build` before pushing if testing locally against `dist/`.
 
-⚠️ If you forget `npm run build`, GitHub Pages will show OLD code!
+## Documentation
+| File | Purpose |
+|------|---------|
+| `README.md` | Quick start |
+| `MEMORY.md` | Full project history + session log |
+| `ARCHITECTURE.md` | System diagrams + reference |
+| `CHANGELOG.md` | Version history |
+| `guides/CARD-AUTHORING.md` | How to add cards |
+| `guides/EVENT-SYSTEM.md` | Trigger/event system |
+| `tasks/architecture-gaps.md` | Current architecture status |
 
-## Style Guide
-- ASCII only (no emoji)
-- Cast verses = gold/orange
-- Set verses = purple
-- Damage = red, Heal = green
-- Hearts for LP: ♥ (filled), ♡ (empty)
-
-## TODO.md
-Check `TODO.md` for version history and refactoring phases still in progress.
+## Style
+- ASCII aesthetic, JetBrains Mono font
+- No emoji in game UI (setup screen has a few)
+- Cast verses = gold, Set verses = purple
+- Hearts for LP: ♥ / ♡

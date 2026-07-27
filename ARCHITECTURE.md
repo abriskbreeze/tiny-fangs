@@ -1,7 +1,7 @@
 # Tiny Fangs — Architecture Reference
 
-**Version:** 0.3.5  
-**Last Updated:** 2026-02-05
+**Version:** 0.4.86  
+**Last Updated:** 2026-07-27
 
 ---
 
@@ -9,20 +9,20 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         TINY FANGS v0.3.5                           │
+│                         TINY FANGS v0.4.86                          │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │
 │  │   index.    │  │    src/     │  │   tests/    │  │   dist/    │  │
 │  │   html      │  │  modules    │  │   *.test    │  │   build    │  │
-│  │  (6000 LOC) │  │  (12 files) │  │  (22 files) │  │  (vite)    │  │
+│  │  (390 LOC)  │  │  (14 files) │  │  (13 files) │  │  (vite)    │  │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └─────┬──────┘  │
 │         │                │                │                │        │
 │         ▼                ▼                ▼                ▼        │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                     Game Runtime                             │   │
 │  │  • State Management (state.js)                               │   │
-│  │  • Game Logic (game.js, helpers.js)                          │   │
-│  │  • Card Data (cards.js)                                      │   │
+│  │  • Game Logic (shared/engine.js)                             │   │
+│  │  • Card Data (shared/cards.js)                               │   │
 │  │  • Effects System (effects.js)                               │   │
 │  │  • Trigger System (triggers.js, events.js)                   │   │
 │  │  • AI System (ai.js, abilities.js)                           │   │
@@ -660,46 +660,48 @@
 
 ```
 tiny-fangs/
-├── index.html          # Main game (6000+ LOC)
-├── VERSION             # Current version
+├── index.html          # HTML structure + setup screens (390 LOC)
+├── VERSION             # Current version (v0.4.86)
 ├── CHANGELOG.md        # Version history
 ├── ARCHITECTURE.md     # This file
 ├── MEMORY.md           # Project memory
 ├── README.md           # Quick start
 │
-├── shared/             # Shared logic (client + server)
-│   ├── cards.js        # Card definitions (29 creatures, 26 verses)
-│   ├── effects.js      # Effect primitives (28 types)
+├── shared/             # Single source of truth (client + server)
+│   ├── cards.js        # Card definitions (29 creatures, 26 verses, 5 decks)
+│   ├── effects.js      # Effect primitives (28 types) + processEffects
 │   ├── triggers.js     # Trigger matching (priority-based)
-│   ├── engine.js       # Core game operations
-│   └── index.js        # Module exports (23 exports)
+│   ├── engine.js       # Core game ops + executeAction (~1,665 LOC)
+│   └── index.js        # Re-exports (31 named exports)
 │
-├── src/                # Modules
-│   ├── state.js        # Global state management
-│   ├── cards.js        # Card definitions (CREATURES, VERSES, DECKS)
-│   ├── game.js         # Core game logic (applyDamage, createCreature)
-│   ├── helpers.js      # Utility functions (getEffectiveAtk, etc.)
-│   ├── effects.js      # Effect processor (25+ effect types)
-│   ├── triggers.js     # Trigger matcher and processor
+├── src/                # Client modules
+│   ├── main.js         # UI, event playback, AI, MP client (~3,694 LOC)
+│   ├── styles.css      # All CSS (~2,401 LOC)
+│   ├── cards.js        # Re-exports from shared/cards.js
+│   ├── effects.js      # Shared effects + animation layer
+│   ├── triggers.js     # Client trigger processing + UI prompts
+│   ├── state.js        # Global state singleton
+│   ├── game.js         # Client helpers (applyDamage, createCreature)
+│   ├── helpers.js      # Utility functions
 │   ├── events.js       # Simple event emitter
-│   ├── ai.js           # AI decision system
-│   ├── abilities.js    # Ability helpers
-│   ├── anim.js         # Animation system
-│   └── render.js       # UI rendering helpers
+│   ├── ai.js           # Hunter AI (Pup/Hunter)
+│   ├── abilities.js    # ATK modifiers, ability helpers
+│   ├── anim.js         # ASCII animations (Promise-based)
+│   ├── render.js       # DOM rendering
+│   └── multiplayer.js  # Legacy P2P (PeerJS); active MP is WebSocket
+│
+├── server/             # Multiplayer
+│   ├── index.js        # WebSocket room server (port 3001)
+│   ├── GameEngine.js   # Thin wrapper → shared/engine.js (149 LOC)
+│   └── utils.js        # Server helpers
 │
 ├── guides/             # Documentation
 │   ├── CARD-AUTHORING.md   # How to add cards
 │   └── EVENT-SYSTEM.md     # Event system details
 │
-├── tests/              # Test files (Vitest)
-│   └── *.test.js       # 350+ tests
-│
+├── tests/              # Vitest (285 tests, 13 files)
 ├── dist/               # Built output (GitHub Pages)
-│   ├── index.html      # Bundled game
-│   └── assets/         # Bundled assets
-│
 └── tasks/              # Planning docs
-    └── *.md            # Task tracking
 ```
 
 ---
@@ -746,7 +748,7 @@ tiny-fangs/
 │                                    │                                    │
 │                            ┌───────┴───────┐                           │
 │                            │   index.js    │                           │
-│                            │ (23 exports)  │                           │
+│                            │ (31 exports)  │                           │
 │                            └───────────────┘                           │
 │                                    │                                    │
 │              ┌─────────────────────┼─────────────────────┐             │
@@ -806,32 +808,27 @@ This led to:
 
 ## Quick Reference
 
-### Key Functions (index.html)
+### Shared Engine (`shared/engine.js`)
 
 | Function | Purpose |
 |----------|---------|
-| `startGame()` | Initialize new game |
-| `drawPhase(player)` | Draw card, gain mana |
-| `doAttack(attacker, defender)` | Resolve attack |
-| `summon(card, side)` | Place creature on field |
-| `castVerse(card, side)` | Cast a cast verse |
-| `setVerse(card, side)` | Set a set verse |
-| `ko(creature, owner)` | Handle creature death |
-| `loseLife(player, key)` | Handle LP loss |
-| `checkLethalDamage(creature, key, source)` | Check survival triggers |
-| `processTriggers(event, ctx, state, gameCtx)` | Run triggers |
-| `processEffects(card, ctx)` | Execute effects |
-| `aiTurn()` | AI turn dispatcher |
+| `createGame(deck1Id, deck2Id)` | Initialize state, shuffle, deal |
+| `executeAction(state, playerIdx, action)` | Main entry for all player actions |
+| `summon` / `attack` / `castVerse` / `setVerse` / `retreat` | Core actions |
+| `endTurn(state, playerIdx)` | Poison tick, turnEnd triggers, switch |
+| `resolveSelection` | Declarative target selection |
+| `respondOptionalTrigger` | Optional trigger prompts (Vengeance, Brace, etc.) |
+| `getEffectiveAtk` / `applyDamage` / `draw` | Combat & resource helpers |
 
-### Key Helpers (src/helpers.js)
+### Client Entry (`src/main.js`)
 
-| Function | Purpose |
-|----------|---------|
-| `getEffectiveAtk(creature, owner, opp)` | Calculate final ATK |
-| `getAtkModifiers(creature, owner, opp)` | List ATK modifiers |
-| `hasElusive(creature)` | Check if untargetable |
-| `canTarget(creature)` | Check if can be targeted |
+| Concern | How it works |
+|---------|----------------|
+| Solo play | Calls `sharedExecuteAction()`, plays events via `EVENT_HANDLERS` → `Anim.*` |
+| Multiplayer | WebSocket to `WS_SERVER`; server validates via shared engine |
+| AI | `src/ai.js` scores moves (Pup / Hunter) |
+| Render | `src/render.js` + `await Anim.*` before `render()` |
 
 ---
 
-*Last updated: v0.3.5 — 2026-02-05*
+*Last updated: v0.4.86 — 2026-07-27*

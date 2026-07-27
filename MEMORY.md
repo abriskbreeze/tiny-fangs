@@ -3,11 +3,12 @@
 ## Overview
 ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny predators.
 
-- **Path:** `~/clawd/tiny-fangs/`
-- **Local:** http://localhost:3004
+- **Path:** `tiny-fangs/` (workspace: `Tiny Fangs - TCG`)
+- **Local dev:** http://localhost:5173 (`npm run dev`)
+- **MP server:** http://localhost:3001 (`cd server && node index.js`)
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
-- **Service:** `com.tinyfangs.v2` (launchd)
 - **Repo:** github.com/abriskbreeze/tiny-fangs (public for GH Pages)
+- **Version:** v0.4.86 | **Tests:** 285 passing
 
 ## Tech Stack
 - Vanilla HTML/CSS/JS, single `index.html`
@@ -76,11 +77,12 @@ qmd vsearch "trigger system"     # Semantic search (slower)
 - **Cast Verses:** Immediate effect, goes to graveyard
 - **Set Verses:** Trap-style, triggers on condition
 
-### Decks (4)
-1. **Fang Pack** — Aggro, direct damage
-2. **Shadow Pack** — Control, graveyard synergy
-3. **Storm Pack** — Combo, chain effects
-4. **Swarm Pack** — Bench synergy, sacrifice mechanics
+### Decks (5)
+1. **Shadow** — Control, graveyard synergy
+2. **Fang** — Aggro, direct damage
+3. **Venom** — Poison, lifesteal
+4. **Swarm** — Bench synergy, sacrifice mechanics
+5. **Shell** — Defensive walls, damage reduction
 
 ---
 
@@ -149,15 +151,17 @@ Later rules override earlier ones at same specificity. When adding overrides, ch
 
 ## Version History
 
-See `VERSION` file and `TODO.md` for full history.
+See `VERSION` file and `CHANGELOG.md` for full history.
 
-Current: v0.2.13+
+Current: **v0.4.86** (285 tests)
 
 Major milestones:
 - v2.0: Initial v2 rewrite
 - v2.1: Module extraction (TDD)
-- v0.2.5: Trading card UI redesign
-- v0.2.13: Grave Rise timing fix
+- v0.3.0: Full trigger system migration
+- v0.4.0: Shared engine architecture
+- v0.4.72: Client unification (index.html → 390 lines)
+- v0.4.86: Declarative selection for all targeting cards
 
 ---
 
@@ -490,7 +494,7 @@ brace: {
 |------|-------------|
 | `README.md` | Quick start, architecture overview |
 | `CHANGELOG.md` | Full version history |
-| `dist/ARCHITECTURE.md` | Complete system documentation |
+| `ARCHITECTURE.md` | Complete system documentation |
 | `guides/CARD-AUTHORING.md` | How to add new cards (declarative) |
 | `guides/EVENT-SYSTEM.md` | Event/trigger system details |
 
@@ -1082,7 +1086,7 @@ shared/
 ├── effects.js   — Effect primitives (damage, heal, etc.)
 ├── triggers.js  — Trigger processing
 ├── engine.js    — Core game logic
-└── index.js     — 23 exports total
+└── index.js     — 31 exports total
 ```
 
 **Migration:**

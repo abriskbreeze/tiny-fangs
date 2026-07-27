@@ -8,7 +8,7 @@
 
 - **5 Decks**: Shadow, Fang, Venom, Swarm, Shell — each with unique playstyle
 - **29 Creatures**: Unique abilities with declarative trigger system
-- **22 Verses**: Cast spells and set traps with priority-based resolution
+- **26 Verses**: 16 cast spells + 10 set traps with priority-based resolution
 - **Hunter AI**: Score-based decision making (Pup/Hunter difficulty)
 - **Event System**: 5-level priority trigger resolution
 - **Full Animations**: Attack coils, damage shakes, KO effects, turn transitions
@@ -29,7 +29,7 @@
 ```bash
 npm install
 npm run dev      # Dev server → http://localhost:5173
-npm test         # Run 276 tests
+npm test         # Run 285 tests
 npm run build    # Build (GitHub Actions deploys dist/)
 ```
 
@@ -52,7 +52,7 @@ npm run build    # Build (GitHub Actions deploys dist/)
 shared/                    # Single source of truth
 ├── engine.js              # Game logic (executeAction, triggers)
 ├── cards.js               # Card database (creatures, verses, decks)
-├── effects.js             # 20 effect primitives
+├── effects.js             # 28 effect primitives
 └── triggers.js            # Priority-based trigger processor
 
 src/                       # Client modules
@@ -99,13 +99,13 @@ See [`guides/CARD-AUTHORING.md`](guides/CARD-AUTHORING.md) for full guide.
 
 ## Version
 
-**vpatch** — [Changelog](CHANGELOG.md)
+**v0.4.86** — [Changelog](CHANGELOG.md)
 
 ## Tech Stack
 
 - Vanilla HTML/CSS/JS (no framework)
 - Vite for build/dev server
-- Vitest for testing (276 tests)
+- Vitest for testing (285 tests)
 - GitHub Pages for hosting
 
 ---
