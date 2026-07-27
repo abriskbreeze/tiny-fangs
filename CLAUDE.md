@@ -2,7 +2,7 @@
 
 ## Quick Start
 ```bash
-# From repo root (tiny-fangs/)
+# From repo root
 npm install
 npm test              # 285 tests (Vitest)
 npm run dev           # Vite dev server → http://localhost:5173

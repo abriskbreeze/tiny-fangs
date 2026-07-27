@@ -3,7 +3,7 @@
 ## Overview
 ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny predators.
 
-- **Path:** `tiny-fangs/` (workspace: `Tiny Fangs - TCG`)
+- **Path:** `Tiny Fangs - TCG/` (git root; GitHub repo: `tiny-fangs`)
 - **Local dev:** http://localhost:5173 (`npm run dev`)
 - **MP server:** http://localhost:3001 (`cd server && node index.js`)
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
