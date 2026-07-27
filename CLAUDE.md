@@ -4,7 +4,7 @@
 ```bash
 # From repo root
 npm install
-npm test              # 285 tests (Vitest)
+npm test              # 291 tests (Vitest)
 npm run dev           # Vite dev server → http://localhost:5173
 npm run build         # Build to dist/ (GitHub Actions deploys on push to main)
 ```
@@ -32,17 +32,19 @@ server/GameEngine.js (149 lines)   Thin wrapper for multiplayer
 - `engine.js` — `executeAction()`, attack, summon, cast, endTurn, etc.
 
 ### Client-only (`src/`)
-- `main.js` — Game UI, event playback, solo + multiplayer
+- `main.js` — Game UI, event playback, AI, multiplayer client (largest file; peel ongoing)
 - `anim.js` — ASCII animations (all return Promises)
 - `render.js` — DOM rendering
 - `ai.js` — Hunter AI (Pup/Hunter difficulty levels)
+- `abilities.js` — UI ATK modifiers; `getEffectiveAtk` re-exports shared
 - `effects.js` — Wraps shared effects + animation layer
 - `triggers.js` — Client trigger processing + UI prompts
-- `multiplayer.js` — Legacy P2P (PeerJS); active MP uses WebSocket server
+- `cards.js` — Re-exports shared card data
 
-### Server (`server/`)
-- `index.js` — WebSocket room server (port 3001)
-- `GameEngine.js` — Delegates to `shared/engine.js`
+### Multiplayer
+- Server-authoritative WebSocket model
+- `WS_SERVER` in `src/main.js`: `?ws=` query, else `localStorage.tinyFangsWs`, else default tunnel URL
+- Start server: `cd server && node index.js`
 
 ## Game Design
 
@@ -77,16 +79,9 @@ const result = executeAction(state, playerIdx, action);
 
 **Card authoring:** Cards are data in `shared/cards.js`. See `guides/CARD-AUTHORING.md`.
 
-## Multiplayer
-
-- Server-authoritative WebSocket model (not P2P)
-- Client connects to Cloudflare tunnel URL in `src/main.js` (`WS_SERVER`)
-- Server creates/shuffles decks; client sends actions, receives state + events
-- Start server: `cd server && node index.js`
-
 ## Testing
 ```bash
-npm test                        # All 285 tests
+npm test                        # All 291 tests
 npm test -- tests/engine.test.js  # Single file
 ```
 

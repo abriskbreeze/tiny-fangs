@@ -476,6 +476,61 @@ describe('Grave Rise (onKO optional trigger)', () => {
   });
 });
 
+describe('endTurn poison (solo parity)', () => {
+  it('applies poison damage exactly once per endTurn', () => {
+    const state = createTestState();
+    const poisoned = mkCreature('whisper');
+    poisoned.status = 'poison';
+    poisoned.curHp = 30;
+    state.players[0].active = poisoned;
+    state.players[1].active = mkCreature('emberfang');
+
+    const result = executeAction(state, 0, { action: 'endTurn' });
+
+    expect(result.error).toBeUndefined();
+    const poisonEvents = result.events.filter(e => e.source === 'Poison');
+    expect(poisonEvents).toHaveLength(1);
+    expect(poisonEvents[0].amount).toBe(10);
+    expect(state.players[0].active.curHp).toBe(20);
+  });
+});
+
+describe('Den Mother card truth', () => {
+  it('offers optional Den Mother on ally KO and summons 1-cost from deck when confirmed', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('duskfang');
+    defender.curHp = 5;
+    const pupInDeck = mkCreature('fangpup');
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].deck = [pupInDeck];
+    state.players[1].bench = [];
+    state.players[1].setVerse = mkVerse('denMother');
+
+    const attackResult = attack(state, 0);
+    expect(attackResult.pendingAction?.verseId).toBe('denMother');
+    expect(attackResult.pendingAction?.side).toBe('p2');
+
+    const confirm = respondOptionalTrigger(state, 1, {
+      confirmed: true,
+      verseId: 'denMother',
+      context: attackResult.pendingAction.context
+    });
+
+    expect(confirm.error).toBeUndefined();
+    expect(state.players[1].setVerse).toBeNull();
+    const summoned =
+      state.players[1].active?.id === 'fangpup' ||
+      state.players[1].bench.some(c => c.id === 'fangpup');
+    expect(summoned).toBe(true);
+  });
+});
+
 describe('retreat action with chain lightning', () => {
   it('applies chain lightning damage after retreat', () => {
     const state = createTestState();

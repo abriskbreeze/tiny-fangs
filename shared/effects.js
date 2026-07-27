@@ -79,6 +79,19 @@ const Effects = {
   damage(ctx, { target, amount }) {
     const creature = resolveTarget(ctx, target);
     if (!creature) return { events: [], ko: null };
+
+    // Whisper Elusive: immune to Set Verse targeting the turn it is summoned
+    if (
+      creature.summonedThisTurn &&
+      creature.ability?.name === 'Elusive' &&
+      ctx.sourceType === 'setVerse'
+    ) {
+      return {
+        events: [{ type: 'log', message: `${creature.name}'s Elusive — Set Verse fizzles!` }],
+        ko: null,
+        blocked: true
+      };
+    }
     
     const events = [];
     let finalAmount = amount;

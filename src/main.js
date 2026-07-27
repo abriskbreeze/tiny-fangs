@@ -407,7 +407,11 @@
     // ═══════════════════════════════════════════════════════════════
 
     // Server URL - change for production
-    const WS_SERVER = 'wss://obituaries-comedy-blake-having.trycloudflare.com';
+    // Server URL — override via ?ws= or localStorage.tinyFangsWs (Cloudflare tunnels change)
+    const WS_SERVER =
+      new URLSearchParams(location.search).get('ws') ||
+      localStorage.getItem('tinyFangsWs') ||
+      'wss://obituaries-comedy-blake-having.trycloudflare.com';
 
     let ws = null;
     let gameMode = 'solo'; // 'solo' or 'multi'
@@ -549,8 +553,8 @@
           attackBonuses: serverState.me.attackBonuses || [],
           chainLightning: serverState.me.chainLightning || 0,
           unbreakable: serverState.me.unbreakable || false,
-          usedManaSurge: false,
-          usedLastBreath: false
+          usedManaSurge: !!serverState.me.usedManaSurge,
+          usedLastBreath: !!serverState.me.usedLastBreath
         },
         opp: {
           lp: serverState.opp.lp,
@@ -702,7 +706,9 @@
     // Play animation events from server
     // Server event handlers - maps event types to handler functions
     async function playServerEvents(events) {
-      console.log('[DEBUG] Playing events:', events.map(e => `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`));
+      if (localStorage.getItem('tinyFangsDebug')) {
+        console.log('[DEBUG] Playing events:', events.map(e => `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`));
+      }
       // Use unified EVENT_HANDLERS - sideKey handles both numeric and string sides
       for (const e of events) {
         const handler = EVENT_HANDLERS[e.type];
@@ -2394,19 +2400,7 @@
       // Mark that AI setup was done by shared engine (mana refilled, card drawn)
       state.G._aiSetupDone = true;
 
-      // Client-specific turnEnd triggers (Broodmother Spawn handled by shared, but client triggers may differ)
-      // Note: Shared engine handles Broodmother spawn, so this may be redundant
-      // Keeping for any client-specific trigger handling
-      await processTriggers('turnEnd', {
-        activePlayer: state.G.me,
-        activePlayerKey: 'me'
-      }, state, {
-        log,
-        render,
-        processEffects: async (card, ctx) => {
-          return await processEffects(card, { ...ctx, self: card, state });
-        }
-      });
+      // Broodmother / turnEnd handled by shared engine — do not re-run client processTriggers
 
       render();
 
@@ -2484,17 +2478,7 @@
           await pause();
         }
 
-        // Poison tick
-        if (ai.active?.status === 'poison') {
-          const aiPoisonKo = applyDamage(ai.active, 10);
-          log('Rival poison: -10', 'dmg');
-          await Anim.poisonTick('opp');
-          if (aiPoisonKo) {
-            await Anim.ko('opp');
-            await ko(ai.active, ai);
-          }
-          render();
-        }
+        // Poison / Broodmother / turn switch handled by shared endTurn in endAiTurn()
 
       } catch (err) {
         console.error('[AI Hunter] Error:', err);
@@ -2849,17 +2833,7 @@
           }
         }
 
-        // Poison tick
-        if (ai.active?.status === 'poison') {
-          const aiPoisonKo = applyDamage(ai.active, 10);
-          log('Rival poison: -10', 'dmg');
-          await Anim.poisonTick('opp');
-          if (aiPoisonKo) {
-            await Anim.ko('opp');
-            await ko(ai.active, ai);
-          }
-          render();
-        }
+        // Poison / Broodmother / turn switch handled by shared endTurn in endAiTurn()
 
       } catch (err) {
         console.error('[AI] Turn error:', err);

@@ -1,59 +1,15 @@
 import { applyDamage } from './game.js';
+import { getEffectiveAtk as sharedGetEffectiveAtk } from '../shared/engine.js';
 
 // ═══════════════════════════════════════════════════════════════
-// ABILITY EFFECTS - Pure Logic
+// ABILITY EFFECTS - Display helpers + shared ATK (combat SSOT)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Calculate effective ATK including ability modifiers
+ * Effective ATK — delegates to shared/engine (single source of truth for combat + AI)
  */
 export function getEffectiveAtk(creature, owner, enemy) {
-  let atk = creature.atk;
-  
-  // Orphan (Shade Pup): +15 ATK when bench is empty
-  if (creature.id === 'shadePup' && owner.bench.length === 0) {
-    atk += 15;
-  }
-  
-  // Pack Bond (Fangpup): +10 ATK per other creature you control
-  if (creature.id === 'fangpup') {
-    atk += owner.bench.length * 10;
-  }
-  
-  // Feeding Frenzy (Piranix): +15 ATK if enemy below half HP
-  if (creature.id === 'piranix' && enemy.active) {
-    if (enemy.active.curHp < enemy.active.hp / 2) {
-      atk += 15;
-    }
-  }
-  
-  // Rally (Alpha): +10 ATK per bench creature
-  if (creature.id === 'alpha') {
-    atk += owner.bench.length * 10;
-  }
-  
-  // Rend (Bladewhisker): +10 ATK always
-  if (creature.id === 'bladewhisker') {
-    atk += 10;
-  }
-  
-  // Reflection (Echomask): ATK equals enemy creature's MODIFIED ATK
-  // BUG-A3 FIX: Recursively call getEffectiveAtk to get enemy's full ATK with modifiers
-  if (creature.id === 'echomask' && enemy?.active) {
-    atk = getEffectiveAtk(enemy.active, enemy, owner);
-  }
-  
-  // NOTE: Sonic Strike (Pulsefin) is handled procedurally in doAttack/AI attack
-  // to avoid double-doubling. getAtkModifiers still shows it for UI display.
-  
-  // Attack bonuses on creature (Duskfang Pack Call, etc.)
-  if (creature.atkBonuses?.length > 0) {
-    for (const bonus of creature.atkBonuses) {
-      atk += bonus.value;
-    }
-  }
-  
-  return atk;
+  return sharedGetEffectiveAtk(creature, owner, enemy);
 }
 
 /**
@@ -62,25 +18,25 @@ export function getEffectiveAtk(creature, owner, enemy) {
 export function getAtkModifiers(creature, owner, enemy) {
   const baseAtk = creature.atk;
   const modifiers = [];
-  let effectiveAtk = baseAtk;
   
   // Orphan (Shade Pup): +15 ATK when bench is empty
   if (creature.id === 'shadePup' && owner.bench.length === 0) {
-    effectiveAtk += 15;
     modifiers.push({ name: 'Orphan', value: 15, desc: 'Bench empty' });
   }
   
   // Pack Bond (Fangpup): +10 ATK per other creature you control
-  if (creature.id === 'fangpup' && owner.bench.length > 0) {
-    const bonus = owner.bench.length * 10;
-    effectiveAtk += bonus;
-    modifiers.push({ name: 'Pack Bond', value: bonus, desc: `${owner.bench.length} benched` });
+  if (creature.id === 'fangpup') {
+    const others =
+      (owner.active && owner.active.uid !== creature.uid ? 1 : 0) +
+      owner.bench.filter(c => c.uid !== creature.uid).length;
+    if (others > 0) {
+      modifiers.push({ name: 'Pack Bond', value: others * 10, desc: `${others} other` });
+    }
   }
   
   // Feeding Frenzy (Piranix): +15 ATK if enemy below half HP
   if (creature.id === 'piranix' && enemy?.active) {
     if (enemy.active.curHp < enemy.active.hp / 2) {
-      effectiveAtk += 15;
       modifiers.push({ name: 'Feeding Frenzy', value: 15, desc: 'Enemy wounded' });
     }
   }
@@ -88,44 +44,44 @@ export function getAtkModifiers(creature, owner, enemy) {
   // Rally (Alpha): +10 ATK per bench creature
   if (creature.id === 'alpha' && owner.bench.length > 0) {
     const bonus = owner.bench.length * 10;
-    effectiveAtk += bonus;
     modifiers.push({ name: 'Rally', value: bonus, desc: `${owner.bench.length} benched` });
   }
   
   // Rend (Bladewhisker): +10 ATK always
   if (creature.id === 'bladewhisker') {
-    effectiveAtk += 10;
     modifiers.push({ name: 'Rend', value: 10, desc: '+10 damage' });
   }
   
-  // Reflection (Echomask): ATK equals enemy creature's MODIFIED ATK
-  // BUG-A3 FIX: Show the enemy's full modified ATK, not just base
+  // Reflection (Echomask)
   if (creature.id === 'echomask' && enemy?.active) {
     const enemyModifiedAtk = getEffectiveAtk(enemy.active, enemy, owner);
-    effectiveAtk = enemyModifiedAtk;
     modifiers.push({ name: 'Reflection', value: enemyModifiedAtk - baseAtk, desc: `Mirror ${enemy.active.name}` });
   }
   
-  // Sonic Strike (Pulsefin): Double ATK on first attack
+  // Sonic Strike (Pulsefin): display-only first-attack hint (combat doubles separately)
   if (creature.id === 'pulsefin' && creature.firstAtk) {
-    effectiveAtk += baseAtk; // Double the base ATK
     modifiers.push({ name: 'Sonic Strike', value: baseAtk, desc: 'First attack doubled' });
   }
   
-  // Attack bonuses on owner (Den Mother, Predator's Mark, etc.)
+  // Attack bonuses on owner
   if (owner.attackBonuses?.length > 0) {
     for (const bonus of owner.attackBonuses) {
-      effectiveAtk += bonus.value;
       modifiers.push({ name: bonus.source, value: bonus.value, desc: 'Next attack' });
     }
   }
   
-  // Attack bonuses on creature (Duskfang Pack Call, etc.)
+  // Attack bonuses on creature
   if (creature.atkBonuses?.length > 0) {
     for (const bonus of creature.atkBonuses) {
-      effectiveAtk += bonus.value;
       modifiers.push({ name: bonus.source, value: bonus.value, desc: 'Creature buff' });
     }
+  }
+
+  // Effective ATK from shared engine (includes passives); Pulsefin display adds first-atk hint above
+  // but shared combat applies firstAtk doubling in attack() — keep display consistent with shared base
+  let effectiveAtk = getEffectiveAtk(creature, owner, enemy);
+  if (creature.id === 'pulsefin' && creature.firstAtk) {
+    effectiveAtk += baseAtk; // UI shows doubled; combat handles separately
   }
   
   return { baseAtk, effectiveAtk, modifiers };

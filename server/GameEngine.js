@@ -131,7 +131,9 @@ export function getStateForPlayer(state, playerIdx) {
       setVerse: player.setVerse,
       attackBonuses: player.attackBonuses,
       chainLightning: player.chainLightning,
-      unbreakable: player.unbreakable
+      unbreakable: player.unbreakable,
+      usedManaSurge: !!player.usedManaSurge,
+      usedLastBreath: !!player.usedLastBreath
     },
     opp: {
       lp: opponent.lp,

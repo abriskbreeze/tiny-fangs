@@ -182,50 +182,59 @@ export function autoSwapBenchToActive(player, side, events) {
 /**
  * Get effective attack value for a creature
  */
-export function getEffectiveAtk(creature, owner, opponent) {
+/**
+ * Get effective attack value for a creature
+ * @param {object} creature
+ * @param {object} owner - creature's owner player
+ * @param {object} opponent - opposing player
+ * @param {object} [opts]
+ * @param {boolean} [opts.skipEchomask] - prevent infinite mirror recursion
+ */
+export function getEffectiveAtk(creature, owner, opponent, opts = {}) {
+  if (!creature) return 0;
+
+  // Echomask: copy enemy active's effective ATK
+  if (!opts.skipEchomask && creature.id === 'echomask' && opponent?.active) {
+    return getEffectiveAtk(opponent.active, opponent, owner, { skipEchomask: true });
+  }
+
   let atk = creature.atk;
-  
-  // Apply passive abilities
-  if (creature.ability?.passive?.type === 'atkBonus') {
-    const bonus = creature.ability.passive.amount;
-    const condition = creature.ability.passive.condition;
-    
+  const ability = creature.ability || CREATURES[creature.id]?.ability;
+
+  // Apply passive abilities (from instance or card template)
+  if (ability?.passive?.type === 'atkBonus') {
+    const bonus = ability.passive.amount;
+    const condition = ability.passive.condition;
+
     if (!condition || checkCondition(condition, owner, opponent, creature)) {
       if (typeof bonus === 'number') {
         atk += bonus;
+      } else if (bonus === 'packCount * 10') {
+        const others =
+          (owner.active && owner.active.uid !== creature.uid ? 1 : 0) +
+          owner.bench.filter(c => c.uid !== creature.uid).length;
+        atk += others * 10;
       }
     }
   }
-  
-  // Apply creature-specific attack bonuses
+
+  // Creature-level temporary bonuses
   if (creature.atkBonuses) {
     for (const bonus of creature.atkBonuses) {
       atk += bonus.value;
     }
   }
-  
-  // Apply temporary attack bonuses
+
+  // Owner temporary attack bonuses
   for (const bonus of owner.attackBonuses || []) {
     atk += bonus.value;
   }
-  
-  // Echomask: ATK equals enemy creature's ATK
-  if (creature.id === 'echomask' && opponent.active) {
-    atk = opponent.active.atk;
-  }
-  
-  // Alpha Rally: Bench creatures assist (+10 each)
+
+  // Alpha Rally: +10 ATK per benched creature
   if (creature.id === 'alpha') {
     atk += owner.bench.length * 10;
   }
-  
-  // Pack Bond: +10 ATK per other creature
-  if (creature.id === 'fangpup') {
-    const otherCreatures = (owner.active && owner.active.uid !== creature.uid ? 1 : 0) + 
-                          (owner.bench.filter(c => c.uid !== creature.uid).length);
-    atk += otherCreatures * 10;
-  }
-  
+
   return atk;
 }
 
@@ -357,6 +366,7 @@ function buildEffectsContext(context, owner, enemy, ownerSide, enemySide) {
     selected: context.selected,
     attackerOwner: enemy,
     attackerOwnerKey: 'opp',
+    sourceType: context.sourceType || null,
   };
 }
 
@@ -403,10 +413,11 @@ function processCastVerseEffects(card, ctx, player, opponent, side, oppSide) {
 }
 
 /**
- * Check if a verse matches a trigger event
+ * Check if a verse matches a trigger event.
+ * Prefers declarative triggerDef.event; falls back to legacy ID map.
  */
 function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, ownerSide = null, owner = null) {
-  const triggers = {
+  const legacyTriggers = {
     phantomWall: 'beforeAttack',
     spikeShield: 'beforeAttack',
     brace: 'beforeDamage',
@@ -414,30 +425,37 @@ function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, 
     soulTrap: 'onSummon',
     vengeance: 'onLethalDamage',
     graveRise: 'onKO',
-    denMother: 'onAllyKO',
+    denMother: 'onKO',
     manaDrain: 'onCast',
     lastBreath: 'onLifeLoss'
   };
-  
-  if (triggers[verse.id] !== event) return false;
+
+  // Engine event → accepted card triggerDef.event names
+  const eventAliases = {
+    onLethalDamage: ['onLethalDamage', 'beforeKO'],
+    onLifeLoss: ['onLifeLoss', 'beforeLifeLoss'],
+    onKO: ['onKO', 'onAllyKO']
+  };
   
   const verseTemplate = VERSES[verse.id];
-  const condition = verseTemplate?.triggerDef?.condition;
+  const triggerDef = verseTemplate?.triggerDef;
+  const declaredEvent = triggerDef?.event || legacyTriggers[verse.id];
+  if (!declaredEvent) return false;
+
+  const accepted = eventAliases[event] || [event];
+  if (!accepted.includes(declaredEvent) && declaredEvent !== event) return false;
   
-  // Check owner condition - Soul Trap should only trigger on opponent's summons
+  const condition = triggerDef?.condition;
+  
   if (condition?.owner === 'opp') {
-    // If condition is 'opp', only trigger when opponent did the action (not owner)
     return !isOwnerAction;
   }
   
-  // Check owner condition - Last Breath / Grave Rise: only when OWNER is affected
   if (condition?.owner === 'me' && ownerSide) {
     if (context.targetSide && context.targetSide !== ownerSide) return false;
-    // onKO: only the KO'd creature's owner may activate (not the attacker)
     if (context.koOwnerSide && context.koOwnerSide !== ownerSide) return false;
   }
   
-  // Grave Rise prerequisites
   if (condition?.hasOneCostInGrave && owner) {
     const hasOneCost = owner.grave.some(c => c.cardType === 'creature' && c.cost === 1);
     if (!hasOneCost) return false;
@@ -445,6 +463,7 @@ function matchesVerseTrigger(verse, event, isOwnerAction = false, context = {}, 
   if (condition?.benchNotFull && owner) {
     if (owner.bench.length >= 2) return false;
   }
+  if (condition?.hasBench && owner && owner.bench.length === 0) return false;
   
   return true;
 }
@@ -512,7 +531,12 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       
     case 'soulTrap': {
       const verseTemplate = VERSES[verse.id];
-      const ctx = buildEffectsContext(context, owner, enemy, ownerSide, enemySide);
+      const ctx = buildEffectsContext(
+        { ...context, creature: context.creature || context.summoned, sourceType: 'setVerse' },
+        owner, enemy, ownerSide, enemySide
+      );
+      // Soul Trap targets the summoned creature
+      ctx.summoned = context.creature;
       const result = processEffects(verseTemplate, ctx);
       events.push(...result.events);
       for (const koInfo of result.kos || []) {
@@ -844,8 +868,6 @@ export function attack(state, playerIdx) {
       events.push({ type: 'atkBonus', side, amount: damage / 2, source: 'Sonic Strike' });
     }
     
-    player.attackBonuses = [];
-    
     if (defender) {
       events.push({ type: 'attack', side, damage });
       
@@ -853,10 +875,24 @@ export function attack(state, playerIdx) {
       const beforeDamageTrigger = checkTriggers('beforeDamage', { attacker, defender, damage }, player, opponent, side, oppSide);
       events.push(...beforeDamageTrigger.events);
       
-      // Optional trigger (e.g., Swarm Shield) - return pendingAction for user prompt
+      // Optional trigger — pause before consuming attack bonuses / finishing the hit
       if (beforeDamageTrigger.pendingAction) {
-        return { state, events, pendingAction: beforeDamageTrigger.pendingAction };
+        return {
+          state,
+          events,
+          pendingAction: {
+            ...beforeDamageTrigger.pendingAction,
+            context: {
+              ...beforeDamageTrigger.pendingAction.context,
+              damage,
+              resumeAttack: { hit, attackCount, attackerUid: attacker.uid }
+            }
+          }
+        };
       }
+
+      // Consume one-shot attack bonuses only once damage is committed
+      player.attackBonuses = [];
       
       if (beforeDamageTrigger.damageReduction) {
         damage = Math.max(0, damage - beforeDamageTrigger.damageReduction);
@@ -1642,6 +1678,9 @@ export function respondOptionalTrigger(state, playerIdx, action) {
           autoSwapBenchToActive(player, side, events);
         }
       }
+      // Attacker spent their attack + one-shot bonuses
+      opponent.attackBonuses = [];
+      state.hasAttacked = true;
     }
   } else {
     player.grave.push(verse);
@@ -1658,6 +1697,8 @@ export function respondOptionalTrigger(state, playerIdx, action) {
         events.push({ type: 'ko', side, creature: defender.name });
         autoSwapBenchToActive(player, side, events);
       }
+      opponent.attackBonuses = [];
+      state.hasAttacked = true;
     }
   }
   
