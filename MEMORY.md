@@ -8,7 +8,7 @@ ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny preda
 - **MP server:** http://localhost:3001 (`cd server && node index.js`)
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
 - **Repo:** github.com/abriskbreeze/tiny-fangs (public for GH Pages)
-- **Version:** v0.4.86 | **Tests:** 285 passing
+- **Version:** v0.4.86 | **Tests:** 294 passing
 
 ## Tech Stack
 - Vanilla HTML/CSS/JS, single `index.html`
@@ -153,7 +153,7 @@ Later rules override earlier ones at same specificity. When adding overrides, ch
 
 See `VERSION` file and `CHANGELOG.md` for full history.
 
-Current: **v0.4.86** (285 tests)
+Current: **v0.4.86** (294 tests)
 
 Major milestones:
 - v2.0: Initial v2 rewrite
@@ -1213,3 +1213,24 @@ Kept Custom:
 **Pattern:** Trigger conditions must be validated at match time, not just event type. The `triggerDef.condition` field exists precisely for cases like Soul Trap.
 
 **Tests:** 285 passing (+1 new test for owner summon case)
+
+### 2026-07-27 — Architecture fix loop (M4 → M1 → H2/M5 → L1/L4)
+
+**M4 — Split main.js (~3.7k → ~2.4k):**
+- Extracted `src/event-playback.js`, `solo-dispatch.js`, `mp-client.js`, `solo-ai.js`, `side-key.js`
+- Runtime deps bag + `bindRuntimeModules()` for late UI wiring
+
+**M1 — Cindermaw Frenzy resume:**
+- Optional beforeDamage stores `resumeAttack`; `respondOptionalTrigger` continues remaining hits
+- Live defender each hit; 3 new engine tests
+
+**H2/M5 — Declarative creature DR:**
+- New `shared/damage-reduction.js` via `findMatchingTriggers`
+- Removed Ironhide/Pebbleback/Shellkin/Titanback/Hollowfox ID switches from `attack()` + `Effects.damage`
+- Titanback DR made declarative (`beforeDamage` + `perTurn`)
+
+**L4 — MP smoke:**
+- Fixed `server/index.js` ws import for Node ESM (`WebSocketServer || Server`)
+- Verified create-room over `ws://127.0.0.1:3001`
+
+**Tests:** 294 passing

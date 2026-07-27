@@ -495,6 +495,92 @@ describe('endTurn poison (solo parity)', () => {
   });
 });
 
+describe('Cindermaw Frenzy resume after optional beforeDamage', () => {
+  it('pauses mid-Frenzy with resumeAttack context when Brace is offered', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('cindermaw');
+    const defender = mkCreature('ironhide');
+    defender.curHp = 80;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].setVerse = mkVerse('brace');
+
+    const result = attack(state, 0);
+
+    expect(result.pendingAction).toBeTruthy();
+    expect(result.pendingAction.verseId).toBe('brace');
+    expect(result.pendingAction.context.resumeAttack).toEqual({
+      hit: 0,
+      attackCount: 2,
+      attackerUid: attacker.uid
+    });
+    expect(state.hasAttacked).toBe(false);
+    expect(defender.curHp).toBe(80); // damage deferred
+  });
+
+  it('lands the second Frenzy hit after Brace is confirmed', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('cindermaw'); // atk 30 × 2, then 10 self
+    const defender = mkCreature('whisper');
+    defender.hp = 100;
+    defender.curHp = 100;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].setVerse = mkVerse('brace'); // -15
+
+    const attackResult = attack(state, 0);
+    expect(attackResult.pendingAction?.verseId).toBe('brace');
+
+    const confirm = respondOptionalTrigger(state, 1, {
+      confirmed: true,
+      verseId: 'brace',
+      context: attackResult.pendingAction.context
+    });
+
+    expect(confirm.error).toBeUndefined();
+    expect(state.hasAttacked).toBe(true);
+    expect(state.players[1].setVerse).toBeNull();
+
+    // Hit 1 after Brace: 30 - 15 = 15; Hit 2: 30 → total 45
+    expect(defender.curHp).toBe(55);
+    expect(attacker.curHp).toBe(attacker.hp - 10);
+    expect(confirm.events.filter(e => e.type === 'damage').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('lands the second Frenzy hit after Brace is declined', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+
+    const attacker = mkCreature('cindermaw');
+    const defender = mkCreature('whisper');
+    defender.hp = 100;
+    defender.curHp = 100;
+
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+    state.players[1].setVerse = mkVerse('brace');
+
+    const attackResult = attack(state, 0);
+    const decline = respondOptionalTrigger(state, 1, {
+      confirmed: false,
+      verseId: 'brace',
+      context: attackResult.pendingAction.context
+    });
+
+    expect(decline.error).toBeUndefined();
+    expect(state.hasAttacked).toBe(true);
+    // Full two hits of 30 with no DR: 40 HP left
+    expect(defender.curHp).toBe(40);
+    expect(attacker.curHp).toBe(attacker.hp - 10);
+  });
+});
+
 describe('Den Mother card truth', () => {
   it('offers optional Den Mother on ally KO and summons 1-cost from deck when confirmed', () => {
     const state = createTestState();

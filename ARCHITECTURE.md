@@ -671,11 +671,17 @@ tiny-fangs/
 │   ├── cards.js        # Card definitions (29 creatures, 26 verses, 5 decks)
 │   ├── effects.js      # Effect primitives (28 types) + processEffects
 │   ├── triggers.js     # Trigger matching (priority-based)
-│   ├── engine.js       # Core game ops + executeAction (~1,665 LOC)
-│   └── index.js        # Re-exports (31 named exports)
+│   ├── damage-reduction.js # Declarative creature DR (findMatchingTriggers)
+│   ├── engine.js       # Core game ops + executeAction
+│   └── index.js        # Re-exports
 │
 ├── src/                # Client modules
-│   ├── main.js         # UI, event playback, AI, MP client (~3,694 LOC)
+│   ├── main.js         # UI shell + wiring (~2.4k LOC after peel)
+│   ├── event-playback.js # Engine events → Anim/log
+│   ├── solo-dispatch.js  # Solo executeAction bridge
+│   ├── solo-ai.js        # Pup/Hunter AI turns
+│   ├── mp-client.js      # WebSocket multiplayer client
+│   ├── side-key.js       # Engine side → me/opp
 │   ├── styles.css      # All CSS (~2,401 LOC)
 │   ├── cards.js        # Re-exports from shared/cards.js
 │   ├── effects.js      # Shared effects + animation layer
@@ -684,11 +690,13 @@ tiny-fangs/
 │   ├── game.js         # Client helpers (applyDamage, createCreature)
 │   ├── helpers.js      # Utility functions
 │   ├── events.js       # Simple event emitter
-│   ├── ai.js           # Hunter AI (Pup/Hunter)
-│   ├── abilities.js    # ATK modifiers, ability helpers
+│   ├── ai.js           # Hunter AI scoring
+│   ├── abilities.js    # ATK/DR display helpers (combat ATK → shared)
 │   ├── anim.js         # ASCII animations (Promise-based)
-│   ├── render.js       # DOM rendering
-│   └── multiplayer.js  # Legacy P2P (PeerJS); active MP is WebSocket
+│   └── render.js       # DOM rendering
+│
+├── archive/
+│   └── multiplayer-peerjs-legacy.js  # Dead PeerJS client
 │
 ├── server/             # Multiplayer
 │   ├── index.js        # WebSocket room server (port 3001)
@@ -699,7 +707,7 @@ tiny-fangs/
 │   ├── CARD-AUTHORING.md   # How to add cards
 │   └── EVENT-SYSTEM.md     # Event system details
 │
-├── tests/              # Vitest (285 tests, 13 files)
+├── tests/              # Vitest (~294 tests, 13 files)
 ├── dist/               # Built output (GitHub Pages)
 └── tasks/              # Planning docs
 ```

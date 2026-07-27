@@ -7,6 +7,7 @@
 import { CREATURES, VERSES, DECKS } from './cards.js';
 import { processEffects } from './effects.js';
 import { findMatchingTriggers, sortByPriority, matchesTrigger } from './triggers.js';
+import { applyCreatureDamageReduction } from './damage-reduction.js';
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
@@ -814,7 +815,14 @@ export function summon(state, playerIdx, cardUid, target) {
 // ACTION: ATTACK
 // ═══════════════════════════════════════════════════════════════
 
-export function attack(state, playerIdx) {
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.fromResume] - Continue multi-hit after optional beforeDamage
+ * @param {number} [options.startHit] - Hit index to resume from (0-based)
+ * @param {string} [options.attackerUid] - Expected attacker uid when resuming
+ */
+export function attack(state, playerIdx, options = {}) {
+  const { fromResume = false, startHit = 0, attackerUid = null } = options;
   const events = [];
   const player = state.players[playerIdx];
   const opponent = state.players[1 - playerIdx];
@@ -823,39 +831,50 @@ export function attack(state, playerIdx) {
   let pendingAction = null;
   
   if (!player.active) {
-    return { state, events, error: "No active creature" };
+    return { state, events, error: fromResume ? undefined : "No active creature" };
   }
   
-  if (state.firstTurn) {
-    return { state, events, error: "Cannot attack on first turn" };
-  }
-  
-  if (state.hasAttacked) {
-    return { state, events, error: "Already attacked this turn" };
-  }
-  
-  if (state.hasRetreated) {
-    return { state, events, error: "Cannot attack after retreating" };
+  if (!fromResume) {
+    if (state.firstTurn) {
+      return { state, events, error: "Cannot attack on first turn" };
+    }
+    
+    if (state.hasAttacked) {
+      return { state, events, error: "Already attacked this turn" };
+    }
+    
+    if (state.hasRetreated) {
+      return { state, events, error: "Cannot attack after retreating" };
+    }
   }
   
   const attacker = player.active;
-  const defender = opponent.active;
-  
-  // CHECK: beforeAttack trigger
-  const beforeAttackTrigger = checkTriggers('beforeAttack', { attacker, defender }, player, opponent, side, oppSide);
-  events.push(...beforeAttackTrigger.events);
-  if (beforeAttackTrigger.negated) {
+  if (fromResume && attackerUid && attacker.uid !== attackerUid) {
     state.hasAttacked = true;
     return { state, events };
   }
   
+  if (!fromResume) {
+    // CHECK: beforeAttack trigger
+    const beforeAttackTrigger = checkTriggers(
+      'beforeAttack',
+      { attacker, defender: opponent.active },
+      player, opponent, side, oppSide
+    );
+    events.push(...beforeAttackTrigger.events);
+    if (beforeAttackTrigger.negated) {
+      state.hasAttacked = true;
+      return { state, events };
+    }
+  }
+  
   // Cindermaw: Frenzy - attacks twice
   const attackCount = attacker.id === 'cindermaw' ? 2 : 1;
-  if (attacker.id === 'cindermaw') {
+  if (!fromResume && attacker.id === 'cindermaw') {
     events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Frenzy' });
   }
   
-  for (let hit = 0; hit < attackCount; hit++) {
+  for (let hit = startHit; hit < attackCount; hit++) {
     if (!player.active || player.active.uid !== attacker.uid) break;
     
     let damage = getEffectiveAtk(attacker, player, opponent);
@@ -867,6 +886,9 @@ export function attack(state, playerIdx) {
       events.push({ type: 'abilityTrigger', side, creature: attacker.name, ability: 'Sonic Strike' });
       events.push({ type: 'atkBonus', side, amount: damage / 2, source: 'Sonic Strike' });
     }
+
+    // Live defender each hit (Frenzy may KO then hit the replacement)
+    const defender = opponent.active;
     
     if (defender) {
       events.push({ type: 'attack', side, damage });
@@ -905,43 +927,11 @@ export function attack(state, playerIdx) {
         events.push({ type: 'damageNegated', side: oppSide, source: 'Unbreakable' });
       }
       
-      // Passive damage reduction
-      if (defender.id === 'ironhide' && damage > 0) {
-        const reduction = Math.min(10, damage);
-        damage -= reduction;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Iron Skin' });
-        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Iron Skin' });
-      }
-      
-      if (defender.id === 'pebbleback' && damage > 0) {
-        const reduction = Math.min(5, damage);
-        damage -= reduction;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Sturdy' });
-        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Sturdy' });
-      }
-      
-      if (defender.id === 'shellkin' && !defender.shellkinUsed && damage > 0) {
-        const reduction = Math.min(10, damage);
-        damage -= reduction;
-        defender.shellkinUsed = true;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Harden' });
-        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Harden' });
-      }
-      
-      if (defender.id === 'titanback' && !defender.titanbackUsed && damage > 0) {
-        const reduction = Math.min(15, damage);
-        damage -= reduction;
-        defender.titanbackUsed = true;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Juggernaut' });
-        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Juggernaut' });
-      }
-      
-      if (defender.id === 'hollowfox' && opponent.bench.length > 0 && damage > 0) {
-        const reduction = Math.min(10, damage);
-        damage -= reduction;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Den Guard' });
-        events.push({ type: 'damageReduced', side: oppSide, amount: reduction, source: 'Den Guard' });
-      }
+      // Declarative creature DR (Iron Skin, Sturdy, Harden, Juggernaut, Den Guard, …)
+      damage = applyCreatureDamageReduction(defender, opponent, damage, {
+        events,
+        side: oppSide
+      });
       
       // Check for lethal damage and vengeance trigger
       const wouldBeLethal = defender.curHp - damage <= 0;
@@ -1678,8 +1668,12 @@ export function respondOptionalTrigger(state, playerIdx, action) {
           autoSwapBenchToActive(player, side, events);
         }
       }
-      // Attacker spent their attack + one-shot bonuses
+      // Attacker spent one-shot bonuses for this hit
       opponent.attackBonuses = [];
+
+      const resumed = resumeMultiHitAttack(state, playerIdx, serializedContext, events);
+      if (resumed) return resumed;
+
       state.hasAttacked = true;
     }
   } else {
@@ -1698,11 +1692,43 @@ export function respondOptionalTrigger(state, playerIdx, action) {
         autoSwapBenchToActive(player, side, events);
       }
       opponent.attackBonuses = [];
+
+      const resumed = resumeMultiHitAttack(state, playerIdx, serializedContext, events);
+      if (resumed) return resumed;
+
       state.hasAttacked = true;
     }
   }
   
   return { state, events };
+}
+
+/**
+ * Continue Cindermaw (etc.) remaining hits after optional beforeDamage resolves.
+ * @returns {object|null} Full action result if resumed, else null
+ */
+function resumeMultiHitAttack(state, defenderIdx, context, eventsSoFar) {
+  const resume = context?.resumeAttack;
+  if (!resume || resume.hit + 1 >= resume.attackCount) return null;
+
+  const attackerIdx = 1 - defenderIdx;
+  const attacker = state.players[attackerIdx].active;
+  if (!attacker || attacker.uid !== resume.attackerUid) {
+    state.hasAttacked = true;
+    return { state, events: eventsSoFar };
+  }
+
+  const cont = attack(state, attackerIdx, {
+    fromResume: true,
+    startHit: resume.hit + 1,
+    attackerUid: resume.attackerUid
+  });
+  return {
+    state,
+    events: [...eventsSoFar, ...(cont.events || [])],
+    pendingAction: cont.pendingAction,
+    error: cont.error
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════

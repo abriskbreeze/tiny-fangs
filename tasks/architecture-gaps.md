@@ -1,24 +1,18 @@
 # Architecture Gaps Analysis
 
-## Current State (post architecture-fix pass)
+## Current State (post M4 → M1 → H2/M5)
 
-### ✅ Done this pass
+### ✅ Done
 - Solo AI no longer double-applies poison; client `processTriggers('turnEnd')` removed after shared `endTurn`
 - `getEffectiveAtk` unified — `src/abilities.js` re-exports shared
-- denMother card text/handler aligned (deck summon on KO)
-- fangpup `packCount * 10` evaluated in shared ATK
-- Whisper Elusive blocks Set Verse damage while `summonedThisTurn`
-- MP `usedLastBreath` / `usedManaSurge` pass through `getStateForPlayer`
-- WS URL overridable via `?ws=` or `localStorage.tinyFangsWs`
-- Legacy PeerJS client → `archive/multiplayer-peerjs-legacy.js`
-- `matchesVerseTrigger` prefers declarative `triggerDef.event`
-- Mid-attack optional: attack bonuses / `hasAttacked` fixed on respond
+- denMother / fangpup / Whisper Elusive card truths aligned
+- MP sticky flags + overridable WS URL; PeerJS archived
+- **M4:** `main.js` peeled into `event-playback.js`, `solo-dispatch.js`, `mp-client.js`, `solo-ai.js`, `side-key.js`
+- **M1:** Cindermaw Frenzy resumes remaining hits after optional beforeDamage (Brace / Swarm Shield)
+- **H2/M5:** Creature DR via `shared/damage-reduction.js` + `findMatchingTriggers` (Ironhide, Pebbleback, Shellkin, Titanback, Hollowfox)
 
-### ⚠️ Still open
-1. **Creature abilities via `findMatchingTriggers`** — engine still special-cases many creature IDs in `attack()`
-2. **Cindermaw + optional beforeDamage** — second hit resume after Swarm Shield/Brace still incomplete
-3. **`src/main.js` split** — still ~3.6k LOC (mp / AI / UI mixed)
-4. **Cast/trigger ID switches** — shrink further after creature matcher wiring
-5. **Docs** — keep ARCHITECTURE/CARD-AUTHORING in sync (in progress)
+### ⚠️ Optional follow-ups
+1. Further shrink cast/KO ID switches in `attack()` (Echomask, Stormtalon, Titanback death recoil, …)
+2. Keep ARCHITECTURE / CARD-AUTHORING docs in sync as authoring patterns evolve
 
-See `tasks/architecture-fix-plan.md` for live checkbox status.
+See `tasks/architecture-fix-plan.md` for status table.

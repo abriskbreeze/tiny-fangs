@@ -4,7 +4,7 @@
 ```bash
 # From repo root
 npm install
-npm test              # 291 tests (Vitest)
+npm test              # 294 tests (Vitest)
 npm run dev           # Vite dev server → http://localhost:5173
 npm run build         # Build to dist/ (GitHub Actions deploys on push to main)
 ```
@@ -18,7 +18,7 @@ npm run build         # Build to dist/ (GitHub Actions deploys on push to main)
 ```
 index.html (390 lines)     Pure HTML structure + setup screens
 ├── src/styles.css         All CSS
-└── src/main.js            UI, animations, AI, multiplayer client
+└── src/main.js            UI shell (event-playback / mp-client / solo-ai peeled out)
        └── shared/engine.js   ALL game rules (single source of truth)
 
 server/GameEngine.js (149 lines)   Thin wrapper for multiplayer
@@ -32,7 +32,8 @@ server/GameEngine.js (149 lines)   Thin wrapper for multiplayer
 - `engine.js` — `executeAction()`, attack, summon, cast, endTurn, etc.
 
 ### Client-only (`src/`)
-- `main.js` — Game UI, event playback, AI, multiplayer client (largest file; peel ongoing)
+- `main.js` — Game UI shell + wiring
+- `event-playback.js` / `solo-dispatch.js` / `solo-ai.js` / `mp-client.js` — peeled from main
 - `anim.js` — ASCII animations (all return Promises)
 - `render.js` — DOM rendering
 - `ai.js` — Hunter AI (Pup/Hunter difficulty levels)
@@ -43,7 +44,7 @@ server/GameEngine.js (149 lines)   Thin wrapper for multiplayer
 
 ### Multiplayer
 - Server-authoritative WebSocket model
-- `WS_SERVER` in `src/main.js`: `?ws=` query, else `localStorage.tinyFangsWs`, else default tunnel URL
+- WS URL: `?ws=` / `localStorage.tinyFangsWs` / default tunnel (see `src/mp-client.js`)
 - Start server: `cd server && node index.js`
 
 ## Game Design
@@ -81,7 +82,7 @@ const result = executeAction(state, playerIdx, action);
 
 ## Testing
 ```bash
-npm test                        # All 291 tests
+npm test                        # All 294 tests
 npm test -- tests/engine.test.js  # Single file
 ```
 

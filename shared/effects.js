@@ -17,6 +17,8 @@
  *   // result = { events: [...], kos: [...], ctx }
  */
 
+import { applyCreatureDamageReduction } from './damage-reduction.js';
+
 // Helper: resolve target string to actual object
 function resolveTarget(ctx, targetStr) {
   if (!targetStr) return null;
@@ -95,32 +97,8 @@ const Effects = {
     
     const events = [];
     let finalAmount = amount;
-    
-    // Check for damage reduction abilities (Shellkin Harden, Titanback Juggernaut, etc.)
-    if (creature.id === 'shellkin' && !creature.shellkinUsed && finalAmount > 0) {
-      const reduction = Math.min(10, finalAmount);
-      finalAmount -= reduction;
-      creature.shellkinUsed = true;
-      events.push({ type: 'abilityTrigger', creature: creature.name, ability: 'Harden' });
-      events.push({ type: 'damageReduced', amount: reduction, source: 'Harden' });
-    }
-    
-    if (creature.id === 'titanback' && !creature.titanbackUsed && finalAmount > 0) {
-      const reduction = Math.min(15, finalAmount);
-      finalAmount -= reduction;
-      creature.titanbackUsed = true;
-      events.push({ type: 'abilityTrigger', creature: creature.name, ability: 'Juggernaut' });
-      events.push({ type: 'damageReduced', amount: reduction, source: 'Juggernaut' });
-    }
-    
-    creature.curHp -= finalAmount;
-    
-    // Track that damage was dealt
-    if (finalAmount > 0) {
-      ctx.damageWasDealt = true;
-    }
-    
-    // Determine owner
+
+    // Resolve owner early (needed for bench-conditioned DR like Den Guard)
     let owner;
     let ownerKey;
     if (target === 'selected') {
@@ -136,6 +114,16 @@ const Effects = {
     } else {
       [ownerKey] = target.split('.');
       owner = target.startsWith('me') ? ctx.me : ctx.opp;
+    }
+
+    // Declarative creature DR (Harden, Juggernaut, Iron Skin, Den Guard, …)
+    finalAmount = applyCreatureDamageReduction(creature, owner, finalAmount, { events });
+    
+    creature.curHp -= finalAmount;
+    
+    // Track that damage was dealt
+    if (finalAmount > 0) {
+      ctx.damageWasDealt = true;
     }
     
     // Determine animation key (absolute: 'me' = player, 'opp' = AI)

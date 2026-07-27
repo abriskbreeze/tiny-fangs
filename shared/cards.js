@@ -267,7 +267,10 @@ export const CREATURES = {
     ability: {
       name: 'Juggernaut',
       text: 'Resists first 15 damage per turn. When KO\'d deal 25 damage to enemy creature.',
-      procedural: true  // Handled in damage calc + onKO - dual ability
+      trigger: { event: 'beforeDamage', condition: { target: 'self' } },
+      effects: [{ type: 'reduceDamage', amount: 15, perTurn: true }],
+      // Death recoil (25 to attacker) remains procedural in attack()/KO handlers
+      proceduralDeathRecoil: 25
     },
     flavor:'"Mountains move slowly."',
     art:' ╔══════╗\n(  ◉  ◉  )\n ╚══════╝' },

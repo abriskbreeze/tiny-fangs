@@ -29,7 +29,7 @@
 ```bash
 npm install
 npm run dev      # Dev server → http://localhost:5173
-npm test         # Run 285 tests
+npm test         # Run 294 tests
 npm run build    # Build (GitHub Actions deploys dist/)
 ```
 
@@ -105,7 +105,7 @@ See [`guides/CARD-AUTHORING.md`](guides/CARD-AUTHORING.md) for full guide.
 
 - Vanilla HTML/CSS/JS (no framework)
 - Vite for build/dev server
-- Vitest for testing (285 tests)
+- Vitest for testing (294 tests)
 - GitHub Pages for hosting
 
 ---

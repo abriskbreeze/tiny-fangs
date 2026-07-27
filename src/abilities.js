@@ -1,5 +1,6 @@
 import { applyDamage } from './game.js';
 import { getEffectiveAtk as sharedGetEffectiveAtk } from '../shared/engine.js';
+import { CREATURES } from '../shared/cards.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ABILITY EFFECTS - Display helpers + shared ATK (combat SSOT)
@@ -88,33 +89,36 @@ export function getAtkModifiers(creature, owner, enemy) {
 }
 
 /**
- * Calculate damage reduction for a creature (creature abilities only, not set verses)
- * Set verses (Brace, Swarm Shield) are handled separately for optional triggers
- * NOTE: Creatures with declarative ability.trigger are handled by the trigger system
+ * Calculate damage reduction for a creature (UI / preview only).
+ * Combat applies the same rules via shared/damage-reduction.js.
  */
 export function getEffectiveDamageReduction(creature, owner, includeSetVerses = false) {
   let reduction = 0;
-  
-  // Den Guard (Hollowfox): -10 damage when bench has creatures
-  if (creature.id === 'hollowfox' && owner.bench.length > 0) {
-    reduction += 10;
+  const ability = creature.ability || CREATURES[creature.id]?.ability;
+  if (!ability) return 0;
+
+  if (ability.passive?.type === 'damageReduction') {
+    const cond = ability.passive.condition;
+    let ok = true;
+    if (cond === 'me.bench.notEmpty') ok = (owner?.bench?.length || 0) > 0;
+    if (ok) reduction += ability.passive.amount || 0;
   }
-  
-  // Set verse reductions (only if explicitly included - for backwards compat)
-  // Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
+
+  if (ability.trigger?.event === 'beforeDamage') {
+    for (const effect of ability.effects || []) {
+      if (effect.type !== 'reduceDamage') continue;
+      if (effect.perTurn) {
+        const flag = `${creature.id}Used`;
+        if (creature[flag]) continue;
+      }
+      reduction += effect.amount || 0;
+    }
+  }
+
   if (includeSetVerses) {
-    // All set verse damage reduction now handled by trigger system
+    // Set verse DR is optional / event-driven — not included in static preview
   }
-  
-  // === Shell Pack damage reduction ===
-  // NOTE: Pebbleback, Ironhide, Shellkin now use declarative triggers (ability.trigger)
-  // Their damage reduction is handled by processTriggers('beforeDamage', ...)
-  
-  // Juggernaut (Titanback): always -15 damage (not yet migrated to declarative)
-  if (creature.id === 'titanback') {
-    reduction += 15;
-  }
-  
+
   return reduction;
 }
 
@@ -129,23 +133,33 @@ export function getSetVerseReduction(owner) {
 }
 
 /**
- * Get list of active damage reduction effects (for logging)
- * Set verses excluded by default (handled separately for optional triggers)
- * NOTE: Creatures with declarative triggers log via the trigger system
+ * Get list of active damage reduction effects (for UI logging / preview)
  */
 export function getDamageReductionSources(creature, owner, includeSetVerses = false) {
   const sources = [];
-  
-  if (creature.id === 'hollowfox' && owner.bench.length > 0) {
-    sources.push({ name: 'Den Guard', value: 10 });
+  const ability = creature.ability || CREATURES[creature.id]?.ability;
+  if (!ability) return sources;
+
+  if (ability.passive?.type === 'damageReduction') {
+    const cond = ability.passive.condition;
+    let ok = true;
+    if (cond === 'me.bench.notEmpty') ok = (owner?.bench?.length || 0) > 0;
+    if (ok && ability.passive.amount) {
+      sources.push({ name: ability.name, value: ability.passive.amount });
+    }
   }
-  // Note: Brace and Swarm Shield now use event-driven triggers (see triggers.js)
-  // NOTE: Pebbleback, Ironhide, Shellkin now use declarative triggers - logged by trigger system
-  
-  if (creature.id === 'titanback') {
-    sources.push({ name: 'Juggernaut', value: 15 });
+
+  if (ability.trigger?.event === 'beforeDamage') {
+    for (const effect of ability.effects || []) {
+      if (effect.type !== 'reduceDamage' || !effect.amount) continue;
+      if (effect.perTurn) {
+        const flag = `${creature.id}Used`;
+        if (creature[flag]) continue;
+      }
+      sources.push({ name: ability.name, value: effect.amount });
+    }
   }
-  
+
   return sources;
 }
 
