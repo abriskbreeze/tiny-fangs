@@ -2,7 +2,6 @@
     import { $, uid, state, setGame, clearGame } from './state.js';
     import { ANIM_TIMING, Anim } from './anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline, getActiveEffects } from './render.js';
-    import { applyDamage } from './game.js';
     import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './ai.js';
     import {
       log,
@@ -27,8 +26,6 @@
       shouldScurryTrigger,
       executeScurry
     } from './abilities.js';
-    import { Effects, processEffects } from './effects.js';
-    import { processTriggers } from './triggers.js';
     import { executeAction as sharedExecuteAction } from '../shared/engine.js';
     import { createEventPlayback } from './event-playback.js';
     import { createSoloDispatch } from './solo-dispatch.js';
@@ -1640,163 +1637,8 @@
       }
     }
 
-    async function ko(creature, owner, attacker = null, attackerOwner = null) {
-      const ownerKey = owner === state.G.me ? 'me' : 'opp';
-
-      // Clear active slot IMMEDIATELY to prevent re-render during trigger processing
-      // This fixes the visual bug where creature pops back up during KO
-      owner.active = null;
-
-      // Emit beforeKO event for triggers like Vengeance
-      // Only emit if there's an attacker (combat KO)
-      // BUG-06 FIX: Pass source: 'attack' so Vengeance only triggers on attack KO
-      if (attacker && attackerOwner) {
-        const attackerOwnerKey = attackerOwner === state.G.me ? 'me' : 'opp';
-        const beforeKOCtx = await processTriggers('beforeKO', {
-          target: creature,
-          targetOwner: ownerKey,
-          targetLocation: 'active',
-          attacker: attacker,
-          attackerOwner: attackerOwner,
-          attackerOwnerKey: attackerOwnerKey,
-          activePlayerKey: attackerOwnerKey,  // Attacker's turn
-          source: 'attack'  // BUG-06 FIX: Mark this as attack-caused KO
-        }, state, {
-          promptTrigger,
-          showTriggerReveal,
-          log,
-          render,
-          processEffects: async (card, ctx) => {
-            return await processEffects(card, ctx);
-          }
-        });
-
-        // If KO was negated (e.g., Vengeance), handle attacker replacement and return
-        if (beforeKOCtx.koNegated) {
-          // Restore creature to active (we cleared it at top of function)
-          owner.active = creature;
-
-          // Log the survival and destruction
-          if (beforeKOCtx.destroyed) {
-            log(`${creature.name} survives! ${attacker.name} destroyed!`, 'dmg');
-          } else {
-            log(`${creature.name} survives!`, 'heal');
-          }
-
-          // Handle attacker's replacement if destroyed by destroy effect
-          if (beforeKOCtx.needsReplacement && beforeKOCtx.destroyedOwner) {
-            const destroyedOwner = beforeKOCtx.destroyedOwner;
-            const destroyedOwnerKey = beforeKOCtx.destroyedOwnerKey;
-
-            if (destroyedOwner.bench.length > 0) {
-              destroyedOwner.active = destroyedOwner.bench.shift();
-              log(`${destroyedOwnerKey === 'me' ? 'You' : 'Rival'} sent out ${destroyedOwner.active.name}`);
-              render();
-              await Anim.benchToActive(destroyedOwnerKey);
-            }
-          }
-
-          checkWin();
-          render();
-          return;
-        }
-      }
-
-      // Play KO animation AFTER beforeKO triggers (Vengeance can negate)
-      // This fixes the bug where KO animation plays even when negated
-      await Anim.ko(ownerKey);
-
-      log(`${creature.name} KO'd!`, 'dmg');
-
-      // BUG-A6 FIX: Clear creature's ATK bonuses when it dies
-      // This prevents stacking when creature is re-summoned via Grave Echo/Grave Rise
-      creature.atkBonuses = [];
-
-      // Add to graveyard (active already cleared at top of function)
-      owner.grave.push(creature);
-
-      const isPlayer = owner === state.G.me;
-      const enemy = isPlayer ? state.G.opp : state.G.me;
-
-      // Titanback death effect - deal 25 damage to enemy active
-      if (creature.id === 'titanback' && enemy.active) {
-        log(`Titanback's Juggernaut! ${enemy.active.name} takes 25 damage!`, 'dmg');
-        const titanKo = applyDamage(enemy.active, 25);
-        await Anim.damage(isPlayer ? 'opp' : 'me', 25);
-        if (titanKo) {
-          await Anim.ko(isPlayer ? 'opp' : 'me');
-          await ko(enemy.active, enemy);
-        }
-      }
-
-      // Emit onKO event for trigger system (Den Mother, Grave Rise, etc.)
-      await processTriggers('onKO', {
-        creature,
-        creatureOwnerKey: ownerKey,
-        targetOwner: ownerKey,
-        targetLocation: 'active'
-      }, state, {
-        promptTrigger,
-        showTriggerReveal,
-        log,
-        render,
-        promptGraveSelect: async (candidates) => {
-          // AI always picks first, player chooses if multiple
-          if (!isPlayer || candidates.length === 1) {
-            return candidates[0];
-          }
-          return new Promise(resolve => {
-            showModal('Grave Rise - Choose creature to revive', candidates.map(c => ({
-              name: c.name,
-              sub: `${c.hp} HP / ${c.atk} ATK`,
-              action: () => { closeModal(); resolve(c); }
-            })), { noCancel: true });
-          });
-        },
-        processEffects: async (card, ctx) => {
-          return await processEffects(card, ctx);
-        }
-      });
-
-      // NOTE: Death abilities (gloom, echomask, stormtalon) now handled by onKO triggers above
-
-      // Replace from bench - player chooses if multiple, AI auto-selects
-      if (owner.bench.length > 0) {
-        let replacement;
-
-        if (isPlayer && owner.bench.length > 1) {
-          // Player chooses which bench creature becomes active
-          replacement = await new Promise(resolve => {
-            showModal('Choose new active creature', owner.bench.map(c => ({
-              name: c.name,
-              sub: `${c.curHp}/${c.hp} HP / ${c.atk} ATK`,
-              action: () => {
-                closeModal();
-                resolve(c);
-              }
-            })));
-          });
-          owner.bench = owner.bench.filter(c => c.uid !== replacement.uid);
-        } else {
-          // AI or only one option - take first
-          replacement = owner.bench.shift();
-        }
-
-        owner.active = replacement;
-        log(`${isPlayer ? 'You' : 'Rival'} sent out ${owner.active.name}`);
-        render();
-        await Anim.benchToActive(isPlayer ? 'me' : 'opp');
-
-        if (owner.chainLightning > 0) {
-          const chainReplaceKo = applyDamage(owner.active, owner.chainLightning);
-          log(`Chain Lightning: -${owner.chainLightning}`, 'dmg');
-          owner.chainLightning = 0;
-          if (chainReplaceKo) await ko(owner.active, owner);
-        }
-      }
-
-      checkWin();
-    }
+    // Legacy client ko() removed — death rules + KO anim come from shared engine events
+    // (event-playback handles type:'ko'). Do not reintroduce rule mutations here.
 
     function checkWin() {
       const result = checkWinConditions();

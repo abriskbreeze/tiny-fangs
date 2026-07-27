@@ -581,6 +581,80 @@ describe('Cindermaw Frenzy resume after optional beforeDamage', () => {
   });
 });
 
+describe('Declarative death / survival abilities', () => {
+  it('Bulwark Fortress survives lethal once via onLethalDamage card data', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('bulwark');
+    defender.curHp = 5;
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+
+    const result = attack(state, 0);
+    expect(result.error).toBeUndefined();
+    expect(state.players[1].active).toBe(defender);
+    expect(defender.curHp).toBe(1);
+    expect(defender.fortressUsed || defender.bulwarkUsed).toBe(true);
+    expect(result.events.some(e => e.type === 'survival')).toBe(true);
+  });
+
+  it('Echomask Reflection makes killer lose 1 LP on KO', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('echomask');
+    defender.curHp = 5;
+    state.players[0].active = attacker;
+    state.players[0].lp = 3;
+    state.players[1].active = defender;
+
+    const result = attack(state, 0);
+    expect(result.error).toBeUndefined();
+    expect(state.players[1].active).toBeNull();
+    expect(state.players[0].lp).toBe(2);
+    expect(result.events.some(e => e.type === 'lpDamage' && e.amount === 1)).toBe(true);
+  });
+
+  it('Stormtalon sets chainLightning on the killer', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    const defender = mkCreature('stormtalon');
+    defender.curHp = 5;
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+
+    const result = attack(state, 0);
+    expect(result.error).toBeUndefined();
+    expect(state.players[0].chainLightning).toBe(20);
+    expect(result.events.some(e => e.type === 'setFlag' && e.flag === 'chainLightning')).toBe(true);
+  });
+
+  it('Titanback death recoil damages the attacker from proceduralDeathRecoil', () => {
+    const state = createTestState();
+    state.firstTurn = false;
+    const attacker = mkCreature('emberfang');
+    attacker.atk = 99;
+    attacker.curHp = 40;
+    const defender = mkCreature('titanback');
+    defender.curHp = 5;
+    // First hit of turn may consume Juggernaut DR — force lethal with high atk already
+    state.players[0].active = attacker;
+    state.players[1].active = defender;
+
+    const result = attack(state, 0);
+    expect(result.error).toBeUndefined();
+    expect(state.players[1].grave.some(c => c.id === 'titanback')).toBe(true);
+    // 25 recoil; may also have been reduced if somehow — expect damage event source Juggernaut
+    expect(result.events.some(e => e.type === 'damage' && e.source === 'Juggernaut' && e.amount === 25)).toBe(true);
+    expect(attacker.curHp).toBe(15);
+  });
+});
+
 describe('Den Mother card truth', () => {
   it('offers optional Den Mother on ally KO and summons 1-cost from deck when confirmed', () => {
     const state = createTestState();

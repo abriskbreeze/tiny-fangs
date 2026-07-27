@@ -8,6 +8,11 @@ import { CREATURES, VERSES, DECKS } from './cards.js';
 import { processEffects } from './effects.js';
 import { findMatchingTriggers, sortByPriority, matchesTrigger } from './triggers.js';
 import { applyCreatureDamageReduction } from './damage-reduction.js';
+import {
+  tryLethalSurvival,
+  canOfferDamageSwap,
+  applyCreatureOnKOAbilities
+} from './death-effects.js';
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
@@ -950,13 +955,9 @@ export function attack(state, playerIdx, options = {}) {
       let ko = applyDamage(defender, damage);
       events.push({ type: 'damage', side: oppSide, amount: damage });
       
-      // Survival mechanics
-      if (ko && defender.id === 'bulwark' && !defender.bulwarkUsed) {
-        defender.curHp = 1;
-        defender.bulwarkUsed = true;
+      // Survival mechanics (Bulwark Fortress, etc.)
+      if (ko && tryLethalSurvival(defender, events, oppSide)) {
         ko = false;
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Fortress' });
-        events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1 });
       }
       
       if (ko && defender.fortified) {
@@ -966,9 +967,15 @@ export function attack(state, playerIdx, options = {}) {
         events.push({ type: 'survival', side: oppSide, creature: defender.name, hp: 1, source: 'Fortify' });
       }
       
-      // Skitter: Optional swap after taking damage
-      if (!ko && defender.id === 'skitter' && opponent.bench.length > 0) {
-        events.push({ type: 'abilityTrigger', side: oppSide, creature: defender.name, ability: 'Scurry' });
+      // Skitter / Scurry: optional swap after surviving damage
+      if (!ko && canOfferDamageSwap(defender, opponent)) {
+        const ability = defender.ability || CREATURES[defender.id]?.ability;
+        events.push({
+          type: 'abilityTrigger',
+          side: oppSide,
+          creature: defender.name,
+          ability: ability?.name || 'Scurry'
+        });
         return { 
           state, 
           events, 
@@ -1008,7 +1015,7 @@ export function attack(state, playerIdx, options = {}) {
           pendingAction = onAllyKOTrigger.pendingAction;
         }
         
-        // Gloom: onKO trigger
+        // Gloom: onKO discard (effects-driven)
         const koedCard = CREATURES[koedCreature.id];
         if (koedCard?.ability?.trigger?.event === 'onKO' && 
             koedCard.ability.trigger.condition?.target === 'self' &&
@@ -1029,55 +1036,21 @@ export function attack(state, playerIdx, options = {}) {
           }
         }
         
-        // Echomask: Enemy loses 1 life
-        if (koedCreature.id === 'echomask') {
-          const echomaskLifeLossTrigger = checkTriggers('onLifeLoss', { amount: 1, targetSide: side }, opponent, player, oppSide, side);
-          events.push(...echomaskLifeLossTrigger.events);
-          
-          if (!echomaskLifeLossTrigger.negated) {
-            player.lp -= 1;
-            events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Reflection' });
-            events.push({ type: 'lpDamage', side, amount: 1 });
-          }
-        }
-        
-        // Stormtalon: Set chainLightning flag
-        if (koedCreature.id === 'stormtalon') {
-          player.chainLightning = 20;
-          events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Chain Lightning' });
-          events.push({ type: 'setFlag', side, flag: 'chainLightning', value: 20 });
-        }
-        
-        // Titanback: Deal 25 damage to attacker on death
-        if (koedCreature.id === 'titanback') {
-          const recoilKo = applyDamage(attacker, 25);
-          events.push({ type: 'abilityTrigger', side: oppSide, creature: koedCreature.name, ability: 'Juggernaut' });
-          events.push({ type: 'damage', side, amount: 25, source: 'Juggernaut' });
-          if (recoilKo) {
-            events.push({ type: 'ko', side, creature: attacker.name });
-            prepareForGrave(attacker); player.grave.push(attacker);
-            player.active = null;
-            
-            const atkKoTrigger = checkTriggers(
-              'onKO',
-              { koedCreature: attacker, koOwnerSide: side },
-              player, opponent, side, oppSide
-            );
-            events.push(...atkKoTrigger.events);
-            if (!pendingAction && atkKoTrigger.pendingAction) {
-              pendingAction = atkKoTrigger.pendingAction;
-            }
-            
-            const atkAllyKoTrigger = checkTriggers(
-              'onAllyKO',
-              { koedCreature: attacker, koOwnerSide: side },
-              player, opponent, side, oppSide
-            );
-            events.push(...atkAllyKoTrigger.events);
-            if (!pendingAction && atkAllyKoTrigger.pendingAction) {
-              pendingAction = atkAllyKoTrigger.pendingAction;
-            }
-          }
+        // Echomask / Stormtalon / Titanback recoil — card-data driven
+        const deathResult = applyCreatureOnKOAbilities({
+          koedCreature,
+          koOwner: opponent,
+          opponent: player,
+          attacker,
+          koSide: oppSide,
+          oppSide: side,
+          events,
+          applyDamage,
+          prepareForGrave,
+          checkTriggers
+        });
+        if (!pendingAction && deathResult.pendingAction) {
+          pendingAction = deathResult.pendingAction;
         }
       }
       

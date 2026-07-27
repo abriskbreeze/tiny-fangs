@@ -1,5 +1,4 @@
-import ws from 'ws';
-const WebSocketServer = ws.WebSocketServer || ws.Server;
+import { WebSocketServer } from 'ws';
 import { createGame, executeAction, endTurn, getStateForPlayer } from './GameEngine.js';
 
 const PORT = 3001;

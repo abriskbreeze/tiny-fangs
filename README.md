@@ -29,8 +29,11 @@
 ```bash
 npm install
 npm run dev      # Dev server → http://localhost:5173
-npm test         # Run 294 tests
+npm test         # Run 298 tests
 npm run build    # Build (GitHub Actions deploys dist/)
+
+# Multiplayer server
+cd server && npm install && node index.js   # ws://localhost:3001
 ```
 
 ## Architecture
@@ -53,6 +56,8 @@ shared/                    # Single source of truth
 ├── engine.js              # Game logic (executeAction, triggers)
 ├── cards.js               # Card database (creatures, verses, decks)
 ├── effects.js             # 28 effect primitives
+├── damage-reduction.js    # Declarative creature DR
+├── death-effects.js       # On-KO / survival hooks
 └── triggers.js            # Priority-based trigger processor
 
 src/                       # Client modules
