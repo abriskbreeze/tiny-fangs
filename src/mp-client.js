@@ -30,29 +30,46 @@ export function createMpClient(deps) {
   // Update queue for batching server state updates
   let updateQueue = [];
   let processingQueue = false;
+  let gameStartPromise = null;
+
+  function disconnectWebSocket() {
+    if (!ws) return;
+
+    const socket = ws;
+    ws = null;
+    socket.onopen = null;
+    socket.onerror = null;
+    socket.onclose = null;
+    socket.onmessage = null;
+    socket.close();
+  }
 
   function connectWebSocket() {
     return new Promise((resolve, reject) => {
-      ws = new WebSocket(WS_SERVER);
+      disconnectWebSocket();
+      const socket = new WebSocket(WS_SERVER);
+      ws = socket;
 
-      ws.onopen = () => {
+      socket.onopen = () => {
         console.log('🔌 Connected to server');
         resolve();
       };
 
-      ws.onerror = (err) => {
+      socket.onerror = (err) => {
         console.error('❌ WebSocket error:', err);
         reject(err);
       };
 
-      ws.onclose = () => {
+      socket.onclose = () => {
+        if (ws === socket) ws = null;
+        deps.stopGameTimer?.();
         console.log('🔌 Disconnected from server');
         if (gameMode === 'multi') {
           setMpStatus('Disconnected from server');
         }
       };
 
-      ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         console.log('📩 Server:', msg);
         handleServerMessage(msg);
@@ -60,7 +77,7 @@ export function createMpClient(deps) {
     });
   }
 
-  function handleServerMessage(msg) {
+  async function handleServerMessage(msg) {
     switch (msg.type) {
       case 'roomCreated':
         roomCode = msg.roomCode;
@@ -94,17 +111,23 @@ export function createMpClient(deps) {
 
       case 'gameStart':
         console.log('🎮 Game starting!', msg);
-        // Play coin flip animation before starting
-        (async () => {
+        // CSS keeps the desktop shell laid out behind setup. Make both gameplay
+        // shells explicitly inert before the coin so no board or input can
+        // surface until the awaited start transition chooses one shell.
+        document.getElementById('desktop').style.display = 'none';
+        document.getElementById('mobile').style.display = 'none';
+        // The board, authoritative state, and any immediately following server
+        // update stay behind the complete coin choreography.
+        gameStartPromise = (async () => {
           await deps.playMPCoinFlip(msg.coinFlip === 'won');
           startMultiplayerGame(msg.state, msg.yourTurn, msg.you);
         })();
-        break;
+        return gameStartPromise;
 
       case 'stateUpdate':
         console.log('📊 State update', msg.events);
-        queueUpdate(msg.state, msg.events, msg.pendingAction);
-        break;
+        if (gameStartPromise) await gameStartPromise;
+        return queueUpdate(msg.state, msg.events, msg.pendingAction);
 
       case 'turnChange':
         deps.state.G.myTurn = msg.yourTurn;
@@ -114,9 +137,14 @@ export function createMpClient(deps) {
 
       case 'opponentLeft':
         if (deps.state.G && deps.state.G.isMultiplayer) {
+          deps.stopGameTimer?.();
           deps.showModal('Opponent Left', [{
             name: 'Return to Menu',
-            action: () => { deps.closeModal(); location.reload(); }
+            action: () => {
+              deps.clearGame?.();
+              deps.closeModal();
+              location.reload();
+            }
           }]);
         } else {
           setMpStatus('Opponent disconnected');
@@ -195,8 +223,7 @@ export function createMpClient(deps) {
     deps.state.G.myTurn = yourTurn;
     deps.state.G.myPlayerKey = you; // 'p1' or 'p2'
 
-    // Start game timer
-    deps.state.G.startTime = Date.now();
+    deps.startGameTimer?.();
 
     deps.render();
     updateTurnUI();
@@ -304,9 +331,7 @@ export function createMpClient(deps) {
 
       sendAction({
         action: 'respondOptionalTrigger',
-        confirmed,
-        verseId: pending.verseId,
-        context: pending.context
+        confirmed
       });
     }
   }
@@ -365,9 +390,14 @@ export function createMpClient(deps) {
 
   // Show game over modal
   function showGameOver(youWon) {
+    deps.stopGameTimer?.();
     deps.showModal(youWon ? '🏆 VICTORY!' : '💀 DEFEAT', [{
       name: 'Return to Menu',
-      action: () => { deps.closeModal(); location.reload(); }
+      action: () => {
+        deps.clearGame?.();
+        deps.closeModal();
+        location.reload();
+      }
     }]);
   }
 
@@ -391,8 +421,10 @@ export function createMpClient(deps) {
   }
 
   function selectMode(mode) {
+    deps.clearGame?.();
     gameMode = mode;
     if (mode === 'solo') {
+      disconnectWebSocket();
       showDeckSelect();
       document.getElementById('ai-difficulty').style.display = 'flex';
     } else {
@@ -417,16 +449,21 @@ export function createMpClient(deps) {
   }
 
   function backToModeSelect() {
-    if (ws) {
-      ws.close();
-      ws = null;
-    }
+    deps.clearGame?.();
+    gameMode = 'solo';
+    disconnectWebSocket();
     roomCode = null;
+    isHost = false;
+    selectedDeckId = null;
     document.getElementById('mode-select').style.display = 'block';
     document.getElementById('mp-lobby').style.display = 'none';
     document.getElementById('deck-select').style.display = 'none';
     document.getElementById('room-info').style.display = 'none';
     document.getElementById('join-input').style.display = 'none';
+    document.getElementById('room-code-display').textContent = '';
+    document.getElementById('room-code-input').value = '';
+    document.getElementById('waiting-msg').textContent = 'Waiting for opponent...';
+    document.getElementById('waiting-msg').style.color = '';
     document.querySelector('.mp-buttons').style.display = 'flex';
     setMpStatus('');
   }

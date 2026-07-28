@@ -1,0 +1,580 @@
+# Tiny Fangs AAA Presentation — Living Goal Ledger
+
+**Last updated:** 2026-07-27 18:08 EDT  
+**Overall status:** In progress  
+**Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
+
+This document is the concise, continuously updated record of current and accomplished goals. A goal is marked accomplished only when its implementation handoff and verification evidence exist. Planned work is never counted as finished.
+
+## Status Legend
+
+- **ACCOMPLISHED** — implemented and independently verified
+- **IN PROGRESS** — actively being implemented or reviewed
+- **QUEUED** — accepted scope, not started
+- **EVIDENCE PENDING** — implemented but missing a required verification gate
+- **BLOCKED** — cannot advance without an external decision or state change
+
+## Active Delivery Scope
+
+- **Current milestone:** desktop AAA presentation at the canonical 1672 × 941 reference frame.
+- **Primary experience (user direction, 2026-07-27):** single player. The complete visual overhaul is built and accepted against the references on the solo path first.
+- **Multiplayer:** architecturally in mind, not a current build target. The presentation boundary, keyed card identity, semantic targets, and privacy contracts must stay multiplayer-compatible by construction, but no new multiplayer feature work is scheduled until the visual overhaul is built. Existing multiplayer behavior, authority, and privacy evidence are preserved and must not regress.
+- **Current inputs:** mouse, trackpad/pointer, and keyboard.
+- **Deferred port:** tablet/phone layouts, portrait/landscape adaptation, touch-specific polish, and physical mobile performance.
+- Existing mobile regression evidence is preserved, but mobile-only gaps do not block the desktop build or its independent visual critic loops.
+
+## Current Focus
+
+### Phase 1 — Functionality Characterization and Deterministic Evidence
+
+**Status:** IN PROGRESS
+
+Active work:
+
+- **Task 19 — IN PROGRESS, DECISION REVIEW TRIGGERED:** Critic 7 rejected sixth-corrected revision `8495bae7…` at 88.2/100 (wow 8.5, two P1, six P2, seven P3). Trajectory across critics 5–7 is 88.3 → 89.1 → 88.2 with the empirical core verified byte-exact every time and rejections resting solely on protocol-layer executability; each correction pass has also introduced at least one defect a later critic caught. Per the plan's stagnation clause, the next step is an art-direction/asset decision review — recommended outcome: finalize the remaining protocol clauses (fixture pinning, overlay instrumentation, palette-gate binding) against the implemented capture runner and fixture registry rather than speculatively in prose, without weakening any gate. Critic-7 findings F-1–F-15 are recorded in the Task 19 handoff; P1s are fixture legality against the engine's per-round turn model, and palette-gate median binding.
+
+Active evidence checkpoints:
+
+- Task 27 rejected revision `9c3e2ecd…` at 91.2/100, wow 8.8/10, with three P1 and two P2 findings; all five required corrections were applied in the fourth pass (`8d5f84d0…`).
+- Critic 5 rejected fourth-corrected revision `8d5f84d0…` at 88.3/100, wow 8.5/10, with three P1, six P2, and ten P3 findings. Every recomputable measurement survived independent verification; the rejection was protocol-layer only: self-defeating blind-mapping distribution, unmeasurable/reference-contradicting shadow and quiet-zone tolerances, an unpinned performance quality tier, dual rulebooks against the plan, and enumerated smaller defects. The fifth pass applied all nineteen findings and re-measured the divider/diamond from R2 pixels under stated thresholds.
+- Task 24 is accomplished with 13/13 canonical desktop journeys, 545/545 units, and all 17 immutable classic screenshot hashes unchanged.
+- Task 25 is accomplished: raw authorization 1/1, real owner-only flows 2/2, canonical two-client browser 1/1, complete server sweep 17/17, complete multiplayer project 8/8 three consecutive runs, 545/545 units, build, and diagnostics. The strict behavior matrix remains 70 covered, 32 missing, and one deferred physical/manual gate.
+
+Remaining Phase 1 goals:
+
+- Close remaining desktop-blocking behavior contracts without overstating partial evidence: 70 covered, 32 missing, one deferred manual gate
+- Add the coupled Play Again journey, supported solo Return-to-Menu route, opponent-grave detail, and reveal auto-timeout
+- Finish the remaining pre-threshold End Turn cancellation/guard cross-product
+- Add desktop accessibility, reduced-motion, diagnostics, static/WebGL fallback, and live status/combat playback lanes
+- Rerun the complete server-process and multiplayer projects after the external execution quota resets
+
+## Accomplished Goals
+
+### Planning and Validation
+
+**Status:** ACCOMPLISHED
+
+- Inspected both 1672 × 941 reference images and hash-verified the repository copies.
+- Inventoried the complete current functionality surface.
+- Selected a vanilla Three.js environment plus keyed DOM/CSS cards and controls.
+- Created the full phased implementation plan, critic rubrics, performance protocol, fallback strategy, and release gates.
+- Completed an adversarial plan audit.
+- Resolved validation findings covering hidden Set data, Antling identity, browser/server topology, and camera model selection.
+- Revalidated the revised plan through Phase 3.
+
+Evidence:
+
+- `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/validation-aaa-presentation-v2.md`
+
+### Phase 0 — Preserve and Gate the Existing Presentation
+
+**Status:** ACCOMPLISHED
+
+- Recorded the committed classic and dirty prototype baselines separately.
+- Preserved the existing user-owned `src/render.js`, `src/styles.css`, and reference images byte-for-byte.
+- Recorded line-by-line reconciliation decisions.
+- Added an inert presentation mode gate:
+  - default: `classic`
+  - opt-in: `?presentation=aaa`
+  - namespaced storage override: `tinyFangs.presentation.mode`
+- Verified classic and opt-in modes launch without changing the current visuals.
+
+Evidence:
+
+- `tests/visual/baselines/phase-00-dual-baseline.json`
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-00-protect-baseline.md`
+- 9/9 focused tests
+- Protected prototype hashes unchanged
+
+### Task 01 — Opponent Set Privacy
+
+**Status:** ACCOMPLISHED
+
+- Opponent face-down Set projection is now exactly `null` or `{ faceDown: true }`.
+- Initial Set placement events no longer include hidden card identity.
+- Owner state and later rule-authorized reveal identity remain unchanged.
+- Added symmetric server-projection and engine-event regression coverage.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-01-set-privacy.md`
+- 47/47 focused tests
+
+### Task 02 — Reproducible Browser and Multiplayer Topology
+
+**Status:** ACCOMPLISHED
+
+- Exact-pinned runtime `three@0.185.1`.
+- Exact-pinned dev-only `@playwright/test@1.61.1`.
+- Added deterministic Vite/WebSocket ports, health checks, process teardown, and port validation.
+- Added Playwright E2E, multiplayer, and visual projects.
+- Added root/server clean-install and Chromium CI wiring.
+- Added retained-on-failure browser evidence without exposing blind-test mappings.
+- Verified default and custom ports, two-context multiplayer, and process cleanup.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-02-playwright-topology.md`
+- 361/361 unit tests
+- 9/9 server-process tests
+- E2E, multiplayer, and visual smoke tests passed
+
+### Task 03 — Deterministic Fixtures, Serialization, and Readiness
+
+**Status:** ACCOMPLISHED
+
+- Added ten authoritative deterministic fixtures.
+- Added privacy-aware canonical state serialization.
+- Added the exact `window.__TINY_FANGS_VISUAL_READY__` lifecycle.
+- Added query-gated fixture names and readiness bootstrap without replacing game state.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-03-fixture-readiness.md`
+- 30/30 focused tests
+
+### Task 04 — Stable Presentation-Face Identity
+
+**Status:** ACCOMPLISHED
+
+- Added a fail-closed catalog and derived-face registry.
+- Added a 56-face inventory: 29 creatures, 26 verses, and Antling.
+- Stamped all three Antling creation paths with `presentationFaceId: "antling"`.
+- Preserved every existing gameplay field and event order.
+- Unknown, name-only, colliding, and unregistered identities fail closed.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-04-face-identity.md`
+- 83/83 focused tests
+
+### Task 05 — Safe Fixture Activation and Capture Seam
+
+**Status:** ACCOMPLISHED
+
+- Added exact `visualQa=1`-gated fixture activation through the existing state conversion, cleanup, and render paths.
+- Projected opponent fixture data to counts and opaque Set presence before it reaches the client.
+- Added privacy-safe fixture metadata and deterministic capture-manifest records.
+- Invalid names mutate nothing; repeat activation is deterministic.
+- Verified live Chromium activation, readiness, privacy, idempotence, and disabled-mode isolation.
+- Independently rechecked the `dense-board-statuses` route in the live in-app browser at 1672 × 941: setup was hidden, the desktop battlefield was mounted, and poisoned, trapped, and unbreakable fixture states rendered without console errors.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-05-fixture-activation.md`
+- 25/25 focused tests
+- 383/383 full tests at task completion
+- Live Chromium smoke and isolated production build passed
+
+### Task 07 — Real Two-Browser Hidden-Set Privacy
+
+**Status:** ACCOMPLISHED
+
+- Added a serial, two-context Chromium test against the real WebSocket server.
+- Proved non-owner state is exactly `{ faceDown: true }` and the placement event contains no identity.
+- Proved the owner retains full inspection while the opponent sees a generic, noninteractive card back.
+- Proved identity is absent from non-owner WebSocket frames, DOM, accessibility state, QA/readiness metadata, debug output, requests, preloads, and resource URLs before reveal.
+- Exercised both coin-flip ownership paths across two successful runs.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-07-multiplayer-privacy-e2e.md`
+- Focused real-browser privacy E2E passed twice
+- 389/389 unit tests at task completion
+
+### Task 08 — Authoritative Behavior Matrix and Event Ordering
+
+**Status:** ACCOMPLISHED
+
+- Added a 103-contract matrix covering the current solo, multiplayer, input, overlay, action, result, timer, debug, privacy, responsive, accessibility, and fallback surface.
+- Current strict classification after Tasks 09–11 integration: 42 directly covered, 60 missing, and one physical/manual gate.
+- Directly proved solo pre-render → state replacement/render → post-render ordering.
+- Directly proved multiplayer FIFO state → render → event playback ordering.
+- Froze four known gaps without silently fixing them: desktop status targeting, missing bench event playback, no-op `gameOver` playback, and split multiplayer timer ownership.
+
+Evidence:
+
+- `thoughts/shared/tiny-fangs-behavior-matrix.md`
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-08-behavior-matrix.md`
+- 6/6 focused characterization tests
+- 389/389 full tests at task completion
+
+### Task 10 — Authoritative Engine and Solo-AI Contracts
+
+**Status:** ACCOMPLISHED
+
+- Added 35 direct contracts for turn authority, Set validation, attack/retaliation order, direct life damage, attack/retreat limits, End Turn order, poison, trapped, Fortify, Unbreakable, promotion, deck-out, Last Breath, and complete Pup/Hunter turn executors.
+- Independently re-ran all 35 focused contracts and diagnostics with no errors or warnings.
+- Added executable RED sentinels for two newly isolated exact-once defects: duplicate deck-out `gameOver` emission through `executeAction(endTurn)` and duplicate Last Breath `triggerVerse`.
+- Updated the behavior matrix evidence without overstating browser/UI coverage; ACT-01 and ACT-16 are now directly covered.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-10-engine-contracts.md`
+- 35/35 focused tests
+- 426/426 full tests at task completion
+- Isolated production build passed
+
+### Task 09 — Solo Setup, Decks, Preview, Coin, and Match Start
+
+**Status:** ACCOMPLISHED
+
+- Added 12 deterministic mounted-browser journeys across desktop keyboard/mouse and 390 × 844 touch.
+- Proved all five player/rival deck routes, both real Random controls, Pup/Hunter propagation, all Heads/Tails and first/second branches, first-turn attack rejection, second-player attack enablement, and animation-before-state ordering.
+- Proved deck preview RED on `pointercancel` at the exact 400 ms boundary, then GREEN after adding the existing cleanup hook to all five previewable deck controls.
+- Independently rechecked the focused AI support and both changed files with clean diagnostics.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-09-solo-setup-e2e.md`
+- 12/12 focused Playwright tests
+- 35/35 supporting engine/AI tests
+- Isolated production build passed
+
+### Task 11 — Multiplayer Lifecycle and Server Authority
+
+**Status:** ACCOMPLISHED
+
+- Added raw-WebSocket and two-context browser coverage for normalized join, every lobby transition, validation without outbound frames, Back cleanup/re-entry, reachable protocol errors, error surfaces, disconnect, room recovery/deletion, visible Summon, illegal actions, and held End Turn.
+- Corrected only the two proven lifecycle defects: server-side padded/lowercase room normalization and complete Back socket/UI cleanup.
+- Kept `MP-07` partial because `Player not found` is unreachable through the public invariant, and kept owner-only Optional/Skitter delivery and strict multiplayer coin ordering explicitly pending.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-11-multiplayer-lifecycle.md`
+- 14/14 raw server protocol tests
+- 6/6 complete multiplayer Playwright project
+- 5/5 focused client/endpoint unit tests
+- Isolated production build passed
+
+### Task 12 — Deterministic Combat and Response Fixtures
+
+**Status:** ACCOMPLISHED
+
+- Expanded the fixture registry from 10 to 17 sorted fixtures with real-engine normal attack, retaliation, multi-hit, damage reduction, healing, optional-trigger pending, and Skitter-response pending states.
+- Preserved the existing KO/promotion and inspection/result fixtures.
+- Made response payloads owner-only in public serialization and redacted opponent deck, hand, and Set identity; owner-facing authoritative fixtures retain legal response context.
+- Independently re-ran all 73 focused fixture/activation/privacy contracts and diagnostics.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-12-combat-response-fixtures.md`
+- 73/73 focused tests
+- 462/462 full tests at task completion
+- Isolated production build passed
+- Protected reference and prototype hashes unchanged
+
+### Task 13 — Shared-Engine Exact-Once Corrections
+
+**Status:** ACCOMPLISHED
+
+- Converted both Task 10 RED sentinels to ordinary exact assertions before changing production.
+- Removed only the redundant Last Breath branch reveal; the authoritative generic trigger reveal and all negation/consumption state remain unchanged.
+- Prevented only a duplicate deck-out `gameOver` append when End Turn already emitted that result.
+- Independently re-ran 106 focused engine/effect contracts after the fixes.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-13-engine-exact-once.md`
+- 9/9 exact focused contracts
+- 195/195 engine/effect gate
+- 462/462 full tests at task completion
+- Isolated production build passed
+
+### Task 15 — Exhaustive Classic Capture Baselines
+
+**Status:** ACCOMPLISHED
+
+- Added a canonical 1672 × 941, DPR 1 Playwright capture for all 17 authoritative fixtures.
+- Recorded privacy-safe fixture hashes, PNG hashes/dimensions, Chromium version, viewport, DPR, readiness, fonts, network/assets, runtime errors, and route metadata.
+- Generated 17 unique PNG baselines and proved exact immutable replay twice from fresh server pairs.
+- Explicitly recorded that classic does not consume camera, overlay, response, result, status-legend, or transition metadata; those surfaces remain visually uncovered.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-15-classic-capture-harness.md`
+- `tests/visual/baselines/classic-v1/manifest.json`
+- 3/3 full visual project
+- 54/54 focused fixture/manifest tests
+- 462/462 full tests at task completion
+- Isolated production build passed
+
+### Task 16 — Event-Playback Status and Bench Targets
+
+**Status:** ACCOMPLISHED
+
+- Corrected player poison/trapped playback to target the player active card in both mobile and desktop shells.
+- Added deterministic indexed `benchDamage` and `benchKo` playback for both perspectives, with strict Promise ordering and a non-guessing side-container fallback.
+- Preserved producer event shapes, engine order, missing-DOM safety, and all styling.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-16-event-playback-targets.md`
+- 19/19 focused contracts
+- 141/141 animation/render/effect gate
+- 475/475 full tests at task completion
+- Isolated production build passed
+
+### Task 18 — Event Sequencing, Missing Targets, and Debug Privacy
+
+**Status:** ACCOMPLISHED
+
+- Proved strict handler and inter-event wait ordering for both local and server playback.
+- Redacted thrown/rejected handler errors, unknown event diagnostics, arbitrary source values, card names, UIDs, and pending context.
+- Locked debug enablement to exact storage value `"1"` and an allowlist of known type, finite amount, and presence-only source tag.
+- Exercised all 19 playback Anim facade methods against both missing and removed targets without mutation, leaked nodes, or unhandled rejection.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-18-event-debug-hardening.md`
+- 51/51 focused contracts
+- 192/192 related playback/animation/effect gate
+- 526/526 full tests at task completion
+- Isolated production build passed
+
+### Task 14 — Desktop Input Regression and Root-Cause Corrections
+
+**Status:** ACCOMPLISHED
+
+- Added 12 mounted-browser contracts at canonical 1672 × 941 for selection identity, the exact drag boundary, legal/illegal drop routing, long-press inspection, End Turn hold, gameplay keys, Escape, developer shortcuts, and reveal-key consumption.
+- Corrected the production boundary so movement below 15 px remains a press and movement at or above 15 px begins drag.
+- Made drag `pointercancel` cleanup-only, including listeners, timers, proxy, highlights, capture, and drag state.
+- Unified keyboard routing so editable, animation, wrong-turn, winner, and blocking-overlay guards apply consistently and the topmost safe overlay receives Escape.
+- Preserved retained 390 × 844 emulation as deferred mobile-port evidence; it is not a desktop release gate.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-14-input-regression.md`
+- 12/12 canonical desktop Playwright contracts
+- 24/24 combined solo-setup/input contracts
+- Real multiplayer Set-privacy regression passed
+- 526/526 full tests at task completion
+- Isolated production build passed
+
+### Task 17 — Desktop Responsive and Mode-Resolution Characterization
+
+**Status:** ACCOMPLISHED
+
+- Proved the canonical 1672 × 941 viewport and every requested desktop width have one effective shell, no horizontal overflow, reachable controls, complete public HUD data, opaque opponent Set presentation, and zero runtime errors.
+- Proved the CSS shell boundary at 599/600/601/899/900/901 and real query/storage/invalid-storage presentation-mode resolution across reloads.
+- Froze the existing real-multiplayer 601–899 px duplicate-shell defect without changing production; it belongs to the deferred mobile/tablet port and does not affect canonical desktop.
+- Preserved the ten-viewport and rotation matrix as deferred-port regression evidence.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-17-responsive-regression.md`
+- 19/19 focused classic browser contracts
+- Six real two-client multiplayer boundary starts passed their characterization contract
+- 39/39 applicable unit contracts
+- 526/526 full tests at task completion
+- Isolated production build passed
+
+### Task 22 — Fresh Art-Bible Critic, Revision 1
+
+**Status:** ACCOMPLISHED — REJECTED AS DESIGNED
+
+- Independently inspected both immutable references and rechecked representative geometry, palette samples, luminance regions, contrast arithmetic, camera logic, card anatomy, rail feasibility, and critic-gate executability.
+- Rejected frozen Task 19 revision `efed9c0aa0c37017b67b1f4bf4894abd82a7482d9edbe9bad53506e666419746` at 84.2/100 and wow 7.8/10.
+- Found five release-blocking P1 contradictions and two P2 numeric inconsistencies; no P0.
+- Supplied bounded numeric and wording corrections. This was a specification review, not the later blind challenger-versus-reference image comparison.
+
+Evidence:
+
+- Fresh critic score: reference 9.3, composition/camera 8.2, card system 8.1, lighting/material/environment 9.4, typography/accessibility 8.2, measurability 7.3, implementation readiness 7.5
+- Verified all 13 exact palette samples, five luminance-region quantiles, reference hashes, and representative normalized coordinates
+- Correction loop remains open; rejection is not counted as visual acceptance
+
+### Task 23 — Fresh Art-Bible Critic, Revision 2
+
+**Status:** ACCOMPLISHED — REJECTED AS DESIGNED
+
+- Independently verified corrected revision `caf117e208d32a89366f9299bcb946da8cb9579dde52a5adf26f39da257a0742` and both source-reference hashes.
+- Rejected it at 86.85/100 and wow 8.1/10 with three P1 and two P2 defects; no P0.
+- Found an impossible camera-graybox/final-art gate conflation, an unanchored four-card critic showcase, incomplete card-face safe geometry, an unresolved active/hand intersection, and a prose-only originality gate.
+- Revalidated palette, luminance, contrast, CIEDE2000 separation, rail math, and unprojected-versus-projected card rules.
+
+Evidence:
+
+- Fresh critic scores: reference 9.2, composition/camera 8.3, card craft 8.4, lighting/environment 9.2, readability 8.5, system coherence 8.8, accessibility/fallback/determinism 8.1
+- Specification audit only; this does not count as the later blind challenger-versus-reference image test
+
+### Task 26 — Fresh Art-Bible Critic, Revision 3
+
+**Status:** ACCOMPLISHED — REJECTED AS DESIGNED
+
+- Independently verified revision `762086d3e8afe641c2e16bf6346d65e41f73fef2115c0eb5d3063abe898b9571` and both reference hashes.
+- Rejected it despite a 93.3/100 total because readability, system-coherence, accessibility, wow, and zero-P1 gates did not pass.
+- Found three P1s: missing deterministic overlay/fallback/performance packet evidence, board inspect targets that scale below 44 CSS px, and opponent HUD crossing its locked 24 px safe inset.
+- Found one P2: mandatory color math assumes sRGB although both source PNGs are untagged; the correction must explicitly assign IEC 61966-2-1 on decode and require tagged/declared captures.
+
+Evidence:
+
+- Scores: reference 9.7, camera/composition 9.6, card system 9.5, lighting/environment 9.4, readability 8.9, system coherence 8.8, accessibility/determinism/performance 8.7
+- Specification audit only; no blind camera or challenger image acceptance claimed
+
+### Task 27 — Fresh Art-Bible Critic, Revision 4
+
+**Status:** ACCOMPLISHED — REJECTED AS DESIGNED
+
+- Independently verified revision `9c3e2ecdeecef1c13a629893d867debce4b59318a464c75e0a6436443ae24c2e`, both reference hashes/dimensions, and untagged RGB metadata.
+- Rejected it at 91.2/100 and wow 8.8/10 with three P1 and two P2 findings; no P0.
+- Found non-portable/partly unmeasured performance budgets, circular candidate-generated camera fidelity geometry, and a contradictory authorized-reveal frozen-state contract.
+- Requested a canonical packet index/hash-omission rule and trusted signer/revocation policy as P2 corrections.
+
+Evidence:
+
+- Scores: reference 9.5, camera/composition 8.7, card system 9.6, lighting/environment 9.3, readability 9.4, system coherence 8.7, accessibility/fallback/determinism/performance 7.9
+- Specification audit only; no camera or challenger image acceptance claimed
+
+### Task 20 — Authoritative Desktop Timer Lifecycle
+
+**Status:** ACCOMPLISHED
+
+- Replaced split solo/multiplayer clock state with one idempotent root owner for start, elapsed read, stop, and reset.
+- Preserved elapsed time across authoritative multiplayer `G` replacement and prevented repeated starts or connections from accumulating intervals or assigned socket handlers.
+- Disposed the owner on result, Back, mode change, disconnect, opponent departure, clear/unmount, and before existing reload actions.
+- Proved canonical desktop `0:00 → 1:01`, synchronized outputs, terminal freeze, and one active interval.
+- Kept the actual post-navigation fresh-mount journey explicitly under STA-10.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-20-timer-lifecycle.md`
+- 6/6 focused timer contracts
+- 35/35 affected unit contracts
+- 2/2 mounted canonical-desktop timer browser contracts
+- 6/6 combined timer/real-multiplayer browser contracts
+- 544/544 full tests
+- Isolated production build passed
+
+### Task 21 — Canonical Asset Manifest Contract
+
+**Status:** ACCOMPLISHED — PRODUCTION ART STILL PENDING
+
+- Generated stable-ID manifest entries for all 56 current renderable faces, including real engine-created Antling.
+- Added 39 explicit non-card entries across frames, backs, statuses, UI, environment, and audio, totaling 263 production-file contracts.
+- Added draft and strict-release validation for identity, files, dimensions/aspect, duplicate hashes, focal points, size budgets, provenance, and rights.
+- Added real-engine runtime sampling and fail-closed future-token/derived-face tests.
+- Draft validation remains honestly green with 358 missing-art/provenance warnings; strict release remains intentionally red until all real assets and rights records exist.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-21-asset-manifest-contract.md`
+- 65/65 focused contracts
+- 544/544 full tests after the concurrent timer lane settled
+- Five changed source/test/CLI files at 0 diagnostics
+- Isolated production build passed
+
+### Task 24 — Canonical Desktop Overlay and Result Behavior
+
+**Status:** ACCOMPLISHED
+
+- Turned a 10/10 RED suite into 13/13 canonical desktop GREEN across modal ownership, target modes, solo Optional/Skitter responses, Rules/detail/reveals, victory/defeat/deck-out, terminal input blocking, and restart lifecycle.
+- Corrected numeric winner `0` handling and presented real solo deck-out only after event playback.
+- Made modal close re-entrant/double-close safe and made Escape inert for semantic target/response/result surfaces while retaining safe-overlay dismissal.
+- Isolated behavior-QA fixture consumption behind `behaviorQa=1`; all 17 classic screenshot hashes remain byte-identical.
+- Kept honest partial gaps for opponent grave detail, reveal auto-timeout, coupled Play Again, multiplayer result, and unsupported solo Return to Menu.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-24-desktop-overlay-results.md`
+- 13/13 canonical desktop Playwright journeys
+- 27/27 affected input/overlay/timer browser checkpoint
+- 545/545 full tests
+- 2/2 immutable classic visual suite
+- Isolated production build and diagnostics passed
+
+### Task 25 — Multiplayer Pending-Response Authority and Coin Ordering
+
+**Status:** ACCOMPLISHED — FULL SWEEPS COMPLETE
+
+- Added authoritative room-owned pending response state; only the target player can answer and client-supplied Optional identity/context is ignored.
+- Rejects unsolicited, wrong-owner, malformed, forged, invalid-choice, duplicate, and stale responses atomically; normal actions and End Turn cannot cross the pause.
+- Proved p1-owned Optional and p2-owned Skitter with actual two-peer frames, exact-once Yes/No/swap/decline, and no non-owner pending metadata across frames or browser surfaces.
+- Hid both gameplay shells and serialized updates behind the awaited multiplayer coin; both canonical clients prove >500 ms coin lifetime and removal-before-board ordering.
+- Both previously blocked sweeps ran on 2026-07-27 once the external quota cleared: server-process 17/17 and the complete multiplayer project 8/8 on three consecutive runs.
+- The complete sweep surfaced two pre-existing **test** defects the focused runs never exercised; both were fixed in tests only, with no Task 25 assertion weakened.
+  - Task 17's shell characterization was stale: Task 25's shell-hide incidentally removed the 601–899 duplicate-shell symptom, so exactly one shell is now visible at every boundary. The characterization was tightened to that stronger contract; the underlying 600 px JS versus 900 px CSS selection mismatch stays frozen and still owes its Phase 12 fix.
+  - Task 11's `visible actions and End Turn` test carried two flakes against the genuinely-shuffling shared server: a 20.5%-per-run "no affordable opener" assumption, and an ambiguous duplicate-name option selector causing strict-mode violations. Both are now deterministic.
+
+Evidence:
+
+- `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-25-mp-owner-responses.md`
+- Raw authorization RED then 1/1 GREEN
+- Real owner-only raw WebSocket flows 2/2 GREEN
+- Canonical two-client 1672 × 941 browser 1/1 GREEN
+- Complete server-process sweep 17/17
+- Complete multiplayer project 8/8, three consecutive runs
+- Solo/desktop E2E 59/59; immutable classic visual 3/3
+- 545/545 units; build and diagnostics clean
+
+## Queued Major Goals
+
+### Phase 2 — Visual Bible and Complete Asset Manifest
+
+**Status:** QUEUED
+
+- Orthographic versus low-FOV perspective graybox bake-off
+- Reference-locked palette, lighting, geometry, typography, and card proportions
+- Complete validated manifest for all 56 current faces plus future derived faces
+- Creature, cast, set, and card-back golden samples
+
+### Phase 3 — Presentation Boundary and Compositing Proof
+
+**Status:** QUEUED
+
+- Presentation coordinator and semantic target registry
+- Canonical 1672 × 941 layout and portrait map
+- Three.js/DOM world-to-screen projection contract
+- Static fallback, lifecycle, context loss, and resource disposal
+- Maximum 2 px canonical and 4 px responsive alignment drift
+
+### Phases 4–13 — Full Production
+
+**Status:** QUEUED
+
+- Stable keyed cards and motion wrappers
+- Complete card system and all original card art
+- Three.js meadow, props, lighting, atmosphere, shadows, and fallback
+- HUD, setup, lobby, overlays, reveals, and results
+- Motion, effects, audio, and optional haptics
+- Desktop accessibility, multiplayer, fallback, and performance hardening
+- Deferred mobile/tablet responsive port after desktop critic acceptance
+
+### Phase 14 — Independent AAA Critic Loops
+
+**Status:** QUEUED
+
+- Two fresh critics per desktop artifact
+- Anonymized side-by-side comparisons
+- Weighted score at least 93/100 from both critics
+- No category below 9/10
+- Challenger preference in every primary reference comparison
+- Two consecutive clean passes with no new P1/P2 defect
+
+### Phase 15 — Release Audit
+
+**Status:** QUEUED
+
+- Requirement-by-requirement completion proof
+- Full unit, browser, multiplayer, accessibility, visual, asset, build, and performance gates
+- Physical mobile-device performance evidence during the deferred port
+- Final blind comparison and user visual sign-off
+
+## Current Blockers
+
+No implementation blocker for the desktop milestone.
+
+The external privileged-execution quota that previously blocked Task 25's complete sweeps has cleared; both sweeps ran green on 2026-07-27 and the blocker is closed.
+
+The physical `mobile-reference` device is intentionally deferred until after desktop acceptance and does not block current work.
+
+## Update Rule
+
+Update this ledger immediately when:
+
+- an implementation task starts or finishes;
+- a verification gate passes or fails;
+- a critic accepts or rejects an artifact;
+- scope changes;
+- a blocker appears or clears.

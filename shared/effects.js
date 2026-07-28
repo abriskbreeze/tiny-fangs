@@ -18,6 +18,7 @@
  */
 
 import { applyCreatureDamageReduction } from './damage-reduction.js';
+import { stampDerivedPresentationFace } from './face-registry.js';
 
 // Helper: resolve target string to actual object
 function resolveTarget(ctx, targetStr) {
@@ -808,7 +809,10 @@ const Effects = {
       return { events: [], summoned: false, reason: 'unknown_token' };
     }
 
-    const spawned = { ...creature, uid: Math.random().toString(36).slice(2, 9) };
+    const spawned = stampDerivedPresentationFace(
+      { ...creature, uid: Math.random().toString(36).slice(2, 9) },
+      token
+    );
     const ownerKey = ctx.me === ctx.state?.G?.me ? 'me' : 'opp';
     const benchIdx = ctx.me.bench.length;
     

@@ -1,0 +1,58 @@
+---
+session: general
+date: 2026-07-27
+status: partial
+outcome: PARTIAL_MINUS
+---
+
+goal: Continue the desktop-first Tiny Fangs AAA presentation overhaul against the two immutable 1672x941 references without losing existing functionality or user-owned work.
+now: Apply Task 27's five bounded corrections to rejected art bible 9c3e2ecd, freeze and freshly re-critique; only after acceptance build populated orthographic and low-FOV Three.js grayboxes.
+test: npm test -- --run && npm run validate:assets && npm run build -- --outDir /private/tmp/tiny-fangs-cursor-verify
+
+done_this_session:
+  - task: Protected classic mode, reference hashes, deterministic visual fixtures/readiness, and 17 canonical classic baselines.
+    files: [thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md, tests/visual/baselines/classic-v1/manifest.json, src/presentation/testing/fixture-registry.js]
+  - task: Fixed opponent Set privacy, exact-once engine events, playback targets/debug privacy, desktop input cancellation/keyboard behavior, multiplayer lifecycle, and one root solo/MP timer owner.
+    files: [shared/engine.js, server/GameEngine.js, src/event-playback.js, src/main.js, src/mp-client.js, src/state.js]
+  - task: Added a stable-ID manifest for 56 faces plus 39 non-card assets and 263 required production-file contracts.
+    files: [src/presentation/assets/manifest.js, src/presentation/assets/manifest-validation.js, scripts/validate-presentation-assets.mjs, tests/presentation/asset-manifest.test.js]
+  - task: Created and twice harshly reviewed the measured desktop art bible; both rejected revisions and corrections are recorded.
+    files: [thoughts/shared/TINY-FANGS-DESKTOP-ART-BIBLE.md, thoughts/shared/GOALS-tiny-fangs-aaa.md]
+  - task: Completed canonical desktop solo overlays, target/response decisions, results, terminal blocking, and restart seams without changing classic screenshots.
+    files: [src/main.js, tests/e2e/desktop-overlay-results.spec.js, thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/task-24-desktop-overlay-results.md]
+  - task: Added authoritative owner-only multiplayer Optional/Skitter response state and strict coin-removal-before-board ordering.
+    files: [server/index.js, src/mp-client.js, tests/server/server-process.test.js, tests/e2e/multiplayer/owner-responses.spec.js]
+
+blockers: [No implementation blocker. External privileged-execution quota prevents Task 25's complete server-process and multiplayer-project sweeps until 2026-08-03 16:35; focused real-server and canonical two-browser tests are green. Actual AAA art and Three.js scene are not yet produced.]
+
+questions: [Choose Cursor model: Grok 4.5 High for architecture and long-horizon visual integration; Composer 2.5 for lower-cost bounded implementation and test lanes. Keep fresh critic sessions separate from implementer sessions.]
+
+decisions:
+  - delivery_scope: Desktop first at exactly 1672x941 DPR 1; mobile/tablet port only after desktop AAA acceptance.
+  - architecture: Vanilla Three.js r185 environment plus keyed DOM/CSS cards and controls; classic remains the fail-safe mode.
+  - camera: Do not lock projection before a populated calibrated orthographic versus low-FOV perspective blind bake-off.
+  - critic_gate: Fresh implementer-independent critics; reference-comparable artifacts must win forced-choice comparisons and satisfy the written numeric gate.
+  - privacy: Opponent Set stays exactly null or faceDown presence until rule-authorized reveal; no identity in frames, DOM, accessibility, readiness, logs, URLs, or debug output.
+
+findings:
+  - authoritative_docs: Read PLAN first, then GOALS, then the behavior matrix, current art bible, and task handoffs under thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul.
+  - protected_user_files: Do not overwrite or revert src/render.js blob 5ace20ad5155e96de3ede0e161cac7d90e7698be or src/styles.css blob f8b4c7f99cfb5392ba33d82c9b8bf63bf1d0f9ba.
+  - reference_hashes: image-1 SHA256 4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056; image-2 SHA256 5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7.
+  - matrix_state: Last reconciled count is 70 covered, 32 missing, and 1 deferred manual gate.
+  - verified_baseline: Full unit suite reached 545 of 545; Task 24 canonical desktop is 13 of 13 and immutable classic visual suite 2 of 2; draft asset validation has 0 errors and 358 honest missing-art/provenance warnings.
+  - task_19: Critic 4 rejected revision 9c3e2ecd at 91.2/100. Correct performance hardware/method tiers, independent traced R2 camera residuals, pre-reveal-post state hashes, canonical packet index/omission list, and provenance trusted signer/revocation policy before another fresh critic.
+  - task_24: Complete. Initial RED 10 of 10 became 13 of 13 canonical desktop; 27 of 27 affected browser checkpoint; all 17 classic screenshot hashes unchanged. Remaining partial rows are documented in its handoff.
+  - task_25: Focused implementation complete. Authorization 1 of 1, owner-only real WS 2 of 2, canonical two-client browser 1 of 1, units 545 of 545, build and diagnostics green. Only complete privileged sweeps are evidence-pending.
+
+worked: [Deterministic fixtures with stable hashes, test-first RED/GREEN, real two-context WebSocket capture, exact localhost escalated runs, immutable classic baselines, separate fresh harsh critics, living goal ledger updates.]
+failed: [Self-acceptance, claiming fixture intent as browser evidence, using final-art scoring for camera grayboxes, and timing-only coin assertions. Do not weaken a failed visual or privacy gate to make it green.]
+
+next:
+  - Finish Task 27 corrections, freeze a new exact bible/handoff hash, and spawn a context-clean critic with no prior score.
+  - After 2026-08-03 16:35 rerun npm run test:server-process and TINY_FANGS_VITE_PORT=4222 TINY_FANGS_WS_PORT=3222 npm run test:multiplayer; do not weaken focused Task 25 assertions.
+  - Only after art-bible acceptance, implement two identical populated camera grayboxes and create anonymized side-by-side packets against reference image 2.
+  - Continue through presentation coordinator, Three.js field, keyed cards, original art, lighting/materials/motion/audio, fallback/accessibility/performance, and two consecutive fresh-critic passes.
+
+files:
+  created: [thoughts/shared/handoffs/general/2026-07-27_18-00_cursor-aaa-overhaul.yaml, src/presentation/assets/manifest.js, src/presentation/assets/manifest-validation.js, tests/e2e/desktop-overlay-results.spec.js, tests/e2e/multiplayer/owner-responses.spec.js]
+  modified: [src/main.js, src/mp-client.js, src/state.js, server/GameEngine.js, server/index.js, tests/server/server-process.test.js, thoughts/shared/GOALS-tiny-fangs-aaa.md, thoughts/shared/tiny-fangs-behavior-matrix.md, thoughts/shared/TINY-FANGS-DESKTOP-ART-BIBLE.md, thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md]

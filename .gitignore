@@ -1,4 +1,7 @@
-node_modules/
-dist/
 .DS_Store
 dist/
+node_modules/
+server/node_modules/
+playwright-report/
+test-results/
+.tldr/

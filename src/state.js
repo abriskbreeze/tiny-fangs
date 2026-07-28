@@ -27,14 +27,37 @@ export function setGame(game) {
   state.G = game;
 }
 
+export function readGameElapsedSeconds(now = Date.now()) {
+  if (state.startTime === null) return 0;
+  return Math.max(0, Math.floor((now - state.startTime) / 1000));
+}
+
+export function stopGameTimer() {
+  if (state.timerInt === null) return;
+  clearInterval(state.timerInt);
+  state.timerInt = null;
+}
+
+export function resetGameTimer() {
+  stopGameTimer();
+  state.startTime = null;
+}
+
+export function startGameTimer(onTick) {
+  if (typeof onTick !== 'function') {
+    throw new TypeError('startGameTimer requires an onTick callback');
+  }
+
+  stopGameTimer();
+  state.startTime = Date.now();
+  onTick();
+  state.timerInt = setInterval(onTick, 1000);
+}
+
 export function clearGame() {
   state.G = null;
   state.selectedCard = null;
-  state.startTime = null;
-  if (state.timerInt) {
-    clearInterval(state.timerInt);
-    state.timerInt = null;
-  }
+  resetGameTimer();
   if (state.longPressTimer) {
     clearTimeout(state.longPressTimer);
     state.longPressTimer = null;

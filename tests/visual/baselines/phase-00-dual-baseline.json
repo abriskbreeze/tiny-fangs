@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "phase": 0,
+  "recordedAt": "2026-07-27T15:44:38-04:00",
+  "repository": {
+    "branch": "feat/cel-shaded-field",
+    "head": "f16804d5cafb2c8e082ab4b9d40a6d6146b1fffb",
+    "headTree": "cece708012ca9ec91ad27ee0bf494ceda783ed05",
+    "statusAtTaskStart": [
+      "M src/render.js",
+      "M src/styles.css",
+      "?? docs/",
+      "?? thoughts/"
+    ]
+  },
+  "baselines": {
+    "headClassic": {
+      "description": "Committed classic presentation at HEAD.",
+      "commit": "f16804d5cafb2c8e082ab4b9d40a6d6146b1fffb",
+      "gitBlobs": {
+        "src/render.js": "e997f209a35becf4d82e7078a84d56ec81f7b9d3",
+        "src/styles.css": "8389cfcbe68e10505de41485a02b755a2ab5bc01"
+      }
+    },
+    "dirtyPrototype": {
+      "description": "User-owned meadow/card prototype present before Phase 0. These files are protected and were not edited by Task 00.",
+      "gitBlobs": {
+        "src/render.js": "5ace20ad5155e96de3ede0e161cac7d90e7698be",
+        "src/styles.css": "f8b4c7f99cfb5392ba33d82c9b8bf63bf1d0f9ba"
+      },
+      "diffAgainstHead": {
+        "src/render.js": {
+          "insertions": 78,
+          "deletions": 51
+        },
+        "src/styles.css": {
+          "insertions": 482,
+          "deletions": 3
+        }
+      }
+    }
+  },
+  "references": [
+    {
+      "role": "card-material-reference",
+      "path": "docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056"
+    },
+    {
+      "role": "field-composition-reference",
+      "path": "docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7"
+    }
+  ],
+  "reconciliationDecisions": [
+    {
+      "path": "src/render.js",
+      "ranges": "28-45",
+      "decision": "retain-concept",
+      "reason": "Escaping, card classification, and stat formatting are useful presentation helpers."
+    },
+    {
+      "path": "src/render.js",
+      "ranges": "47-170",
+      "decision": "preserve-as-classic-fallback",
+      "reason": "Keep public exports, compatibility classes, IDs, and pointer behavior while later keyed views supersede generated card subtrees."
+    },
+    {
+      "path": "src/styles.css",
+      "ranges": "36-43",
+      "decision": "retain-as-static-fallback",
+      "reason": "The local gradient removes a remote background-image dependency and does not require WebGL."
+    },
+    {
+      "path": "src/styles.css",
+      "ranges": "2410-2422",
+      "decision": "retain-as-provisional-prototype-tokens",
+      "reason": "The variables are useful scaffolding but must be replaced by reference-locked production tokens."
+    },
+    {
+      "path": "src/styles.css",
+      "ranges": "2424-2533",
+      "decision": "isolate-then-supersede",
+      "reason": "CSS meadow gradients, breathing motion, divider, and slot pseudo-elements belong only to the non-WebGL prototype once the scene and board decals exist."
+    },
+    {
+      "path": "src/styles.css",
+      "ranges": "2537-2730",
+      "decision": "preserve-as-card-fallback",
+      "reason": "The card chassis and family naming are useful fallback scaffolding while production materials and art are developed."
+    },
+    {
+      "path": "src/styles.css",
+      "ranges": "2732-2879",
+      "decision": "supersede-in-production",
+      "reason": "The 5:7 geometry, hard-coded small typography, and root transform ownership conflict with the reference proportions and future motion director."
+    },
+    {
+      "path": "docs/*.png",
+      "decision": "retain-byte-for-byte",
+      "reason": "These are the immutable visual authorities for card materials and field composition."
+    }
+  ],
+  "verification": {
+    "preInfrastructure": {
+      "unitTests": {
+        "command": "npm test -- --run",
+        "result": "passed",
+        "testFiles": 13,
+        "tests": 304
+      },
+      "productionBuild": {
+        "command": "npm run build",
+        "result": "passed",
+        "vite": "6.4.1"
+      },
+      "browserSmoke": {
+        "result": "passed",
+        "journey": "mode selection -> deck selection -> match setup -> opening board",
+        "consoleWarnings": 0,
+        "consoleErrors": 0
+      }
+    },
+    "task00": {
+      "red": {
+        "command": "npm test -- --run tests/presentation/presentation-mode.test.js",
+        "exitCode": 1,
+        "expectedFailure": "presentation-mode module did not exist"
+      },
+      "green": {
+        "command": "npm test -- --run tests/presentation/presentation-mode.test.js",
+        "result": "passed",
+        "testFiles": 1,
+        "tests": 9
+      },
+      "fullUnitTests": {
+        "command": "npm test -- --run",
+        "result": "passed",
+        "testFiles": 14,
+        "tests": 313
+      },
+      "isolatedProductionBuild": {
+        "command": "npm run build -- --outDir /private/tmp/tiny-fangs-phase-00-build.AZvv2E --emptyOutDir",
+        "result": "passed",
+        "vite": "6.4.1",
+        "transformedModules": 24,
+        "trackedDistIndexBlobBeforeAndAfter": "a8ff680001d2e73833f349a1210859d3c6d8f245"
+      }
+    }
+  }
+}

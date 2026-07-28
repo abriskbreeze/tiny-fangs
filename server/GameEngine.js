@@ -144,7 +144,7 @@ export function getStateForPlayer(state, playerIdx) {
       active: opponent.active,
       bench: opponent.bench,
       grave: opponent.grave,
-      setVerse: opponent.setVerse ? { ...opponent.setVerse, faceDown: true } : null,
+      setVerse: opponent.setVerse ? { faceDown: true } : null,
       chainLightning: opponent.chainLightning
     }
   };

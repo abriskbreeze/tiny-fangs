@@ -11,6 +11,32 @@ import { sideKey } from './side-key.js';
  * @param {object} deps.CREATURES
  */
 export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
+  function resolveBenchSide(event) {
+    const side = sideKey(event.side ?? event.animKey);
+    return side === 'me' || side === 'opp' ? side : null;
+  }
+
+  function resolveBenchIndex(event) {
+    const index = event.benchIndex ?? event.benchIdx ?? event.index;
+    return Number.isInteger(index) && index >= 0 ? index : null;
+  }
+
+  function playSemanticBench(side, animations, duration) {
+    if (!side) return Promise.resolve();
+
+    const selector = side === 'me'
+      ? '#m-my-bench, #d-my-bench'
+      : '#m-opp-bench, #d-opp-bench';
+    if (typeof Anim.playOn === 'function') {
+      for (const [animation, animationDuration] of animations) {
+        Anim.playOn(selector, animation, animationDuration);
+      }
+    }
+    return typeof Anim.wait === 'function'
+      ? Anim.wait(duration)
+      : Promise.resolve();
+  }
+
   const EVENT_HANDLERS = {
     summon: (e) => {
       if (e.slot === 'bench') {
@@ -25,6 +51,18 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
       if (e.source) {
         log(`${e.source}: ${e.amount} damage`, 'dmg');
       }
+    },
+    benchDamage: (e) => {
+      const side = resolveBenchSide(e);
+      const index = resolveBenchIndex(e);
+      if (side && index !== null && typeof Anim.benchDamage === 'function') {
+        return Anim.benchDamage(side, index, e.amount);
+      }
+      return playSemanticBench(
+        side,
+        [['anim-shake', 600], ['anim-flash-red', 300]],
+        600,
+      );
     },
     lpDamage: async (e) => {
       // Prefer absolute engine side (p1/p2); fall back to client animKey
@@ -46,6 +84,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     ko: async (e) => {
       await Anim.ko(sideKey(e.side));
       log(`${e.creature} KO'd!`, 'dmg');
+    },
+    benchKo: (e) => {
+      const side = resolveBenchSide(e);
+      const index = resolveBenchIndex(e);
+      if (side && index !== null && typeof Anim.benchKo === 'function') {
+        return Anim.benchKo(side, index);
+      }
+      return playSemanticBench(side, [['anim-ko', 400]], 400);
     },
 
     heal: async (e) => {
@@ -97,7 +143,7 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
 
     setStatus: async (e) => {
       const selector = sideKey(e.side) === 'me'
-        ? '#m-my-active .card-active, #d-opp-active .card-active'
+        ? '#m-my-active .card-active, #d-my-active .card-active'
         : '#m-opp-active .card-active, #d-opp-active .card-active';
       if (e.status === 'poison') {
         Anim.playOn(selector, 'anim-poison', 600);
@@ -143,40 +189,62 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     triggerDeclined: () => Promise.resolve(),
   };
 
+  function getEventHandler(event) {
+    return Object.prototype.hasOwnProperty.call(EVENT_HANDLERS, event?.type)
+      ? EVENT_HANDLERS[event.type]
+      : null;
+  }
+
+  function safeEventType(event) {
+    return getEventHandler(event) ? event.type : 'unknown';
+  }
+
+  function summarizeDebugEvent(event) {
+    const amount = Number.isFinite(event?.amount) ? `(${event.amount})` : '';
+    const sourceTag = event?.source == null ? '' : '[source]';
+    return `${safeEventType(event)}${amount}${sourceTag}`;
+  }
+
+  function isDebugEnabled() {
+    return globalThis.localStorage?.getItem('tinyFangsDebug') === '1';
+  }
+
   async function playEvents(events) {
     if (!events || events.length === 0) return;
 
     for (const event of events) {
-      const handler = EVENT_HANDLERS[event.type];
+      const handler = getEventHandler(event);
       if (handler) {
         try {
           await handler(event);
-        } catch (err) {
-          console.error(`Error playing event ${event.type}:`, err);
+        } catch {
+          console.error(`Error playing event ${safeEventType(event)}`);
         }
       } else {
-        console.warn(`Unknown event type: ${event.type}`, event);
+        console.warn('Unknown event type');
       }
       await Anim.wait(50);
     }
   }
 
   async function playServerEvents(events) {
-    if (localStorage.getItem('tinyFangsDebug')) {
-      console.log('[DEBUG] Playing events:', events.map(e =>
-        `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`
-      ));
+    const debugEnabled = isDebugEnabled();
+    if (debugEnabled) {
+      console.log(
+        '[DEBUG] Playing events:',
+        events.map(summarizeDebugEvent),
+      );
     }
     for (const e of events) {
-      const handler = EVENT_HANDLERS[e.type];
+      const handler = getEventHandler(e);
       if (handler) {
         try {
           await handler(e);
-        } catch (err) {
-          console.error(`Error playing event ${e.type}:`, err);
+        } catch {
+          console.error(`Error playing event ${safeEventType(e)}`);
         }
-      } else if (localStorage.getItem('tinyFangsDebug')) {
-        console.log('Unknown event:', e.type);
+      } else if (debugEnabled) {
+        console.log('[DEBUG] Unknown event type');
       }
       await Anim.wait(50);
     }

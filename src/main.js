@@ -1,5 +1,15 @@
     import { CREATURES, VERSES, DECKS } from './cards.js';
-    import { $, uid, state, setGame, clearGame } from './state.js';
+    import {
+      $,
+      uid,
+      state,
+      setGame,
+      clearGame,
+      readGameElapsedSeconds,
+      resetGameTimer,
+      startGameTimer,
+      stopGameTimer,
+    } from './state.js';
     import { ANIM_TIMING, Anim } from './anim.js';
     import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline, getActiveEffects } from './render.js';
     import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './ai.js';
@@ -31,6 +41,18 @@
     import { createSoloDispatch } from './solo-dispatch.js';
     import { createMpClient } from './mp-client.js';
     import { createSoloAi } from './solo-ai.js';
+    import { applyPresentationMode } from './presentation/presentation-mode.js';
+    import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
+
+    applyPresentationMode();
+    installVisualQaContract({
+      activation: {
+        clearGame,
+        setGame,
+        showGameRoute: showVisualFixtureRoute,
+        render,
+      },
+    });
 
     // Expose Anim globally so effects.js can access it
     globalThis.Anim = Anim;
@@ -61,6 +83,10 @@
       draw: null,
       playEvents: null,
       playServerEvents: null,
+      clearGame,
+      resetGameTimer,
+      startGameTimer: () => startGameTimer(updateTimer),
+      stopGameTimer,
     };
 
     const { playEvents, playServerEvents, sideKey, EVENT_HANDLERS } = createEventPlayback({
@@ -69,7 +95,8 @@
     runtime.playEvents = playEvents;
     runtime.playServerEvents = playServerEvents;
 
-    const { dispatchLocalAction, handleLocalPendingAction } = createSoloDispatch(runtime);
+    const soloRuntime = Object.create(runtime);
+    const { dispatchLocalAction, handleLocalPendingAction } = createSoloDispatch(soloRuntime);
     runtime.dispatchLocalAction = dispatchLocalAction;
 
     const mp = createMpClient(runtime);
@@ -92,6 +119,11 @@
       runtime.render = render;
       runtime.renderLog = renderLog;
       runtime.showModal = showModal;
+      soloRuntime.showModal = (title, options, opts = {}) => showModal(
+        title,
+        options,
+        { semantic: true, noCancel: true, ...opts },
+      );
       runtime.closeModal = closeModal;
       runtime.highlightEndTurn = highlightEndTurn;
       runtime.playTurnEndAnimation = playTurnEndAnimation;
@@ -118,6 +150,7 @@
      */
     async function dispatchAction(type, params = {}) {
       if (!state.G) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
 
       // Multiplayer: validate turn and send to server
@@ -678,6 +711,38 @@
       }
     }
 
+    function isDesktopBehaviorQaEnabled() {
+      return new URLSearchParams(location.search).get('behaviorQa') === '1';
+    }
+
+    function showVisualFixtureRoute(presentation = {}) {
+      $('setup').classList.add('hidden');
+      $('modal').classList.remove('open');
+      $('responseModal').classList.remove('open');
+      $('rulesModal').classList.remove('open');
+      $('cardModal').classList.remove('open');
+      $('triggerModal').classList.remove('open', 'cast', 'set', 'creature');
+      $('result').classList.remove('open', 'win', 'lose');
+      state.animating = false;
+
+      if (isDesktopBehaviorQaEnabled() && presentation.result) {
+        showResult(
+          presentation.result.outcome,
+          presentation.result.reason,
+        );
+      }
+
+      if (
+        isDesktopBehaviorQaEnabled() &&
+        presentation.response?.pendingAction
+      ) {
+        void handleLocalPendingAction(
+          presentation.response.pendingAction,
+          presentation.response.ownerSide === 'p2' ? 1 : 0,
+        );
+      }
+    }
+
     async function startGame(deckId, playerFirst = true) {
       closeModal();
 
@@ -702,8 +767,7 @@
         aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
       };
 
-      state.startTime = Date.now();
-      state.timerInt = setInterval(updateTimer, 1000);
+      startGameTimer(updateTimer);
 
       $('setup').classList.add('hidden');
 
@@ -738,7 +802,7 @@
 
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
-      const s = Math.floor((Date.now() - state.startTime) / 1000);
+      const s = readGameElapsedSeconds();
       const str = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
       $('m-time').textContent = str;
       $('d-time').textContent = str;
@@ -829,6 +893,9 @@
     }
 
     function updateButtons() {
+      const isTerminal =
+        state.G.winner != null &&
+        (!state.G.isVisualFixture || isDesktopBehaviorQaEnabled());
       const hasCreature = state.G.me.hand.some(c => c.cardType === 'creature');
       const hasCast = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'cast');
       const hasSet = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'set');
@@ -839,12 +906,12 @@
       const attackAllowed = canAttack && !state.G.hasAttacked && !state.G.hasRetreated;
       const retreatAllowed = canRetreat && !state.G.hasAttacked && !state.G.hasRetreated;
 
-      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !state.G.myTurn);
-      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !state.G.myTurn);
-      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || state.G.me.setVerse || !state.G.myTurn);
-      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !attackAllowed || !state.G.myTurn);
-      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !retreatAllowed || !state.G.myTurn);
-      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !state.G.myTurn);
+      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = isTerminal || !hasCreature || !state.G.myTurn);
+      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = isTerminal || !hasCast || !state.G.myTurn);
+      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = isTerminal || !hasSet || state.G.me.setVerse || !state.G.myTurn);
+      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = isTerminal || !attackAllowed || !state.G.myTurn);
+      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = isTerminal || !retreatAllowed || !state.G.myTurn);
+      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = isTerminal || !state.G.myTurn);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -936,7 +1003,7 @@
       }
 
       // Check if we should enter drag mode
-      if (!state.drag.active && dist > DRAG_THRESHOLD) {
+      if (!state.drag.active && dist >= DRAG_THRESHOLD) {
         // Cancel long press
         if (state.longPressTimer) {
           clearTimeout(state.longPressTimer);
@@ -981,6 +1048,14 @@
       document.removeEventListener('pointerup', onDragEnd);
       document.removeEventListener('pointercancel', onDragEnd);
 
+      const captureTarget = e.target;
+      if (
+        Number.isInteger(e.pointerId) &&
+        captureTarget?.hasPointerCapture?.(e.pointerId)
+      ) {
+        captureTarget.releasePointerCapture(e.pointerId);
+      }
+
       if (state.longPressTimer) {
         clearTimeout(state.longPressTimer);
         state.longPressTimer = null;
@@ -990,8 +1065,9 @@
         const clientX = e.clientX ?? state.drag.currentX;
         const clientY = e.clientY ?? state.drag.currentY;
 
-        // Only execute drop if affordable
-        if (state.drag.canAfford) {
+        // Cancellation is cleanup-only, even if the final coordinates are over
+        // a legal field target.
+        if (e.type !== 'pointercancel' && state.drag.canAfford) {
           const zone = detectDropZone(clientX, clientY);
           if (zone) {
             executeDrop(state.drag.card, zone);
@@ -1307,6 +1383,7 @@
     // ═══════════════════════════════════════════════════════════════
 
     function doSummon() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       const creatures = state.G.me.hand.filter(c => c.cardType === 'creature');
       if (!creatures.length) return;
@@ -1339,6 +1416,7 @@
     }
 
     function doCast() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       const casts = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
       console.log('🎯 doCast - cast verses in hand:', casts.map(c => ({ name: c.name, selection: c.selection })));
@@ -1424,7 +1502,7 @@
               name: opt.creature.name,
               sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
               action: () => { window._modalOnClose = null; closeModal(); resolve({ type: 'own', uid: opt.creature.uid }); }
-            })), { onClose: resolve });
+            })), { onClose: resolve, semantic: true });
           });
           if (!selection) return;
         } else if (sel.location === 'board' && sel.filter === 'any') {
@@ -1462,7 +1540,7 @@
             name: creature.name,
             sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
             action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: creature.uid }); }
-          })), { onClose: resolve });
+          })), { onClose: resolve, semantic: true });
         });
       }
       
@@ -1485,7 +1563,7 @@
             name: opt.creature.name,
             sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
             action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: opt.creature.uid }); }
-          })), { onClose: resolve });
+          })), { onClose: resolve, semantic: true });
         });
       }
       
@@ -1500,6 +1578,7 @@
     }
 
     function doSet() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       if (state.G.me.setVerse) {
         log('Already have a set verse!');
@@ -1533,6 +1612,7 @@
     // Wrapper
     async function doAttack() {
       if (!state.G) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
       if (state.G.actionLock) return;
       if (!state.G.me.active) return;
@@ -1566,6 +1646,7 @@
 
     // Shows modal to pick bench creature, then dispatches action
     function doRetreat() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return;
       if (!state.G.me.active || !state.G.me.bench.length) return;
 
@@ -1601,7 +1682,7 @@
     // Wrapper
     async function endTurn() {
       if (!state.G) return;
-      if (state.G.winner) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
       await dispatchAction('endTurn', {});
     }
@@ -1616,6 +1697,15 @@
       // AI's mana increment/refill, AI's draw
       const result = await dispatchLocalAction({ type: 'endTurn' });
       if (result.error) return;
+
+      if (state.G.winner != null) {
+        const playerWon = state.G.winner === 'You' || state.G.winner === 0;
+        const loser = playerWon ? state.G.opp : state.G.me;
+        const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
+        state.G.winner = playerWon ? 'You' : 'Rival';
+        showResult(playerWon, reason);
+        return;
+      }
 
       // Mark that AI setup was done by shared engine (mana refilled, card drawn)
       state.G._aiSetupDone = true;
@@ -1652,7 +1742,7 @@
         // Deck out - player loses
         log('Deck out!', 'dmg');
         state.G.winner = player === state.G.me ? 'Rival' : 'You';
-        showResult(state.G.winner === 'You');
+        showResult(state.G.winner === 'You', 'Deck out');
       }
     }
 
@@ -1677,7 +1767,9 @@
       }
       if (result.winner) {
         state.G.winner = result.winner;
-        showResult(result.winner === 'You');
+        const loser = result.winner === 'You' ? state.G.opp : state.G.me;
+        const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
+        showResult(result.winner === 'You', reason);
       }
     }
 
@@ -1708,6 +1800,7 @@
       window._modalActions = options.map(o => o.action);
       // Store onClose callback for Close button
       window._modalOnClose = opts.onClose || null;
+      $('modal').dataset.escapeDismiss = opts.semantic ? 'false' : 'true';
       // Hide cancel button if noCancel option is set
       const cancelBtn = $('modal').querySelector('.cancel');
       if (cancelBtn) cancelBtn.style.display = opts.noCancel ? 'none' : '';
@@ -1715,17 +1808,23 @@
     }
 
     function modalAction(i) {
-      if (window._modalActions && window._modalActions[i]) {
+      if (
+        $('modal').classList.contains('open') &&
+        window._modalActions &&
+        window._modalActions[i]
+      ) {
         window._modalActions[i]();
       }
     }
 
     function closeModal() {
       $('modal').classList.remove('open');
+      window._modalActions = null;
       // Call onClose callback if set (for selection modals to resolve with null)
       if (window._modalOnClose) {
-        window._modalOnClose(null);
+        const onClose = window._modalOnClose;
         window._modalOnClose = null;
+        onClose(null);
       }
     }
 
@@ -1814,6 +1913,7 @@
             resolve(null);
           };
         }
+        $('modal').dataset.escapeDismiss = 'false';
         $('modal').classList.add('open');
       });
     }
@@ -1907,10 +2007,28 @@
       $('responseModal').classList.remove('open');
     }
 
-    function showResult(win) {
-      clearInterval(state.timerInt);
-      $('result').classList.add('open', win ? 'win' : 'lose');
-      $('result-text').textContent = win ? '[ VICTORY ]' : '[ DEFEAT ]';
+    function showResult(outcome, reason = '') {
+      const win = outcome === true || outcome === 'victory';
+      const normalizedReason = String(reason).toLowerCase();
+      const deckOut = normalizedReason.includes('deck');
+      const result = $('result');
+      stopGameTimer();
+      result.classList.remove('win', 'lose');
+      result.classList.add('open', win ? 'win' : 'lose');
+      result.dataset.outcome = win ? 'victory' : 'defeat';
+      result.dataset.reason = deckOut ? 'deck-out' : normalizedReason;
+      $('result-text').textContent = deckOut
+        ? win
+          ? '[ VICTORY — DECK OUT ]'
+          : '[ DEFEAT — DECK OUT ]'
+        : win
+          ? '[ VICTORY ]'
+          : '[ DEFEAT ]';
+    }
+
+    function restartGame(navigate = () => location.reload()) {
+      clearGame();
+      navigate();
     }
 
     function showRules() {
@@ -2166,6 +2284,15 @@
     window.graveCardPress = graveCardPress;
     window.graveCardRelease = graveCardRelease;
 
+    // Generated card and grave markup binds release/leave handlers directly.
+    // A platform cancellation may bypass those element handlers, so keep one
+    // document-level cleanup path for every hold interaction.
+    document.addEventListener('pointercancel', () => {
+      cardRelease();
+      setVerseRelease();
+      graveCardRelease();
+    });
+
     function toggleMenu() {
       alert('Menu: Coming soon!');
     }
@@ -2174,25 +2301,73 @@
     // KEYBOARD
     // ═══════════════════════════════════════════════════════════════
 
-    // Dismiss trigger modal on any keypress
+    function isEditableKeyboardTarget(target) {
+      if (!(target instanceof Element)) return false;
+      return target.matches('input, textarea, select, [contenteditable="true"]');
+    }
+
+    function hasBlockingKeyboardOverlay() {
+      return [
+        'modal',
+        'responseModal',
+        'rulesModal',
+        'cardModal',
+        'triggerModal',
+        'result',
+      ].some(id => $(id)?.classList.contains('open'));
+    }
+
+    function dismissKeyboardOverlay() {
+      if ($('triggerModal').classList.contains('open')) {
+        dismissTriggerReveal();
+        return true;
+      }
+      if ($('cardModal').classList.contains('open')) {
+        closeCardModal(new Event('keydown'), true);
+        return true;
+      }
+      if ($('rulesModal').classList.contains('open')) {
+        closeRules();
+        return true;
+      }
+      if (
+        $('modal').classList.contains('open') &&
+        $('modal').dataset.escapeDismiss !== 'false'
+      ) {
+        closeModal();
+        return true;
+      }
+      return false;
+    }
+
     document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'escape' && dismissKeyboardOverlay()) {
+        e.preventDefault();
+        return;
+      }
       if ($('triggerModal').classList.contains('open')) {
         dismissTriggerReveal();
         e.preventDefault();
         return;
       }
-    });
+      if (isEditableKeyboardTarget(e.target)) return;
+      if (
+        !state.G ||
+        state.G.winner != null ||
+        !state.G.myTurn ||
+        state.animating ||
+        hasBlockingKeyboardOverlay()
+      ) {
+        return;
+      }
 
-    document.addEventListener('keydown', e => {
-      if (!state.G || state.G.winner || !state.G.myTurn) return;
-      const k = e.key.toLowerCase();
       if (k === 's') doSummon();
       else if (k === 'c') doCast();
       else if (k === 't') doSet();
       else if (k === 'a') doAttack();
       else if (k === 'r') doRetreat();
       else if (k === 'e') endTurn();
-      else if (k === 'escape') closeModal();
       // Debug: test animations with number keys
       else if (e.ctrlKey && k === '1') { Anim.attack('me', 'opp', 30); log('TEST: attack'); }
       else if (e.ctrlKey && k === '2') { Anim.damage('me', 20); log('TEST: damage'); }
@@ -2257,3 +2432,24 @@
     // Initialize hold buttons
     setupHoldButton(document.getElementById('m-btn-end'));
     setupHoldButton(document.getElementById('d-btn-end'));
+
+    const playAgainButton = document.querySelector('#result button');
+    playAgainButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      restartGame();
+    }, true);
+
+    if (
+      globalThis.__TINY_FANGS_VISUAL_QA__ &&
+      isDesktopBehaviorQaEnabled()
+    ) {
+      globalThis.__TINY_FANGS_DESKTOP_BEHAVIOR_QA__ = Object.freeze({
+        handleLocalPendingAction,
+        hasGame: () => state.G !== null,
+        restartGame,
+        showModal,
+        showResult,
+        showTargetSelection,
+      });
+    }
