@@ -1,0 +1,182 @@
+{
+  "schema": "tiny-fangs.card-metric-report.v1",
+  "scope": "card-showcase (pre-board golden-sample review)",
+  "rows": [
+    {
+      "rowId": "canonical-capture",
+      "method": "screenshot dimensions / DPR1 / sRGB declared in manifest",
+      "measured": {
+        "size": [
+          1672,
+          941
+        ]
+      },
+      "tolerance": "exactly 1672x941 / 1 / sRGB",
+      "pass": true
+    },
+    {
+      "rowId": "palette-family-roles",
+      "method": "5x5 median at family rail/panel sample vs section 5 target",
+      "measured": {
+        "creatureAmber": {
+          "median": [
+            180,
+            112,
+            21
+          ],
+          "deltaE00": 0.0
+        },
+        "castTeal": {
+          "median": [
+            39,
+            122,
+            121
+          ],
+          "deltaE00": 0.0
+        },
+        "setPlum": {
+          "median": [
+            106,
+            90,
+            102
+          ],
+          "deltaE00": 0.0
+        },
+        "cardBackNavy": {
+          "median": [
+            53,
+            46,
+            59
+          ],
+          "deltaE00": 1.6
+        }
+      },
+      "tolerance": "CIEDE2000 <= 5 (final)",
+      "pass": true
+    },
+    {
+      "rowId": "cast-set-separation",
+      "method": "CIEDE2000 between measured cast/set rail medians",
+      "measured": 37.33,
+      "tolerance": ">= 12",
+      "pass": true
+    },
+    {
+      "rowId": "text-contrast",
+      "method": "authored ink vs sampled parchment median",
+      "measured": {
+        "parchmentMedian": [
+          207,
+          172,
+          134
+        ],
+        "contrast": 6.88
+      },
+      "tolerance": ">= 4.5:1 body",
+      "pass": true
+    },
+    {
+      "rowId": "corner-construction",
+      "method": "computed border radii vs outer radius minus cumulative inset",
+      "measured": [
+        {
+          "layer": "__keyline",
+          "inset": 11.5,
+          "radius": 9.5,
+          "expected": 9.5,
+          "error": 0.0
+        },
+        {
+          "layer": "__rail",
+          "inset": 14.5,
+          "radius": 6.5,
+          "expected": 6.5,
+          "error": 0.0
+        },
+        {
+          "layer": "__inner-keyline",
+          "inset": 35.5,
+          "radius": 0,
+          "expected": 0.0,
+          "error": 0.0
+        },
+        {
+          "layer": "__panel",
+          "inset": 38.5,
+          "radius": 0,
+          "expected": 0.0,
+          "error": 0.0
+        }
+      ],
+      "tolerance": "concentric error <= 1 px at 333 px width",
+      "pass": true
+    },
+    {
+      "rowId": "showcase-shadow",
+      "method": "shadow-only mask centroid offset/direction per specimen",
+      "measured": {
+        "card-creature-frame": {
+          "offset": [
+            44.5,
+            69.5
+          ],
+          "directionDeg": 57.4,
+          "edgeLeak": 0.0
+        },
+        "card-cast-frame": {
+          "offset": [
+            44.5,
+            70.0
+          ],
+          "directionDeg": 57.6,
+          "edgeLeak": 0.0
+        },
+        "card-set-frame": {
+          "offset": [
+            44.6,
+            69.0
+          ],
+          "directionDeg": 57.1,
+          "edgeLeak": 0.0
+        },
+        "card-back": {
+          "offset": [
+            44.2,
+            69.5
+          ],
+          "directionDeg": 57.5,
+          "edgeLeak": 0.0
+        }
+      },
+      "tolerance": "x +20..100, y +50..90, 55..75 deg, contained",
+      "pass": true
+    },
+    {
+      "rowId": "chassis-geometry-units",
+      "method": "vitest tests/presentation/chassis-geometry.test.js",
+      "measured": "pass",
+      "tolerance": "16/16 contracts green",
+      "pass": true
+    },
+    {
+      "rowId": "chassis-browser-gates",
+      "method": "playwright visual card-chassis (ratio, insets, aperture, 7.4 rects, nameplate fixtures, back privacy, showcase centers)",
+      "measured": "pass",
+      "tolerance": "7/7 gates green",
+      "pass": true
+    },
+    {
+      "rowId": "provenance",
+      "method": "verify_provenance.mjs registry/signature verification",
+      "measured": {
+        "ok": true,
+        "registryRevision": 1,
+        "provenanceIndexSha256": "sha256:cb44373a29a530f1d0bea9a2031c6a928c22e62b5248032d438932d28248d2ea",
+        "records": 4
+      },
+      "tolerance": "all records verified",
+      "pass": true
+    }
+  ],
+  "allPass": true
+}

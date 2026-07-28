@@ -5,7 +5,7 @@
       "path": "captures/showcase-run1.png",
       "required": true,
       "role": "13.2 showcase capture, 1672x941 DPR1",
-      "sha256": "sha256:20af85606357d9fa7114e6755c28b079c73f1da65d3b167473552a6f2b974245",
+      "sha256": "sha256:92244c4013d4acc09b1cdae3ac4f599b7813995603f8d094b21ebd2807ba50a9",
       "status": "present"
     },
     {
@@ -13,7 +13,7 @@
       "path": "crops/cards-full.png",
       "required": true,
       "role": "13.3 crop cards-full",
-      "sha256": "sha256:c62f6d5f31cb0563af9b5434f813802e9c258f0ea64131446bc12eff3d18fc54",
+      "sha256": "sha256:43907e789e360423ee7f98e6ffc18afe1ad9a3b6965a2307d7133fcb9fffe4b0",
       "status": "present"
     },
     {
@@ -21,7 +21,7 @@
       "path": "crops/card-creature-frame.png",
       "required": true,
       "role": "13.3 crop card-creature-frame",
-      "sha256": "sha256:ac9fedabc05273fbe5ffb1c8cad396a5a042594ab3d3b53b801af3251842f9de",
+      "sha256": "sha256:8327e4f68cf344cb171137c59a8cc561c526874fec065847e5a445806a92f6a3",
       "status": "present"
     },
     {
@@ -29,7 +29,7 @@
       "path": "crops/card-cast-frame.png",
       "required": true,
       "role": "13.3 crop card-cast-frame",
-      "sha256": "sha256:006008b26ca8479076e7b947907f3f84c268e4bdc2d9742f4eb94bc011ac65ea",
+      "sha256": "sha256:7c2ca685310aaf111a191ed8d1b87ec22c4e3c62ad4d977c9b32e510fa48245e",
       "status": "present"
     },
     {
@@ -37,7 +37,7 @@
       "path": "crops/card-set-frame.png",
       "required": true,
       "role": "13.3 crop card-set-frame",
-      "sha256": "sha256:cc7ee86c47caf33e922f661633a351fa40f0c2ac1fbdad8db3cca99d8e872668",
+      "sha256": "sha256:ff9c0893b0f9ca03524f4011523aac4f6833ffadc6119935ce7ae72ee94a9a0f",
       "status": "present"
     },
     {
@@ -45,7 +45,7 @@
       "path": "crops/card-back.png",
       "required": true,
       "role": "13.3 crop card-back",
-      "sha256": "sha256:6fe53e15df61726a4bc377b42063846ecd462924dd550086ddac745db306e2c3",
+      "sha256": "sha256:f7c6c8fd31932af9fb6ca07d66f7d60bc9591fed662c2fd3ee136526a0ed0214",
       "status": "present"
     },
     {
@@ -53,7 +53,7 @@
       "path": "crops/card-art.png",
       "required": true,
       "role": "13.3 crop card-art",
-      "sha256": "sha256:f32a3f4132ca626ed1b195e89e497eeac32fd56d6b050505be84d47e559d1576",
+      "sha256": "sha256:f790a0c03fd0ce8570a3f716fde71abff5453eaa81eccece496aa628c6e38f69",
       "status": "present"
     },
     {
@@ -61,7 +61,7 @@
       "path": "crops/card-title.png",
       "required": true,
       "role": "13.3 crop card-title",
-      "sha256": "sha256:6d741bca73955183331651c51e2e065fe096448c36a520edda9aad4ef9850e34",
+      "sha256": "sha256:262e38d4f92bcadadd54a1f214ad95a0d3abdb8e544e96cd564a41619fc48f82",
       "status": "present"
     },
     {
@@ -69,7 +69,7 @@
       "path": "crops/card-rules.png",
       "required": true,
       "role": "13.3 crop card-rules",
-      "sha256": "sha256:ca924677ce659fc36b5547ccd180fc6dfcb65db503cd98867f009d2fac2b6871",
+      "sha256": "sha256:a0d3ff4d2f66501f15c06eec2b69c48c20220601a47dfa853d43b5de040cc0b0",
       "status": "present"
     },
     {
@@ -77,7 +77,7 @@
       "path": "crops/card-stats.png",
       "required": true,
       "role": "13.3 crop card-stats",
-      "sha256": "sha256:1d4758787e49dc1dd66ed4cb2403d0b6ad3094ad45dc11c2b56aa2029d7ac5da",
+      "sha256": "sha256:9554905d1b46fd769f9f0990248ae1fc0c3709187ca5d7354c9ddf6e2479a949",
       "status": "present"
     },
     {
@@ -85,7 +85,7 @@
       "path": "crops/card-contact.png",
       "required": true,
       "role": "13.3 crop card-contact",
-      "sha256": "sha256:f60e7ee22361be8ea168666779e0341a35d250e6ef9b7f685870e80edb68c58b",
+      "sha256": "sha256:3304155c89f5eeaea9d21b5512dcdb29a9df84e828acde8dd31118d2c1e2dc6a",
       "status": "present"
     },
     {
@@ -103,13 +103,14 @@
       }
     },
     {
+      "allPass": true,
       "artifactId": "metric-report",
-      "path": "",
-      "reason": "Automated card-row metric report not yet emitted by the runner. Chassis geometry rows are covered by the unit/browser suites (16 + 7 green contracts) but are not yet attached in packet form; row counts as failed for gate math until attached.",
+      "path": "metric-report.json",
       "required": true,
       "role": "12/13.5 mandatory measurement report (card rows)",
-      "sha256": "",
-      "status": "unsupported"
+      "rowCount": 9,
+      "sha256": "sha256:48d3598029dd91c941407e01754a278b1726c2083966a68ec511a31effecbdce",
+      "status": "present"
     },
     {
       "artifactId": "blind-mapping",
@@ -121,13 +122,13 @@
       "status": "unsupported"
     }
   ],
-  "buildRevision": "fd0c7166a5001c851b4ca8c52da10ffd933d6c60",
+  "buildRevision": "32f893d9ebfb5255cdac2a7c3c4e0099c8b1c62f",
   "determinism": {
     "byteIdentical": true,
     "runs": 2,
-    "sha256": "sha256:20af85606357d9fa7114e6755c28b079c73f1da65d3b167473552a6f2b974245"
+    "sha256": "sha256:92244c4013d4acc09b1cdae3ac4f599b7813995603f8d094b21ebd2807ba50a9"
   },
-  "indexSha256": "sha256:f7050415f0287a9b1ce38b194d0c33950fe068fa7e47370cb2f97fb7e5c1770c",
+  "indexSha256": "sha256:a4b6592e7f253f6d8521085175aef92231fb74d5f01aab86a89c282e5522a0ce",
   "packetId": "card-showcase-r1",
   "packetKind": "card-showcase",
   "packetKindNote": "Plan-level pre-board golden-sample review of the four-card showcase; reuses the art bible 13.2 manifest, 13.3 card crops, and 13.7.2 hashing. This is NOT the 13.5 integrated-art packet, which requires the Phase 7 populated board.",

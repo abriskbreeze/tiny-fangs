@@ -43,14 +43,14 @@
 .tf-aaa-card__keyline {
   position: absolute;
   inset: 11.5px; /* ivory lip 3.45% per side */
-  border-radius: 13px; /* concentric with the 21 px outer radius */
+  border-radius: 9.5px; /* concentric: 21 − 11.5 (§12 corner construction) */
   background: color-mix(in srgb, var(--tf-ink) 82%, #000);
 }
 
 .tf-aaa-card__rail {
   position: absolute;
   inset: 3px; /* separation keyline 0.9% */
-  border-radius: 11px;
+  border-radius: 6.5px; /* concentric: 21 − 14.5 */
   background:
     /* §7.2: highlight bevel upper-left, recessed bevel lower-right, both
        contained inside the rail width */
@@ -68,14 +68,14 @@
 .tf-aaa-card__inner-keyline {
   position: absolute;
   inset: 21px; /* family rail 6.3% */
-  border-radius: 5px;
+  border-radius: 0; /* concentric: 21 − 35.5 clamps to 0 */
   background: color-mix(in srgb, var(--tf-ink) 78%, #000);
 }
 
 .tf-aaa-card__panel {
   position: absolute;
   inset: 3px; /* inner keyline 0.9% — cumulative 38.5 px = 11.56% per side */
-  border-radius: 3px;
+  border-radius: 0;
   background:
     repeating-conic-gradient(
       from 0.61turn,

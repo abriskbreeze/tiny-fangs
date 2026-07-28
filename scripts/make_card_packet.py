@@ -140,6 +140,34 @@ const {{ chromium }} = require('@playwright/test');
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
 
+def metric_report_row() -> dict:
+    """Attach the §12 card-row metric report; `present` only when the report
+    exists and states its own row results (pass or fail — honesty is the
+    report's job, presence is this row's job)."""
+    report_path = OUT / "metric-report.json"
+    if not report_path.exists():
+        return {
+            "artifactId": "metric-report",
+            "role": "12/13.5 mandatory measurement report (card rows)",
+            "path": "",
+            "sha256": "",
+            "required": True,
+            "status": "unsupported",
+            "reason": "metric report not generated; run scripts/make_card_metrics.py",
+        }
+    report = json.loads(report_path.read_text())
+    return {
+        "artifactId": "metric-report",
+        "role": "12/13.5 mandatory measurement report (card rows)",
+        "path": "metric-report.json",
+        "sha256": sha256_hex(report_path.read_bytes()),
+        "required": True,
+        "status": "present",
+        "allPass": report.get("allPass", False),
+        "rowCount": len(report.get("rows", [])),
+    }
+
+
 def provenance_row() -> dict:
     """Run live §13.8/§13.8.1/§13.8.2 verification; the row is `present`
     only when every signature verifies against the committed registry."""
@@ -207,7 +235,7 @@ def main() -> int:
         image = source.crop((left, top, right, bottom))
         if scale != 1:
             image = image.resize(
-                (image.width * scale, image.height * scale), Image.LANCZOS
+                (image.width * scale, image.height * scale), Image.Resampling.LANCZOS
             )
         path = CROPS / f"{crop_id}.png"
         image.save(path)
@@ -254,21 +282,7 @@ def main() -> int:
                 for crop_id, path in crop_rows
             ],
             provenance_row(),
-            {
-                "artifactId": "metric-report",
-                "role": "12/13.5 mandatory measurement report (card rows)",
-                "path": "",
-                "sha256": "",
-                "required": True,
-                "status": "unsupported",
-                "reason": (
-                    "Automated card-row metric report not yet emitted by the "
-                    "runner. Chassis geometry rows are covered by the unit/"
-                    "browser suites (16 + 7 green contracts) but are not yet "
-                    "attached in packet form; row counts as failed for gate "
-                    "math until attached."
-                ),
-            },
+            metric_report_row(),
             {
                 "artifactId": "blind-mapping",
                 "role": "13.7 sealed A/B commitment",

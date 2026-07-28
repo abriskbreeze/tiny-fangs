@@ -98,7 +98,45 @@ function mountChassisMode(stage) {
   }
 }
 
-function mountShowcaseMode(stage) {
+// §13.2 contact-shadow envelopes (half-open stage rects) and §12
+// stack/showcase shadow targets: alpha-mass centroid at card centroid
+// + (45, 70) px — inside the +20–100 / +50–90 windows, direction 57.3°
+// down-right within the 55–75° key band — fading out before the envelope.
+const CONTACT_SHADOWS = {
+  'card-creature-frame': { envelope: [259, 319, 641, 865] },
+  'card-cast-frame': { envelope: [654, 323, 1022, 859] },
+  'card-set-frame': { envelope: [1020, 325, 1402, 870] },
+  'card-back': { envelope: [1218, 329, 1602, 849] },
+};
+const SHADOW_OFFSET = { x: 45, y: 70 };
+
+function mountShadow(stage, specimen) {
+  const config = CONTACT_SHADOWS[specimen.id];
+  const [left, top, right, bottom] = config.envelope;
+  const shadow = document.createElement('div');
+  shadow.className = 'contact-shadow';
+  shadow.dataset.shadowFor = specimen.id;
+  const centerX = specimen.center.x + SHADOW_OFFSET.x;
+  const centerY = specimen.center.y + SHADOW_OFFSET.y;
+  // Radii fade to transparent before every envelope edge.
+  const rx = Math.min(centerX - left, right - centerX) - 6;
+  const ry = Math.min(centerY - top, bottom - centerY) - 6;
+  shadow.style.cssText = [
+    'position:absolute', 'pointer-events:none', 'z-index:1',
+    `left:${left}px`, `top:${top}px`,
+    `width:${right - left}px`, `height:${bottom - top}px`,
+    `background:radial-gradient(${rx}px ${ry}px at ${centerX - left}px ${centerY - top}px,` +
+      ' rgba(16,13,10,0.55) 0%, rgba(16,13,10,0.34) 45%, rgba(16,13,10,0) 72%)',
+  ].join(';');
+  stage.append(shadow);
+}
+
+function mountShowcaseMode(stage, { shadowMaskOnly = false, onlySpecimen = null } = {}) {
+  for (const specimen of SHOWCASE_SPECIMENS) {
+    if (onlySpecimen && specimen.id !== onlySpecimen) continue;
+    mountShadow(stage, specimen);
+  }
+  if (shadowMaskOnly) return;
   for (const specimen of SHOWCASE_SPECIMENS) {
     const wrapper = document.createElement('div');
     wrapper.className = 'specimen';
@@ -122,6 +160,11 @@ const mode = new URLSearchParams(window.location.search).get('mode');
 try {
   if (mode === 'chassis') {
     mountChassisMode(stage);
+  } else if (mode === 'shadow-mask') {
+    // §6.1-style per-object ID mask: one specimen's shadow alone on the
+    // bare stage, for the §12 stack/showcase shadow centroid measurement.
+    const only = new URLSearchParams(window.location.search).get('only');
+    mountShowcaseMode(stage, { shadowMaskOnly: true, onlySpecimen: only });
   } else {
     mountShowcaseMode(stage);
   }
