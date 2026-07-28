@@ -1,7 +1,7 @@
 ---
 date: 2026-07-27T18:11:56-04:00
 task_number: 19
-status: sixth-correction-evidence-complete-recritique-pending
+status: accepted-by-user-manual-pass
 scope: desktop-only
 ---
 
@@ -465,10 +465,27 @@ speculatively in prose — the recurring failure mode is prose contracts driftin
 reality, which the graybox/runner implementation would anchor. Gates must not be weakened either
 way.
 
-## Acceptance Boundary
+## Acceptance Boundary — RESOLVED BY USER DECISION (2026-07-28)
 
-Task 19's sixth-correction evidence is complete and the sixth revision is REJECTED. The Phase 2
-plan checkbox remains open. After the seventh correction pass (or the decision review above), a
-different fresh, independent, harsh visual-direction critic must review the new frozen hash
-against both references. Self-review cannot satisfy that gate. Any further correction changes
-the artifact hash and requires this evidence to be refreshed.
+The user — the plan's sole final authority on acceptance — manually passed the art bible based on
+the fifth-corrected lineage (`fe3d3b25…`, the revision with all nineteen critic-5 findings
+fixed), ending the fresh-critic specification loop after seven revisions. This is recorded
+exactly as what it is: a user manual pass. Agent-critic acceptance (≥93/100, no category <9.0,
+wow ≥9.0, zero P1) was **not** achieved on any specification revision; critics 5–7 scored
+88.3 / 89.1 / 88.2 while verifying the empirical core byte-exact each time.
+
+The accepted artifact is the seventh-corrected revision — the direct continuation of
+`fe3d3b25…` that additionally carries all fifteen critic-6 findings and all fifteen critic-7
+findings, including the two P1s (fixture reachability annotation under the engine's per-round
+turn model; palette-gate median-region binding):
+
+- **Accepted hash:** `84b89838a7ea822bcad7a572e5815120d40367a632eafd9e7cc63032db7ea0e6`
+- 1737 lines, 18241 words, 119048 bytes
+- Scripted checks: zero missing §-references; superseded values absent; `git diff --check`
+  clean; 545/545 units unaffected.
+
+The Phase 2 art-direction-document checkbox is satisfied by this user decision. The camera
+remains unlocked: the O/P graybox bake-off, golden samples, and all downstream **image**
+critic gates (§13.4, §13.5) are untouched and still required — the user pass covers the
+specification document only, not any rendered artifact. Production now proceeds to the
+populated camera grayboxes per the plan.

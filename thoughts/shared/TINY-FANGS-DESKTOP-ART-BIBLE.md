@@ -15,10 +15,14 @@ define the deferred mobile port.
 
 ### 1.1 Immutable authorities
 
-| ID | Role | Source |
+| ID | Role | Repository path (canonical) |
 |---|---|---|
-| R1 | Card chassis, material, frame-family, card-back, and close-up staging | `/Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-1.png` |
-| R2 | Field silhouette, camera, layout, environment, light, and board staging | `/Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-2.png` |
+| R1 | Card chassis, material, frame-family, card-back, and close-up staging | `docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png` |
+| R2 | Field silhouette, camera, layout, environment, light, and board staging | `docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png` |
+
+The originally supplied attachment copies (machine-local `~/.codex/attachments/…/image-1.png`
+and `image-2.png`) are byte-identical to these repository paths; the repository copies are the
+canonical, portable authorities.
 
 Both sources are 1672 × 941 pixels. Their protected repository copies are byte-identical:
 
@@ -57,15 +61,15 @@ The following command reproduces image identity and dimensions:
 
 ```sh
 shasum -a 256 \
-  /Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-1.png \
-  /Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-2.png
+  docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png \
+  docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png
 
 python3 - <<'PY'
 from PIL import Image
 
 for path in (
-    "/Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-1.png",
-    "/Users/rico/.codex/attachments/0b079d46-f8dd-4ec7-bb89-d1307093bdc3/image-2.png",
+    "docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png",
+    "docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png",
 ):
     image = Image.open(path)
     print(path, image.size, image.mode, image.info)
@@ -119,18 +123,21 @@ row lies within 409–419 — the row-consistency gate that excludes bright flow
 sunlit grass whose maxima sit elsewhere in the search window. Contiguous qualifying runs of at
 least 16 px participate; the band is grown from the longest participating run intersecting the
 central third of the frame (x 558–1114), bridging inter-run gaps of at most 130 px caused by
-occluding props or cards. Executed on R2 this yields x ≈ 173–1455 (span 1283 px, 76.7% of frame
-width, band center x ≈ 814) with no participating run excluded, including a bridged occlusion
-near x ≈ 369–432 where a dim prop interrupts the line; the same warm gold hue and row continue on
-both sides. Endpoint uncertainty is ±8 px because the ends fade. Earlier span claims made without
+occluding props or cards — the constant is set just above R2's own largest occluder gap (121 px)
+while staying far below any board-scale distance, so one occluding prop bridges but two separate
+luminous features never merge. Executed on R2 this yields x ≈ 173–1455 (span 1283 px, 76.7% of
+frame width, band center x ≈ 814) with no participating run excluded, including the bridged
+121 px occlusion at x 362–482 where a dim prop interrupts the line; the same warm gold hue and
+row continue on both sides. Endpoint uncertainty is ±8 px because the ends fade. Earlier span claims made without
 the row-consistency and run-participation gates are superseded.
 
 The center diamond is defined by its vertical-thickness profile, which is robust against both the
 divider line and the surrounding grass: for each column in x 760–920, measure the vertical extent
 of luminance > 0.55 within rows 395–439; the baseline is the median extent of the plain line
-sampled at x 600–760 and 920–1080 (10 px on R2); the diamond is the connected column range
-(gaps ≤ 2 px) whose extent is at least baseline + 4 px. Executed on R2 this yields x 818–856 —
-core width 39 px, maximum core height 44 px. Production tolerance applies to this core only;
+sampled at x 600–760 and 920–1080 (10 px on R2); the diamond is the connected column range whose
+extent is at least baseline + 4 px, where a gap is a run of consecutive non-qualifying columns
+and gaps of at most 2 such columns are joined. Executed on R2 this yields x 818–859 — core width
+42 px, maximum core height 44 px. Production tolerance applies to this core only;
 glow beyond it is a rendering consequence, not an independent target, and no separate glow
 threshold is specified because the meadow's own median luminance (≈ 0.44) makes low-threshold
 glow extents unmeasurable against grass.
@@ -142,8 +149,9 @@ Measured vertical bands:
 - player play: y = 453–691 px, or 0.481–0.734;
 - hand: y = 683–911 px, or 0.726–0.968; envelope center y = 797 px, or 0.8470.
 
-Divider clearance is derived from the luminous band's vertical envelope, rows 410–418 (the 8 px
-core centered on y = 414): the opponent active card's envelope bottom sits at y = 366
+Divider clearance is derived from the luminous band's vertical envelope, rows 410–418 inclusive
+(row ranges in this section are inclusive at both ends, unlike the half-open rectangle
+convention; the 9-row band brackets the 8 px core centered on y = 414): the opponent active card's envelope bottom sits at y = 366
 (252 + 228/2), giving a 44 px gap to the band top, and the player play band begins at y = 453,
 giving a 35 px gap from the band bottom. The production target keeps at least 32 px of clear
 divider breathing room after glows and selection rings.
@@ -404,9 +412,12 @@ decision, tie, or camera chosen for implementation convenience is a failure.
 - **L:** No perimeter prop intrudes more than 42 px into a resting card screen envelope.
 - **L:** The divider luminous band is centered at y = 414 ± 3 px and, measured by the exact §2.1
   method (prominence >0.10, peak-row 409–419, runs ≥16 px, central-third seed, gaps ≤130 px
-  bridged), spans 68–80% of frame width with endpoint tolerance ±8 px. It has a 3–8 px bright
-  core plus a 12–28 px soft halo, and may be visibly interrupted by an occluding prop or card
-  without failing, provided the interruption bridges under the stated rule.
+  bridged), spans 68–80% of frame width with endpoint tolerance ±8 px. Its bright core —
+  measured as the per-column vertical extent of luminance > 0.55, the same operator as the
+  diamond method — is 6–12 px thick (R2 measures 10 px), with an **I**-labeled soft halo of
+  roughly 10–30 px where prominence over adjacent grass exceeds 0.10 beyond the core. The band
+  may be visibly interrupted by an occluding prop or card without failing, provided the
+  interruption bridges under the stated rule.
 - **L:** The center diamond's bright core, measured by the §2.1 vertical-thickness-profile
   method, is 33–45 px wide × 38–50 px tall and is centered on the divider's line axis
   (y = 414 ± 2 px) at the frame's horizontal center (x = 836 ± 3 px). Glow beyond the core is
@@ -726,7 +737,7 @@ by measurable behavior, not an assumed brand-name font.
 | Detail card name | 22 | 1.10–1.20 | two lines maximum |
 | Detail subtitle/type | 13 | 1.20–1.30 | contrast ≥4.5:1 |
 | Detail rules/flavor | 16 | 1.35–1.50 | 45–70 characters per line |
-| Board active-card name | 14 | 1.15–1.25 | no clipping at longest catalog name, proven at the board-active nameplate itself (≈132 × 32 px on the 176 px active), not only at detail scale; all three §7.4 nameplate fixtures re-run at that scale, and if 14 px cannot hold the longest name there, the compact-name row's ellipsis-plus-inspect rule applies and this row's minimum is re-derived rather than silently violated |
+| Board active-card name | 14 | 1.15–1.25 | locked, not self-amending: the longest catalog name must render unclipped and un-ellipsized at ≥14 px inside the board-active nameplate (≈132 × 32 px on the 176 px active), proven by re-running all three §7.4 nameplate fixtures at that scale; if the chosen face cannot satisfy this, the face or nameplate geometry must change — the minimum does not |
 | Board/hand compact name | 12 | 1.15–1.25 | full name available on inspect/focus |
 | Cost/stat numeral | 18 | 1.0 | 1 px minimum interior stroke |
 | Status/charm label | 12 | 1.20 | icon plus text/accessible name |
@@ -798,7 +809,8 @@ grammar those pixels render with, and it is the documented token inventory the �
 gate scores against.
 
 **Rail and panel ground.** Every rail, log strip, and HUD cluster renders on one shared ground
-material: parchment from the §5 card-paper roles (`#E3C5A4`/`#D9BA95` family), 82–92% opacity
+material: parchment from the §5 card-paper roles (`#DCBA96` parchment / `#DEBB91` ivory lip),
+82–92% opacity
 over the field, with a 1–2 px darkened paper edge (ink role at 25–40% alpha) instead of a hard UI
 border. No flat dark panels, no glassmorphism blur, no pure-white or pure-black grounds.
 
@@ -819,11 +831,16 @@ below the §12 contrast rows.
 
 **Hand-card scale.** The nominal resting hand card is 150 × 227 px (the 0.660 chassis at the
 §2.2 hand envelope's four-across spacing), scaled per §7.4; hover/selection lift may scale it up
-to 1.12× before the drag proxy takes over.
+to 1.12× before the drag proxy takes over. The §2.2 hand envelope is an allocation gate on the
+unrotated card layout boxes; rotated card corners and lift/hover extents may exceed it by at
+most 12 px per side, and the §12 hand row measures the allocation boxes, not rendered rotated
+extents.
 
 **Log and journal.** The collapsible log uses the same parchment ground, ink text at §8.2 log
 minimums, and one gold divider rule between turns; no zebra striping, no terminal-style
 monospace-on-black.
+
+## 10. Locked Now Versus Bake-Off Decisions
 
 | Property | Status | Reason |
 |---|---|---|
@@ -928,7 +945,7 @@ these definitions:
 | Action grid | six targets / target size / target gap | 6 / 48 × 48 px / 12 px |
 | Action focus | fixed bound / focus-bound gap | 52 × 52 px / 8 px |
 | Equal-card depth scale | Candidate O / Candidate P | 1.00 ±0.01 / 1.05–1.12 |
-| Palette | aligned base-role median | CIEDE2000 ≤8 graybox for all §5 base roles; ≤5 final for the §5-listed meadow/foliage medians and the four card-family base roles |
+| Palette | aligned region medians: for the three meadow/foliage targets, the per-channel median of the §5 quiet-upper-meadow rectangle, lower-meadow rectangle, and deep-left-foliage rectangle; for each of the four card-family base roles, the per-channel median of the 5 × 5 px window centered on its §5 sample coordinate | CIEDE2000 ≤8 graybox; ≤5 final, computed against the same-region reference medians |
 | Perimeter/center value | median luminance ratio | 0.14–0.25 |
 | Key direction | PCA first axis of the two largest single-object umbra masks (§6.1 method) | 55–75° down-right, both masks |
 | Card contact (single resting card) | §6.1 mask-centroid offset / penumbra | x +4–10, y +8–16 px / 10–26 px |
@@ -1017,10 +1034,16 @@ Hash requirements:
 8. The implementing registry revision must pin every value `authoritativeStateSha256` consumes,
    including the complete ordered deck lists and grave contents of both players and the complete
    opponent hand — the tables above pin counts and named surface cards; the registry pins the
-   rest, and an unpinned list is a P0-invalid fixture, not an implementation freedom. Opponent
-   max mana is 3 because the waiting player has received three mana increments by turn 6 under
-   strict alternation; a fixture value unreachable by legal play must be explicitly annotated,
-   and this one no longer is.
+   rest, and an unpinned list is a P0-invalid fixture, not an implementation freedom.
+9. **Reachability annotation.** The shared engine counts `state.turn` per round, not per player
+   turn, and grows `maxMana` by one at each handoff; under sequential legal play this fixture's
+   combination of turn number, mana, deck, and hand counts is **not reachable**, and no claim of
+   reachability is made. It is an authored deterministic critic state injected through the
+   fixture registry, exactly like every other fixture in `fixture-registry.js`. What is required
+   is state validity — counts sum, card identities exist, statuses are legal, privacy projection
+   holds — which validation enforces; play-path reachability is explicitly not required, and this
+   item is the explicit annotation of that fact. A fixture lacking either reachability or this
+   annotation is P0 invalid. The same annotation covers the §13.1.2 reset base.
 
 #### 13.1.1 Deterministic integrated-overlay evidence
 
@@ -1052,6 +1075,12 @@ everything else is unchanged. Its ordered snapshots are:
 | `event0-hidden-pre` | authoritative opponent Set is `soulTrap`; public opponent Set is exactly `{"faceDown":true}`; `coilshell` remains in player hand; mana 3/4 | only the declared bench-B/deck precondition; overlay closed; no new log line | focus origin `action-summon`; capture `overlay-full`; zero `soulTrap`/alias matches in public state, DOM, accessibility, requests, logs, QA/debug, or network |
 | `event1-overlay-reveal` | Summon has placed `coilshell` at bench B with 45/45 HP; player mana 1/4; authoritative Set remains `soulTrap`; public Set is rule-authorized revealed `{"faceDown":false,"id":"soulTrap"}` | remove `coilshell` from hand; add bench-B card; mana −2; append exactly `Coilshell was summoned.` and `Opponent's Set Verse revealed: Soul Trap.`; open reveal overlay | focus `reveal-continue`, return origin `action-summon`; captures `overlay-full`, `overlay-panel`, `overlay-focus`; identity allowed only in revealed projection, overlay, and the second new log line |
 | `event2-public-post` | `coilshell` is 25/45 HP; opponent Set is null; `soulTrap` is public top opponent grave card | player bench-B HP −20; move `soulTrap` Set → grave; append exactly `Soul Trap dealt 20 damage to Coilshell.`; close overlay; no other state delta | focus returned to `action-summon`; capture `overlay-full`; identity allowed only in public grave, authorized log lines, and inspectable public card metadata |
+
+An event's "authoritative state" is the deterministic event-boundary reconstruction: the state
+the canonical privacy-aware stable serializer produces when the recorded event stream is applied
+up to and including that event's index — not a mid-`executeAction` engine snapshot, which the
+engine deliberately never externalizes. The capture runner derives each boundary state by replay
+through `stable-serialization.js`; no engine instrumentation API is required or permitted.
 
 Every event writes `authoritativeStateSha256`, `publicStateSha256`,
 `presentationStateSha256`, `accessibilityTreeSha256`, `privacyScanSha256`, `screenshotSha256`,
@@ -1172,7 +1201,7 @@ crop-local grade, sharpen, blur, or exposure correction is allowed.
 | `card-set-frame` | (1000,300,1415,885) | 415 × 585 | 830 × 1170 | R1 ↔ showcase |
 | `card-back` | (1195,300,1620,870) | 425 × 570 | 850 × 1140 | R1 ↔ showcase |
 | `card-art` | (688,328,992,628) | 304 × 300 | 608 × 600 | R1 ↔ showcase |
-| `card-title` | (688,565,992,640) | 304 × 75 | 608 × 150 | R1 join ↔ Tiny Fangs nameplate |
+| `card-title` | (688,548,992,640) | 304 × 92 | 608 × 184 | R1 join ↔ Tiny Fangs nameplate |
 | `card-rules` | (688,612,992,808) | 304 × 196 | 608 × 392 | R1 ↔ showcase |
 | `card-stats` | (272,700,616,828) | 344 × 128 | 688 × 256 | R1 ↔ showcase |
 | `card-contact` | (248,776,1400,866) | 1152 × 90 | 2304 × 180 | R1 ↔ showcase |
@@ -1323,7 +1352,9 @@ singleCriticPass =
 ```
 
 `mandatoryMeasurementsPass` is the conjunction of every §12 row applicable to the artifact under
-review, evaluated by the capture runner and attached to the packet as the metric report: capture
+review — excluding §12's two summary gate rows (camera critic gate and integrated final-art
+gate), which reference this section and §13.4 and are outcomes, not inputs — evaluated by the
+capture runner and attached to the packet as the metric report: capture
 exactness, anchor/registration geometry, divider, environment frame, quiet zone, prop intrusion,
 chassis/anatomy/corner rows, hand and rail geometry, action grid/focus, palette and family
 separation, perimeter/center value, key direction and both shadow rows via the §6.1 mask methods,
@@ -1385,6 +1416,13 @@ before the coordinator reveals the mapping file, which must hash to the committe
 
 If a required crop/hash/metric is absent, if the mapping leaks, or if either critic sees a different
 fixture revision, the packet is P0 invalid rather than merely incomplete.
+
+The seal protects label and mapping integrity, not candidate anonymity: a camera critic may
+infer which candidate is orthographic from the residual report's convergence values, and an
+integrated critic can recognize which image is the publicly known reference. What the protocol
+guarantees is that no one can tell the critic which side the orchestrator expects it to prefer,
+and that the mapping cannot be altered after scores are submitted. This matches the plan's
+blinded-label framing.
 
 #### 13.7.1 Canonical packet index
 
