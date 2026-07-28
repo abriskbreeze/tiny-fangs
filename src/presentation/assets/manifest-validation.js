@@ -172,7 +172,17 @@ function validateAssetFiles(asset, phase, fileIndex, issues, hashOwners, pathOwn
     if (isNonEmptyString(record.sha256) && SHA256_PATTERN.test(record.sha256)) {
       const owner = hashOwners.get(record.sha256);
       if (owner && owner.path !== file.path) {
-        issues.push(issue('error', 'DUPLICATE_CONTENT_HASH',
+        // Phase 6 TEMPLATE MODE (user decision 2026-07-28): declared
+        // placeholder-tier template assets intentionally share bytes, so
+        // their duplicates are draft warnings; release keeps them errors,
+        // and any asset NOT declared placeholder-tier keeps error severity
+        // in every phase.
+        const declaredPlaceholder = asset.artTier === 'template-placeholder';
+        const severity =
+          declaredPlaceholder && phase !== ASSET_VALIDATION_PHASES.RELEASE
+            ? 'warning'
+            : 'error';
+        issues.push(issue(severity, 'DUPLICATE_CONTENT_HASH',
           `Files ${owner.path} and ${file.path} have identical content.`,
           { ...context, path: file.path, duplicateOf: owner.path }));
       } else {

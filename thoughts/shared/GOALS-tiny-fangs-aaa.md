@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-29 00:35 EDT  
+**Last updated:** 2026-07-29 01:20 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -526,7 +526,7 @@ Evidence:
 - **ACCOMPLISHED (2026-07-28): Task 38 — first blind critic run, REJECTED AS DESIGNED (revision 1).** Sealed A/B protocol ran cleanly end-to-end (commitment verified, mapping unsealed only after both scores; zero P0/P1 — the packet was fully reviewable, no protocol-layer stall). Challenger: T 72.1/77.0, wow 6.4/6.9, min category L 5.8/6.3, 2/10 crop wins per critic — decisive rejection with a consistent correction list: void staging kills grounding/shadows (the anchor failure), layer misregistration seams, provisional card back, flat material depth, wolf anatomy, footer-near-rail contrast, plus two metric-coverage extensions (in-context shadow visibility, on-rail contrast). Notably the reference side also failed both gates (83.3/80.3, wow 8.2/8.3); shared critic read: our typographic system + reference's materials is the target. Handoff: `task-38-critic-run-r1.md`; verdict artifacts in `tests/visual/card-packet/critic-*-r1.json`.
 - **ACCOMPLISHED (2026-07-28): Task 39 — golden-sample revision 2 built against the full r1 correction list.** Lit meadow staging ground (shadows now visibly seat the cards), authored art keylines and nameplate surround (seams gone), dense gold-line back, 2×-surviving grain and rail emboss, refined wolf, and a root-cause frame-geometry fix for the footer-on-rail defect (bottom frame collapses to lip+keylines per §7.2's sides-only inset rule so the §7.4 footer sits on parchment; measured 2.27–2.9:1 → ≥4.5:1). Both critic-demanded metric extensions added and green: in-context shadow visibility and per-family footer-ground contrast. Metric report 11/11 PASS; packet rebuilt (`bb455972…`); 596/596 units, 18/18 visual, 59/59 E2E. Handoff: `task-39-golden-sample-r2.md`.
 - **ACCOMPLISHED (2026-07-29): Task 40 — second blind critic run, REJECTED (r2).** Fresh critics 3/4 over a resealed mapping: challenger T 77.6/76.0 (r1: 72.1/77.0), wow 6.8/6.8, min category L, 1-2/10 crop wins; zero P0/P1 both rounds — the protocol layer stays clean. The system half of the rubric is now strong (R/S/A ≈ 9); materials/grounding remain the gap. The reference itself scored 83–85 — below its own gate — mirroring the art-bible plateau that ended in a user manual pass. New P2s recorded for any future revision (wallpaper-flat ground, lens-artifact moon, top layer-edge protrusion, weak set illustration). Handoff: `task-40-critic-run-r2.md`.
-- **BLOCKED (user taste decision — golden-sample direction):** four independent critics across two revisions converge: our render is the superior information system, the painterly reference the superior physical object, and the 93/wow-9 gate demands both. Question: (1) push painterly materials in-engine (raster/canvas texture pipeline over the DOM chassis — most likely to satisfy the synthesis, sets Phase 5's material direction, more iterations), (2) manual-pass the current system-first direction as with the art bible (gate recorded honestly as not passed, scores on file), or (3) supply/co-direct your own frame/material reference art. Work continues on the next unblocked item (Phase 6 template mode) meanwhile. Production art per the 56-face manifest runs in Phase 6 TEMPLATE MODE (user decision 2026-07-28).
+- **DIRECTION CHOSEN BY USER (2026-07-29, resolves the golden-sample BLOCKED entry): user-generated frame templates.** The user will generate three card frame images (creature / cast verse / set verse, ideally plus the back) without art or values; the system composites live art, names, rules, and numerals into the §7.4 rectangles on top. This is the four-critic synthesis and fills the manifest's existing `frame/*` slots. Generation spec recorded in `task-41-phase6-template-mode.md` (1536×2304 portrait, empty art window/nameplate/rules/medallion sockets, family palette hexes, painterly carved-and-gilded material, original motifs). **Golden samples: EVIDENCE PENDING (user frame images).** On delivery: wire frames under the live text system, re-run metrics, re-enter the blind gate. Production art per the 56-face manifest runs in Phase 6 TEMPLATE MODE (user decision 2026-07-28).
 
 ### Phase 3 — Presentation Boundary and Compositing Proof
 
@@ -549,7 +549,15 @@ Evidence:
 - **DECISION (needs user ratification): the literal one-DOM-tree merge is deferred to the mobile port.** All three Phase 4 acceptance criteria are met; physically merging the trees now would rebuild the mobile layout (the explicitly deferred port), risk the 17 byte-identical classic hashes, and churn the retained `m-*` regression evidence for no desktop-milestone value. If the merge should happen now instead, it becomes the next Phase 4 task.
 - Cross-zone DOM adoption for FLIP travel is deferred to the Phase 10 motion director by design.
 
-### Phases 5–13 — Full Production
+### Phase 6 — Card Art, TEMPLATE MODE
+
+**Status:** ACCOMPLISHED IN TEMPLATE MODE (2026-07-29) — per-card art gate EVIDENCE PENDING (user art)
+
+- Six style-consistent faction template scenes (shadow, fang, venom, swarm, shell, token) authored in the §5 palette and rendered to all four manifest variants at exact spec; all 224 canonical per-face paths populated (~8 MB); every renderable face resolves through `template-face-map.js` (deckless faces and antling → token).
+- Manifest marks every card face `template-placeholder` with template focal points and an empty provenance block — no provenance claim. Draft validation green (0 errors; 334 honest warnings); **strict release honestly red (334 errors)**. The only validator change scopes DUPLICATE_CONTENT_HASH to a draft-phase warning for explicitly declared placeholder-tier assets — release severity and undeclared assets unchanged, exactly per the user's template-mode contract.
+- Per-card blind reviews and faction contact-sheet gates deferred until real art exists: **EVIDENCE PENDING (user art)**. Evidence: 601/601 units (5 new exit contracts), unchanged production build. Handoff: `task-41-phase6-template-mode.md`.
+
+### Phases 5, 7–13 — Full Production
 
 **Status:** QUEUED
 - Complete card system and all original card art

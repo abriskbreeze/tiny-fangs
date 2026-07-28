@@ -1,4 +1,9 @@
 import { PRESENTATION_FACE_INVENTORY } from '../../../shared/face-registry.js';
+import {
+  TEMPLATE_ART_TIER,
+  TEMPLATE_FOCAL_POINTS,
+  templateKeyForFace,
+} from './template-face-map.js';
 
 export const ASSET_MANIFEST_SCHEMA_VERSION = 1;
 
@@ -192,6 +197,7 @@ function emptyProvenance() {
 
 function buildCardFaceAsset(face) {
   const faceId = face.presentationFaceId;
+  const templateKey = templateKeyForFace(faceId);
   return {
     assetId: `card-face/${faceId}`,
     family: 'cardFaces',
@@ -199,7 +205,12 @@ function buildCardFaceAsset(face) {
     canonicalFaceId: faceId,
     faceKind: face.kind,
     faceSource: face.source,
-    focalPoint: { x: 0.5, y: 0.42 },
+    // Phase 6 TEMPLATE MODE: placeholder-tier faction template art with the
+    // template motif's focal point. No provenance claim — strict release
+    // stays honestly red until the user's real per-card art exists.
+    artTier: TEMPLATE_ART_TIER,
+    templateKey,
+    focalPoint: { ...TEMPLATE_FOCAL_POINTS[templateKey] },
     provenance: emptyProvenance(),
     files: CARD_ART_VARIANTS.map(variant => ({
       role: variant.role,
