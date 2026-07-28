@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-29 02:10 EDT  
+**Last updated:** 2026-07-29 02:50 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -563,6 +563,12 @@ Evidence:
 
 - **ACCOMPLISHED: Task 42 — meadow chunk 1 under the locked camera with every applicable §12 field row measured live and green:** divider center 413.47 (414±3), slope 0.006, span 76.3% (68–80), core 10 px (R2 measures 10), diamond 38×40 at 835.5 (33–45 × 38–50 at 836±3), palette region ΔE00 0/0/3.63 (≤5 final), perimeter/center ratio 0.225 (0.14–0.25), byte-identical determinism. Screen-anchored seeded painting (texture-space painting provably missed screen targets), gradient transparent-black fix, and a documented NoToneMapping decision (flat-quad bisect proved Neutral distorts §5 roles ~30% on blue; baked cel pipeline authors final colors). 4 new visual gates; 22/22 visual project; 601/601 units. Handoff: `task-42-meadow-field-chunk1.md`.
 - Remaining: §4.3 perimeter prop silhouettes + seeded scatter (trees/rocks/fence/river/flowers), zone decals/slot marks, instanced foliage, environment-frame/quiet-zone/prop-intrusion rows, seeded ambient motion, static AVIF/WebP fallback, populated-board blind comparison vs R2.
+
+### Task 43 — Placeholder Assets at Exact Sizes (User Direction 2026-07-29)
+
+**Status:** ACCOMPLISHED — all 24 non-card image slots filled with basic-shape placeholders at exact manifest dimensions
+
+- User direction: basic shapes now with correct sizing; user regenerates all art later. The full regeneration size sheet is recorded in `task-43-placeholder-assets.md` (headline: one 2048×1536 master per card — pipeline derives the rest; frames/backs 1536×2304; status 512; UI 512/1024; environment 3840×2160 down to 1024). Draft validation now 0 errors with 310 honest warnings (200 declared template duplicates, 15 missing audio — no encoder available, Phase 10 owns audio — and 95 provenance); strict release stays honestly red. 601/601 units.
 
 ### Phases 5, 8–13 — Full Production
 
