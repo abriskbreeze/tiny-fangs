@@ -222,7 +222,8 @@ async function main() {
   // the section 5 rule-1 LUT constraint is satisfied trivially.
   renderer.toneMapping = THREE.NoToneMapping;
 
-  const meadow = buildMeadowScene(renderer);
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  const meadow = buildMeadowScene(renderer, { propsOnly: mode === 'prop-mask' });
   meadow.render();
 
   // Read back the rendered frame through 2d canvas for symmetric operators.
@@ -250,10 +251,106 @@ async function main() {
   const upperLum = relLuminance(...palette.quietUpperMeadow.rendered);
   const foliageLum = relLuminance(...palette.deepLeftFoliage.rendered);
 
+  // Prop ID mask: second renderer pass with props alone on white.
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = 1672;
+  maskCanvas.height = 941;
+  const maskRenderer = new THREE.WebGLRenderer({
+    canvas: maskCanvas, antialias: true, preserveDrawingBuffer: true,
+  });
+  maskRenderer.setPixelRatio(1);
+  maskRenderer.setSize(1672, 941, false);
+  maskRenderer.outputColorSpace = THREE.SRGBColorSpace;
+  maskRenderer.toneMapping = THREE.NoToneMapping;
+  const maskScene = buildMeadowScene(maskRenderer, { propsOnly: true });
+  maskScene.render();
+  const maskShot = document.createElement('canvas');
+  maskShot.width = 1672;
+  maskShot.height = 941;
+  maskShot.getContext('2d').drawImage(maskCanvas, 0, 0);
+  const mask = maskShot.getContext('2d').getImageData(0, 0, 1672, 941).data;
+  const isProp = (x, y) => {
+    const i = (y * 1672 + x) * 4;
+    // White ground vs colored prop; small tolerance for AA edges.
+    return mask[i] < 240 || mask[i + 1] < 240 || mask[i + 2] < 240;
+  };
+
+  // Environment-frame band: mean inward prop extent per side as a fraction
+  // of the frame dimension (documented reading of the §12 row).
+  const inwardExtent = (side) => {
+    const samples = [];
+    if (side === 'left' || side === 'right') {
+      for (let y = 40; y < 901; y += 8) {
+        let extent = 0;
+        for (let d = 0; d < 400; d += 1) {
+          const x = side === 'left' ? d : 1671 - d;
+          if (isProp(x, y)) extent = d + 1;
+        }
+        samples.push(extent / 1672);
+      }
+    } else {
+      for (let x = 40; x < 1632; x += 8) {
+        let extent = 0;
+        for (let d = 0; d < 300; d += 1) {
+          const y = side === 'top' ? d : 940 - d;
+          if (isProp(x, y)) extent = d + 1;
+        }
+        samples.push(extent / 941);
+      }
+    }
+    return Number((samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(4));
+  };
+
+  // Quiet zone: central D2 region prop occupancy (grass share = 1 - props).
+  let central = 0;
+  let centralProp = 0;
+  for (let y = Math.round(0.12 * 941); y < Math.round(0.81 * 941); y += 2) {
+    for (let x = Math.round(0.14 * 1672); x < Math.round(0.86 * 1672); x += 2) {
+      central += 1;
+      if (isProp(x, y)) centralProp += 1;
+    }
+  }
+
+  // Prop intrusion into resting card envelopes (camera-lock golden quads).
+  const golden = await (await fetch('/tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json')).json();
+  const quads = golden.anchors ?? golden;
+  let worstIntrusion = 0;
+  let worstAnchor = null;
+  for (const [anchor, quad] of Object.entries(quads)) {
+    const points = quad.corners ?? quad;
+    if (!Array.isArray(points)) continue;
+    const xs = points.map((c) => c[0]);
+    const ys = points.map((c) => c[1]);
+    const [l, t, r, b] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    let intrusion = 0;
+    for (let y = Math.max(0, Math.round(t)); y < Math.min(941, Math.round(b)); y += 2) {
+      for (let x = Math.max(0, Math.round(l)); x < Math.min(1672, Math.round(r)); x += 2) {
+        if (isProp(x, y)) {
+          const depth = Math.min(x - l, r - x, y - t, b - y);
+          if (depth > intrusion) intrusion = depth;
+        }
+      }
+    }
+    if (intrusion > worstIntrusion) {
+      worstIntrusion = intrusion;
+      worstAnchor = anchor;
+    }
+  }
+
   window.__TF_MEADOW_METRICS__ = {
     divider: dividerMetrics(frame, 1672, 941),
     palette,
     perimeterCenterRatio: Number((foliageLum / upperLum).toFixed(3)),
+    environment: {
+      frameExtent: {
+        left: inwardExtent('left'),
+        right: inwardExtent('right'),
+        top: inwardExtent('top'),
+        bottom: inwardExtent('bottom'),
+      },
+      quietZonePropShare: Number((centralProp / central).toFixed(4)),
+      propIntrusion: { worstPx: worstIntrusion, anchor: worstAnchor },
+    },
   };
   window.__TF_MEADOW_READY__ = true;
 }

@@ -48,6 +48,19 @@ test('§12 perimeter/center value: luminance ratio inside 0.14–0.25', async ({
   expect(metrics.perimeterCenterRatio).toBeLessThanOrEqual(0.25);
 });
 
+test('§12 environment rows: frame extent, quiet zone, prop intrusion', async ({ page }) => {
+  const metrics = await openMeadow(page);
+  const environment = metrics.environment;
+  for (const [side, extent] of Object.entries(environment.frameExtent)) {
+    expect(extent, side).toBeGreaterThanOrEqual(0.1);
+    expect(extent, side).toBeLessThanOrEqual(0.15);
+  }
+  // §4.1: at least 70% of the central zone stays grass/slot/shadow/card.
+  expect(environment.quietZonePropShare).toBeLessThanOrEqual(0.3);
+  // §12: no prop intrudes more than 42 px into a resting card envelope.
+  expect(environment.propIntrusion.worstPx).toBeLessThanOrEqual(42);
+});
+
 test('deterministic: two loads render byte-identical frames', async ({ page }) => {
   await openMeadow(page);
   const first = await page.locator('#scene-canvas').screenshot();

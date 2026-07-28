@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { createCameraCandidate } from './graybox-scene.js';
+import { buildMeadowProps } from './meadow-props.js';
 
 export const MEADOW_SEED = 0x7f4a11;
 
@@ -226,7 +227,7 @@ function paintDividerTexture() {
   return texture;
 }
 
-export function buildMeadowScene(renderer) {
+export function buildMeadowScene(renderer, { propsOnly = false } = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(COOL_FOLIAGE);
   const camera = createCameraCandidate('P');
@@ -261,6 +262,19 @@ export function buildMeadowScene(renderer) {
   const worldPerPxY = probe.distanceTo(center) / 10;
   const bandHeight = 256 * (worldPerPxY * (120 / 128)) * 0.5;
 
+  // §4.3 perimeter props (chunk 2), seeded from the same PRNG stream.
+  const props = buildMeadowProps({
+    rng,
+    screenToGround: (sx, sy) => screenToGround(camera, sx, sy),
+  });
+  scene.add(props);
+
+  if (propsOnly) {
+    // §6.1-style ID mask: props alone on a white ground/background.
+    scene.background = new THREE.Color(0xffffff);
+    terrain.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  }
+
   const divider = new THREE.Mesh(
     new THREE.PlaneGeometry(bandLength, 256 * worldPerPxY * 0.5),
     new THREE.MeshBasicMaterial({
@@ -272,6 +286,7 @@ export function buildMeadowScene(renderer) {
   divider.rotation.x = -Math.PI / 2;
   divider.position.set(center.x, 0.5, center.z);
   divider.name = 'meadow-divider';
+  divider.visible = !propsOnly;
   scene.add(divider);
 
   return {
