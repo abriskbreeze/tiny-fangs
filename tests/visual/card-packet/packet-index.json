@@ -1,0 +1,303 @@
+{
+  "artifacts": [
+    {
+      "artifactId": "showcase-capture",
+      "path": "captures/showcase-run1.png",
+      "required": true,
+      "role": "13.2 showcase capture, 1672x941 DPR1",
+      "sha256": "sha256:20af85606357d9fa7114e6755c28b079c73f1da65d3b167473552a6f2b974245",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-cards-full",
+      "path": "crops/cards-full.png",
+      "required": true,
+      "role": "13.3 crop cards-full",
+      "sha256": "sha256:c62f6d5f31cb0563af9b5434f813802e9c258f0ea64131446bc12eff3d18fc54",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-creature-frame",
+      "path": "crops/card-creature-frame.png",
+      "required": true,
+      "role": "13.3 crop card-creature-frame",
+      "sha256": "sha256:ac9fedabc05273fbe5ffb1c8cad396a5a042594ab3d3b53b801af3251842f9de",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-cast-frame",
+      "path": "crops/card-cast-frame.png",
+      "required": true,
+      "role": "13.3 crop card-cast-frame",
+      "sha256": "sha256:006008b26ca8479076e7b947907f3f84c268e4bdc2d9742f4eb94bc011ac65ea",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-set-frame",
+      "path": "crops/card-set-frame.png",
+      "required": true,
+      "role": "13.3 crop card-set-frame",
+      "sha256": "sha256:cc7ee86c47caf33e922f661633a351fa40f0c2ac1fbdad8db3cca99d8e872668",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-back",
+      "path": "crops/card-back.png",
+      "required": true,
+      "role": "13.3 crop card-back",
+      "sha256": "sha256:6fe53e15df61726a4bc377b42063846ecd462924dd550086ddac745db306e2c3",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-art",
+      "path": "crops/card-art.png",
+      "required": true,
+      "role": "13.3 crop card-art",
+      "sha256": "sha256:f32a3f4132ca626ed1b195e89e497eeac32fd56d6b050505be84d47e559d1576",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-title",
+      "path": "crops/card-title.png",
+      "required": true,
+      "role": "13.3 crop card-title",
+      "sha256": "sha256:6d741bca73955183331651c51e2e065fe096448c36a520edda9aad4ef9850e34",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-rules",
+      "path": "crops/card-rules.png",
+      "required": true,
+      "role": "13.3 crop card-rules",
+      "sha256": "sha256:ca924677ce659fc36b5547ccd180fc6dfcb65db503cd98867f009d2fac2b6871",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-stats",
+      "path": "crops/card-stats.png",
+      "required": true,
+      "role": "13.3 crop card-stats",
+      "sha256": "sha256:1d4758787e49dc1dd66ed4cb2403d0b6ad3094ad45dc11c2b56aa2029d7ac5da",
+      "status": "present"
+    },
+    {
+      "artifactId": "crop-card-contact",
+      "path": "crops/card-contact.png",
+      "required": true,
+      "role": "13.3 crop card-contact",
+      "sha256": "sha256:f60e7ee22361be8ea168666779e0341a35d250e6ef9b7f685870e80edb68c58b",
+      "status": "present"
+    },
+    {
+      "artifactId": "provenance-index",
+      "path": "",
+      "reason": "Signing registry and provenance records not yet built; row is honestly failed, and every linked category cap applies until it exists.",
+      "required": true,
+      "role": "13.8 signed motif/provenance index",
+      "sha256": "",
+      "status": "unsupported"
+    },
+    {
+      "artifactId": "metric-report",
+      "path": "",
+      "reason": "Automated card-row metric report not yet emitted by the runner. Chassis geometry rows are covered by the unit/browser suites (16 + 7 green contracts) but are not yet attached in packet form; row counts as failed for gate math until attached.",
+      "required": true,
+      "role": "12/13.5 mandatory measurement report (card rows)",
+      "sha256": "",
+      "status": "unsupported"
+    },
+    {
+      "artifactId": "blind-mapping",
+      "path": "",
+      "reason": "Single-challenger card review has no A/B pair until the R1 comparison assets are prepared; sealed commitment lands with the critic run.",
+      "required": true,
+      "role": "13.7 sealed A/B commitment",
+      "sha256": "",
+      "status": "unsupported"
+    }
+  ],
+  "buildRevision": "cb82dd859a8cbe5ef58d71ced5199fd25aacf084",
+  "determinism": {
+    "byteIdentical": true,
+    "runs": 2,
+    "sha256": "sha256:20af85606357d9fa7114e6755c28b079c73f1da65d3b167473552a6f2b974245"
+  },
+  "indexSha256": "sha256:9957f15dd8724b562b0559c1208ec35a11d5e07252e09fa8ee8b5c4d5529e276",
+  "packetId": "card-showcase-r1",
+  "packetKind": "card-showcase",
+  "packetKindNote": "Plan-level pre-board golden-sample review of the four-card showcase; reuses the art bible 13.2 manifest, 13.3 card crops, and 13.7.2 hashing. This is NOT the 13.5 integrated-art packet, which requires the Phase 7 populated board.",
+  "schema": "tiny-fangs.critic-packet-index.v1",
+  "schemaRevision": 1,
+  "showcaseManifest": {
+    "assetRevision": "golden-sample-art r4 (task-34)",
+    "colorProfile": "sRGB IEC 61966-2-1 assigned on decode",
+    "fontRevision": "alegreya-v37+jetbrains-mono-v24 self-hosted 2026-07-28",
+    "frame": {
+      "height": 941,
+      "width": 1672
+    },
+    "manifestSha256": "sha256:8df87b2c61f02f4e2aa5775d99d7bf5bbf17a5704679387c12a7ca8225506dba",
+    "provenanceRecordSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "schema": "tiny-fangs.card-showcase.v1",
+    "showcaseId": "desktop-four-family",
+    "showcaseRevision": 1,
+    "specimens": [
+      {
+        "center": [
+          445,
+          578
+        ],
+        "contactShadowEnvelope": [
+          259,
+          319,
+          641,
+          865
+        ],
+        "corners": [
+          [
+            273.5,
+            332.4
+          ],
+          [
+            603.4,
+            323.8
+          ],
+          [
+            616.5,
+            823.6
+          ],
+          [
+            286.6,
+            832.2
+          ]
+        ],
+        "cropId": "card-creature-frame",
+        "presentationFaceId": "duskfang",
+        "renderSide": "face",
+        "rotationDeg": -1.5,
+        "size": [
+          330,
+          500
+        ],
+        "z": 3
+      },
+      {
+        "center": [
+          833,
+          577
+        ],
+        "contactShadowEnvelope": [
+          654,
+          323,
+          1022,
+          859
+        ],
+        "corners": [
+          [
+            668.0,
+            327.0
+          ],
+          [
+            998.0,
+            327.0
+          ],
+          [
+            998.0,
+            827.0
+          ],
+          [
+            668.0,
+            827.0
+          ]
+        ],
+        "cropId": "card-cast-frame",
+        "presentationFaceId": "manaSurge",
+        "renderSide": "face",
+        "rotationDeg": 0.0,
+        "size": [
+          330,
+          500
+        ],
+        "z": 4
+      },
+      {
+        "center": [
+          1206,
+          584
+        ],
+        "contactShadowEnvelope": [
+          1020,
+          325,
+          1402,
+          870
+        ],
+        "corners": [
+          [
+            1047.6,
+            329.8
+          ],
+          [
+            1377.5,
+            338.4
+          ],
+          [
+            1364.4,
+            838.2
+          ],
+          [
+            1034.5,
+            829.6
+          ]
+        ],
+        "cropId": "card-set-frame",
+        "presentationFaceId": "phantomWall",
+        "renderSide": "face",
+        "rotationDeg": 1.5,
+        "size": [
+          330,
+          500
+        ],
+        "z": 6
+      },
+      {
+        "center": [
+          1405,
+          575
+        ],
+        "contactShadowEnvelope": [
+          1218,
+          329,
+          1602,
+          849
+        ],
+        "corners": [
+          [
+            1279.6,
+            333.1
+          ],
+          [
+            1578.0,
+            364.4
+          ],
+          [
+            1530.4,
+            816.9
+          ],
+          [
+            1232.0,
+            785.6
+          ]
+        ],
+        "cropId": "card-back",
+        "presentationFaceId": "soulTrap",
+        "renderSide": "back",
+        "rotationDeg": 6.0,
+        "size": [
+          300,
+          455
+        ],
+        "z": 2
+      }
+    ]
+  }
+}
