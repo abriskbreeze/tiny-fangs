@@ -486,8 +486,13 @@ test.describe('canonical desktop overlays, semantic decisions, and results', () 
 
     await page.evaluate(async () => {
       const { state } = await import('/src/state.js');
+      // Deterministic creature choice: the shuffled deck order decided which
+      // creature attacked, and multi-event attackers (Frenzy's double attack,
+      // Sonic Strike's extra trigger) have playback longer than the 2 500 ms
+      // clock budget below. Emberfang is always in the Fang deck and plays a
+      // single attack + lpDamage sequence.
       const creature = [...state.G.me.hand, ...state.G.me.deck].find(
-        (card) => card.cardType === 'creature',
+        (card) => card.cardType === 'creature' && card.id === 'emberfang',
       );
       state.G.me.active = creature;
       state.G.me.hand = state.G.me.hand.filter(

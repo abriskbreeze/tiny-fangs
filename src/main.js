@@ -42,6 +42,7 @@
     import { createMpClient } from './mp-client.js';
     import { createSoloAi } from './solo-ai.js';
     import { applyPresentationMode } from './presentation/presentation-mode.js';
+    import { createHtmlKeyedView } from './presentation/dom/html-keyed-view.js';
     import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
 
     applyPresentationMode();
@@ -812,6 +813,23 @@
     // RENDER
     // ═══════════════════════════════════════════════════════════════
 
+    // Phase 4: uid-keyed zone rendering. Markup still comes from the same
+    // src/render.js template strings byte-for-byte; the keyed view only
+    // preserves per-card DOM identity across re-renders so FLIP motion can
+    // key on uid. Views lazily rebind if a container node is ever replaced.
+    const keyedZoneViews = new Map(); // container id -> { container, view }
+
+    function keyedZoneView(containerId) {
+      const container = $(containerId);
+      let entry = keyedZoneViews.get(containerId);
+      if (!entry || entry.container !== container) {
+        container.innerHTML = '';
+        entry = { container, view: createHtmlKeyedView(container) };
+        keyedZoneViews.set(containerId, entry);
+      }
+      return entry.view;
+    }
+
     function render() {
       if (!state.G) return;
 
@@ -872,8 +890,14 @@
       // Hand
       $('m-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
       $('d-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
-      $('m-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, false, state.selectedCard)).join('');
-      $('d-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, true, state.selectedCard)).join('');
+      keyedZoneView('m-hand').reconcile(state.G.me.hand.map(c => ({
+        uid: c.uid,
+        html: renderHandCard(c, false, state.selectedCard),
+      })));
+      keyedZoneView('d-hand').reconcile(state.G.me.hand.map(c => ({
+        uid: c.uid,
+        html: renderHandCard(c, true, state.selectedCard),
+      })));
 
       // Buttons
       updateButtons();

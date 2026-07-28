@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-27 18:08 EDT  
+**Last updated:** 2026-07-28 17:35 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -526,11 +526,18 @@ Evidence:
 - **ACCOMPLISHED:** DOM/Three compositing spike at the locked camera: DOM card faces are homography-mapped (CSS `matrix3d`) onto the camera-lock-v1 golden quadrilaterals over the live Three scene; measured browser-applied drift ≤2 CSS px at canonical 1672 × 941 and ≤4 CSS px across the 2560×1440/1440×900/1280×720/1024×768 resize matrix; forward-projection error ≤0.1 px; three consecutive mounts clean — 6/6 browser gates (`tests/visual/composite-spike.visual.spec.js`, `composite.html`). No post-processing in the spike, r185 + `NeutralToneMapping`, per plan.
 - Remaining in phase: KTX2/Basis wiring (explicitly post-spike), portrait anchor map (deferred with the mobile port), wiring the coordinator into the live game shell during Phase 4 keyed-rendering migration.
 
-### Phases 4–13 — Full Production
+### Phase 4 — Keyed Cards and Motion Wrappers
+
+**Status:** IN PROGRESS — RECONCILER LANDED, HAND ZONES WIRED (2026-07-28)
+
+- **ACCOMPLISHED: uid-keyed reconciler** (`src/presentation/dom/keyed-board-view.js`): create/patch/move/remove with stable DOM identity across zone moves, duplicate/missing-uid fail-closed, idempotent reconcile, snapshotRects/flipDeltas FLIP seams — 7/7 focused contracts.
+- **ACCOMPLISHED: Task 28 — hand zones (`m-hand`, `d-hand`) render keyed** through the new `createHtmlKeyedView` adapter with byte-identical `renderHandCard` markup. Evidence: 573/573 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual including all 17 classic screenshot records (pngHash) equal to the committed baseline. Handoff: `task-28-keyed-hand-zone.md`.
+- Fail-closed keying exposed and fixed a latent client defect: `src/state.js` `uid()` was pure `Math.random()` and collided under the E2E's stubbed randomness; it now carries a monotonic serial. A pre-existing shuffle-dependent deck-out E2E flake was root-caused (multi-event attacker playback exceeding the fake-clock budget) and made deterministic in the test only, with no assertion weakened.
+- Remaining: wire active, bench, set, deck/grave/stats, log, and actions zones with per-zone parity evidence; fix `shared/engine.js`/`shared/effects.js` Math.random-only uid generators when bench/active go keyed; unify duplicate desktop/mobile DOM trees only after full parity.
+
+### Phases 5–13 — Full Production
 
 **Status:** QUEUED
-
-- Stable keyed cards and motion wrappers
 - Complete card system and all original card art
 - Three.js meadow, props, lighting, atmosphere, shadows, and fallback
 - HUD, setup, lobby, overlays, reveals, and results
