@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-29 01:20 EDT  
+**Last updated:** 2026-07-29 02:10 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -557,7 +557,14 @@ Evidence:
 - Manifest marks every card face `template-placeholder` with template focal points and an empty provenance block — no provenance claim. Draft validation green (0 errors; 334 honest warnings); **strict release honestly red (334 errors)**. The only validator change scopes DUPLICATE_CONTENT_HASH to a draft-phase warning for explicitly declared placeholder-tier assets — release severity and undeclared assets unchanged, exactly per the user's template-mode contract.
 - Per-card blind reviews and faction contact-sheet gates deferred until real art exists: **EVIDENCE PENDING (user art)**. Evidence: 601/601 units (5 new exit contracts), unchanged production build. Handoff: `task-41-phase6-template-mode.md`.
 
-### Phases 5, 7–13 — Full Production
+### Phase 7 — Three.js Meadow
+
+**Status:** IN PROGRESS — TERRAIN/DIVIDER/DIAMOND CHUNK GREEN (2026-07-29)
+
+- **ACCOMPLISHED: Task 42 — meadow chunk 1 under the locked camera with every applicable §12 field row measured live and green:** divider center 413.47 (414±3), slope 0.006, span 76.3% (68–80), core 10 px (R2 measures 10), diamond 38×40 at 835.5 (33–45 × 38–50 at 836±3), palette region ΔE00 0/0/3.63 (≤5 final), perimeter/center ratio 0.225 (0.14–0.25), byte-identical determinism. Screen-anchored seeded painting (texture-space painting provably missed screen targets), gradient transparent-black fix, and a documented NoToneMapping decision (flat-quad bisect proved Neutral distorts §5 roles ~30% on blue; baked cel pipeline authors final colors). 4 new visual gates; 22/22 visual project; 601/601 units. Handoff: `task-42-meadow-field-chunk1.md`.
+- Remaining: §4.3 perimeter prop silhouettes + seeded scatter (trees/rocks/fence/river/flowers), zone decals/slot marks, instanced foliage, environment-frame/quiet-zone/prop-intrusion rows, seeded ambient motion, static AVIF/WebP fallback, populated-board blind comparison vs R2.
+
+### Phases 5, 8–13 — Full Production
 
 **Status:** QUEUED
 - Complete card system and all original card art
