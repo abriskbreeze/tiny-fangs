@@ -5,7 +5,37 @@
   <title>Tiny Fangs — Card Showcase Harness</title>
   <style>
     html, body { margin: 0; padding: 0; background: #23281f; }
-    #stage { position: relative; width: 1672px; height: 941px; overflow: hidden; }
+    /* Critic r1 correction: the showcase stages on a lit meadow tabletop
+       (§5 meadow/foliage roles, warm upper-left key) so contact shadows
+       read and the cards sit on a ground plane instead of a void. */
+    #stage {
+      position: relative; width: 1672px; height: 941px; overflow: hidden;
+      background:
+        radial-gradient(140% 120% at 24% 8%,
+          rgba(237, 198, 116, 0.28) 0%, rgba(237, 198, 116, 0.10) 34%, rgba(237, 198, 116, 0) 60%),
+        radial-gradient(130% 150% at 50% 46%,
+          #C2AB4D 0%, #B8A94E 44%, #B3A74F 62%, #8A8A45 84%, #55603E 100%),
+        #334B42;
+    }
+    /* soft foliage vignette corners */
+    #stage::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(60% 50% at 0% 0%, rgba(51, 75, 66, 0.55) 0%, rgba(51, 75, 66, 0) 70%),
+        radial-gradient(60% 50% at 100% 0%, rgba(51, 75, 66, 0.45) 0%, rgba(51, 75, 66, 0) 70%),
+        radial-gradient(65% 55% at 0% 100%, rgba(51, 75, 66, 0.6) 0%, rgba(51, 75, 66, 0) 70%),
+        radial-gradient(65% 55% at 100% 100%, rgba(51, 75, 66, 0.5) 0%, rgba(51, 75, 66, 0) 70%);
+    }
+    /* grass micro-texture: fine directional strokes, subtle at 1x */
+    #stage::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background:
+        repeating-linear-gradient(83deg,
+          rgba(90, 92, 48, 0.10) 0 1px, rgba(0, 0, 0, 0) 1px 5px),
+        repeating-linear-gradient(97deg,
+          rgba(245, 215, 131, 0.06) 0 1px, rgba(0, 0, 0, 0) 1px 7px);
+    }
+    #stage.chassis::before, #stage.chassis::after { content: none; }
     #stage.chassis { width: auto; height: auto; display: flex; flex-wrap: wrap;
       gap: 24px; padding: 24px; align-items: flex-start; }
     .specimen { position: absolute; transform-origin: center center; }

@@ -49,33 +49,31 @@ export const GOLDEN_SAMPLE_ART = {
   <g>
     <!-- ridge under the wolf -->
     <path d="M48 176 Q128 158 208 176 L208 190 L48 190 Z" fill="#3A422C"/>
-    <!-- body: seated howl profile, muzzle raised to the moon -->
-    <path d="M92 176
-             C90 156 96 138 110 128
-             C118 122 124 112 128 100
-             L136 88 L142 72
-             L152 84
-             C160 82 166 84 170 90
-             L162 94 C166 100 164 108 158 112
-             C152 116 148 122 146 130
-             C158 138 164 152 162 176
-             L148 176 C148 162 144 150 136 144
-             C128 150 120 160 118 176 Z"
+    <!-- seated howl profile: raised muzzle, distinct ear, deep chest, tail -->
+    <path d="M94 176
+             C92 158 97 142 108 132
+             C116 125 122 116 126 104
+             C129 96 133 88 138 82
+             L143 70
+             L151 81
+             C158 79 164 82 167 88
+             L160 92
+             C163 98 161 106 155 110
+             C149 114 145 121 143 129
+             C155 138 161 152 159 176
+             L146 176 C146 163 142 152 135 146
+             C127 152 120 162 118 176 Z"
           fill="#241B18"/>
-    <!-- ear -->
-    <path d="M136 88 L132 74 L142 72 Z" fill="#241B18"/>
-    <!-- tail curled by the haunch -->
-    <path d="M92 172 C80 170 72 162 72 150 C80 156 88 160 94 162 Z" fill="#241B18"/>
-    <!-- warm rim light: moonward edge of muzzle, chest, and back -->
-    <path d="M142 72 L152 84 C160 82 166 84 170 90 L162 94
-             C164 90 158 87 152 89 L146 78 Z" fill="#EDC674" opacity="0.9"/>
-    <path d="M128 100 C124 112 118 122 110 128 C104 132 99 138 96 146
-             C101 136 108 129 114 125 C121 119 126 110 130 102 Z"
-          fill="#B47015" opacity="0.9"/>
-    <path d="M146 130 C158 138 164 152 162 176 L158 176
-             C159 154 153 141 144 133 Z" fill="#B47015" opacity="0.7"/>
-    <!-- ember eye -->
-    <circle cx="146" cy="96" r="2.4" fill="#F5D783"/>
+    <path d="M138 82 L134 68 L144 69 Z" fill="#241B18"/>
+    <path d="M94 172 C82 171 73 163 72 151 C80 158 88 161 96 163 Z" fill="#241B18"/>
+    <!-- moonward rim light: muzzle, throat, shoulder line -->
+    <path d="M143 70 L151 81 C158 79 164 82 167 88 L160 92
+             C162 88 157 84 151 86 L146 76 Z" fill="#EDC674" opacity="0.92"/>
+    <path d="M126 104 C122 116 116 125 108 132 C112 126 118 118 121 110
+             C124 104 126 98 128 94 Z" fill="#B47015" opacity="0.9"/>
+    <path d="M143 129 C155 138 161 152 159 176 L155 176
+             C156 154 150 140 141 132 Z" fill="#B47015" opacity="0.7"/>
+    <circle cx="147" cy="94" r="2.2" fill="#F5D783"/>
   </g>
   <!-- foreground grass strokes -->
   <g stroke="#5A5C30" stroke-width="2" stroke-linecap="round" opacity="0.85">
@@ -199,29 +197,44 @@ export const GOLDEN_SAMPLE_ART = {
 <svg viewBox="0 0 285 457" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
   <defs>
     <radialGradient id="bk-glow" cx="0.5" cy="0.47" r="0.5">
-      <stop offset="0" stop-color="#EEC34E" stop-opacity="0.16"/>
+      <stop offset="0" stop-color="#EEC34E" stop-opacity="0.18"/>
       <stop offset="1" stop-color="#EEC34E" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <ellipse cx="142.5" cy="214" rx="128" ry="150" fill="url(#bk-glow)"/>
   <g fill="none" stroke="#EEC34E">
-    <!-- outer ring pair -->
-    <circle cx="142.5" cy="214" r="96" stroke-width="1.6"/>
-    <circle cx="142.5" cy="214" r="88" stroke-width="1"/>
-    <!-- compass filigree, slightly asymmetric by design -->
-    <path d="M142.5 96 L142.5 118" stroke-width="1.6"/>
-    <path d="M142.5 310 L142.5 334" stroke-width="1.6"/>
-    <path d="M24 214 L46 214" stroke-width="1.6"/>
-    <path d="M239 214 L263 214" stroke-width="1.6"/>
-    <path d="M63 132 L78 147" stroke-width="1"/>
-    <path d="M222 132 L207 147" stroke-width="1"/>
-    <path d="M65 294 L80 279" stroke-width="1"/>
-    <path d="M219 297 L205 282" stroke-width="1"/>
-    <!-- corner filigree hooks -->
-    <path d="M38 60 Q60 52 70 68" stroke-width="1"/>
-    <path d="M247 60 Q225 52 215 68" stroke-width="1"/>
-    <path d="M38 398 Q60 406 70 390" stroke-width="1"/>
-    <path d="M247 396 Q226 406 216 392" stroke-width="1"/>
+    <!-- framing border pair with corner breaks -->
+    <path d="M34 16 L251 16" stroke-width="1.2"/>
+    <path d="M34 441 L251 441" stroke-width="1.2"/>
+    <path d="M14 36 L14 421" stroke-width="1.2"/>
+    <path d="M271 36 L271 421" stroke-width="1.2"/>
+    <path d="M22 24 L48 24 M22 24 L22 50" stroke-width="1.8"/>
+    <path d="M263 24 L237 24 M263 24 L263 50" stroke-width="1.8"/>
+    <path d="M22 433 L48 433 M22 433 L22 407" stroke-width="1.8"/>
+    <path d="M263 433 L237 433 M263 433 L263 407" stroke-width="1.8"/>
+    <!-- corner filigree hooks, deliberately asymmetric -->
+    <path d="M30 60 Q56 50 68 70 Q60 58 42 62" stroke-width="1"/>
+    <path d="M255 60 Q229 50 217 70 Q225 58 243 62" stroke-width="1"/>
+    <path d="M30 397 Q56 407 68 387 Q60 399 44 396" stroke-width="1"/>
+    <path d="M255 399 Q230 407 218 389 Q226 399 242 395" stroke-width="1"/>
+    <!-- ring set: outer pair, tick ring, inner band -->
+    <circle cx="142.5" cy="214" r="102" stroke-width="1.6"/>
+    <circle cx="142.5" cy="214" r="94" stroke-width="1"/>
+    <circle cx="142.5" cy="214" r="70" stroke-width="1"/>
+    <!-- radial ticks between the ring pairs -->
+    <g stroke-width="1">
+      <path d="M142.5 116 L142.5 126"/><path d="M142.5 302 L142.5 312"/>
+      <path d="M44.5 214 L54.5 214"/><path d="M230.5 214 L240.5 214"/>
+      <path d="M73 145 L80 152"/><path d="M212 145 L205 152"/>
+      <path d="M73 283 L80 276"/><path d="M213 284 L206 277"/>
+      <path d="M108 122 L111 131"/><path d="M177 122 L174 131"/>
+      <path d="M108 306 L111 297"/><path d="M178 307 L175 298"/>
+    </g>
+    <!-- compass points -->
+    <path d="M142.5 88 L142.5 112" stroke-width="1.8"/>
+    <path d="M142.5 316 L142.5 342" stroke-width="1.8"/>
+    <path d="M14 214 L40 214" stroke-width="1.8"/>
+    <path d="M245 214 L271 214" stroke-width="1.8"/>
   </g>
   <!-- twin fangs, separated, tips inward -->
   <g fill="#EEC34E">
@@ -229,11 +242,13 @@ export const GOLDEN_SAMPLE_ART = {
     <path d="M169 168 C175 202 171 236 155 260 C153 234 153 200 157 176 Z"/>
     <path d="M112 166 Q142.5 154 173 166 L169 172 Q142.5 162 116 172 Z"/>
   </g>
-  <!-- small star accents -->
-  <g fill="#EEC34E" opacity="0.8">
-    <circle cx="142.5" cy="140" r="2.2"/>
-    <circle cx="102" cy="250" r="1.8"/>
-    <circle cx="184" cy="252" r="1.8"/>
+  <!-- moth-star accents inside the inner band -->
+  <g fill="#EEC34E">
+    <path d="M142.5 136 l2.2 4.4 4.6 0.6 -3.4 3.2 0.9 4.6 -4.3 -2.3 -4.3 2.3 0.9 -4.6 -3.4 -3.2 4.6 -0.6 Z" opacity="0.9"/>
+    <circle cx="100" cy="252" r="1.8" opacity="0.8"/>
+    <circle cx="186" cy="252" r="1.8" opacity="0.8"/>
+    <circle cx="120" cy="286" r="1.4" opacity="0.7"/>
+    <circle cx="166" cy="286" r="1.4" opacity="0.7"/>
   </g>
 </svg>`,
 };

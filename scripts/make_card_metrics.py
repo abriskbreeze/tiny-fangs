@@ -312,6 +312,50 @@ def main() -> int:
             shadow_ok &= ok
         row("showcase-shadow", "shadow-only mask centroid offset/direction per specimen",
             shadow_out, "x +20..100, y +50..90, 55..75 deg, contained", shadow_ok)
+
+        # Critic-r1 coverage extension 1: shadows must be VISIBLE in the real
+        # composed capture, not only present in isolation masks. Compare
+        # luminance in the shadow band (below-right of each card, inside the
+        # envelope) against unshadowed ground just outside the envelope's
+        # opposite corner.
+        vis_ok = True
+        vis_out = {}
+        corner_pairs = {
+            "card-creature-frame": ((634, 841), (252, 312)),
+            "card-cast-frame": ((1016, 845), (648, 318)),
+            "card-set-frame": ((1382, 852), (1028, 322)),
+            "card-back": ((1548, 830), (1226, 326)),
+        }
+        for spec_id, (shadow_pt, clear_pt) in corner_pairs.items():
+            shadow_lum = rel_luminance(median_window(image, shadow_pt))
+            clear_lum = rel_luminance(median_window(image, clear_pt))
+            delta = clear_lum - shadow_lum
+            ok = delta >= 0.03
+            vis_out[spec_id] = {"shadowLum": round(shadow_lum, 3),
+                                "clearLum": round(clear_lum, 3),
+                                "delta": round(delta, 3)}
+            vis_ok &= ok
+        row("shadow-visibility-in-context",
+            "luminance delta between in-envelope shadow band and unshadowed ground in the composed capture",
+            vis_out, "delta >= 0.03 per specimen", vis_ok)
+
+        # Critic-r1 coverage extension 2: footer/flavor contrast measured on
+        # the footer's own sampled ground per family card, not only the
+        # generic parchment sample.
+        footer_ok = True
+        footer_out = {}
+        for spec_id, local in {
+            "card-creature-frame": (166, 476),
+            "card-cast-frame": (166, 476),
+            "card-set-frame": (166, 476),
+        }.items():
+            ground = median_window(image, to_stage(spec_id, local))
+            ratio = contrast(hex_rgb("#3B2317"), ground)
+            footer_out[spec_id] = {"ground": list(ground), "contrast": round(ratio, 2)}
+            footer_ok &= ratio >= 4.5
+        row("footer-contrast-on-ground",
+            "authored footer ink vs sampled footer-region ground per family card",
+            footer_out, ">= 4.5:1", footer_ok)
     finally:
         server.terminate()
         server.wait()
