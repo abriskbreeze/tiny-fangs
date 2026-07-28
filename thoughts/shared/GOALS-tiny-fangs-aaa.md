@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-28 18:55 EDT  
+**Last updated:** 2026-07-28 19:20 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -516,7 +516,8 @@ Evidence:
 
 - **ACCOMPLISHED (2026-07-28): Camera locked — low-FOV perspective, FOV 30°, pitch 24.5°, distance 1950, equal-object ratio 1.0845.** Four blind packet revisions, two fresh critics each, sealed-commitment mappings verified after scores. Round 4 (`camera-bakeoff-4`): both critics passed `singleCameraCriticPass` (92.1 and 92.3) with unanimous perspective preference; the orthographic candidate failed every round on its zero-convergence elevation-diagram read. Golden quadrilaterals for all 12 anchors recorded in `tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json`; decision record in `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/camera-lock-decision.md` with post-lock P2/P3 follow-ups.
 - Art bible accepted by user manual pass (hash `84b89838…`); reference-locked palette, lighting, geometry, typography, and card proportions are in force.
-- Remaining: creature, cast, set, and card-back golden samples; self-hosted licensed fonts; production art per the 56-face manifest (263 file contracts, validation already fail-closed).
+- **ACCOMPLISHED (2026-07-28): Task 32 — fonts self-hosted, zero remote capture dependencies.** The exact JetBrains Mono v24 woff2 binaries (six script subsets, SIL OFL 1.1 with bundled license) replace the Google Fonts import; `grep` proves no `googleapis`/`gstatic` reference remains in source, dist, or entry points; all 17 classic hashes stayed byte-identical. Evidence: 580/580 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual. Handoff: `task-32-self-hosted-fonts.md`.
+- Remaining: creature, cast, set, and card-back golden samples through the two-fresh-critic blind gate (user taste acceptance expected to be a BLOCKED entry once candidates exist); production art per the 56-face manifest runs in Phase 6 TEMPLATE MODE (user decision 2026-07-28).
 
 ### Phase 3 — Presentation Boundary and Compositing Proof
 

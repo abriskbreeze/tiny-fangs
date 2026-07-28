@@ -1,4 +1,6 @@
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+    /* Self-hosted JetBrains Mono (SIL OFL 1.1) — no remote font dependency;
+       captures and gameplay render identically offline. */
+    @import url('./fonts/jetbrains-mono.css');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
