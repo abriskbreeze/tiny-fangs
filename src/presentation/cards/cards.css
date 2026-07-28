@@ -1,0 +1,294 @@
+/* AAA card chassis — art bible §5 palette, §7 frame hierarchy, §8 typography.
+   Authored at the 333 × 505 unprojected chassis; other render sizes apply the
+   §7.4 per-axis transform on the caller side. Loaded only by AAA/showcase
+   surfaces — never by the classic shell. */
+
+@import url('../../fonts/alegreya.css');
+@import url('../../fonts/jetbrains-mono.css');
+
+.tf-aaa-card {
+  --tf-parchment: #DCBA96;
+  --tf-ink: #3B2317;
+  --tf-ivory-lip: #DEBB91;
+  --tf-back-navy: #372F3F;
+  --tf-filigree: #EEC34E;
+  --tf-family: #B47015; /* creature amber default */
+  --tf-family-light: color-mix(in srgb, var(--tf-family) 72%, #F5E6C8);
+  --tf-family-dark: color-mix(in srgb, var(--tf-family) 68%, #241812);
+
+  position: relative;
+  box-sizing: border-box;
+  /* §7.2 physical corner radius 5.5–7.0% of width → 21 px at 333. */
+  border-radius: 21px;
+  background:
+    /* paper luminance grain, 1–3% RMS (§7.6) */
+    repeating-conic-gradient(
+      from 0.17turn,
+      rgba(59, 35, 23, 0.020) 0deg 7deg,
+      rgba(255, 250, 238, 0.022) 7deg 13deg
+    ),
+    linear-gradient(157deg, #E7C79E 0%, var(--tf-ivory-lip) 46%, #CBA87E 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55),
+    inset -1px -1px 0 rgba(74, 52, 34, 0.35);
+  font-family: 'Alegreya', Georgia, serif;
+  color: var(--tf-ink);
+}
+
+.tf-aaa-card--cast { --tf-family: #277A79; }
+.tf-aaa-card--set { --tf-family: #6A5A66; }
+
+/* ── §7.2 frame hierarchy, outside-in ─────────────────────────────── */
+
+.tf-aaa-card__keyline {
+  position: absolute;
+  inset: 11.5px; /* ivory lip 3.45% per side */
+  border-radius: 13px; /* concentric with the 21 px outer radius */
+  background: color-mix(in srgb, var(--tf-ink) 82%, #000);
+}
+
+.tf-aaa-card__rail {
+  position: absolute;
+  inset: 3px; /* separation keyline 0.9% */
+  border-radius: 11px;
+  background:
+    /* §7.2: highlight bevel upper-left, recessed bevel lower-right, both
+       contained inside the rail width */
+    linear-gradient(
+      143deg,
+      var(--tf-family-light) 0%,
+      var(--tf-family-light) 5%,
+      var(--tf-family) 15%,
+      var(--tf-family) 82%,
+      var(--tf-family-dark) 93%,
+      var(--tf-family-dark) 100%
+    );
+}
+
+.tf-aaa-card__inner-keyline {
+  position: absolute;
+  inset: 21px; /* family rail 6.3% */
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tf-ink) 78%, #000);
+}
+
+.tf-aaa-card__panel {
+  position: absolute;
+  inset: 3px; /* inner keyline 0.9% — cumulative 38.5 px = 11.56% per side */
+  border-radius: 3px;
+  background:
+    repeating-conic-gradient(
+      from 0.61turn,
+      rgba(59, 35, 23, 0.018) 0deg 9deg,
+      rgba(255, 250, 238, 0.02) 9deg 15deg
+    ),
+    linear-gradient(168deg, #E3C29C 0%, var(--tf-parchment) 55%, #CEAA82 100%);
+}
+
+/* ── content overlay: exact §7.4 card-local rectangles ────────────── */
+
+.tf-aaa-card__content {
+  position: absolute;
+  inset: 0;
+}
+
+.tf-aaa-card__content > div {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+/* Physical art aperture (§7.3): 38.5 px side insets, 4% top offset,
+   ends 56.8% down the chassis. */
+.tf-aaa-card__art {
+  left: 38.5px;
+  top: 20px;
+  width: 256px;
+  height: 267px;
+  border-radius: 2px;
+  background:
+    radial-gradient(
+      130% 90% at 30% 22%,
+      color-mix(in srgb, var(--tf-family-light) 55%, #F2E2BC) 0%,
+      color-mix(in srgb, var(--tf-family) 70%, #6B5432) 58%,
+      color-mix(in srgb, var(--tf-family-dark) 80%, #241812) 100%
+    );
+  box-shadow: inset 0 0 22px rgba(36, 24, 18, 0.45);
+}
+
+.tf-aaa-card__type {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--tf-ink) 88%, var(--tf-family));
+  padding-right: 4px;
+}
+
+.tf-aaa-card__nameplate {
+  border-radius: 7px;
+  background:
+    linear-gradient(173deg, #EDD3AC 0%, #E0BE95 60%, #D2AC7F 100%);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--tf-ink) 65%, transparent),
+    inset 0 1px 0 2.5px rgba(255, 246, 226, 0.5),
+    0 1px 2px rgba(36, 24, 18, 0.35);
+}
+
+/* §7.4 nameplate contract: 230 × 50 text box, 22 px / 24.5 px, 10/5 px
+   padding, two lines maximum, no compression, no ellipsis. */
+.tf-aaa-card__title {
+  position: absolute;
+  left: 10px;
+  top: 5px;
+  width: 230px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.tf-aaa-card__title-text {
+  display: inline-block;
+  font-size: 22px;
+  line-height: 24.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  max-height: 49px;
+  overflow: visible;
+}
+
+.tf-aaa-card__seal {
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 36% 30%,
+      var(--tf-family-light) 0%,
+      var(--tf-family) 52%,
+      var(--tf-family-dark) 100%
+    );
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--tf-ink) 72%, transparent),
+    0 0 0 3.5px var(--tf-filigree),
+    0 1px 3px rgba(36, 24, 18, 0.5);
+}
+
+.tf-aaa-card__rules {
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+.tf-aaa-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  color: color-mix(in srgb, var(--tf-ink) 78%, var(--tf-parchment));
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+/* ── medallions: numerals in the mono face, weight 700, tabular ───── */
+
+.tf-aaa-card__medallion-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tf-ink);
+}
+
+.tf-aaa-card__cost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 30px;
+  background:
+    radial-gradient(circle at 34% 28%, #EFD8B2 0%, var(--tf-parchment) 55%, #C9A276 100%);
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--tf-ink) 75%, transparent),
+    0 0 0 4.5px var(--tf-family),
+    0 1px 3px rgba(36, 24, 18, 0.5);
+}
+
+/* Attack silhouette is edged/weapon-derived (§7.3). */
+.tf-aaa-card__attack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  clip-path: polygon(50% 0%, 93% 25%, 100% 72%, 50% 100%, 0% 72%, 7% 25%);
+  background:
+    linear-gradient(150deg, var(--tf-family-light) 0%, var(--tf-family) 55%, var(--tf-family-dark) 100%);
+}
+
+.tf-aaa-card__attack .tf-aaa-card__medallion-num,
+.tf-aaa-card__health .tf-aaa-card__medallion-num {
+  color: #F6E8CE;
+  text-shadow: 0 1px 0 rgba(36, 24, 18, 0.55);
+}
+
+/* Health silhouette is rounded/heart-derived (§7.3). */
+.tf-aaa-card__health {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  border-radius: 50% 50% 46% 46% / 58% 58% 40% 40%;
+  background:
+    radial-gradient(circle at 36% 30%, #8F4F43 0%, #6E352C 55%, #45201B 100%);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--tf-ink) 75%, transparent);
+}
+
+/* ── card back (§7.6): shared navy, fine gold line work, central sigil ── */
+
+.tf-aaa-card--back .tf-aaa-card__rail,
+.tf-aaa-card--back .tf-aaa-card__inner-keyline {
+  background: var(--tf-back-navy);
+}
+
+.tf-aaa-card--back .tf-aaa-card__panel {
+  background:
+    repeating-conic-gradient(
+      from 0.4turn,
+      rgba(238, 195, 78, 0.025) 0deg 6deg,
+      rgba(20, 16, 26, 0.03) 6deg 12deg
+    ),
+    radial-gradient(120% 120% at 50% 42%, #453B50 0%, var(--tf-back-navy) 58%, #241F2C 100%);
+}
+
+.tf-aaa-card__back-sigil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tf-aaa-card__back-ring {
+  position: absolute;
+  width: 172px;
+  height: 172px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tf-filigree);
+  box-shadow:
+    0 0 0 7px rgba(238, 195, 78, 0.14),
+    inset 0 0 0 5px rgba(238, 195, 78, 0.14),
+    inset 0 0 0 6.5px rgba(238, 195, 78, 0.55);
+}
+
+.tf-aaa-card__back-fang {
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 64px;
+  letter-spacing: 0.04em;
+  color: var(--tf-filigree);
+  text-shadow: 0 0 14px rgba(238, 195, 78, 0.35);
+}

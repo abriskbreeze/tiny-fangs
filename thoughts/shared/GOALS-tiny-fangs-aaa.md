@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-28 19:20 EDT  
+**Last updated:** 2026-07-28 20:05 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -517,7 +517,9 @@ Evidence:
 - **ACCOMPLISHED (2026-07-28): Camera locked — low-FOV perspective, FOV 30°, pitch 24.5°, distance 1950, equal-object ratio 1.0845.** Four blind packet revisions, two fresh critics each, sealed-commitment mappings verified after scores. Round 4 (`camera-bakeoff-4`): both critics passed `singleCameraCriticPass` (92.1 and 92.3) with unanimous perspective preference; the orthographic candidate failed every round on its zero-convergence elevation-diagram read. Golden quadrilaterals for all 12 anchors recorded in `tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json`; decision record in `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/camera-lock-decision.md` with post-lock P2/P3 follow-ups.
 - Art bible accepted by user manual pass (hash `84b89838…`); reference-locked palette, lighting, geometry, typography, and card proportions are in force.
 - **ACCOMPLISHED (2026-07-28): Task 32 — fonts self-hosted, zero remote capture dependencies.** The exact JetBrains Mono v24 woff2 binaries (six script subsets, SIL OFL 1.1 with bundled license) replace the Google Fonts import; `grep` proves no `googleapis`/`gstatic` reference remains in source, dist, or entry points; all 17 classic hashes stayed byte-identical. Evidence: 580/580 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual. Handoff: `task-32-self-hosted-fonts.md`.
-- Remaining: creature, cast, set, and card-back golden samples through the two-fresh-critic blind gate (user taste acceptance expected to be a BLOCKED entry once candidates exist); production art per the 56-face manifest runs in Phase 6 TEMPLATE MODE (user decision 2026-07-28).
+- **ACCOMPLISHED (2026-07-28): Task 33 — card chassis foundation and §13.2 showcase harness.** The §7 chassis renders as real DOM with every §7.4 rectangle within 1 px of authored coordinates, the §7.2 seven-layer hierarchy at 11.56% cumulative inset, §5 palette, and the four-family showcase at manifest geometry. 16 unit geometry contracts (including the bible's own pairwise non-overlap check) and 7 browser measurement gates are green; classic is untouched. Candidate render: `task-33-showcase-candidate-r1.png`. Handoff: `task-33-card-chassis-foundation.md`.
+- **BLOCKED (user ratification): typography pairing.** Candidate is Alegreya (display/rules; OFL, self-hosted, passes all three §7.4 nameplate fixtures at locked 22 px) + JetBrains Mono (numerals/labels; tabular, unambiguous glyphs). Question: ratify this pairing, or name a preferred direction (more ornate fantasy serif / cleaner humanist / other), and work re-runs the objective §8 gates on the replacement. Work continues on the candidate meanwhile.
+- Remaining: author the four aperture art pieces + back sigil (original, §5 palette, §7.6 constraints), pre-critic craft polish (footer contrast, seal detail, back line work), then the §13.7 blind packet and the two-fresh-critic §13.5 gate (>=93 weighted, no category <9.0, wow >=9.0, zero P0/P1). Golden-sample taste acceptance will be its own BLOCKED entry. Production art per the 56-face manifest runs in Phase 6 TEMPLATE MODE (user decision 2026-07-28).
 
 ### Phase 3 — Presentation Boundary and Compositing Proof
 
