@@ -19,8 +19,12 @@ import {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
+// The monotonic suffix guarantees uniqueness even when Math.random is stubbed
+// deterministic (tests do this); keyed board rendering fails closed on
+// duplicate uids instead of silently mis-targeting cards.
+let uidSerial = 0;
 function uid() {
-  return Math.random().toString(36).substr(2, 9);
+  return `${Math.random().toString(36).substr(2, 9)}-${(++uidSerial).toString(36)}`;
 }
 
 function shuffle(arr) {

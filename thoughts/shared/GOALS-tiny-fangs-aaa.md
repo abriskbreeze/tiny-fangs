@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-28 17:35 EDT  
+**Last updated:** 2026-07-28 17:50 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -533,7 +533,8 @@ Evidence:
 - **ACCOMPLISHED: uid-keyed reconciler** (`src/presentation/dom/keyed-board-view.js`): create/patch/move/remove with stable DOM identity across zone moves, duplicate/missing-uid fail-closed, idempotent reconcile, snapshotRects/flipDeltas FLIP seams — 7/7 focused contracts.
 - **ACCOMPLISHED: Task 28 — hand zones (`m-hand`, `d-hand`) render keyed** through the new `createHtmlKeyedView` adapter with byte-identical `renderHandCard` markup. Evidence: 573/573 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual including all 17 classic screenshot records (pngHash) equal to the committed baseline. Handoff: `task-28-keyed-hand-zone.md`.
 - Fail-closed keying exposed and fixed a latent client defect: `src/state.js` `uid()` was pure `Math.random()` and collided under the E2E's stubbed randomness; it now carries a monotonic serial. A pre-existing shuffle-dependent deck-out E2E flake was root-caused (multi-event attacker playback exceeding the fake-clock budget) and made deterministic in the test only, with no assertion weakened.
-- Remaining: wire active, bench, set, deck/grave/stats, log, and actions zones with per-zone parity evidence; fix `shared/engine.js`/`shared/effects.js` Math.random-only uid generators when bench/active go keyed; unify duplicate desktop/mobile DOM trees only after full parity.
+- **ACCOMPLISHED: Task 29 — all four active and all four bench containers render keyed** (single-slot and two-slot view-models with stable synthetic empty uids, byte-identical markup), and every remaining `Math.random()`-only uid generator (`shared/engine.js`, `shared/effects.js` ×2, `src/game.js` ×2, `src/abilities.js`) now carries the monotonic serial suffix. Evidence: 573/573 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual with all 17 classic hashes byte-identical, 17/17 server-process, clean diagnostics. Handoff: `task-29-keyed-active-bench-zones.md`.
+- Remaining: set-verse slots (single-node adapter or Phase 8 deferral decision), log zone, textContent-only stats zones (audit + exemption), actions row; unify duplicate desktop/mobile DOM trees only after full parity. Cross-zone DOM adoption for FLIP travel is deferred to the Phase 10 motion director by design.
 
 ### Phases 5–13 — Full Production
 

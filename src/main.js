@@ -876,16 +876,26 @@
       const myAtkInfo = state.G.me.active ? getAtkModifiers(state.G.me.active, state.G.me, state.G.opp) : null;
       const oppAtkInfo = state.G.opp.active ? getAtkModifiers(state.G.opp.active, state.G.opp, state.G.me) : null;
 
-      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
-      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
-      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
-      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
+      const activeModels = (card, atkInfo, ownerPlayer) => [
+        card
+          ? { uid: card.uid, html: renderActiveCard(card, atkInfo, ownerPlayer) }
+          : { uid: '__empty__', html: renderActiveCard(null) },
+      ];
+      keyedZoneView('m-my-active').reconcile(activeModels(state.G.me.active, myAtkInfo, state.G.me));
+      keyedZoneView('m-opp-active').reconcile(activeModels(state.G.opp.active, oppAtkInfo, state.G.opp));
+      keyedZoneView('d-my-active').reconcile(activeModels(state.G.me.active, myAtkInfo, state.G.me));
+      keyedZoneView('d-opp-active').reconcile(activeModels(state.G.opp.active, oppAtkInfo, state.G.opp));
 
-      // Bench
-      $('m-my-bench').innerHTML = renderBench(state.G.me.bench);
-      $('m-opp-bench').innerHTML = renderBench(state.G.opp.bench);
-      $('d-my-bench').innerHTML = renderBench(state.G.me.bench);
-      $('d-opp-bench').innerHTML = renderBench(state.G.opp.bench);
+      // Bench (two slots, filled or empty, exactly as renderBench composed them)
+      const benchModels = (bench) => [0, 1].map((slot) => (
+        bench[slot]
+          ? { uid: bench[slot].uid, html: renderMiniCard(bench[slot]) }
+          : { uid: `__empty-${slot}__`, html: '<div class="card-empty"></div>' }
+      ));
+      keyedZoneView('m-my-bench').reconcile(benchModels(state.G.me.bench));
+      keyedZoneView('m-opp-bench').reconcile(benchModels(state.G.opp.bench));
+      keyedZoneView('d-my-bench').reconcile(benchModels(state.G.me.bench));
+      keyedZoneView('d-opp-bench').reconcile(benchModels(state.G.opp.bench));
 
       // Hand
       $('m-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;

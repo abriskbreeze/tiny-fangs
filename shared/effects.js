@@ -20,6 +20,14 @@
 import { applyCreatureDamageReduction } from './damage-reduction.js';
 import { stampDerivedPresentationFace } from './face-registry.js';
 
+// The monotonic suffix guarantees uniqueness even when Math.random is stubbed
+// deterministic (tests do this); keyed board rendering fails closed on
+// duplicate uids instead of silently mis-targeting cards.
+let uidSerial = 0;
+function uniqueUid() {
+  return `${Math.random().toString(36).slice(2, 9)}-${(++uidSerial).toString(36)}`;
+}
+
 // Helper: resolve target string to actual object
 function resolveTarget(ctx, targetStr) {
   if (!targetStr) return null;
@@ -799,7 +807,7 @@ const Effects = {
         cost: 0,
         cardType: 'creature',
         ability: null,
-        uid: Math.random().toString(36).slice(2, 9),
+        uid: uniqueUid(),
         isToken: true
       }
     };
@@ -810,7 +818,7 @@ const Effects = {
     }
 
     const spawned = stampDerivedPresentationFace(
-      { ...creature, uid: Math.random().toString(36).slice(2, 9) },
+      { ...creature, uid: uniqueUid() },
       token
     );
     const ownerKey = ctx.me === ctx.state?.G?.me ? 'me' : 'opp';
