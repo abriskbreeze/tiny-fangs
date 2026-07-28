@@ -1,8 +1,33 @@
 import { $ } from './state.js';
+import { createTargetRegistry } from './presentation/dom/target-registry.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ANIMATION SYSTEM
 // ═══════════════════════════════════════════════════════════════
+
+// Shell-aware semantic targeting (plan Phase 4 acceptance): board targets
+// resolve against the active shell only, so animation never plays into the
+// hidden duplicate tree. The registry is rebuilt if the global document
+// changes (unit tests swap DOM stand-ins between cases).
+let cachedRegistry = null;
+let cachedRegistryDocument = null;
+
+function targetRegistry() {
+  const doc = globalThis.document;
+  if (!cachedRegistry || cachedRegistryDocument !== doc) {
+    cachedRegistry = createTargetRegistry({ document: doc });
+    cachedRegistryDocument = doc;
+  }
+  return cachedRegistry;
+}
+
+function semanticEl(name) {
+  try {
+    return targetRegistry().resolve(name) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Animation timing constants (keep in sync with CSS)
 export const ANIM_TIMING = {
@@ -57,29 +82,62 @@ export const Anim = {
   
   // Get element center position (for caching before DOM changes)
   getElementCenter(selector) {
-    const el = this.getVisibleElement(selector);
+    return this.centerOf(this.getVisibleElement(selector));
+  },
+
+  centerOf(el) {
     if (!el || el.offsetParent === null) return null;
     const rect = el.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   },
-  
+
+  // Active-shell semantic targets. Null when the slot is empty or the shell
+  // is not mounted; play(null) is already a safe no-op.
+  activeCardEl(side) {
+    const container = semanticEl(side === 'me' ? 'me.active' : 'opp.active');
+    return container?.querySelector?.('.card-active') ?? null;
+  },
+
+  lpEl(side) {
+    return semanticEl(side === 'me' || side === 'myLp' ? 'me.life' : 'opp.life');
+  },
+
+  setSlotEl(side) {
+    return semanticEl(side === 'me' ? 'me.set' : 'opp.set');
+  },
+
+  benchContainerEl(side) {
+    return semanticEl(side === 'me' ? 'me.bench' : 'opp.bench');
+  },
+
+  benchCardEl(side, index) {
+    const container = this.benchContainerEl(side);
+    return container?.querySelector?.(`.card-mini:nth-child(${index + 1})`) ?? null;
+  },
+
+  benchCardEls(side) {
+    const container = this.benchContainerEl(side);
+    return container?.querySelectorAll
+      ? [...container.querySelectorAll('.card-mini')]
+      : [];
+  },
+
   // Cache current positions of active creatures (call before state updates)
   cacheActivePositions() {
     this.cachedPositions = {
-      me: this.getElementCenter('#m-my-active .card-active, #d-my-active .card-active'),
-      opp: this.getElementCenter('#m-opp-active .card-active, #d-opp-active .card-active'),
-      myLp: this.getElementCenter('#m-my-lp, #d-my-lp'),
-      oppLp: this.getElementCenter('#m-opp-lp, #d-opp-lp')
+      me: this.centerOf(this.activeCardEl('me')),
+      opp: this.centerOf(this.activeCardEl('opp')),
+      myLp: this.centerOf(this.lpEl('me')),
+      oppLp: this.centerOf(this.lpEl('opp'))
     };
   },
-  
+
   // Get position for animation (cached or live)
   getAnimPosition(side) {
-    return this.cachedPositions[side] || this.getElementCenter(
-      side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : 
-      side === 'opp' ? '#m-opp-active .card-active, #d-opp-active .card-active' :
-      side === 'myLp' ? '#m-my-lp, #d-my-lp' :
-      '#m-opp-lp, #d-opp-lp'
+    return this.cachedPositions[side] || this.centerOf(
+      side === 'me' || side === 'opp'
+        ? this.activeCardEl(side)
+        : this.lpEl(side === 'myLp' ? 'me' : 'opp')
     );
   },
   
@@ -143,79 +201,65 @@ export const Anim = {
   
   // Get card element by creature uid
   getCardEl(creatureUid, side) {
-    // Try to find VISIBLE card in active
-    const selector = side === 'me' 
-      ? '#m-my-active .card-active, #d-my-active .card-active' 
-      : '#m-opp-active .card-active, #d-opp-active .card-active';
-    return this.getVisibleElement(selector);
+    return this.activeCardEl(side);
   },
-  
+
   // Attack animation sequence - returns promise that resolves when complete
   attack(attackerSide, defenderSide, damage) {
     return new Promise(resolve => {
       const defPos = this.getAnimPosition(defenderSide);
-      
+
       // Lunge animation
       const lungeClass = attackerSide === 'me' ? 'anim-lunge-up' : 'anim-lunge-down';
-      const atkSelector = attackerSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      const defSelector = defenderSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      
-      this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
-      
+      const atkEl = this.activeCardEl(attackerSide);
+      const defEl = this.activeCardEl(defenderSide);
+
+      this.play(atkEl, lungeClass, ANIM_TIMING.LUNGE + 50);
+
       // On hit (immediate)
       this.screenFlash('red');
-      this.playOn(defSelector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
-      this.playOn(defSelector, 'anim-flash-red', ANIM_TIMING.FLASH);
+      this.play(defEl, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+      this.play(defEl, 'anim-flash-red', ANIM_TIMING.FLASH);
       this.floatText(`-${damage}`, 'damage', defPos);
-      
+
       // Resolve after full sequence
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
     });
   },
-  
+
   // Direct attack animation (no defender) - returns promise
   attackDirect(attackerSide) {
     return new Promise(resolve => {
       const lungeClass = attackerSide === 'me' ? 'anim-lunge-up' : 'anim-lunge-down';
-      const atkSelector = attackerSide === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      
-      this.playOn(atkSelector, lungeClass, ANIM_TIMING.LUNGE + 50);
-      
+      this.play(this.activeCardEl(attackerSide), lungeClass, ANIM_TIMING.LUNGE + 50);
+
       // Screen flash immediate
       this.screenFlash('red');
-      
+
       setTimeout(resolve, ANIM_TIMING.ATTACK_SEQUENCE);
     });
   },
-  
+
   // Damage animation (non-combat) - returns promise
   damage(side, amount) {
     return new Promise(resolve => {
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const el = this.activeCardEl(side);
       const pos = this.getAnimPosition(side);
       // Same hit effects as attack: screen flash, tilt wobble, red flash
       this.screenFlash('red');
-      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
-      this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH);
+      this.play(el, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+      this.play(el, 'anim-flash-red', ANIM_TIMING.FLASH);
       this.floatText(`-${amount}`, 'damage', pos);
       setTimeout(resolve, ANIM_TIMING.SHAKE);
     });
   },
-  
+
   // Bench damage animation - returns promise
   benchDamage(side, index, amount) {
     return new Promise(resolve => {
-      const mobileSelector = side === 'me' 
-        ? `#m-my-bench .card-mini:nth-child(${index + 1})` 
-        : `#m-opp-bench .card-mini:nth-child(${index + 1})`;
-      const desktopSelector = side === 'me'
-        ? `#d-my-bench .card-mini:nth-child(${index + 1})`
-        : `#d-opp-bench .card-mini:nth-child(${index + 1})`;
-      const selector = `${mobileSelector}, ${desktopSelector}`;
-      
-      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE);
-      this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH);
-      const el = this.getVisibleElement(selector);
+      const el = this.benchCardEl(side, index);
+      this.play(el, 'anim-shake', ANIM_TIMING.SHAKE);
+      this.play(el, 'anim-flash-red', ANIM_TIMING.FLASH);
       if (el) this.floatText(`-${amount}`, 'damage', el);
       setTimeout(resolve, ANIM_TIMING.SHAKE);
     });
@@ -225,83 +269,75 @@ export const Anim = {
   heal(side, amount) {
     return new Promise(resolve => {
       const pos = this.getAnimPosition(side);
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      this.playOn(selector, 'anim-flash-green', ANIM_TIMING.FLASH);
+      this.play(this.activeCardEl(side), 'anim-flash-green', ANIM_TIMING.FLASH);
       this.floatText(`+${amount}`, 'heal', pos);
       setTimeout(resolve, ANIM_TIMING.FLASH);
     });
   },
-  
+
   // LP damage - returns promise (EXTRA DRAMATIC)
   lpDamage(side, amount) {
     return new Promise(resolve => {
       // Screen flash for LP hits
       this.screenFlash('red');
-      const selector = side === 'me' ? '#m-my-lp, #d-my-lp' : '#m-opp-lp, #d-opp-lp';
+      const el = this.lpEl(side);
       const pos = this.getAnimPosition(side === 'me' ? 'myLp' : 'oppLp');
-      this.playOn(selector, 'anim-flash-red', ANIM_TIMING.FLASH + 100);
-      this.playOn(selector, 'anim-shake', ANIM_TIMING.SHAKE + 100);
-      this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
+      this.play(el, 'anim-flash-red', ANIM_TIMING.FLASH + 100);
+      this.play(el, 'anim-shake', ANIM_TIMING.SHAKE + 100);
+      this.play(el, 'anim-pulse', ANIM_TIMING.FLASH);
       // Show hearts lost instead of number
       const hearts = '-' + '♥'.repeat(amount);
       this.floatText(hearts, 'damage', pos);
       setTimeout(resolve, ANIM_TIMING.SHAKE + 100);
     });
   },
-  
+
   // LP heal - returns promise
   lpHeal(side, amount) {
     return new Promise(resolve => {
-      const selector = side === 'me' ? '#m-my-lp, #d-my-lp' : '#m-opp-lp, #d-opp-lp';
-      this.playOn(selector, 'anim-flash-green', ANIM_TIMING.FLASH);
-      this.playOn(selector, 'anim-pulse', ANIM_TIMING.FLASH);
+      const el = this.lpEl(side);
+      this.play(el, 'anim-flash-green', ANIM_TIMING.FLASH);
+      this.play(el, 'anim-pulse', ANIM_TIMING.FLASH);
       setTimeout(resolve, ANIM_TIMING.FLASH);
     });
   },
-  
+
   // Summon animation (dramatic card slam) - returns promise
   summon(side) {
     return new Promise(resolve => {
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const el = this.activeCardEl(side);
       // Screen flash on summon
       this.screenFlash('gold');
-      this.playOn(selector, 'anim-summon', ANIM_TIMING.SUMMON + 100);
-      this.playOn(selector, 'anim-summon-glow', ANIM_TIMING.SUMMON + 200);
-      // Find VISIBLE element (mobile or desktop)
-      const el = this.getVisibleElement(selector);
+      this.play(el, 'anim-summon', ANIM_TIMING.SUMMON + 100);
+      this.play(el, 'anim-summon-glow', ANIM_TIMING.SUMMON + 200);
       this.floatText('SUMMON!', 'gold', el);
       setTimeout(resolve, ANIM_TIMING.SUMMON + 100);
     });
   },
-  
+
   // Bench summon animation (smaller version for benched creatures)
   summonBench(side, index = 0) {
     return new Promise(resolve => {
-      const mobileSelector = side === 'me' ? '#m-my-bench .card-mini' : '#m-opp-bench .card-mini';
-      const desktopSelector = side === 'me' ? '#d-my-bench .card-mini' : '#d-opp-bench .card-mini';
-      const selector = `${mobileSelector}, ${desktopSelector}`;
-      this.playOn(selector, 'anim-summon-small', 400);
-      const el = this.getVisibleElement(selector, index);
-      this.sparkBurst(el);
+      const els = this.benchCardEls(side);
+      for (const mini of els) {
+        this.play(mini, 'anim-summon-small', 400);
+      }
+      this.sparkBurst(els[index] ?? null);
       setTimeout(resolve, 400);
     });
   },
-  
+
   // Set verse animation (glow on the SET indicator)
   setVerse(side) {
-    const selector = side === 'me' 
-      ? '#m-my-set, #d-my-set' 
-      : '#m-opp-set, #d-opp-set';
-    this.playOn(selector, 'anim-set-verse', 600);
-    const el = this.getVisibleElement(selector);
+    const el = this.setSlotEl(side);
+    this.play(el, 'anim-set-verse', 600);
     this.sparkBurst(el, 'purple'); // Purple stars for set verse
   },
-  
+
   // Bench to active animation (creature enters the fray)
   benchToActive(side) {
     return new Promise(resolve => {
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      this.playOn(selector, 'anim-enter-fray', 400);
+      this.play(this.activeCardEl(side), 'anim-enter-fray', 400);
       setTimeout(resolve, 400);
     });
   },
@@ -344,26 +380,17 @@ export const Anim = {
   ko(side) {
     return new Promise(resolve => {
       const pos = this.getAnimPosition(side);
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
-      this.playOn(selector, 'anim-ko', ANIM_TIMING.KO);
+      this.play(this.activeCardEl(side), 'anim-ko', ANIM_TIMING.KO);
       this.floatText('KO!', 'ko', pos);
       setTimeout(resolve, ANIM_TIMING.KO);
     });
   },
-  
+
   // Bench KO animation - returns promise
   benchKo(side, index) {
     return new Promise(resolve => {
-      const mobileSelector = side === 'me' 
-        ? `#m-my-bench .card-mini:nth-child(${index + 1})` 
-        : `#m-opp-bench .card-mini:nth-child(${index + 1})`;
-      const desktopSelector = side === 'me'
-        ? `#d-my-bench .card-mini:nth-child(${index + 1})`
-        : `#d-opp-bench .card-mini:nth-child(${index + 1})`;
-      const selector = `${mobileSelector}, ${desktopSelector}`;
-      
-      this.playOn(selector, 'anim-ko', ANIM_TIMING.KO);
-      const el = this.getVisibleElement(selector);
+      const el = this.benchCardEl(side, index);
+      this.play(el, 'anim-ko', ANIM_TIMING.KO);
       if (el) this.floatText('KO!', 'ko', el);
       setTimeout(resolve, ANIM_TIMING.KO);
     });
@@ -379,25 +406,34 @@ export const Anim = {
     });
   },
   
+  // Mana pips are a desktop-shell affordance: resolve semantically, then
+  // animate only when the active shell actually renders pips. This keeps
+  // classic behavior identical on both shells without touching hidden trees.
+  manaPipContainer() {
+    const el = semanticEl('me.mana');
+    return el && el.id === 'd-mana-pips' ? el : null;
+  },
+
   // Mana spend
   manaSpend(amount) {
-    this.playOn('#d-mana-pips .d-mana-pip.filled:last-of-type', 'anim-flash-blue', 200);
+    const pips = this.manaPipContainer();
+    const pip = pips?.querySelector?.('.d-mana-pip.filled:last-of-type') ?? null;
+    this.play(pip, 'anim-flash-blue', 200);
   },
-  
+
   // Mana gain - returns promise
   manaGain() {
     return new Promise(resolve => {
-      this.playOn('#d-mana-pips', 'anim-pulse', ANIM_TIMING.FLASH);
+      this.play(this.manaPipContainer(), 'anim-pulse', ANIM_TIMING.FLASH);
       setTimeout(resolve, ANIM_TIMING.FLASH);
     });
   },
-  
+
   // Poison tick - returns promise
   poisonTick(side) {
     return new Promise(resolve => {
-      const selector = side === 'me' ? '#m-my-active .card-active, #d-my-active .card-active' : '#m-opp-active .card-active, #d-opp-active .card-active';
       const pos = this.getAnimPosition(side);
-      this.playOn(selector, 'anim-poison', 500);
+      this.play(this.activeCardEl(side), 'anim-poison', 500);
       this.floatText('-10', 'damage', pos); // Red like regular damage
       setTimeout(resolve, 500);
     });

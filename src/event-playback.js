@@ -24,12 +24,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
   function playSemanticBench(side, animations, duration) {
     if (!side) return Promise.resolve();
 
-    const selector = side === 'me'
-      ? '#m-my-bench, #d-my-bench'
-      : '#m-opp-bench, #d-opp-bench';
-    if (typeof Anim.playOn === 'function') {
+    // Active-shell bench container via the semantic registry; hidden
+    // duplicate trees are never animated (plan Phase 4 acceptance).
+    const container = typeof Anim.benchContainerEl === 'function'
+      ? Anim.benchContainerEl(side)
+      : null;
+    if (container && typeof Anim.play === 'function') {
       for (const [animation, animationDuration] of animations) {
-        Anim.playOn(selector, animation, animationDuration);
+        Anim.play(container, animation, animationDuration);
       }
     }
     return typeof Anim.wait === 'function'
@@ -142,14 +144,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     },
 
     setStatus: async (e) => {
-      const selector = sideKey(e.side) === 'me'
-        ? '#m-my-active .card-active, #d-my-active .card-active'
-        : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const el = typeof Anim.activeCardEl === 'function'
+        ? Anim.activeCardEl(sideKey(e.side))
+        : null;
       if (e.status === 'poison') {
-        Anim.playOn(selector, 'anim-poison', 600);
+        Anim.play(el, 'anim-poison', 600);
         log('Poisoned!', 'dmg');
       } else if (e.status === 'trapped') {
-        Anim.playOn(selector, 'anim-trapped', 600);
+        Anim.play(el, 'anim-trapped', 600);
         log('Trapped!', 'dmg');
       }
       return Anim.wait(400);

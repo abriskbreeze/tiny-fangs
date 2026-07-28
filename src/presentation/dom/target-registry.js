@@ -15,6 +15,7 @@
 // { container, index } meaning the Nth element child of the container.
 const CLASSIC_MAP = {
   'me.active': { desktop: 'd-my-active', mobile: 'm-my-active' },
+  'me.bench': { desktop: 'd-my-bench', mobile: 'm-my-bench' },
   'me.bench.0': {
     desktop: { container: 'd-my-bench', index: 0 },
     mobile: { container: 'm-my-bench', index: 0 },
@@ -30,6 +31,7 @@ const CLASSIC_MAP = {
   'me.life': { desktop: 'd-my-lp', mobile: 'm-my-lp' },
   'me.mana': { desktop: 'd-mana-pips', mobile: 'm-my-mana' },
   'opp.active': { desktop: 'd-opp-active', mobile: 'm-opp-active' },
+  'opp.bench': { desktop: 'd-opp-bench', mobile: 'm-opp-bench' },
   'opp.bench.0': {
     desktop: { container: 'd-opp-bench', index: 0 },
     mobile: { container: 'm-opp-bench', index: 0 },

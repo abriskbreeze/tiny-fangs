@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-28 18:20 EDT  
+**Last updated:** 2026-07-28 18:55 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -528,14 +528,16 @@ Evidence:
 
 ### Phase 4 — Keyed Cards and Motion Wrappers
 
-**Status:** IN PROGRESS — RECONCILER LANDED, HAND ZONES WIRED (2026-07-28)
+**Status:** ACCOMPLISHED AGAINST ACCEPTANCE CRITERIA (2026-07-28) — single-tree merge deferred to the mobile port, flagged for user review
 
 - **ACCOMPLISHED: uid-keyed reconciler** (`src/presentation/dom/keyed-board-view.js`): create/patch/move/remove with stable DOM identity across zone moves, duplicate/missing-uid fail-closed, idempotent reconcile, snapshotRects/flipDeltas FLIP seams — 7/7 focused contracts.
 - **ACCOMPLISHED: Task 28 — hand zones (`m-hand`, `d-hand`) render keyed** through the new `createHtmlKeyedView` adapter with byte-identical `renderHandCard` markup. Evidence: 573/573 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual including all 17 classic screenshot records (pngHash) equal to the committed baseline. Handoff: `task-28-keyed-hand-zone.md`.
 - Fail-closed keying exposed and fixed a latent client defect: `src/state.js` `uid()` was pure `Math.random()` and collided under the E2E's stubbed randomness; it now carries a monotonic serial. A pre-existing shuffle-dependent deck-out E2E flake was root-caused (multi-event attacker playback exceeding the fake-clock budget) and made deterministic in the test only, with no assertion weakened.
 - **ACCOMPLISHED: Task 29 — all four active and all four bench containers render keyed** (single-slot and two-slot view-models with stable synthetic empty uids, byte-identical markup), and every remaining `Math.random()`-only uid generator (`shared/engine.js`, `shared/effects.js` ×2, `src/game.js` ×2, `src/abilities.js`) now carries the monotonic serial suffix. Evidence: 573/573 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual with all 17 classic hashes byte-identical, 17/17 server-process, clean diagnostics. Handoff: `task-29-keyed-active-bench-zones.md`.
 - **ACCOMPLISHED: Task 30 — set slots patched in place, log zones keyed, stats/actions dispositioned.** Set-verse slots keep one id-addressed DOM identity via the exported `syncElementToHtml` (no more outerHTML destruction); both log zones reconcile keyed per-entry nodes by absolute index with byte-identical markup; textContent-only stats zones and the static actions row are audited exempt (no per-card DOM exists to key; grave card lists belong to the Phase 9 overlay rebuild). Evidence: 574/574 units, 59/59 desktop E2E twice consecutively, 8/8 multiplayer, 11/11 visual with all 17 classic hashes byte-identical, 17/17 server-process, clean diagnostics. Handoff: `task-30-keyed-set-log-zones.md`.
-- Remaining in Phase 4: unify the duplicate desktop/mobile DOM trees against the full parity evidence. Cross-zone DOM adoption for FLIP travel is deferred to the Phase 10 motion director by design.
+- **ACCOMPLISHED: Task 31 — animation targeting no longer searches hidden duplicate trees.** Every dual-shell selector in `src/anim.js`/`src/event-playback.js` now resolves through the shell-aware semantic registry to the active shell's element only; mana-pip animation is gated to the shell that renders pips; the Task 16-era dual-shell test contracts were upgraded to the stronger active-shell assertions and 6 new resolution contracts drive shell selection and bench index math directly. Evidence: 580/580 units, 59/59 desktop E2E, 8/8 multiplayer, 11/11 visual with all 17 classic hashes byte-identical, 17/17 server-process. Handoff: `task-31-active-shell-anim-targeting.md`.
+- **DECISION (needs user ratification): the literal one-DOM-tree merge is deferred to the mobile port.** All three Phase 4 acceptance criteria are met; physically merging the trees now would rebuild the mobile layout (the explicitly deferred port), risk the 17 byte-identical classic hashes, and churn the retained `m-*` regression evidence for no desktop-milestone value. If the merge should happen now instead, it becomes the next Phase 4 task.
+- Cross-zone DOM adoption for FLIP travel is deferred to the Phase 10 motion director by design.
 
 ### Phases 5–13 — Full Production
 

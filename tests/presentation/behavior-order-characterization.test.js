@@ -333,69 +333,25 @@ describe('authoritative state and event ordering', () => {
 
 describe('event playback target contracts', () => {
   const statusCases = [
-    {
-      side: 'p1',
-      status: 'poison',
-      selector: '#m-my-active .card-active, #d-my-active .card-active',
-      animation: 'anim-poison',
-      message: 'Poisoned!',
-    },
-    {
-      side: 'p1',
-      status: 'trapped',
-      selector: '#m-my-active .card-active, #d-my-active .card-active',
-      animation: 'anim-trapped',
-      message: 'Trapped!',
-    },
-    {
-      side: 'me',
-      status: 'poison',
-      selector: '#m-my-active .card-active, #d-my-active .card-active',
-      animation: 'anim-poison',
-      message: 'Poisoned!',
-    },
-    {
-      side: 'me',
-      status: 'trapped',
-      selector: '#m-my-active .card-active, #d-my-active .card-active',
-      animation: 'anim-trapped',
-      message: 'Trapped!',
-    },
-    {
-      side: 'p2',
-      status: 'poison',
-      selector: '#m-opp-active .card-active, #d-opp-active .card-active',
-      animation: 'anim-poison',
-      message: 'Poisoned!',
-    },
-    {
-      side: 'p2',
-      status: 'trapped',
-      selector: '#m-opp-active .card-active, #d-opp-active .card-active',
-      animation: 'anim-trapped',
-      message: 'Trapped!',
-    },
-    {
-      side: 'opp',
-      status: 'poison',
-      selector: '#m-opp-active .card-active, #d-opp-active .card-active',
-      animation: 'anim-poison',
-      message: 'Poisoned!',
-    },
-    {
-      side: 'opp',
-      status: 'trapped',
-      selector: '#m-opp-active .card-active, #d-opp-active .card-active',
-      animation: 'anim-trapped',
-      message: 'Trapped!',
-    },
+    { side: 'p1', status: 'poison', target: 'me', animation: 'anim-poison', message: 'Poisoned!' },
+    { side: 'p1', status: 'trapped', target: 'me', animation: 'anim-trapped', message: 'Trapped!' },
+    { side: 'me', status: 'poison', target: 'me', animation: 'anim-poison', message: 'Poisoned!' },
+    { side: 'me', status: 'trapped', target: 'me', animation: 'anim-trapped', message: 'Trapped!' },
+    { side: 'p2', status: 'poison', target: 'opp', animation: 'anim-poison', message: 'Poisoned!' },
+    { side: 'p2', status: 'trapped', target: 'opp', animation: 'anim-trapped', message: 'Trapped!' },
+    { side: 'opp', status: 'poison', target: 'opp', animation: 'anim-poison', message: 'Poisoned!' },
+    { side: 'opp', status: 'trapped', target: 'opp', animation: 'anim-trapped', message: 'Trapped!' },
   ];
 
   it.each(statusCases)(
-    'targets both shells for $side $status',
-    async ({ side, status, selector, animation, message }) => {
+    'targets the active-shell active card for $side $status',
+    async ({ side, status, target, animation, message }) => {
+      // Phase 4 acceptance: status playback resolves one semantic
+      // active-shell element and never animates the hidden duplicate tree.
+      const activeCard = { id: `${target}-active-card` };
       const Anim = {
-        playOn: vi.fn(),
+        activeCardEl: vi.fn(() => activeCard),
+        play: vi.fn(),
         wait: vi.fn(() => Promise.resolve()),
       };
       const log = vi.fn();
@@ -410,8 +366,9 @@ describe('event playback target contracts', () => {
         { type: 'setStatus', side, status },
       ]);
 
-      expect(Anim.playOn).toHaveBeenCalledExactlyOnceWith(
-        selector,
+      expect(Anim.activeCardEl).toHaveBeenCalledExactlyOnceWith(target);
+      expect(Anim.play).toHaveBeenCalledExactlyOnceWith(
+        activeCard,
         animation,
         600,
       );
@@ -527,14 +484,9 @@ describe('event playback target contracts', () => {
   const indexedBenchCases = [
     {
       type: 'benchDamage',
-      event: {
-        type: 'benchDamage',
-        animKey: 'me',
-        benchIndex: 0,
-        amount: 5,
-      },
-      selector:
-        '#m-my-bench .card-mini:nth-child(1), #d-my-bench .card-mini:nth-child(1)',
+      event: { type: 'benchDamage', animKey: 'me', benchIndex: 0, amount: 5 },
+      side: 'me',
+      index: 0,
       calls: [
         ['anim-shake', 600],
         ['anim-flash-red', 300],
@@ -543,14 +495,9 @@ describe('event playback target contracts', () => {
     },
     {
       type: 'benchDamage',
-      event: {
-        type: 'benchDamage',
-        animKey: 'opp',
-        benchIndex: 1,
-        amount: 7,
-      },
-      selector:
-        '#m-opp-bench .card-mini:nth-child(2), #d-opp-bench .card-mini:nth-child(2)',
+      event: { type: 'benchDamage', animKey: 'opp', benchIndex: 1, amount: 7 },
+      side: 'opp',
+      index: 1,
       calls: [
         ['anim-shake', 600],
         ['anim-flash-red', 300],
@@ -560,27 +507,31 @@ describe('event playback target contracts', () => {
     {
       type: 'benchKo',
       event: { type: 'benchKo', animKey: 'me', benchIndex: 1 },
-      selector:
-        '#m-my-bench .card-mini:nth-child(2), #d-my-bench .card-mini:nth-child(2)',
+      side: 'me',
+      index: 1,
       calls: [['anim-ko', 400]],
       duration: 400,
     },
     {
       type: 'benchKo',
       event: { type: 'benchKo', animKey: 'opp', benchIndex: 0 },
-      selector:
-        '#m-opp-bench .card-mini:nth-child(1), #d-opp-bench .card-mini:nth-child(1)',
+      side: 'opp',
+      index: 0,
       calls: [['anim-ko', 400]],
       duration: 400,
     },
   ];
 
   it.each(indexedBenchCases)(
-    'targets the exact mobile and desktop card for $type $event.animKey',
-    async ({ type, event, selector, calls, duration }) => {
+    'targets the exact active-shell bench card for $type $event.animKey',
+    async ({ type, event, side, index, calls, duration }) => {
       vi.useFakeTimers();
-      const playOn = vi.spyOn(BrowserAnim, 'playOn').mockImplementation(() => {});
-      vi.spyOn(BrowserAnim, 'getVisibleElement').mockReturnValue(null);
+      // Missing bench card resolves to null; playback must still request the
+      // exact semantic (side, index) target and skip the float text.
+      const benchCardEl = vi
+        .spyOn(BrowserAnim, 'benchCardEl')
+        .mockReturnValue(null);
+      const play = vi.spyOn(BrowserAnim, 'play').mockImplementation(() => Promise.resolve());
       const floatText = vi.spyOn(BrowserAnim, 'floatText').mockImplementation(() => {});
       const playback = createEventPlayback({
         Anim: BrowserAnim,
@@ -595,9 +546,10 @@ describe('event playback target contracts', () => {
       await vi.advanceTimersByTimeAsync(duration);
       await pending;
 
-      expect(playOn.mock.calls).toStrictEqual(
+      expect(benchCardEl).toHaveBeenCalledExactlyOnceWith(side, index);
+      expect(play.mock.calls).toStrictEqual(
         calls.map(([animation, animationDuration]) => [
-          selector,
+          null,
           animation,
           animationDuration,
         ]),
@@ -610,7 +562,7 @@ describe('event playback target contracts', () => {
     {
       type: 'benchDamage',
       event: { type: 'benchDamage', side: 'p1', amount: 5 },
-      selector: '#m-my-bench, #d-my-bench',
+      side: 'me',
       calls: [
         ['anim-shake', 600],
         ['anim-flash-red', 300],
@@ -620,15 +572,17 @@ describe('event playback target contracts', () => {
     {
       type: 'benchKo',
       event: { type: 'benchKo', animKey: 'opp' },
-      selector: '#m-opp-bench, #d-opp-bench',
+      side: 'opp',
       calls: [['anim-ko', 400]],
       wait: 400,
     },
   ])(
     'uses the semantic side bench safely when $type has no index',
-    async ({ type, event, selector, calls, wait }) => {
+    async ({ type, event, side, calls, wait }) => {
+      const benchContainer = { id: `${side}-bench-container` };
       const Anim = {
-        playOn: vi.fn(),
+        benchContainerEl: vi.fn(() => benchContainer),
+        play: vi.fn(),
         wait: vi.fn(() => Promise.resolve()),
       };
       const playback = createEventPlayback({
@@ -642,9 +596,10 @@ describe('event playback target contracts', () => {
       expect(handler).toEqual(expect.any(Function));
       await handler(event);
 
-      expect(Anim.playOn.mock.calls).toStrictEqual(
+      expect(Anim.benchContainerEl).toHaveBeenCalledExactlyOnceWith(side);
+      expect(Anim.play.mock.calls).toStrictEqual(
         calls.map(([animation, duration]) => [
-          selector,
+          benchContainer,
           animation,
           duration,
         ]),
