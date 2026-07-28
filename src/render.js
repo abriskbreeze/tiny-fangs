@@ -172,13 +172,21 @@ export function renderHandCard(c, vertical, selectedCardUid) {
 
 // Game log
 // BUG-B1: Show full history (high limit), reversed so newest at top (desktop)
+export function renderLogEntry(l) {
+  return `<div class="${l.c||''}">${l.t}</div>`;
+}
+
+export function renderLogInlineEntry(l) {
+  return `<span class="${l.c||''}">${l.t}</span>`;
+}
+
 export function renderLogEntries(log, limit) {
   // Show all entries (use 500 as effectively unlimited)
   const entries = log.slice(-500);
   // Reverse so newest is at top (for desktop scrollable view)
-  return entries.slice().reverse().map(l => `<div class="${l.c||''}">${l.t}</div>`).join('');
+  return entries.slice().reverse().map(renderLogEntry).join('');
 }
 
 export function renderLogInline(log, limit) {
-  return log.slice(-limit).map(l => `<span class="${l.c||''}">${l.t}</span>`).join('');
+  return log.slice(-limit).map(renderLogInlineEntry).join('');
 }

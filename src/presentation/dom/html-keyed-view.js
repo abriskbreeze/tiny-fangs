@@ -12,6 +12,27 @@ function defaultParseHtml(html) {
   return template.content.firstElementChild;
 }
 
+// Syncs an existing element to freshly rendered markup in place: attributes
+// mirror the fresh element exactly (minus `preservedAttributes`), children are
+// replaced only when they differ. Preserves the node's DOM identity, so id
+// selectors, captured references, and future FLIP measurements stay valid.
+export function syncElementToHtml(node, fresh, { preservedAttributes = [] } = {}) {
+  for (const name of node.getAttributeNames()) {
+    if (!preservedAttributes.includes(name) && !fresh.hasAttribute(name)) {
+      node.removeAttribute(name);
+    }
+  }
+  for (const name of fresh.getAttributeNames()) {
+    const value = fresh.getAttribute(name);
+    if (node.getAttribute(name) !== value) {
+      node.setAttribute(name, value);
+    }
+  }
+  if (node.innerHTML !== fresh.innerHTML) {
+    node.innerHTML = fresh.innerHTML;
+  }
+}
+
 export function createHtmlKeyedView(container, { parseHtml = defaultParseHtml } = {}) {
   // uid -> last applied html, so unchanged view-models skip parsing entirely.
   const appliedHtml = new Map();
@@ -35,20 +56,7 @@ export function createHtmlKeyedView(container, { parseHtml = defaultParseHtml } 
       const fresh = parse(viewModel.html);
       // data-uid is reconciler-owned identity; everything else mirrors the
       // freshly rendered markup exactly.
-      for (const name of node.getAttributeNames()) {
-        if (name !== 'data-uid' && !fresh.hasAttribute(name)) {
-          node.removeAttribute(name);
-        }
-      }
-      for (const name of fresh.getAttributeNames()) {
-        const value = fresh.getAttribute(name);
-        if (node.getAttribute(name) !== value) {
-          node.setAttribute(name, value);
-        }
-      }
-      if (node.innerHTML !== fresh.innerHTML) {
-        node.innerHTML = fresh.innerHTML;
-      }
+      syncElementToHtml(node, fresh, { preservedAttributes: ['data-uid'] });
       appliedHtml.set(uid, viewModel.html);
     },
     onRemove(uid) {

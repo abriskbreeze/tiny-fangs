@@ -11,7 +11,7 @@
       stopGameTimer,
     } from './state.js';
     import { ANIM_TIMING, Anim } from './anim.js';
-    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline, getActiveEffects } from './render.js';
+    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntry, renderLogInlineEntry, getActiveEffects } from './render.js';
     import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './ai.js';
     import {
       log,
@@ -42,7 +42,7 @@
     import { createMpClient } from './mp-client.js';
     import { createSoloAi } from './solo-ai.js';
     import { applyPresentationMode } from './presentation/presentation-mode.js';
-    import { createHtmlKeyedView } from './presentation/dom/html-keyed-view.js';
+    import { createHtmlKeyedView, syncElementToHtml } from './presentation/dom/html-keyed-view.js';
     import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
 
     applyPresentationMode();
@@ -830,6 +830,22 @@
       return entry.view;
     }
 
+    // Single-slot zones addressed by element id (set verses): patch the slot
+    // node in place from the same rendered markup instead of outerHTML
+    // replacement, so anim id-selectors and captured references stay valid.
+    const setSlotApplied = new Map(); // slot id -> { node, html }
+
+    function patchSetSlot(id, verse, isPlayer) {
+      const node = $(id);
+      const html = renderSetVerse(verse, id, isPlayer);
+      const applied = setSlotApplied.get(id);
+      if (applied && applied.node === node && applied.html === html) return;
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      syncElementToHtml(node, template.content.firstElementChild);
+      setSlotApplied.set(id, { node, html });
+    }
+
     function render() {
       if (!state.G) return;
 
@@ -865,11 +881,13 @@
       $('m-opp-grave-slot').classList.toggle('has-grave', state.G.opp.grave.length > 0);
       $('d-set-verse').textContent = state.G.me.setVerse ? '✓' : '-';
 
-      // Set Verses
-      $('m-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'm-my-set', true);
-      $('m-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'm-opp-set', false);
-      $('d-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'd-my-set', true);
-      $('d-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'd-opp-set', false);
+      // Set Verses — patched in place (same renderSetVerse markup) so the
+      // id-addressed slot node keeps one DOM identity instead of being
+      // destroyed by outerHTML on every render.
+      patchSetSlot('m-my-set', state.G.me.setVerse, true);
+      patchSetSlot('m-opp-set', state.G.opp.setVerse, false);
+      patchSetSlot('d-my-set', state.G.me.setVerse, true);
+      patchSetSlot('d-opp-set', state.G.opp.setVerse, false);
 
       // Active creatures
       // Calculate ATK modifiers for display
@@ -922,8 +940,22 @@
     }
 
     function renderLog() {
-      $('m-log').innerHTML = renderLogInline(state.G.log, 8);
-      $('d-log').innerHTML = renderLogEntries(state.G.log, 12);
+      // Keyed by absolute log index: entries are append-only within a game,
+      // so existing lines keep their DOM node and only new lines are created.
+      const log = state.G.log;
+      const mobileWindow = log.slice(-8);
+      const mobileStart = log.length - mobileWindow.length;
+      keyedZoneView('m-log').reconcile(mobileWindow.map((entry, i) => ({
+        uid: `log-${mobileStart + i}`,
+        html: renderLogInlineEntry(entry),
+      })));
+      // Desktop shows the full retained history, newest first (BUG-B1).
+      const desktopWindow = log.slice(-500);
+      const desktopStart = log.length - desktopWindow.length;
+      keyedZoneView('d-log').reconcile(desktopWindow.slice().reverse().map((entry, i) => ({
+        uid: `log-${desktopStart + desktopWindow.length - 1 - i}`,
+        html: renderLogEntry(entry),
+      })));
     }
 
     function updateButtons() {

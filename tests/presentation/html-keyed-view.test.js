@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createHtmlKeyedView } from '../../src/presentation/dom/html-keyed-view.js';
+import { createHtmlKeyedView, syncElementToHtml } from '../../src/presentation/dom/html-keyed-view.js';
 
 // Minimal faithful DOM stand-in extending the keyed-board-view harness with
 // the attribute/innerHTML surface the html adapter patches through.
@@ -153,6 +153,37 @@ describe('createHtmlKeyedView', () => {
     parseHtml.mockClear();
     view.reconcile([model]);
     expect(parseHtml).toHaveBeenCalledTimes(1);
+  });
+
+  it('syncElementToHtml mirrors fresh attributes/content in place, honoring preserved attributes', () => {
+    const node = makeElement();
+    node.setAttribute('id', 'd-my-set');
+    node.setAttribute('class', 'card-empty set-slot');
+    node.setAttribute('data-uid', 'kept');
+    node.innerHTML = 'NO SET';
+    const fresh = makeElement();
+    fresh.setAttribute('id', 'd-my-set');
+    fresh.setAttribute('class', 'card-empty set-slot has-set');
+    fresh.setAttribute('onpointerdown', 'setVersePress()');
+    fresh.innerHTML = '<div class="tf-card__set-back"><span>[SET]</span></div>';
+
+    syncElementToHtml(node, fresh, { preservedAttributes: ['data-uid'] });
+    expect(node.getAttribute('class')).toBe('card-empty set-slot has-set');
+    expect(node.getAttribute('onpointerdown')).toBe('setVersePress()');
+    expect(node.getAttribute('data-uid')).toBe('kept');
+    expect(node.innerHTML).toBe('<div class="tf-card__set-back"><span>[SET]</span></div>');
+
+    // Without a preserve list every stale attribute is removed.
+    syncElementToHtml(node, (() => {
+      const bare = makeElement();
+      bare.setAttribute('id', 'd-my-set');
+      bare.setAttribute('class', 'card-empty set-slot');
+      bare.innerHTML = 'NO SET';
+      return bare;
+    })());
+    expect(node.hasAttribute('onpointerdown')).toBe(false);
+    expect(node.hasAttribute('data-uid')).toBe(false);
+    expect(node.innerHTML).toBe('NO SET');
   });
 
   it('fails closed when the parser produces no element', () => {
