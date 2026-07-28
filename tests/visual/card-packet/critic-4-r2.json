@@ -1,0 +1,129 @@
+{
+  "sideA": {
+    "F": 9.0,
+    "C": 8.3,
+    "K": 9.0,
+    "L": 9.3,
+    "R": 7.8,
+    "S": 8.6,
+    "A": 6.0,
+    "wow": 8.5,
+    "T": 84.8
+  },
+  "sideB": {
+    "F": 6.8,
+    "C": 7.8,
+    "K": 7.2,
+    "L": 6.2,
+    "R": 9.2,
+    "S": 8.8,
+    "A": 9.0,
+    "wow": 6.8,
+    "T": 76.0
+  },
+  "cropPreferences": {
+    "cards-full": "A",
+    "card-creature-frame": "A",
+    "card-cast-frame": "A",
+    "card-set-frame": "A",
+    "card-back": "B",
+    "card-art": "A",
+    "card-title": "B",
+    "card-rules": "A",
+    "card-stats": "A",
+    "card-contact": "A"
+  },
+  "findings": [
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-back",
+      "description": "Gold scrollwork near the bottom of the navy back devolves into incoherent scrawl (arrow/hand-like shapes); frame linework is not mirrored corner-to-corner. A printed card back would be symmetric \u2014 this breaks manufactured-object believability at 2x."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "A horizontal ornamental band is clipped at the very top edge of the frame \u2014 reads as an accidental crop of a background element rather than intentional staging."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-creature-frame",
+      "description": "Title band and rules panel use the same glyph vocabulary at similar weight; name-vs-rules hierarchy rests on strip width alone, and the band ornament goes soft/mushy under 2x inspection."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "Hard low-poly faceted props (crystals bottom-left, faceted tree canopies) sit in stylistic tension with the fully painterly grass, frame, and sky treatment."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Faint glyph strip above the stat gems is far lower contrast than the rules-panel glyphs \u2014 inconsistent ink weight within the same specimen."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-title",
+      "description": "Cast card's parchment title strip carries only a rosette divider and no mark of any kind \u2014 the nameplate zone reads unresolved even granting the pseudo-text divergence."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-set-frame",
+      "description": "On the occluded back card behind the set specimen, the gold moon motif partially melts into the frame line near the lower right \u2014 wobbly linework visible at 2x."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "No ground plane: cards float on an abstract striped olive gradient with only a faint uniform shadow. Lighting/material integration is essentially flat, so the staging reads as a UI mockup rather than photographed physical objects."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-creature-frame",
+      "description": "The amber rail is asymmetric \u2014 a wide bar on the right, nearly nothing on the left \u2014 reading as a misregistered backing layer rather than an intentional frame construction."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-set-frame",
+      "description": "The art window is mostly empty plum space; the small wall illustration floats low with no anchor, leaving the top half of the window dead. Weakest illustration of the set."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Monospace UI numerals (40/60) and the slashed/dotted zero on the cost badge read as debug-console type, tonally off against the Alegreya serif used everywhere else."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-back",
+      "description": "Radial sunburst shows visible banding between spokes; crescent accent strokes are asymmetric top-right vs bottom-left, slightly unbalancing an otherwise clean emblem."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-cast-frame",
+      "description": "The CAST VERSE ribbon overlaps the art window edge with an ambiguous half-in/half-out registration, and the nameplate drop shadow is heavy relative to the otherwise flat material language."
+    }
+  ],
+  "threeStrengthsPerSide": {
+    "A": [
+      "Frame materiality: carved bevels, edge wear, and gold/stone/foil surfaces read as genuinely manufactured premium objects across all three faces.",
+      "Ground integration: contact shadows and painterly grass occlusion seat the cards convincingly in a physical scene with a consistent light direction.",
+      "Palette harmony: amber/teal/plum families plus navy back against olive grass form a warm, cohesive, immediately premium color story."
+    ],
+    "B": [
+      "Typographic craft: Alegreya nameplates, type ribbons, rules text, and italic flavor lines are cleanly set with a clear, confident hierarchy.",
+      "System coherence: identical chassis, cost badge, sigil oval, and footer grammar across all four specimens \u2014 the family reads as one designed system.",
+      "Deterministic crispness: vector-exact edges, concentric corner construction, and measurable ink-on-parchment contrast that align with the packet's metric rows."
+    ]
+  },
+  "notes": "Verdict: Side A wins decisively on the weighted rubric (84.8 vs 76.0) and takes 8 of 10 crops. A delivers the warm, tactile, premium physical-card language the brief asks for \u2014 its frame craft, illustration quality, and ground/shadow integration are in a different class \u2014 but it carries AI-render defects (incoherent back scrollwork, mushy ornament at 2x, clipped top band) and evidences almost nothing for the accessibility/determinism category: pseudo-text cannot support the packet's text-contrast rows, and deltaE00 = 0.0 exact palette matches are implausible against A's noisy painterly surfaces. Side B is the packet's measurable citizen \u2014 the parchment median (204,169,132), footer contrast rows, corner-radius concentricity, and byte-identical determinism claim are all visually consistent with B's vector render \u2014 and it wins card-back and card-title outright, but its flat material language, absent ground plane, asymmetric creature rail, and weak set-card art keep it at 'clean mockup' rather than 'premium object'. No P0/P1 on either side; all metric rows claim pass and none is visibly contradicted, so no 8.9 category cap was triggered beyond scoring A's A-category on visible evidence. The ideal release candidate is A's material/lighting language carrying B's typographic and systemic discipline."
+}

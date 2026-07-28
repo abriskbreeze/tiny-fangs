@@ -4,6 +4,6 @@
   "reason": "mapping stored outside the packet; critics verify only this commitment row",
   "required": true,
   "role": "13.7 sealed A/B commitment",
-  "sha256": "sha256:18cce1c3af6954e5d5786176162927a370d7a41101456c8560c0cae451019ac9",
+  "sha256": "sha256:7634cfb2b8a98d817496f8e4ac7c2541f371d2bacdaa662a2aa6d2a8b7fcaf17",
   "status": "sealed-external"
 }

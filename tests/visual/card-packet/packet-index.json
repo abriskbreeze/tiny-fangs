@@ -115,11 +115,11 @@
     {
       "artifactId": "blind-mapping",
       "path": "",
-      "reason": "Single-challenger card review has no A/B pair until the R1 comparison assets are prepared; sealed commitment lands with the critic run.",
+      "reason": "mapping stored outside the packet; critics verify only this commitment row",
       "required": true,
       "role": "13.7 sealed A/B commitment",
-      "sha256": "",
-      "status": "unsupported"
+      "sha256": "sha256:7634cfb2b8a98d817496f8e4ac7c2541f371d2bacdaa662a2aa6d2a8b7fcaf17",
+      "status": "sealed-external"
     }
   ],
   "buildRevision": "f5e8ba4bf7b95fc44a59c81086330ce83eef7423",
@@ -128,8 +128,8 @@
     "runs": 2,
     "sha256": "sha256:bb45597245436969a2d550443560880b6952465a3903d9bf4a8ad72b7179a29d"
   },
-  "indexSha256": "sha256:c013e94e50eb26d0f49e80d4cb356fa87ad2fb6ac13aa4da4f118796a06b199a",
-  "packetId": "card-showcase-r1",
+  "indexSha256": "sha256:b5d90aac26ad57a8fff7353cc9e197cbfd75231c92ff16ed56fa343419dc576d",
+  "packetId": "card-showcase-r2",
   "packetKind": "card-showcase",
   "packetKindNote": "Plan-level pre-board golden-sample review of the four-card showcase; reuses the art bible 13.2 manifest, 13.3 card crops, and 13.7.2 hashing. This is NOT the 13.5 integrated-art packet, which requires the Phase 7 populated board.",
   "schema": "tiny-fangs.critic-packet-index.v1",

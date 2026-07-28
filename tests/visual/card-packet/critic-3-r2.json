@@ -1,0 +1,129 @@
+{
+  "sideA": {
+    "F": 9.0,
+    "C": 8.6,
+    "K": 8.7,
+    "L": 9.0,
+    "R": 7.4,
+    "S": 8.3,
+    "A": 7.2,
+    "wow": 8.2,
+    "T": 84.7
+  },
+  "sideB": {
+    "F": 7.0,
+    "C": 7.8,
+    "K": 7.4,
+    "L": 6.8,
+    "R": 9.3,
+    "S": 8.8,
+    "A": 8.8,
+    "wow": 6.8,
+    "T": 77.6
+  },
+  "cropPreferences": {
+    "cards-full": "A",
+    "card-creature-frame": "A",
+    "card-cast-frame": "A",
+    "card-set-frame": "A",
+    "card-back": "A",
+    "card-art": "A",
+    "card-title": "B",
+    "card-rules": "A",
+    "card-stats": "A",
+    "card-contact": "A"
+  },
+  "findings": [
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-title",
+      "description": "Cast and set specimens have no title/nameplate band at all \u2014 only a rosette/moon medallion at the art/panel seam. The creature card DOES carry an angled glyph banner strip, so the nameplate subsystem is inconsistent across the family. This is a structural hierarchy gap, independent of the declared pseudo-text divergence."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "A horizontal ornamental band along the very top of the frame is cropped mid-motif, reading as overflow from a larger scene rather than a composed showcase edge."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-back",
+      "description": "The card back's plum+gold language is nearly identical to the set-verse family frame (same plum, same gold linework, same moon motif). At glance distance a face-down card and a set-verse face risk being conflated \u2014 a face/back separability concern for a TCG."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "Corner flourish ornaments differ left vs right, and the gold bezel width wobbles slightly along the vertical rails; visible only at 2x, characteristic painterly unevenness."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-rules",
+      "description": "Glyph rows show baseline wobble and a few smudged/blurred glyph clusters at 2x (row 2, right end); the leading sigils (diamond/eye/dark-diamond) are a nice hierarchy device but their weights are uneven."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Sword hilt of the ATK heart clips over the outer bezel, and the heart bezel gold is a warmer hue than the frame gold; charming but not disciplined."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-set-frame",
+      "description": "Phantom Wall illustration is generic and underworked: a flat wall with scattered dots, and a translucent circle overlapping the crenellations that reads as an unintended lens/moon artifact rather than composed art."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "The environment is a flat vertical-striped chartreuse gradient \u2014 wallpaper, not a tabletop. Cards cast soft shadows onto an abstract plane, undermining the manufactured-object-on-a-surface premise the staging implies."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-creature-frame",
+      "description": "A dark backing layer protrudes as a visible step above the top edge behind the rail (top-right, repeated on the cast frame). Because it half-emerges only at one corner it reads as a misregistered layer at 2x rather than a deliberate offset-spine motif."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-back",
+      "description": "Back composition is sparse: incomplete/asymmetric corner brackets and floating comma-like swashes that are not anchored to the emblem geometry; feels like a wireframe of a back rather than a finished one."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-rules",
+      "description": "Sunburst ray texture runs directly beneath body text, adding low-level luminance noise behind letterforms; contrast still passes but the panel would be cleaner with the rays masked out of the text measure."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Stat chips are mismatched in visual weight (amber hexagon vs larger maroon circle), and the slashed-zero mono numerals clash with the book-serif voice of the rest of the card."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-title",
+      "description": "Title plate border treatment drifts across families \u2014 the set-verse plate carries a dark green-tinted outer stroke the other plates lack."
+    }
+  ],
+  "threeStrengthsPerSide": {
+    "A": [
+      "Convincing manufactured materials: carved/gilded frames with coherent bevel lighting, stone kerf texture, and parchment grain that survive 2x inspection",
+      "Art, frame, and ground share one warm light temperature; contact shadows sit tight and directional, so the cards genuinely rest on the grass",
+      "Panel micro-typography as craft: sigil-led line hierarchy, hairline dividers, and rhythmically even glyph rows give the rules panel real print-object credibility"
+    ],
+    "B": [
+      "Exemplary information hierarchy: cost coin, type banner (TWILIGHT WOLF / CAST VERSE / SET VERSE), title plate, sigil, rules, flavor, stats \u2014 every zone is instantly parseable",
+      "Disciplined family color system (amber/teal/plum rails plus navy back) that matches the metric report's sampled medians exactly, with strong cast/set separation",
+      "Chassis consistency: identical geometry, plate construction, and sigil placement across all three faces plus the back reads as one printed product line"
+    ]
+  },
+  "notes": "Two philosophies: A is a painterly physical-object render with superb material believability, lighting, and ground integration but structural gaps (no nameplate on two of three faces, back/set-family conflation risk, painterly wobble at 2x). B is a clean flat-vector system with the best readability and system discipline in the packet but thin material language, a wallpaper ground, and one visibly underworked illustration (set-verse). Metric report: all 11 rows pass; the sampled palette medians and footer-contrast rows correspond plausibly to what is visible on side B's plates and rails, while side A's brighter gold/teal would not land those exact medians \u2014 I make no authorship claim, only that the report's numbers are consistent with one side's visuals. One plausibility flag: three of four palette deltaE00 values are exactly 0.0, which is suspiciously perfect for sampled medians vs targets and reads as authored-value-compared-to-itself; not a failed row, so no 8.9 cap is triggered, but the measurement independence should be audited. Shadow rows (+43..46 x, +72..81 y, 58-61 deg) are consistent with the down-right shadows visible in both renders. Wow: A = 8.2 (immediate premium impact, held back by the missing nameplate subsystem); B = 6.8 (polished and legible, but flat materials, abstract ground, and the set-verse art are multiple visible gaps)."
+}
