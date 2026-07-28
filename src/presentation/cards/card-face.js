@@ -9,6 +9,7 @@ import {
   CHASSIS_WIDTH,
   SAFE_RECTS,
 } from './chassis-geometry.js';
+import { GOLDEN_SAMPLE_ART } from './art/golden-sample-art.js';
 
 const FAMILY_LABEL = {
   creature: null, // creature subtype comes from the card's own subtitle
@@ -28,6 +29,7 @@ export function normalizeFaceModel(card, kind) {
   }
   const model = {
     kind,
+    faceId: card.id ?? null,
     name: card.name,
     typeLabel: kind === 'creature' ? (card.subtitle ?? '') : FAMILY_LABEL[kind],
     cost: Number.isFinite(card.cost) ? card.cost : null,
@@ -88,21 +90,26 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
 
   if (kind === 'back') {
     const sigil = el(doc, 'tf-aaa-card__back-sigil', rects.artFocalSafe);
-    sigil.innerHTML =
-      '<div class="tf-aaa-card__back-ring"></div>' +
-      '<div class="tf-aaa-card__back-fang">TF</div>';
+    sigil.innerHTML = GOLDEN_SAMPLE_ART.backSigil;
     content.append(sigil);
     return root;
   }
 
-  // Physical art aperture (§7.3): full aperture band behind the focal-safe
-  // rectangle; placeholder painterly ground until golden-sample art lands.
+  // Physical art aperture (§7.3): authored aperture art when the face has a
+  // golden-sample piece; painterly placeholder ground otherwise.
   const art = el(doc, 'tf-aaa-card__art');
-  art.dataset.artPending = 'true';
+  const aperture = model.faceId ? GOLDEN_SAMPLE_ART[model.faceId] : null;
+  if (aperture) {
+    art.innerHTML = aperture;
+  } else {
+    art.dataset.artPending = 'true';
+  }
   content.append(art);
 
   const typeRow = el(doc, 'tf-aaa-card__type', rects.typeSubtitle);
-  typeRow.textContent = model.typeLabel;
+  const typeChip = doc.createElement('span');
+  typeChip.textContent = model.typeLabel;
+  typeRow.append(typeChip);
   content.append(typeRow);
 
   const nameplate = el(doc, 'tf-aaa-card__nameplate', rects.nameplateOuter);
