@@ -61,6 +61,16 @@ test('§12 environment rows: frame extent, quiet zone, prop intrusion', async ({
   expect(environment.propIntrusion.worstPx).toBeLessThanOrEqual(42);
 });
 
+test('§4.1 slot marks: every anchor line inside the 1.15-1.35 luminance band', async ({ page }) => {
+  const metrics = await openMeadow(page);
+  const entries = Object.entries(metrics.slotMarks);
+  expect(entries.length).toBe(12);
+  for (const [anchor, ratio] of entries) {
+    expect(ratio, anchor).toBeGreaterThanOrEqual(1.15);
+    expect(ratio, anchor).toBeLessThanOrEqual(1.35);
+  }
+});
+
 test('deterministic: two loads render byte-identical frames', async ({ page }) => {
   await openMeadow(page);
   const first = await page.locator('#scene-canvas').screenshot();

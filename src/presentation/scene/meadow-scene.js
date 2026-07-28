@@ -50,7 +50,7 @@ function screenToGround(camera, x, y) {
 // texture UV, so the §12 region rows measure what was authored. Gradients
 // always fade to zero-alpha of their own color (transparent-black stops
 // darken midtones — a real defect the first metric pass caught).
-function paintMeadowTexture(rng, camera, span) {
+function paintMeadowTexture(rng, camera, span, slotQuads) {
   const size = 2048;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -144,6 +144,44 @@ function paintMeadowTexture(rng, camera, span) {
   edgeQuad([1252, 1180], [1932, 1180], [1852, 820], [1372, 806]);
   ctx.filter = 'none';
 
+  // §4.1 slot marks: engraved 1–2 px (screen) outlines at each camera-lock
+  // anchor footprint, painted at 1.25× the local grass luminance so the
+  // measured band ratio (1.15–1.35) holds. The golden quadrilateral corners
+  // are screen points; each maps through the ground to texture space.
+  if (slotQuads) {
+    const lineWidthTexture = Math.max(2, 1.8 * texturePerScreenPx);
+    for (const [anchorName, quad] of Object.entries(slotQuads)) {
+      const corners = (quad.face ?? quad).map(([sx, sy]) => toTexture(sx, sy));
+      // Local grass base: opponent row sits in the sunlit upper meadow,
+      // player row in the lower meadow.
+      const isUpper = anchorName.startsWith('opp.');
+      const base = isUpper ? [194, 171, 77] : [179, 167, 79];
+      // 1.25x LINEAR luminance target: sRGB channels scale by 1.25^(1/2.4).
+      const line = base.map((c) => Math.min(255, Math.round(c * 1.115)));
+      ctx.strokeStyle = `rgb(${line[0]}, ${line[1]}, ${line[2]})`;
+      ctx.lineWidth = lineWidthTexture;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      corners.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+      // Engraved rune: small diamond at the footprint center, same band.
+      const cx = corners.reduce((sum, c) => sum + c.x, 0) / corners.length;
+      const cy = corners.reduce((sum, c) => sum + c.y, 0) / corners.length;
+      const r = 5 * texturePerScreenPx;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
   // Micro grain, kept under 3% luminance RMS centrally (§4.3 grass rule).
   const grain = ctx.getImageData(0, 0, size, size);
   const data = grain.data;
@@ -227,7 +265,7 @@ function paintDividerTexture() {
   return texture;
 }
 
-export function buildMeadowScene(renderer, { propsOnly = false } = {}) {
+export function buildMeadowScene(renderer, { propsOnly = false, slotQuads = null } = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(COOL_FOLIAGE);
   const camera = createCameraCandidate('P');
@@ -245,7 +283,7 @@ export function buildMeadowScene(renderer, { propsOnly = false } = {}) {
   const span = { x: spanX, z: spanZ };
   const terrain = new THREE.Mesh(
     new THREE.PlaneGeometry(spanX, spanZ),
-    new THREE.MeshBasicMaterial({ map: paintMeadowTexture(rng, camera, span) }),
+    new THREE.MeshBasicMaterial({ map: paintMeadowTexture(rng, camera, span, slotQuads) }),
   );
   terrain.rotation.x = -Math.PI / 2;
   terrain.name = 'meadow-terrain';

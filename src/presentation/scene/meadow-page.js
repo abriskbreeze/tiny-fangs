@@ -223,7 +223,12 @@ async function main() {
   renderer.toneMapping = THREE.NoToneMapping;
 
   const mode = new URLSearchParams(window.location.search).get('mode');
-  const meadow = buildMeadowScene(renderer, { propsOnly: mode === 'prop-mask' });
+  const golden = await (await fetch('/tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json')).json();
+  const slotQuads = golden.anchors ?? golden;
+  const meadow = buildMeadowScene(renderer, {
+    propsOnly: mode === 'prop-mask',
+    slotQuads,
+  });
   meadow.render();
 
   // Read back the rendered frame through 2d canvas for symmetric operators.
@@ -312,8 +317,7 @@ async function main() {
   }
 
   // Prop intrusion into resting card envelopes (camera-lock golden quads).
-  const golden = await (await fetch('/tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json')).json();
-  const quads = golden.anchors ?? golden;
+  const quads = slotQuads;
   let worstIntrusion = 0;
   let worstAnchor = null;
   for (const [anchor, quad] of Object.entries(quads)) {
@@ -337,7 +341,29 @@ async function main() {
     }
   }
 
+  // §4.1 slot-mark luminance ratios: peak line luminance along a vertical
+  // probe crossing the top edge midpoint vs grass sampled outside.
+  const slotMarks = {};
+  for (const [anchorName, quad] of Object.entries(slotQuads)) {
+    const corners = quad.face ?? quad;
+    if (!Array.isArray(corners)) continue;
+    const [c0, c1] = corners;
+    const mx = Math.round((c0[0] + c1[0]) / 2);
+    const my = Math.round((c0[1] + c1[1]) / 2);
+    if (mx < 4 || mx > 1667 || my < 12 || my > 928) continue;
+    let peak = 0;
+    for (let dy = -5; dy <= 5; dy += 1) {
+      const i = ((my + dy) * 1672 + mx) * 4;
+      const lum = relLuminance(frame[i], frame[i + 1], frame[i + 2]);
+      if (lum > peak) peak = lum;
+    }
+    const gi = ((my - 12) * 1672 + mx) * 4;
+    const grass = relLuminance(frame[gi], frame[gi + 1], frame[gi + 2]);
+    slotMarks[anchorName] = Number((peak / grass).toFixed(3));
+  }
+
   window.__TF_MEADOW_METRICS__ = {
+    slotMarks,
     divider: dividerMetrics(frame, 1672, 941),
     palette,
     perimeterCenterRatio: Number((foliageLum / upperLum).toFixed(3)),
