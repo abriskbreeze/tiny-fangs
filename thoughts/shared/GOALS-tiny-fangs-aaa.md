@@ -520,13 +520,11 @@ Evidence:
 
 ### Phase 3 — Presentation Boundary and Compositing Proof
 
-**Status:** QUEUED
+**Status:** IN PROGRESS — BOUNDARY AND SPIKE ACCOMPLISHED (2026-07-28)
 
-- Presentation coordinator and semantic target registry
-- Canonical 1672 × 941 layout and portrait map
-- Three.js/DOM world-to-screen projection contract
-- Static fallback, lifecycle, context loss, and resource disposal
-- Maximum 2 px canonical and 4 px responsive alignment drift
+- **ACCOMPLISHED:** `PresentationCoordinator` (idempotent updates, deep snapshots with no mutable engine references, scene-failure containment that downgrades to static without blocking gameplay, complete listener/scene disposal, re-entrant dispose) and the semantic `TargetRegistry` (`me.active`, `opp.bench.1`, action/UI targets; shell-aware; explicit registration wins; unknown names fail closed) — 13/13 focused unit contracts.
+- **ACCOMPLISHED:** DOM/Three compositing spike at the locked camera: DOM card faces are homography-mapped (CSS `matrix3d`) onto the camera-lock-v1 golden quadrilaterals over the live Three scene; measured browser-applied drift ≤2 CSS px at canonical 1672 × 941 and ≤4 CSS px across the 2560×1440/1440×900/1280×720/1024×768 resize matrix; forward-projection error ≤0.1 px; three consecutive mounts clean — 6/6 browser gates (`tests/visual/composite-spike.visual.spec.js`, `composite.html`). No post-processing in the spike, r185 + `NeutralToneMapping`, per plan.
+- Remaining in phase: KTX2/Basis wiring (explicitly post-spike), portrait anchor map (deferred with the mobile port), wiring the coordinator into the live game shell during Phase 4 keyed-rendering migration.
 
 ### Phases 4–13 — Full Production
 
