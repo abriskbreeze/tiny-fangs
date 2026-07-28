@@ -1,0 +1,129 @@
+{
+  "schema": "tiny-fangs.asset-provenance.v1",
+  "identity": {
+    "assetId": "golden-manasurge-aperture",
+    "assetRevision": "r4-task-34",
+    "presentationFaceId": "manaSurge",
+    "sceneRole": "cast aperture art",
+    "sourceFileSha256": "sha256:d3e462660075995db9bf68c30ffcc89e0f5ffc3a9fc79ef5f3d7fe68fa554689",
+    "exportedFileSha256": "sha256:040c5890010a1ac6c6cce45b8e3946e5ae3444b44c1414f1517d29e7417a1bb9",
+    "sourcePath": "src/presentation/cards/art/golden-sample-art.js"
+  },
+  "creator": {
+    "identity": "Claude Fable 5 coding agent, operated for aBriskBreeze",
+    "creatorId": "creator-fable-agent",
+    "relationship": "agent operated by and for the project owner; work made for hire",
+    "creationDate": "2026-07-28",
+    "creationLocation": "Local agent session, project repository",
+    "recordOwner": "aBriskBreeze <joeking212@gmail.com>"
+  },
+  "origin": {
+    "creationMethod": "disclosed-assisted-generation",
+    "disclosure": "SVG markup hand-authored path-by-path by the Claude Fable 5 coding agent (model claude-fable-5) directly in code. No image-generation model, no traced geometry, no reference file used as a source layer.",
+    "sourceInputs": [],
+    "tool": "claude-fable-5 (Claude Code agent), hand-written SVG",
+    "promptOrInputHash": null
+  },
+  "rights": {
+    "owner": "aBriskBreeze (Tiny Fangs project owner)",
+    "licenseId": "tiny-fangs-original-work-v1",
+    "licenseTextSha256": "sha256:b28d70bceb867a958b8fd03b6286436b63b745477d31c72235e762775b742f0b",
+    "licenseText": "All rights in this original Tiny Fangs asset are owned by the Tiny Fangs project owner (aBriskBreeze). Created by an AI coding agent operated by and for the project owner as a work made for hire. Permitted uses: all Tiny Fangs production, marketing, and derivative uses, worldwide, perpetual. No third-party content.",
+    "permittedUses": [
+      "production",
+      "marketing",
+      "derivatives"
+    ],
+    "territory": "worldwide",
+    "term": "perpetual",
+    "sublicensing": "at owner discretion",
+    "attribution": "none required",
+    "thirdPartyContent": "none",
+    "restrictions": "none"
+  },
+  "referenceUse": {
+    "r1Sha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "r2Sha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+    "purpose": "visual-language comparison only (palette roles and material mood per art bible §5/§9.4)",
+    "referenceCropsViewed": "R1/R2 full frames as reproduced in the accepted art bible",
+    "statement": "No reference asset is a source layer of this asset."
+  },
+  "motifReview": {
+    "reviewerStatement": "I independently compared this asset and its source record against R1 (docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png) and R2 (docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png) using every motif checklist row. I read both references at full size, made close-up crops of the highest-risk regions (R1 card back, R1 teal wisp art window, R2 deck-back stacks), read all four rendered crops plus cards-full.png, and inspected the authored SVG path geometry in src/presentation/cards/art/golden-sample-art.js line by line. I found no traced or closely copied silhouette, composition, ornament path, or motif; all similarity is confined to the deliberately shared sampled palette/material mood and generic TCG layout conventions, which I document explicitly below rather than certify silently.",
+    "reviewerId": "reviewer-fresh-agent",
+    "rows": [
+      {
+        "row": 1,
+        "verdict": "distinct",
+        "evidence": "Compared subjects: the asset depicts a stone spring/fountain erupting a column of mana light, while R1/R2's mana motif is a floating teardrop wisp; the object identity differs."
+      },
+      {
+        "row": 2,
+        "verdict": "distinct",
+        "evidence": "Compared focal composition against a close-up crop of the R1 teal art: a full-height symmetric light spire rising from a pool between corner foliage masses (lines 113-137) versus R1's small droplet hovering over a flat flower-and-rock field; the silhouettes are unrelated."
+      },
+      {
+        "row": 3,
+        "verdict": "distinct",
+        "evidence": "Verified the wisp form specifically: R1's wisp is a round-bottomed teardrop with a curling pointed tip and white core; the asset contains no teardrop anywhere - its orbiting accents are plain circles and its spring stones are smooth quads/ellipses, not R1's faceted low-poly rocks."
+      },
+      {
+        "row": 4,
+        "verdict": "distinct",
+        "evidence": "Compared the fang-in-teal-oval divider emblem against the R1 teal card's multi-point compass rosette at the same slot; the position convention matches but no rosette point geometry is reused."
+      },
+      {
+        "row": 5,
+        "verdict": "distinct",
+        "evidence": "Compared frames: flat teal band with rounded corners versus R1's beveled teal metal frame with corner-cut art window, corner ornaments, and edge filigree; no ornament path carried over."
+      },
+      {
+        "row": 6,
+        "verdict": "not-applicable",
+        "evidence": "Card face; no card-back sigil, constellation, or rotational-cue content to compare."
+      },
+      {
+        "row": 7,
+        "verdict": "distinct",
+        "evidence": "Compared environment props: the corner foliage masses are two smooth quadratic blobs (lines 109-110) rather than low-poly canopy clusters, and the ground is flat bands with no copy of R1's scattered-flower-and-rock prop map."
+      },
+      {
+        "row": 8,
+        "verdict": "distinct",
+        "evidence": "Compared text and badges: English rules text versus pseudo-glyph strings, and the mana '0' sits in a plain cream circle versus R1's octagonal shield-shaped badge."
+      },
+      {
+        "row": 9,
+        "verdict": "distinct",
+        "evidence": "The teal family (#277A79/#8FD8CB), gold core (#F5D783), and parchment are deliberately sampled per the art direction; the retention is confined to color/material roles."
+      },
+      {
+        "row": 10,
+        "verdict": "distinct",
+        "evidence": "Both cards read as 'teal cast card with glowing cyan magic above grey stones' - a subject-family echo that follows from the sanctioned palette/mood guidance - but I traced every path (spire, pool, stones, droplets) and each is independently constructed geometry, not a redrawn reference form."
+      }
+    ],
+    "decision": "approved"
+  },
+  "recordSha256": "sha256:0579027b18a80bbb55401a4315f5125f09bba334ca259b49960308cc15bc9e10",
+  "signatures": {
+    "creator": {
+      "signerId": "creator-fable-agent",
+      "role": "creator",
+      "signedAt": "2026-07-28T22:29:35.489Z",
+      "publicKeyFingerprint": "4271e16ad5eb1be757697c01c2ca79c69bf4fe2ef8f6de3db57b5cc1a9156775",
+      "subjectSha256": "sha256:be51b253b072ddc7b8e95974af1f7710cba095ce8559d75a9fba0fd8c85403f3",
+      "scheme": "ed25519",
+      "signature": "y7xj7dwIvrcDLtpy7OByKzpfSTDs3+PE1yewjIgdgaQFqCgvI2duCOAAF0c3oXMdtNiS95hZL8hGNFB7CHoDAA=="
+    },
+    "reviewer": {
+      "signerId": "reviewer-fresh-agent",
+      "role": "provenance-reviewer",
+      "signedAt": "2026-07-28T22:29:35.489Z",
+      "publicKeyFingerprint": "733b9064a8d55304c21ca3bb55c0d101e19de457f1f7ee97071a4058d52da69d",
+      "subjectSha256": "sha256:be51b253b072ddc7b8e95974af1f7710cba095ce8559d75a9fba0fd8c85403f3",
+      "scheme": "ed25519",
+      "signature": "/anskOCLM6Tp3CDxyzdATAC0F/NoiJ95wKBLnc9VWeubhN8axWS0e1ONI0t+NqdIDxM9Km8vc1SeAFoHUNeuAg=="
+    }
+  }
+}

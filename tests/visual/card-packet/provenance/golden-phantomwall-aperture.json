@@ -1,0 +1,129 @@
+{
+  "schema": "tiny-fangs.asset-provenance.v1",
+  "identity": {
+    "assetId": "golden-phantomwall-aperture",
+    "assetRevision": "r4-task-34",
+    "presentationFaceId": "phantomWall",
+    "sceneRole": "set aperture art",
+    "sourceFileSha256": "sha256:eb51fb570b2e058a99b1f067172d426ba468db175d30423babb8cda2734643e7",
+    "exportedFileSha256": "sha256:040c5890010a1ac6c6cce45b8e3946e5ae3444b44c1414f1517d29e7417a1bb9",
+    "sourcePath": "src/presentation/cards/art/golden-sample-art.js"
+  },
+  "creator": {
+    "identity": "Claude Fable 5 coding agent, operated for aBriskBreeze",
+    "creatorId": "creator-fable-agent",
+    "relationship": "agent operated by and for the project owner; work made for hire",
+    "creationDate": "2026-07-28",
+    "creationLocation": "Local agent session, project repository",
+    "recordOwner": "aBriskBreeze <joeking212@gmail.com>"
+  },
+  "origin": {
+    "creationMethod": "disclosed-assisted-generation",
+    "disclosure": "SVG markup hand-authored path-by-path by the Claude Fable 5 coding agent (model claude-fable-5) directly in code. No image-generation model, no traced geometry, no reference file used as a source layer.",
+    "sourceInputs": [],
+    "tool": "claude-fable-5 (Claude Code agent), hand-written SVG",
+    "promptOrInputHash": null
+  },
+  "rights": {
+    "owner": "aBriskBreeze (Tiny Fangs project owner)",
+    "licenseId": "tiny-fangs-original-work-v1",
+    "licenseTextSha256": "sha256:b28d70bceb867a958b8fd03b6286436b63b745477d31c72235e762775b742f0b",
+    "licenseText": "All rights in this original Tiny Fangs asset are owned by the Tiny Fangs project owner (aBriskBreeze). Created by an AI coding agent operated by and for the project owner as a work made for hire. Permitted uses: all Tiny Fangs production, marketing, and derivative uses, worldwide, perpetual. No third-party content.",
+    "permittedUses": [
+      "production",
+      "marketing",
+      "derivatives"
+    ],
+    "territory": "worldwide",
+    "term": "perpetual",
+    "sublicensing": "at owner discretion",
+    "attribution": "none required",
+    "thirdPartyContent": "none",
+    "restrictions": "none"
+  },
+  "referenceUse": {
+    "r1Sha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "r2Sha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+    "purpose": "visual-language comparison only (palette roles and material mood per art bible §5/§9.4)",
+    "referenceCropsViewed": "R1/R2 full frames as reproduced in the accepted art bible",
+    "statement": "No reference asset is a source layer of this asset."
+  },
+  "motifReview": {
+    "reviewerStatement": "I independently compared this asset and its source record against R1 (docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png) and R2 (docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png) using every motif checklist row. I read both references at full size, made close-up crops of the highest-risk regions (R1 card back, R1 teal wisp art window, R2 deck-back stacks), read all four rendered crops plus cards-full.png, and inspected the authored SVG path geometry in src/presentation/cards/art/golden-sample-art.js line by line. I found no traced or closely copied silhouette, composition, ornament path, or motif; all similarity is confined to the deliberately shared sampled palette/material mood and generic TCG layout conventions, which I document explicitly below rather than certify silently.",
+    "reviewerId": "reviewer-fresh-agent",
+    "rows": [
+      {
+        "row": 1,
+        "verdict": "distinct",
+        "evidence": "Compared subjects: a spectral curved battlement/rampart versus R1's freestanding stone arch monument and R2's cave mound; the structures are different object identities."
+      },
+      {
+        "row": 2,
+        "verdict": "distinct",
+        "evidence": "Compared composition: a full-width curved wall with crenellations spanning the frame (lines 165-169) versus R1's single centered arch on a grass mound; silhouette and focal arrangement do not match."
+      },
+      {
+        "row": 3,
+        "verdict": "distinct",
+        "evidence": "Compared forms: the drifting wisps are plain opacity circles, the masonry courses are original quadratic lines, and the asset contains no arch/grave, fence, flower, or river form echoing the references."
+      },
+      {
+        "row": 4,
+        "verdict": "distinct",
+        "evidence": "Compared the fang-in-plum-oval divider emblem against the R1 purple card's crescent-in-circle divider at the same slot; no crescent or circle-frame geometry is reused."
+      },
+      {
+        "row": 5,
+        "verdict": "distinct",
+        "evidence": "Compared frames: flat plum band with rounded corners versus R1's weathered purple metal frame with gold corner details and beveled art window; no ornament path or panel cut reproduced."
+      },
+      {
+        "row": 6,
+        "verdict": "not-applicable",
+        "evidence": "Card face; no card-back sigil, constellation, or rotational-cue content to compare."
+      },
+      {
+        "row": 7,
+        "verdict": "distinct",
+        "evidence": "Compared prop maps: one faint moon disc and four wisp dots at irregular stations versus R1's firefly cluster around the arch and R2's night-forest scatter; neither spacing nor corner silhouettes correspond."
+      },
+      {
+        "row": 8,
+        "verdict": "distinct",
+        "evidence": "Compared text and badges: English rules text versus pseudo-glyph strings; the '1' cost sits in a plain cream circle versus R1's gold octagon badge."
+      },
+      {
+        "row": 9,
+        "verdict": "distinct",
+        "evidence": "The plum/night-violet family (#6A5A66/#2A2430) and parchment are deliberately sampled from the reference's purple card per the art direction; retention is palette-only."
+      },
+      {
+        "row": 10,
+        "verdict": "distinct",
+        "evidence": "The faint low moon disc (line 161) echoes only the nocturne mood; R1's crescent divider and R2's night-forest crescent differ in shape and placement, and I noticed no other overlap."
+      }
+    ],
+    "decision": "approved"
+  },
+  "recordSha256": "sha256:7bba80fce73ed70e3a4ecf70cbcaeaef7f4d471c0c40d84a54c9e95dd6b73d7f",
+  "signatures": {
+    "creator": {
+      "signerId": "creator-fable-agent",
+      "role": "creator",
+      "signedAt": "2026-07-28T22:29:35.490Z",
+      "publicKeyFingerprint": "4271e16ad5eb1be757697c01c2ca79c69bf4fe2ef8f6de3db57b5cc1a9156775",
+      "subjectSha256": "sha256:f4f5d514bc87427e7984bdd3189ec5adc02124266d55efc69e7ac28869d9d1d6",
+      "scheme": "ed25519",
+      "signature": "Tv9/mqeytqZo8pFof4btjzqVvGyQdqAhpNskjF/BIQqK0Cd/PxqnY7INl3YypW3KgI34wiaHlZ/ZULMsI0XaDA=="
+    },
+    "reviewer": {
+      "signerId": "reviewer-fresh-agent",
+      "role": "provenance-reviewer",
+      "signedAt": "2026-07-28T22:29:35.490Z",
+      "publicKeyFingerprint": "733b9064a8d55304c21ca3bb55c0d101e19de457f1f7ee97071a4058d52da69d",
+      "subjectSha256": "sha256:f4f5d514bc87427e7984bdd3189ec5adc02124266d55efc69e7ac28869d9d1d6",
+      "scheme": "ed25519",
+      "signature": "+PTvtdMFbGQi84aaDc/brwwY6Ou2Ux33ydmHc36x67LrpMsVgPq+HiqfFlGrtG7WB5lCvScur/uPYnNywK9HCQ=="
+    }
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "schema": "tiny-fangs.asset-provenance.v1",
+  "identity": {
+    "assetId": "golden-duskfang-aperture",
+    "assetRevision": "r4-task-34",
+    "presentationFaceId": "duskfang",
+    "sceneRole": "creature aperture art",
+    "sourceFileSha256": "sha256:661fe6577932abd4e8c39a9962e8a2ce7a6af336fbc9feba82444a5e36b225ec",
+    "exportedFileSha256": "sha256:040c5890010a1ac6c6cce45b8e3946e5ae3444b44c1414f1517d29e7417a1bb9",
+    "sourcePath": "src/presentation/cards/art/golden-sample-art.js"
+  },
+  "creator": {
+    "identity": "Claude Fable 5 coding agent, operated for aBriskBreeze",
+    "creatorId": "creator-fable-agent",
+    "relationship": "agent operated by and for the project owner; work made for hire",
+    "creationDate": "2026-07-28",
+    "creationLocation": "Local agent session, project repository",
+    "recordOwner": "aBriskBreeze <joeking212@gmail.com>"
+  },
+  "origin": {
+    "creationMethod": "disclosed-assisted-generation",
+    "disclosure": "SVG markup hand-authored path-by-path by the Claude Fable 5 coding agent (model claude-fable-5) directly in code. No image-generation model, no traced geometry, no reference file used as a source layer.",
+    "sourceInputs": [],
+    "tool": "claude-fable-5 (Claude Code agent), hand-written SVG",
+    "promptOrInputHash": null
+  },
+  "rights": {
+    "owner": "aBriskBreeze (Tiny Fangs project owner)",
+    "licenseId": "tiny-fangs-original-work-v1",
+    "licenseTextSha256": "sha256:b28d70bceb867a958b8fd03b6286436b63b745477d31c72235e762775b742f0b",
+    "licenseText": "All rights in this original Tiny Fangs asset are owned by the Tiny Fangs project owner (aBriskBreeze). Created by an AI coding agent operated by and for the project owner as a work made for hire. Permitted uses: all Tiny Fangs production, marketing, and derivative uses, worldwide, perpetual. No third-party content.",
+    "permittedUses": [
+      "production",
+      "marketing",
+      "derivatives"
+    ],
+    "territory": "worldwide",
+    "term": "perpetual",
+    "sublicensing": "at owner discretion",
+    "attribution": "none required",
+    "thirdPartyContent": "none",
+    "restrictions": "none"
+  },
+  "referenceUse": {
+    "r1Sha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "r2Sha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+    "purpose": "visual-language comparison only (palette roles and material mood per art bible §5/§9.4)",
+    "referenceCropsViewed": "R1/R2 full frames as reproduced in the accepted art bible",
+    "statement": "No reference asset is a source layer of this asset."
+  },
+  "motifReview": {
+    "reviewerStatement": "I independently compared this asset and its source record against R1 (docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png) and R2 (docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png) using every motif checklist row. I read both references at full size, made close-up crops of the highest-risk regions (R1 card back, R1 teal wisp art window, R2 deck-back stacks), read all four rendered crops plus cards-full.png, and inspected the authored SVG path geometry in src/presentation/cards/art/golden-sample-art.js line by line. I found no traced or closely copied silhouette, composition, ornament path, or motif; all similarity is confined to the deliberately shared sampled palette/material mood and generic TCG layout conventions, which I document explicitly below rather than certify silently.",
+    "reviewerId": "reviewer-fresh-agent",
+    "rows": [
+      {
+        "row": 1,
+        "verdict": "distinct",
+        "evidence": "Compared the howling wolf against every creature/object in R1/R2 (moss golem, unicorn, trees, teardrop wisp, stone arch, cave mound); no wolf or canid appears anywhere in either reference, so the species is original."
+      },
+      {
+        "row": 2,
+        "verdict": "distinct",
+        "evidence": "The seated howl-profile silhouette with raised muzzle, ear wedge, and curled tail is built from original cubic paths (golden-sample-art.js lines 53-68) and has no counterpart pose or focal arrangement in either reference to trace."
+      },
+      {
+        "row": 3,
+        "verdict": "distinct",
+        "evidence": "Compared the tree line: the asset uses a flat zigzag of hard triangles (line 40) versus R1/R2's rounded low-poly faceted canopy clusters, and no grave, fence, rock, flower, or river form from the references is reused in the scene."
+      },
+      {
+        "row": 4,
+        "verdict": "distinct",
+        "evidence": "Compared the frame's fang-in-amber-oval divider emblem against R1's divider marks (leaf-sprig scroll, multi-point compass rosette, crescent-in-circle) and R2's leaf placeholder emblem; the slot convention is shared but the fang glyph geometry is original."
+      },
+      {
+        "row": 5,
+        "verdict": "distinct",
+        "evidence": "Compared borders: the asset is a flat rounded-rectangle cream rim with a plain amber band, while R1 uses weathered beveled metal frames with corner rivets, edge filigree, and corner-cut art-window panels; none of those ornament paths or panel cuts is reproduced."
+      },
+      {
+        "row": 6,
+        "verdict": "not-applicable",
+        "evidence": "This asset is a card face with no card-back sigil, constellation, or rotational-cue content to compare."
+      },
+      {
+        "row": 7,
+        "verdict": "distinct",
+        "evidence": "Compared the prop map: the scene has a triangle treeline, two hill bands, a ridge, and four grass strokes, sharing neither the cluster spacing nor the corner rock/flower/low-poly-tree silhouettes that edge the R1/R2 boards."
+      },
+      {
+        "row": 8,
+        "verdict": "distinct",
+        "evidence": "Compared text and sockets: the asset uses real English serif rules text versus R1/R2's pseudo-glyph rune strings, and its flat hexagon ATK (40) and plain maroon circle HP (60) share only the generic bottom-corner stat convention, not R1's sword-gem and heart-gem shapes."
+      },
+      {
+        "row": 9,
+        "verdict": "distinct",
+        "evidence": "The amber/gold frame color, parchment body, and navy-to-amber dusk gradient (#372F3F to #EDC674) are sampled from the reference palette as the art direction allows; I verified the retention is palette/material-only with no shared geometry riding along."
+      },
+      {
+        "row": 10,
+        "verdict": "distinct",
+        "evidence": "The full glowing moon upper-right is generic geometry (three circles, lines 35-38); R1's only moon is a crescent line drawing on the card back, not a scene element, and I noticed no other overlap."
+      }
+    ],
+    "decision": "approved"
+  },
+  "recordSha256": "sha256:2babb2c60061460a20b80a583e0fb73411a67f09d9328d683e8c01fc1e3303aa",
+  "signatures": {
+    "creator": {
+      "signerId": "creator-fable-agent",
+      "role": "creator",
+      "signedAt": "2026-07-28T22:29:35.486Z",
+      "publicKeyFingerprint": "4271e16ad5eb1be757697c01c2ca79c69bf4fe2ef8f6de3db57b5cc1a9156775",
+      "subjectSha256": "sha256:21a7d8b1248ed84f159bf540bd72b866e017082f3ca6a64829f0ac3d241422e4",
+      "scheme": "ed25519",
+      "signature": "O3/XW6n6bbuHc5BYx8T3jk2OqpE9BqMGYUN3WospjerxPuROl4lira1OB8PjP5j0iTAUiWtuwR+quhv8LoL+Aw=="
+    },
+    "reviewer": {
+      "signerId": "reviewer-fresh-agent",
+      "role": "provenance-reviewer",
+      "signedAt": "2026-07-28T22:29:35.487Z",
+      "publicKeyFingerprint": "733b9064a8d55304c21ca3bb55c0d101e19de457f1f7ee97071a4058d52da69d",
+      "subjectSha256": "sha256:21a7d8b1248ed84f159bf540bd72b866e017082f3ca6a64829f0ac3d241422e4",
+      "scheme": "ed25519",
+      "signature": "ABgUECCqR3BB0mKZDk4Kp9LtToTRzXJXrq4Mn87TfCLof7Y04r0jq+NE7h78NNfsScizY5UiE+sg3V8JLd6UDA=="
+    }
+  }
+}

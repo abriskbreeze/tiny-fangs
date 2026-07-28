@@ -1,0 +1,129 @@
+{
+  "schema": "tiny-fangs.asset-provenance.v1",
+  "identity": {
+    "assetId": "golden-back-sigil",
+    "assetRevision": "r4-task-34",
+    "presentationFaceId": null,
+    "sceneRole": "shared card-back sigil",
+    "sourceFileSha256": "sha256:ecd64670437b814eeeacf407ec59c748e3de15c6a44c7b9427cb4e0b30dab2c1",
+    "exportedFileSha256": "sha256:040c5890010a1ac6c6cce45b8e3946e5ae3444b44c1414f1517d29e7417a1bb9",
+    "sourcePath": "src/presentation/cards/art/golden-sample-art.js"
+  },
+  "creator": {
+    "identity": "Claude Fable 5 coding agent, operated for aBriskBreeze",
+    "creatorId": "creator-fable-agent",
+    "relationship": "agent operated by and for the project owner; work made for hire",
+    "creationDate": "2026-07-28",
+    "creationLocation": "Local agent session, project repository",
+    "recordOwner": "aBriskBreeze <joeking212@gmail.com>"
+  },
+  "origin": {
+    "creationMethod": "disclosed-assisted-generation",
+    "disclosure": "SVG markup hand-authored path-by-path by the Claude Fable 5 coding agent (model claude-fable-5) directly in code. No image-generation model, no traced geometry, no reference file used as a source layer.",
+    "sourceInputs": [],
+    "tool": "claude-fable-5 (Claude Code agent), hand-written SVG",
+    "promptOrInputHash": null
+  },
+  "rights": {
+    "owner": "aBriskBreeze (Tiny Fangs project owner)",
+    "licenseId": "tiny-fangs-original-work-v1",
+    "licenseTextSha256": "sha256:b28d70bceb867a958b8fd03b6286436b63b745477d31c72235e762775b742f0b",
+    "licenseText": "All rights in this original Tiny Fangs asset are owned by the Tiny Fangs project owner (aBriskBreeze). Created by an AI coding agent operated by and for the project owner as a work made for hire. Permitted uses: all Tiny Fangs production, marketing, and derivative uses, worldwide, perpetual. No third-party content.",
+    "permittedUses": [
+      "production",
+      "marketing",
+      "derivatives"
+    ],
+    "territory": "worldwide",
+    "term": "perpetual",
+    "sublicensing": "at owner discretion",
+    "attribution": "none required",
+    "thirdPartyContent": "none",
+    "restrictions": "none"
+  },
+  "referenceUse": {
+    "r1Sha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "r2Sha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+    "purpose": "visual-language comparison only (palette roles and material mood per art bible §5/§9.4)",
+    "referenceCropsViewed": "R1/R2 full frames as reproduced in the accepted art bible",
+    "statement": "No reference asset is a source layer of this asset."
+  },
+  "motifReview": {
+    "reviewerStatement": "I independently compared this asset and its source record against R1 (docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png) and R2 (docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png) using every motif checklist row. I read both references at full size, made close-up crops of the highest-risk regions (R1 card back, R1 teal wisp art window, R2 deck-back stacks), read all four rendered crops plus cards-full.png, and inspected the authored SVG path geometry in src/presentation/cards/art/golden-sample-art.js line by line. I found no traced or closely copied silhouette, composition, ornament path, or motif; all similarity is confined to the deliberately shared sampled palette/material mood and generic TCG layout conventions, which I document explicitly below rather than certify silently.",
+    "reviewerId": "reviewer-fresh-agent",
+    "rows": [
+      {
+        "row": 1,
+        "verdict": "distinct",
+        "evidence": "Compared central marks: twin separated fangs with tips inward (lines 228-230) versus R1's crescent moon and R2's lozenge diamond; no fang motif exists in either reference."
+      },
+      {
+        "row": 2,
+        "verdict": "distinct",
+        "evidence": "Compared composition against a close-up of the R1 back: the asset centers a symmetric double ring around the fangs, while R1 places an off-center crescent inside one large open arc within a rectangular border, and R2 centers a diamond in a floral rectangle."
+      },
+      {
+        "row": 3,
+        "verdict": "not-applicable",
+        "evidence": "The back sigil contains no wisp, grave, tree, leaf, fence, rock, flower, or river forms to compare."
+      },
+      {
+        "row": 4,
+        "verdict": "distinct",
+        "evidence": "Verified against the R1 back close-up that the fang family emblem borrows no crescent, arc, or lozenge geometry; the fang paths are original cubic curves with a separate original brow stroke."
+      },
+      {
+        "row": 5,
+        "verdict": "distinct",
+        "evidence": "Compared corner ornaments: the asset uses four short quadratic hook curves (lines 221-224) with no rectangular border at all, versus R1's dart/arrow finials mounted on a double-line rectangular border and R2's floral filigree frame."
+      },
+      {
+        "row": 6,
+        "verdict": "distinct",
+        "evidence": "Closest schema overlap in the whole review: both backs use thin gold line work, a circular motif, and small star accents on dark violet; but the asset's full double concentric circles with compass ticks and deliberate asymmetry have no counterpart in R1's single arc + crescent + four-point sparkles, and its star accents are plain dots at different stations - shared visual language, not copied paths."
+      },
+      {
+        "row": 7,
+        "verdict": "not-applicable",
+        "evidence": "No environment props, clusters, or corner scene silhouettes exist on the back sigil."
+      },
+      {
+        "row": 8,
+        "verdict": "distinct",
+        "evidence": "The back carries no pseudo-writing, glyph strings, or stat sockets; the only icon, the fang glyph, is original as established in rows 1 and 4."
+      },
+      {
+        "row": 9,
+        "verdict": "distinct",
+        "evidence": "The navy ground (#372F3F) and gold line color (#EEC34E) intentionally match the reference back's purple-and-gold materiality per the art direction; retention is color/material-only."
+      },
+      {
+        "row": 10,
+        "verdict": "distinct",
+        "evidence": "The radial sunburst ray background behind the sigil appears on neither reference back (R1 is flat purple, R2 is flat dark green-grey), and I noticed no other similarity."
+      }
+    ],
+    "decision": "approved"
+  },
+  "recordSha256": "sha256:107e83f9a036b72cd157f48289a58e38bcc615d940680db8b8ccacc919b6de8a",
+  "signatures": {
+    "creator": {
+      "signerId": "creator-fable-agent",
+      "role": "creator",
+      "signedAt": "2026-07-28T22:29:35.491Z",
+      "publicKeyFingerprint": "4271e16ad5eb1be757697c01c2ca79c69bf4fe2ef8f6de3db57b5cc1a9156775",
+      "subjectSha256": "sha256:84035a8907a9d2619c4ff9acde36e7c7a63761d6230387f37c888bc53bd8620b",
+      "scheme": "ed25519",
+      "signature": "BLxZ9/POqH3dfidpxhh9HxmCmuzXdfWmXSJrqejUrah3n8aNfmLmrRjU6cuycB3t4NWVWNTdOajPf0JGvINfDA=="
+    },
+    "reviewer": {
+      "signerId": "reviewer-fresh-agent",
+      "role": "provenance-reviewer",
+      "signedAt": "2026-07-28T22:29:35.491Z",
+      "publicKeyFingerprint": "733b9064a8d55304c21ca3bb55c0d101e19de457f1f7ee97071a4058d52da69d",
+      "subjectSha256": "sha256:84035a8907a9d2619c4ff9acde36e7c7a63761d6230387f37c888bc53bd8620b",
+      "scheme": "ed25519",
+      "signature": "Xnr1iH5tlfzHAm04CqsyqTefQJKig7pOj2HWbkK1QzlusU3Is8CNZB91zsT30nl4W8XhvZ0m4FGkglG2OulmAw=="
+    }
+  }
+}

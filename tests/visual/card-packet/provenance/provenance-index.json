@@ -1,0 +1,32 @@
+{
+  "schema": "tiny-fangs.provenance-index.v1",
+  "registryRevision": 1,
+  "reviewerOutputSha256": "sha256:d09afdbad937895e256d9604e6b03b242b9a64d69aded75baba4cba8e78241e4",
+  "records": [
+    {
+      "assetId": "golden-duskfang-aperture",
+      "recordPath": "provenance/golden-duskfang-aperture.json",
+      "recordSha256": "sha256:2babb2c60061460a20b80a583e0fb73411a67f09d9328d683e8c01fc1e3303aa",
+      "fileSha256": "sha256:49d1deb9d4263771c7e55eb935550e4180da378f515d25b7e51d4b65490adb97"
+    },
+    {
+      "assetId": "golden-manasurge-aperture",
+      "recordPath": "provenance/golden-manasurge-aperture.json",
+      "recordSha256": "sha256:0579027b18a80bbb55401a4315f5125f09bba334ca259b49960308cc15bc9e10",
+      "fileSha256": "sha256:038e107671bf7938bf977dc7bf8a0c6e83dad7efef3d05ca193ac6e6b6e0a2a2"
+    },
+    {
+      "assetId": "golden-phantomwall-aperture",
+      "recordPath": "provenance/golden-phantomwall-aperture.json",
+      "recordSha256": "sha256:7bba80fce73ed70e3a4ecf70cbcaeaef7f4d471c0c40d84a54c9e95dd6b73d7f",
+      "fileSha256": "sha256:b16634822b83946f1d502c8eaa58d8bc1fd6b7b006a7059af389bd03799f447b"
+    },
+    {
+      "assetId": "golden-back-sigil",
+      "recordPath": "provenance/golden-back-sigil.json",
+      "recordSha256": "sha256:107e83f9a036b72cd157f48289a58e38bcc615d940680db8b8ccacc919b6de8a",
+      "fileSha256": "sha256:9f5be3cecef8252a916fa21e5286ded305a4900b9d97ba88153e97f00c1a2473"
+    }
+  ],
+  "indexSha256": "sha256:cb44373a29a530f1d0bea9a2031c6a928c22e62b5248032d438932d28248d2ea"
+}

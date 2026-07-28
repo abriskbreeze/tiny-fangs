@@ -140,6 +140,36 @@ const {{ chromium }} = require('@playwright/test');
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
 
+def provenance_row() -> dict:
+    """Run live §13.8/§13.8.1/§13.8.2 verification; the row is `present`
+    only when every signature verifies against the committed registry."""
+    result = subprocess.run(
+        ["node", "scripts/verify_provenance.mjs"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    if result.returncode != 0:
+        return {
+            "artifactId": "provenance-index",
+            "role": "13.8 signed motif/provenance index",
+            "path": "",
+            "sha256": "",
+            "required": True,
+            "status": "unsupported",
+            "reason": f"verification failed: {result.stderr.strip()[:400]}",
+        }
+    verified = json.loads(result.stdout)
+    index_path = OUT / "provenance/provenance-index.json"
+    return {
+        "artifactId": "provenance-index",
+        "role": "13.8 signed motif/provenance index",
+        "path": "provenance/provenance-index.json",
+        "sha256": sha256_hex(index_path.read_bytes()),
+        "required": True,
+        "status": "present",
+        "verification": verified,
+    }
+
+
 def main() -> int:
     manifest = dict(SHOWCASE_MANIFEST)
     manifest["manifestSha256"] = hash_manifest(manifest)
@@ -223,19 +253,7 @@ def main() -> int:
                 }
                 for crop_id, path in crop_rows
             ],
-            {
-                "artifactId": "provenance-index",
-                "role": "13.8 signed motif/provenance index",
-                "path": "",
-                "sha256": "",
-                "required": True,
-                "status": "unsupported",
-                "reason": (
-                    "Signing registry and provenance records not yet built; "
-                    "row is honestly failed, and every linked category cap "
-                    "applies until it exists."
-                ),
-            },
+            provenance_row(),
             {
                 "artifactId": "metric-report",
                 "role": "12/13.5 mandatory measurement report (card rows)",

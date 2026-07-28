@@ -90,12 +90,17 @@
     },
     {
       "artifactId": "provenance-index",
-      "path": "",
-      "reason": "Signing registry and provenance records not yet built; row is honestly failed, and every linked category cap applies until it exists.",
+      "path": "provenance/provenance-index.json",
       "required": true,
       "role": "13.8 signed motif/provenance index",
-      "sha256": "",
-      "status": "unsupported"
+      "sha256": "sha256:72004c9c05646caa2ee90e9bcb3be59c757941fb05dc81e5728ddae9f2d05f60",
+      "status": "present",
+      "verification": {
+        "ok": true,
+        "provenanceIndexSha256": "sha256:cb44373a29a530f1d0bea9a2031c6a928c22e62b5248032d438932d28248d2ea",
+        "records": 4,
+        "registryRevision": 1
+      }
     },
     {
       "artifactId": "metric-report",
@@ -116,13 +121,13 @@
       "status": "unsupported"
     }
   ],
-  "buildRevision": "cb82dd859a8cbe5ef58d71ced5199fd25aacf084",
+  "buildRevision": "fd0c7166a5001c851b4ca8c52da10ffd933d6c60",
   "determinism": {
     "byteIdentical": true,
     "runs": 2,
     "sha256": "sha256:20af85606357d9fa7114e6755c28b079c73f1da65d3b167473552a6f2b974245"
   },
-  "indexSha256": "sha256:9957f15dd8724b562b0559c1208ec35a11d5e07252e09fa8ee8b5c4d5529e276",
+  "indexSha256": "sha256:f7050415f0287a9b1ce38b194d0c33950fe068fa7e47370cb2f97fb7e5c1770c",
   "packetId": "card-showcase-r1",
   "packetKind": "card-showcase",
   "packetKindNote": "Plan-level pre-board golden-sample review of the four-card showcase; reuses the art bible 13.2 manifest, 13.3 card crops, and 13.7.2 hashing. This is NOT the 13.5 integrated-art packet, which requires the Phase 7 populated board.",
