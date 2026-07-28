@@ -1,0 +1,235 @@
+{
+  "artifacts": [
+    {
+      "artifactId": "B-field-full",
+      "path": "candidate-B/field-full.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-full",
+      "sha256": "sha256:692e35726cd81433245abe549b401b41ec81f6baeb23c462415ce1de661793cf",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-opponent",
+      "path": "candidate-B/field-opponent.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-opponent",
+      "sha256": "sha256:1341db908e0e6fd12030ade10f3b3182f896a81bb1447a96be460c5d88a5ae68",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-divider",
+      "path": "candidate-B/field-divider.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-divider",
+      "sha256": "sha256:0c5ef9be2bcdf58961f21c40ead20f0308f4d7b14e5b10de87550bbbd63ebcf6",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-player",
+      "path": "candidate-B/field-player.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-player",
+      "sha256": "sha256:c71579793b6d369167339588226042c8ee08c1e0f62bc3b626e724805cf5bf98",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-hand",
+      "path": "candidate-B/field-hand.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-hand",
+      "sha256": "sha256:ea0b0050f9e0fd5449cbcb396a9ec1ec0321aeeb68780e32c2c878ada889ea99",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-corner-tl",
+      "path": "candidate-B/field-corner-tl.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-tl",
+      "sha256": "sha256:6f1fd6e66d3bd117eb98d07d8dfb4267cef5deb0b7a7b95705f3a9966947cdbf",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-corner-tr",
+      "path": "candidate-B/field-corner-tr.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-tr",
+      "sha256": "sha256:b610c8d9929c1923e86392d3824be41452f7b04f79a7cd935c04a8769eb2ce6f",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-corner-bl",
+      "path": "candidate-B/field-corner-bl.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-bl",
+      "sha256": "sha256:5883e3a66584885ec6eedc8354bf045e77958335dc674c66a85ad52e85a84892",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-corner-br",
+      "path": "candidate-B/field-corner-br.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-br",
+      "sha256": "sha256:e3ed617ae9fffddd2a63996747f0cfb2ee12c94ce3eee66e327f6abf4200943a",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-field-card-contact",
+      "path": "candidate-B/field-card-contact.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-card-contact",
+      "sha256": "sha256:baf1f2d801abfb10156de1227fde08a2d028cbef176d5f7e730892e2273095b8",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-fiducial-overlay",
+      "path": "candidate-B/fiducial-overlay.png",
+      "required": true,
+      "role": "section-3.4 fiducial overlay",
+      "sha256": "sha256:12ecbb87f9184e8355c33bd73092872037d5060262e71f57cfcfa99874061e91",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-gap-overlay",
+      "path": "candidate-B/active-hand-gap-overlay.png",
+      "required": true,
+      "role": "section-2.5 active/hand gap overlay",
+      "sha256": "sha256:9cd3b55ba1e4be39619e13a9f6bc7483d304b6304864bf6a0fae6c6e1ea1a2d0",
+      "status": "present"
+    },
+    {
+      "artifactId": "B-residual-report",
+      "path": "candidate-B/residual-report.json",
+      "required": true,
+      "role": "section-3.1.1 residual report",
+      "sha256": "sha256:a51a7a086ec1bf8651b406e017e8b95528f32a87785a14760165c0dac0d82a5b",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-full",
+      "path": "candidate-A/field-full.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-full",
+      "sha256": "sha256:0f29b0f776f3f710da4683d76a0750e8557713fef2b1703fa050e00e1ae60674",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-opponent",
+      "path": "candidate-A/field-opponent.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-opponent",
+      "sha256": "sha256:f8dca219a41a693af0902337b073aedf3ec38785c922b4cbe1358560e0f8b5dc",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-divider",
+      "path": "candidate-A/field-divider.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-divider",
+      "sha256": "sha256:ecef584134b7421a1baf8fd2ee574f86947bd9985a354216f14a58b062c1af03",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-player",
+      "path": "candidate-A/field-player.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-player",
+      "sha256": "sha256:ee323e43efe15e0ac31212f9938731d64a2f72a2c7c14bb9452d096bc3b280d6",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-hand",
+      "path": "candidate-A/field-hand.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-hand",
+      "sha256": "sha256:08ed4149d177ae0fd8ff9c98accd3da788d45134cafe8d3f60c6cb06b1f95d50",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-corner-tl",
+      "path": "candidate-A/field-corner-tl.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-tl",
+      "sha256": "sha256:cb98fedec3b090907177b60708b54ce225eb6d84f7be1196dd176b7aca33e321",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-corner-tr",
+      "path": "candidate-A/field-corner-tr.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-tr",
+      "sha256": "sha256:074bcf1a773949297d01ce9ea666018c6ac728d0e46ce9765caa834078445c12",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-corner-bl",
+      "path": "candidate-A/field-corner-bl.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-bl",
+      "sha256": "sha256:8acb7265e486c9eaf8a2e265540131c1de46d1a36c7a87a3f1ac1c1813f8cebe",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-corner-br",
+      "path": "candidate-A/field-corner-br.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-corner-br",
+      "sha256": "sha256:c658ab25f70c321c4f628053a1839da6d011d628581a7c58a3cbb22ce7453e87",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-field-card-contact",
+      "path": "candidate-A/field-card-contact.png",
+      "required": true,
+      "role": "section-13.7 camera crop field-card-contact",
+      "sha256": "sha256:f53ae8feeacbd3ce17bc68b78e53161f9c4b3e645a651041a84d60eb6a4fd5c6",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-fiducial-overlay",
+      "path": "candidate-A/fiducial-overlay.png",
+      "required": true,
+      "role": "section-3.4 fiducial overlay",
+      "sha256": "sha256:c66477eaa7a6e04e01cdec212482b906bca895b86456542b19409d5b68349826",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-gap-overlay",
+      "path": "candidate-A/active-hand-gap-overlay.png",
+      "required": true,
+      "role": "section-2.5 active/hand gap overlay",
+      "sha256": "sha256:be346c6a11661b457e89cc66ed91dd1bea75fcd44ccadeb6608b180044cf48f1",
+      "status": "present"
+    },
+    {
+      "artifactId": "A-residual-report",
+      "path": "candidate-A/residual-report.json",
+      "required": true,
+      "role": "section-3.1.1 residual report",
+      "sha256": "sha256:03be47092fbd487fed7775fcd6b01691584a9ac51b37e72132c30bf6e6d7a278",
+      "status": "present"
+    },
+    {
+      "artifactId": "determinism-evidence",
+      "path": "determinism.json",
+      "required": true,
+      "role": "section-12 determinism row evidence",
+      "sha256": "sha256:85d99950efc77a2004e9484191dadda58176794559e5e8713e10bbd483f0d0c3",
+      "status": "present"
+    },
+    {
+      "artifactId": "sealed-op-mapping",
+      "path": "",
+      "reason": "blind mapping stored outside the packet; revealed after scores",
+      "required": true,
+      "role": "section-3.4 sealed O/P mapping commitment",
+      "sha256": "sha256:395a062391dc1da44f2ed401175f16aa28b9529e5f2c4bbcc567287e27a5f17f",
+      "status": "sealed-external"
+    }
+  ],
+  "colorSpace": "IEC 61966-2-1 sRGB (manifest-declared; captures are untagged PNG)",
+  "indexSha256": "sha256:cdba6dfb7fc6000cc8c33efc4a88b2553c75c620e38ceb187aa3c25359bdcced",
+  "packetId": "camera-bakeoff-4",
+  "packetKind": "camera-graybox",
+  "revision": 4,
+  "schema": "tiny-fangs.critic-packet-index.v1"
+}

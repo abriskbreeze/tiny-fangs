@@ -1,0 +1,21 @@
+{
+  "byteIdentical": true,
+  "captureHashes": {
+    "capture-1": "sha256:2e02ce4e89fa973349ce039250d5165f23e8124fd2e75730153ca55c066c2888",
+    "capture-2": "sha256:b45aecb7e8451f927498fdaa144cef647f53d724d6885553d5be2062088e6235"
+  },
+  "fixture": {
+    "sha256": "sha256:7e86e3b8b4cec1e1ac3064266eeb4048db24e8087b9d048bc714cb33ff85b62f",
+    "source": "src/presentation/board-layout.js"
+  },
+  "gitHead": "998d8671aa6115e1d108d2e73d4ac98e1371552c",
+  "method": "two independent full Playwright capture runs from fresh browser contexts against the same build; byte-level PNG comparison (byte-identical implies SSIM 1.0 with no dynamic masks). Packet crops derive deterministically from these captures; each anonymized residual report carries its rawCaptureSha256 binding label to capture.",
+  "runs": 2,
+  "scene": {
+    "sha256": "sha256:6558a107147ad43cfc18d329fbe3cc181afaf335b123f834995e4c11ef997d62",
+    "source": "src/presentation/scene/graybox-scene.js"
+  },
+  "schema": "tiny-fangs.graybox-determinism.v1",
+  "seedPolicy": "static scene: no RNG, no time-dependent state; ambient time frozen by construction",
+  "ssimOutsideMasks": 1.0
+}

@@ -512,12 +512,11 @@ Evidence:
 
 ### Phase 2 — Visual Bible and Complete Asset Manifest
 
-**Status:** QUEUED
+**Status:** IN PROGRESS — BIBLE ACCEPTED, CAMERA LOCKED
 
-- Orthographic versus low-FOV perspective graybox bake-off
-- Reference-locked palette, lighting, geometry, typography, and card proportions
-- Complete validated manifest for all 56 current faces plus future derived faces
-- Creature, cast, set, and card-back golden samples
+- **ACCOMPLISHED (2026-07-28): Camera locked — low-FOV perspective, FOV 30°, pitch 24.5°, distance 1950, equal-object ratio 1.0845.** Four blind packet revisions, two fresh critics each, sealed-commitment mappings verified after scores. Round 4 (`camera-bakeoff-4`): both critics passed `singleCameraCriticPass` (92.1 and 92.3) with unanimous perspective preference; the orthographic candidate failed every round on its zero-convergence elevation-diagram read. Golden quadrilaterals for all 12 anchors recorded in `tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json`; decision record in `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/camera-lock-decision.md` with post-lock P2/P3 follow-ups.
+- Art bible accepted by user manual pass (hash `84b89838…`); reference-locked palette, lighting, geometry, typography, and card proportions are in force.
+- Remaining: creature, cast, set, and card-back golden samples; self-hosted licensed fonts; production art per the 56-face manifest (263 file contracts, validation already fail-closed).
 
 ### Phase 3 — Presentation Boundary and Compositing Proof
 

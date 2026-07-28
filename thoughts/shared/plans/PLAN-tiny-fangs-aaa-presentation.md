@@ -498,11 +498,11 @@ tests/visual/
 
 ### Phase 2 — Approve the Visual Bible and Asset Manifest
 
-- [ ] Create the production art-direction document from the two references.
-- [ ] Build two populated-board grayboxes with identical anchors and art placeholders:
+- [x] Create the production art-direction document from the two references. (Accepted by user manual pass at hash `84b89838…`; see Task 19 handoff.)
+- [x] Build two populated-board grayboxes with identical anchors and art placeholders:
   - calibrated orthographic projection;
   - calibrated low-FOV perspective projection with matched framing.
-- [ ] Blind-compare both candidates at 1672 × 941 for board silhouette, zone alignment, near/far scale, foreground/background depth, prop parallax, reference fidelity, and projected DOM/Three drift. Lock the winning projection and its calibration only after it passes; retain both evidence sets and the blinded result.
+- [x] Blind-compare both candidates at 1672 × 941 for board silhouette, zone alignment, near/far scale, foreground/background depth, prop parallax, reference fidelity, and projected DOM/Three drift. Lock the winning projection and its calibration only after it passes; retain both evidence sets and the blinded result. (**Locked: low-FOV perspective, FOV 30°, pitch 24.5°, distance 1950 — unanimous two-critic §13.4 pass on packet `camera-bakeoff-4` (92.1/92.3); decision record `thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/camera-lock-decision.md`.**)
 - [ ] Lock the selected camera, board anchors, color palette, card proportions, frame materials, lighting direction, environment density, and typography.
 - [ ] Define source, detail, thumbnail, and fallback requirements.
 - [x] Implement the canonical face registry and pure `resolvePresentationFaceId(card)` contract without asset URLs or display-name matching.
