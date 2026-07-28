@@ -1,0 +1,9 @@
+{
+  "artifactId": "blind-mapping",
+  "path": "",
+  "reason": "mapping stored outside the packet; critics verify only this commitment row",
+  "required": true,
+  "role": "13.7 sealed A/B commitment",
+  "sha256": "sha256:18cce1c3af6954e5d5786176162927a370d7a41101456c8560c0cae451019ac9",
+  "status": "sealed-external"
+}

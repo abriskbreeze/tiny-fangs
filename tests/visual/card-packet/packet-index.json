@@ -115,11 +115,11 @@
     {
       "artifactId": "blind-mapping",
       "path": "",
-      "reason": "Single-challenger card review has no A/B pair until the R1 comparison assets are prepared; sealed commitment lands with the critic run.",
+      "reason": "mapping stored outside the packet; critics verify only this commitment row",
       "required": true,
       "role": "13.7 sealed A/B commitment",
-      "sha256": "",
-      "status": "unsupported"
+      "sha256": "sha256:18cce1c3af6954e5d5786176162927a370d7a41101456c8560c0cae451019ac9",
+      "status": "sealed-external"
     }
   ],
   "buildRevision": "32f893d9ebfb5255cdac2a7c3c4e0099c8b1c62f",
@@ -128,7 +128,7 @@
     "runs": 2,
     "sha256": "sha256:92244c4013d4acc09b1cdae3ac4f599b7813995603f8d094b21ebd2807ba50a9"
   },
-  "indexSha256": "sha256:a4b6592e7f253f6d8521085175aef92231fb74d5f01aab86a89c282e5522a0ce",
+  "indexSha256": "sha256:6c20549831fdf6345810fb2857761db60112482c1413b0c7a4e76011afde6620",
   "packetId": "card-showcase-r1",
   "packetKind": "card-showcase",
   "packetKindNote": "Plan-level pre-board golden-sample review of the four-card showcase; reuses the art bible 13.2 manifest, 13.3 card crops, and 13.7.2 hashing. This is NOT the 13.5 integrated-art packet, which requires the Phase 7 populated board.",
