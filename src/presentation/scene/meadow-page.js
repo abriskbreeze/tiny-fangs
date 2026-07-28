@@ -229,7 +229,25 @@ async function main() {
     propsOnly: mode === 'prop-mask',
     slotQuads,
   });
-  meadow.render();
+  meadow.renderAt(0);
+
+  // Deterministic time hook for the motion gates, and a live loop that
+  // honors prefers-reduced-motion (reduced motion keeps the settled t=0
+  // frame — same information, no ambient movement).
+  window.__TF_MEADOW_RENDER_AT__ = (timeMs) => meadow.renderAt(timeMs);
+  // Fallback-capture hook: resize the renderer (same aspect) for the
+  // high-resolution static backdrop export.
+  window.__TF_MEADOW_RESIZE__ = (w, h) => renderer.setSize(w, h, false);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.__TF_MEADOW_REDUCED_MOTION__ = reducedMotion;
+  if (mode === 'live' && !reducedMotion) {
+    const start = performance.now();
+    const tick = () => {
+      meadow.renderAt(performance.now() - start);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
 
   // Read back the rendered frame through 2d canvas for symmetric operators.
   const shot = document.createElement('canvas');

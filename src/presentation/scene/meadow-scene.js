@@ -327,10 +327,115 @@ export function buildMeadowScene(renderer, { propsOnly = false, slotQuads = null
   divider.visible = !propsOnly;
   scene.add(divider);
 
+  // Seeded ambient motion targets: canopy sway phases, dust motes,
+  // fireflies, and the river sheen shimmer. All motion is a pure function
+  // of timeMs, so any t renders deterministically.
+  const swayTargets = [];
+  props.traverse((node) => {
+    if (node.geometry?.type === 'ConeGeometry' && node.position.y > 20) {
+      swayTargets.push({
+        node,
+        phase: rng() * Math.PI * 2,
+        amplitude: 0.004 + rng() * 0.006,
+        baseRotationZ: node.rotation.z,
+      });
+    }
+  });
+
+  const moteCount = 40;
+  const motePositions = new Float32Array(moteCount * 3);
+  const moteSeeds = [];
+  for (let i = 0; i < moteCount; i++) {
+    const sx = 240 + rng() * 1190;
+    const sy = 140 + rng() * 660;
+    const at = screenToGround(camera, sx, sy);
+    moteSeeds.push({
+      x: at.x, z: at.z,
+      y: 20 + rng() * 90,
+      phase: rng() * Math.PI * 2,
+      speed: 0.4 + rng() * 0.6,
+      radius: 6 + rng() * 14,
+    });
+  }
+  const motes = new THREE.Points(
+    new THREE.BufferGeometry().setAttribute(
+      'position', new THREE.BufferAttribute(motePositions, 3),
+    ),
+    new THREE.PointsMaterial({
+      color: 0xf5d783, size: 3.4, sizeAttenuation: false,
+      transparent: true, opacity: 0.5, depthWrite: false,
+    }),
+  );
+  motes.name = 'meadow-motes';
+  motes.visible = !propsOnly;
+  scene.add(motes);
+
+  const fireflyCount = 8;
+  const fireflyPositions = new Float32Array(fireflyCount * 3);
+  const fireflySeeds = [];
+  for (let i = 0; i < fireflyCount; i++) {
+    const corner = rng() < 0.5 ? [90 + rng() * 160, 700 + rng() * 180] : [1420 + rng() * 180, 120 + rng() * 220];
+    const at = screenToGround(camera, corner[0], corner[1]);
+    fireflySeeds.push({
+      x: at.x, z: at.z, y: 26 + rng() * 40,
+      phase: rng() * Math.PI * 2, speed: 0.25 + rng() * 0.3, radius: 10 + rng() * 12,
+    });
+  }
+  const fireflies = new THREE.Points(
+    new THREE.BufferGeometry().setAttribute(
+      'position', new THREE.BufferAttribute(fireflyPositions, 3),
+    ),
+    new THREE.PointsMaterial({
+      color: 0xeec34e, size: 5, sizeAttenuation: false,
+      transparent: true, opacity: 0.85, depthWrite: false,
+    }),
+  );
+  fireflies.name = 'meadow-fireflies';
+  fireflies.visible = !propsOnly;
+  scene.add(fireflies);
+
+  const sheens = [];
+  props.traverse((node) => {
+    if (node.material?.color?.getHex?.() === 0x8fd8cb && node.geometry?.type === 'PlaneGeometry') {
+      sheens.push({ node, base: node.material.opacity ?? 1 });
+      node.material.transparent = true;
+    }
+  });
+
+  function animate(timeMs) {
+    const t = timeMs / 1000;
+    for (const target of swayTargets) {
+      target.node.rotation.z =
+        target.baseRotationZ + Math.sin(t * 0.9 + target.phase) * target.amplitude * 40;
+    }
+    moteSeeds.forEach((seed, i) => {
+      motePositions[i * 3] = seed.x + Math.cos(t * seed.speed + seed.phase) * seed.radius;
+      motePositions[i * 3 + 1] = seed.y + Math.sin(t * seed.speed * 0.7 + seed.phase) * 6;
+      motePositions[i * 3 + 2] = seed.z + Math.sin(t * seed.speed + seed.phase) * seed.radius;
+    });
+    motes.geometry.attributes.position.needsUpdate = true;
+    fireflySeeds.forEach((seed, i) => {
+      fireflyPositions[i * 3] = seed.x + Math.cos(t * seed.speed + seed.phase) * seed.radius;
+      fireflyPositions[i * 3 + 1] = seed.y + Math.sin(t * seed.speed * 1.3 + seed.phase) * 8;
+      fireflyPositions[i * 3 + 2] = seed.z + Math.sin(t * seed.speed * 0.8 + seed.phase) * seed.radius;
+    });
+    fireflies.geometry.attributes.position.needsUpdate = true;
+    fireflies.material.opacity = 0.55 + 0.35 * Math.sin(t * 2.1);
+    sheens.forEach((sheen, i) => {
+      sheen.node.material.opacity = 0.75 + 0.25 * Math.sin(t * 1.7 + i);
+    });
+  }
+  animate(0);
+
   return {
     scene,
     camera,
+    animate,
     render() {
+      renderer.render(scene, camera);
+    },
+    renderAt(timeMs) {
+      animate(timeMs);
       renderer.render(scene, camera);
     },
     dispose() {

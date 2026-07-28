@@ -71,6 +71,30 @@ test('§4.1 slot marks: every anchor line inside the 1.15-1.35 luminance band', 
   }
 });
 
+test('seeded ambient motion: deterministic per time, changing over time, reduced-motion static', async ({ page }) => {
+  await openMeadow(page);
+  const shotAt = async (t) => {
+    await page.evaluate((time) => window.__TF_MEADOW_RENDER_AT__(time), t);
+    return page.locator('#scene-canvas').screenshot();
+  };
+  const t0a = await shotAt(0);
+  const t800 = await shotAt(800);
+  const t0b = await shotAt(0);
+  // Same time renders byte-identical; different times differ (motion real).
+  expect(t0a.equals(t0b)).toBe(true);
+  expect(t0a.equals(t800)).toBe(false);
+
+  // Reduced motion: the live loop must not run; the frame stays settled.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/meadow.html?mode=live');
+  await page.waitForFunction(() => window.__TF_MEADOW_READY__ === true);
+  expect(await page.evaluate(() => window.__TF_MEADOW_REDUCED_MOTION__)).toBe(true);
+  const still1 = await page.locator('#scene-canvas').screenshot();
+  await page.waitForTimeout(400);
+  const still2 = await page.locator('#scene-canvas').screenshot();
+  expect(still1.equals(still2)).toBe(true);
+});
+
 test('deterministic: two loads render byte-identical frames', async ({ page }) => {
   await openMeadow(page);
   const first = await page.locator('#scene-canvas').screenshot();
