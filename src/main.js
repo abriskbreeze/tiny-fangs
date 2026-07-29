@@ -956,7 +956,7 @@
       if (!isAaaMode() || !state.G) return;
       if (!aaaShell) {
         aaaShell = createAaaShell({
-          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn },
+          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn, showCardDetail },
           onError: (error) => console.warn('AAA shell error; staying classic', error),
         });
       }

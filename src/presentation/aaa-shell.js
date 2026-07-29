@@ -81,7 +81,7 @@ export function createAaaShell({
       cardLayer = el('div', 'aaa-layer aaa-card-layer', stage);
       hudLayer = el('div', 'aaa-layer aaa-hud-layer', stage);
 
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
       renderer.setPixelRatio(1);
       renderer.setSize(FRAME_W, FRAME_H, false);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -122,9 +122,16 @@ export function createAaaShell({
     const face = faceDown
       ? buildCardFace(normalizeFaceModel(null, 'back'))
       : safeFace(card, faceKindOf(card));
-    mountBoardCard({
+    const { wrapper } = mountBoardCard({
       layer: cardLayer, shadowLayer, corners, face, isStack, anchorId, document: doc,
     });
+    // Face-up cards with an identity open the card-detail surface — the
+    // same classic showCardDetail flow (face-down cards expose nothing).
+    if (!faceDown && card?.uid) {
+      wrapper.classList.add('aaa-board-card--inspectable');
+      wrapper.style.pointerEvents = 'auto';
+      wrapper.addEventListener('click', () => actions.showCardDetail?.(card.uid));
+    }
     if (count !== null && count > 0) countChip(anchorId, count, countLabel);
   }
 
@@ -175,6 +182,15 @@ export function createAaaShell({
           if (card.cardType === 'creature') actions.doSummon?.();
           else if (card.type === 'set') actions.doSet?.();
           else actions.doCast?.();
+        });
+      }
+      if (card.uid) {
+        // Inspect from hand regardless of turn: context-click opens the
+        // detail surface without playing the card.
+        wrapper.style.pointerEvents = 'auto';
+        wrapper.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          actions.showCardDetail?.(card.uid);
         });
       }
     });

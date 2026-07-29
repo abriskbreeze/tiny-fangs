@@ -29,6 +29,9 @@
 
 .board-card .tf-aaa-card { box-shadow: none; }
 
+.aaa-board-card--inspectable { cursor: pointer; }
+.aaa-board-card--inspectable:hover { filter: brightness(1.05); }
+
 /* Hand fan: explicit chassis size (children are absolute), raster pinned. */
 .aaa-hand-card {
   position: absolute;
