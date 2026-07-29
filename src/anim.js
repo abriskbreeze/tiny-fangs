@@ -43,6 +43,14 @@ function aaaTarget(selector) {
   return globalThis.document?.querySelector?.(`#aaa-stage ${selector}`) ?? null;
 }
 
+// Null-safe garnish seams provided by the AAA shell while mounted: particle
+// bursts and audio slots. Classic mode leaves them undefined.
+function aaaGarnish(element, kind) {
+  if (!aaaShellActive()) return;
+  try { globalThis.__tfAaaBurst?.(element, kind); } catch { /* never throws */ }
+  try { globalThis.__tfAaaAudio?.play?.(kind); } catch { /* never throws */ }
+}
+
 // Animation timing constants (keep in sync with CSS)
 export const ANIM_TIMING = {
   SHAKE: 600,
@@ -279,6 +287,7 @@ export const Anim = {
     return new Promise(resolve => {
       const el = this.activeCardEl(side);
       const pos = this.getAnimPosition(side);
+      aaaGarnish(el, 'damage');
       // Same hit effects as attack: screen flash, tilt wobble, red flash
       this.screenFlash('red');
       this.play(el, 'anim-shake', ANIM_TIMING.SHAKE + 100);
@@ -303,6 +312,7 @@ export const Anim = {
   heal(side, amount) {
     return new Promise(resolve => {
       const pos = this.getAnimPosition(side);
+      aaaGarnish(this.activeCardEl(side), 'heal');
       this.play(this.activeCardEl(side), 'anim-flash-green', ANIM_TIMING.FLASH);
       this.floatText(`+${amount}`, 'heal', pos);
       setTimeout(resolve, ANIM_TIMING.FLASH);
@@ -339,6 +349,7 @@ export const Anim = {
   // Summon animation (dramatic card slam) - returns promise
   summon(side) {
     return new Promise(resolve => {
+      aaaGarnish(this.activeCardEl(side), 'summon');
       const el = this.activeCardEl(side);
       // Screen flash on summon
       this.screenFlash('gold');
@@ -414,6 +425,7 @@ export const Anim = {
   ko(side) {
     return new Promise(resolve => {
       const pos = this.getAnimPosition(side);
+      aaaGarnish(this.activeCardEl(side), 'ko');
       this.play(this.activeCardEl(side), 'anim-ko', ANIM_TIMING.KO);
       this.floatText('KO!', 'ko', pos);
       setTimeout(resolve, ANIM_TIMING.KO);

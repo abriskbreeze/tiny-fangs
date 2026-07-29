@@ -13,6 +13,8 @@ import { buildCardFace, normalizeFaceModel } from './cards/card-face.js';
 import './cards/cards.css';
 import './aaa-shell.css';
 import { mountBoardCard, CHASSIS_W, CHASSIS_H } from './dom/board-card-mount.js';
+import { createParticlePool } from './particle-pool.js';
+import { createAudioDirector } from './audio-director.js';
 import { GOLDEN_QUADS } from './scene/golden-quads.js';
 import { buildMeadowScene } from './scene/meadow-scene.js';
 
@@ -50,6 +52,9 @@ export function createAaaShell({
   let renderer = null;
   let mounted = false;
   let resizeHandler = null;
+  let particleLayer = null;
+  let particles = null;
+  let audio = null;
   // Phase 10a: uid-keyed FLIP outers. Each card with an identity renders
   // inside a persistent frame-spanning outer; zone changes animate the outer
   // with a deterministic fixed-curve transform that always settles to ''.
@@ -173,7 +178,28 @@ export function createAaaShell({
       canvas.height = FRAME_H;
       shadowLayer = el('div', 'aaa-layer aaa-shadow-layer', stage);
       cardLayer = el('div', 'aaa-layer aaa-card-layer', stage);
+      particleLayer = el('div', 'aaa-layer aaa-particle-layer', stage);
       hudLayer = el('div', 'aaa-layer aaa-hud-layer', stage);
+      particles = createParticlePool({ document: doc, layer: particleLayer });
+      audio = createAudioDirector({ document: doc, window: win });
+      audio.bindFirstGesture();
+      // Event seams for the Anim facade (null-safe on both sides): bursts
+      // originate from a resolved element's frame-space center.
+      win.__tfAaaBurst = (element, kind) => {
+        try {
+          const rect = element?.getBoundingClientRect?.();
+          const frame = stage.getBoundingClientRect();
+          if (!rect || rect.width === 0) return;
+          const scale = frame.width / FRAME_W || 1;
+          particles.burst({
+            x: (rect.left + rect.width / 2 - frame.left) / scale,
+            y: (rect.top + rect.height / 2 - frame.top) / scale,
+            kind,
+            count: kind === 'ko' ? 14 : 10,
+          });
+        } catch { /* garnish never throws */ }
+      };
+      win.__tfAaaAudio = audio;
 
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
       renderer.setPixelRatio(1);
@@ -384,6 +410,18 @@ export function createAaaShell({
     rulesLink.type = 'button';
     rulesLink.addEventListener('click', () => actions.showRules?.());
 
+    // Sound chip: mute toggle with persisted state (audio director owns it).
+    const soundChip = el('button', 'aaa-rules-link aaa-sound-chip', hudLayer,
+      audio?.muted ? 'Sound: Off' : 'Sound: On');
+    soundChip.id = 'aaa-sound';
+    soundChip.type = 'button';
+    soundChip.setAttribute('aria-pressed', String(Boolean(audio?.muted)));
+    soundChip.addEventListener('click', () => {
+      const muted = audio?.toggleMute?.();
+      soundChip.textContent = muted ? 'Sound: Off' : 'Sound: On';
+      soundChip.setAttribute('aria-pressed', String(Boolean(muted)));
+    });
+
     // Log rail: mirror of the shell's log entries (newest last).
     const logRail = el('div', 'aaa-rail aaa-log-rail', hudLayer);
     logRail.id = 'aaa-log';
@@ -490,6 +528,11 @@ export function createAaaShell({
   function dispose() {
     if (resizeHandler) win.removeEventListener('resize', resizeHandler);
     resizeHandler = null;
+    if (win.__tfAaaAudio === audio) win.__tfAaaAudio = null;
+    win.__tfAaaBurst = null;
+    audio?.dispose?.();
+    audio = null;
+    particles = null;
     try { meadow?.dispose?.(); } catch { /* best effort */ }
     try { renderer?.dispose?.(); } catch { /* best effort */ }
     meadow = null;

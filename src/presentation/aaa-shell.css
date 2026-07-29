@@ -498,3 +498,13 @@
     transition: opacity 200ms linear;
   }
 }
+
+/* ── Phase 10c: pooled particles + sound chip ─────────────────────── */
+.aaa-particle-layer { pointer-events: none; z-index: 5; }
+.aaa-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.aaa-sound-chip { left: 96px; }
