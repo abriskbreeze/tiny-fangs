@@ -29,6 +29,14 @@ function basic(color) {
   return new THREE.MeshBasicMaterial({ color });
 }
 
+// Solid props are flat-shaded and lit by the scene's single warm key +
+// ambient (field r2: lit/shadow faces with value separation, one expressed
+// light direction). Intensities are calibrated in meadow-scene so a
+// mid-facing surface renders near its authored color.
+function lit(color) {
+  return new THREE.MeshLambertMaterial({ color, flatShading: true });
+}
+
 // A tree: an organic canopy mass of clustered flattened icosahedra over a
 // short trunk — clusters read as soft lobed silhouettes under the steep
 // camera pitch, where single cones flatten into hexagons.
@@ -36,7 +44,7 @@ function tree(rng, scale) {
   const group = new THREE.Group();
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(6 * scale, 9 * scale, 40 * scale, 5),
-    basic(TRUNK),
+    lit(TRUNK),
   );
   trunk.position.y = 20 * scale;
   group.add(trunk);
@@ -45,8 +53,9 @@ function tree(rng, scale) {
     const radius = (30 + rng() * 22) * scale;
     const lobe = new THREE.Mesh(
       new THREE.IcosahedronGeometry(radius, 0),
-      new THREE.MeshBasicMaterial({
+      new THREE.MeshLambertMaterial({
         color: jitterColor(rng() < 0.3 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
+        flatShading: true,
       }),
     );
     lobe.scale.y = 0.7 + rng() * 0.2;
@@ -65,8 +74,9 @@ function tree(rng, scale) {
 function rock(rng, scale) {
   const mesh = new THREE.Mesh(
     new THREE.DodecahedronGeometry(22 * scale, 0),
-    new THREE.MeshBasicMaterial({
+    new THREE.MeshLambertMaterial({
       color: jitterColor(rng() < 0.4 ? ROCK_LIT : ROCK, rng),
+      flatShading: true,
     }),
   );
   mesh.scale.set(1 + rng() * 0.5, 0.55 + rng() * 0.25, 0.8 + rng() * 0.4);
@@ -86,7 +96,7 @@ function fenceRun(from, to, rng) {
     const z = from.z + (to.z - from.z) * t;
     const post = new THREE.Mesh(
       new THREE.BoxGeometry(6, 46, 6),
-      basic(FENCE),
+      lit(FENCE),
     );
     post.position.set(x, 23, z);
     post.rotation.z = (rng() - 0.5) * 0.12;
@@ -100,7 +110,7 @@ function fenceRun(from, to, rng) {
       const length = a.distanceTo(b);
       const rail = new THREE.Mesh(
         new THREE.BoxGeometry(length, 4, 4),
-        basic(FENCE),
+        lit(FENCE),
       );
       rail.position.set((a.x + b.x) / 2, railY, (a.z + b.z) / 2);
       rail.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
@@ -190,10 +200,11 @@ export function buildMeadowProps({ rng, screenToGround }) {
     for (let i = 0; i < 3; i++) {
       const lobe = new THREE.Mesh(
         new THREE.IcosahedronGeometry(34 * scale * (0.8 + rng() * 0.4), 0),
-        new THREE.MeshBasicMaterial({
+        new THREE.MeshLambertMaterial({
           color: fixedColor
             ? jitterColor(fixedColor, rng, 0.03)
             : jitterColor(rng() < 0.35 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
+          flatShading: true,
         }),
       );
       lobe.scale.y = 0.6 + rng() * 0.2;
@@ -206,7 +217,7 @@ export function buildMeadowProps({ rng, screenToGround }) {
   // The deep-left foliage rectangle (screen 20-130, 550-720) is a measured
   // §12 palette region: shrubs inside it are calibrated to R2's foliage
   // median rather than the jittered mix.
-  const DEEP_LEFT = { color: 0x39534a, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
+  const DEEP_LEFT = { color: 0x82b39d, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
   for (const [sx, sy, s] of [
     // left band (kept off the divider rows handled by rocks there)
     [30, 120, 1.5], [64, 220, 1.3], [24, 320, 1.6], [40, 560, 1.4],
@@ -225,7 +236,7 @@ export function buildMeadowProps({ rng, screenToGround }) {
     [260, 60, 1.3], [480, 52, 1.2], [700, 64, 1.3], [940, 50, 1.2],
     [1160, 62, 1.3], [1360, 56, 1.4],
     [240, 886, 1.2], [420, 902, 1.1], [1300, 894, 1.2], [1460, 880, 1.3],
-    [98, 470, 1.3], [58, 250, 1.2], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
+    [98, 470, 1.3], [58, 250, 1.2], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [700, 40, 1.4], [1080, 44, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
     [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2],
   ]) {
     place(DEEP_LEFT.test(sx, sy) ? shrub(s, DEEP_LEFT.color) : shrub(s), sx, sy);

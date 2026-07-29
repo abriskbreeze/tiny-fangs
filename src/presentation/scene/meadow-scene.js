@@ -118,7 +118,8 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   // Cool foliage frame: soft bands anchored to the screen frame edges
   // (left/right beyond ~13%, top beyond ~16%, corners), painted as blurred
   // strokes along the projected edge lines.
-  ctx.filter = 'blur(28px)';
+  ctx.filter = 'blur(34px)';
+  ctx.globalAlpha = 0.62;
   ctx.fillStyle = '#3A5449'; /* toward R2's measured foliage median */
   const edgeQuad = (cornerA, cornerB, innerA, innerB) => {
     const a = toTexture(...cornerA);
@@ -142,7 +143,40 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   // Bottom corners only (bottom center stays open meadow for the hand).
   edgeQuad([-260, 1180], [420, 1180], [300, 806], [-180, 820]);
   edgeQuad([1252, 1180], [1932, 1180], [1852, 820], [1372, 806]);
+  ctx.globalAlpha = 1;
   ctx.filter = 'none';
+
+  // Field r2: the divider's light bleeds into the grass — a soft warm wash
+  // painted INTO the terrain along the divider row with seeded edge flecks,
+  // kept below the 0.55 core-luminance threshold so band metrics hold.
+  {
+    const left = toTexture(210, 414);
+    const right = toTexture(1462, 414);
+    const mid = toTexture(836, 414);
+    const bleedHeight = 30 * texturePerScreenPx;
+    const gradient = ctx.createLinearGradient(0, mid.y - bleedHeight, 0, mid.y + bleedHeight);
+    gradient.addColorStop(0, 'rgba(245, 215, 131, 0)');
+    gradient.addColorStop(0.5, 'rgba(245, 215, 131, 0.28)');
+    gradient.addColorStop(1, 'rgba(245, 215, 131, 0)');
+    ctx.fillStyle = gradient;
+    // wash in two spans, skipping the diamond window
+    const gapHalf = 100 * texturePerScreenPx;
+    ctx.fillRect(left.x, mid.y - bleedHeight, (mid.x - gapHalf) - left.x, bleedHeight * 2);
+    ctx.fillRect(mid.x + gapHalf, mid.y - bleedHeight, right.x - (mid.x + gapHalf), bleedHeight * 2);
+    for (let i = 0; i < 60; i++) {
+      let fx = left.x + rng() * (right.x - left.x);
+      // keep flecks clear of the diamond's measurement window
+      if (Math.abs(fx - mid.x) < 110 * texturePerScreenPx) {
+        fx += Math.sign(fx - mid.x 
+          || 1) * 130 * texturePerScreenPx;
+      }
+      const fy = mid.y + (rng() - 0.5) * bleedHeight * 2.4;
+      ctx.fillStyle = `rgba(245, 215, 131, ${0.10 + rng() * 0.14})`;
+      ctx.beginPath();
+      ctx.arc(fx, fy, (0.6 + rng() * 1.6) * texturePerScreenPx, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   // §4.1 slot marks: engraved 1–2 px (screen) outlines at each camera-lock
   // anchor footprint, painted at 1.25× the local grass luminance so the
@@ -157,7 +191,7 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
       const isUpper = anchorName.startsWith('opp.');
       const base = isUpper ? [194, 171, 77] : [179, 167, 79];
       // 1.25x LINEAR luminance target: sRGB channels scale by 1.25^(1/2.4).
-      const line = base.map((c) => Math.min(255, Math.round(c * 1.115)));
+      const line = base.map((c) => Math.min(255, Math.round(c * 1.13)));
       ctx.strokeStyle = `rgb(${line[0]}, ${line[1]}, ${line[2]})`;
       ctx.lineWidth = lineWidthTexture;
       ctx.lineJoin = 'round';
@@ -167,6 +201,13 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
         else ctx.lineTo(point.x, point.y);
       });
       ctx.closePath();
+      // Field r2 empty-slot affordance: a faint interior fill so an open
+      // footprint reads as a prepared place, not bare grass. Kept far below
+      // the slot-line band so the edge-probe ratio is untouched.
+      ctx.save();
+      ctx.fillStyle = 'rgba(240, 224, 180, 0.10)';
+      ctx.fill();
+      ctx.restore();
       ctx.stroke();
       // Engraved rune: small diamond at the footprint center, same band.
       const cx = corners.reduce((sum, c) => sum + c.x, 0) / corners.length;
@@ -178,6 +219,35 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
       ctx.lineTo(cx, cy + r);
       ctx.lineTo(cx - r, cy);
       ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  // Field r2 ground micro-texture: seeded short blade strokes across the
+  // open field (excluded from the measured quiet rectangles), giving the
+  // grass a directional weave beyond flat fill.
+  {
+    const quiet = [
+      [660, 40, 980, 165],
+      [650, 620, 870, 715],
+    ];
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 2600; i++) {
+      const sx = 150 + rng() * 1372;
+      const sy = 120 + rng() * 760;
+      if (quiet.some(([l, t, r, b]) => sx > l && sx < r && sy > t && sy < b)) continue;
+      if (sy > 380 && sy < 450) continue; // divider band stays clean
+      const at = toTexture(sx, sy);
+      const len = (3 + rng() * 5) * texturePerScreenPx;
+      const angle = -1.35 + (rng() - 0.5) * 0.5;
+      const tone = rng();
+      ctx.strokeStyle = tone < 0.5
+        ? `rgba(145, 135, 81, ${0.10 + rng() * 0.10})`
+        : `rgba(222, 210, 120, ${0.08 + rng() * 0.10})`;
+      ctx.lineWidth = Math.max(1, 0.9 * texturePerScreenPx);
+      ctx.beginPath();
+      ctx.moveTo(at.x, at.y);
+      ctx.lineTo(at.x + Math.cos(angle) * len, at.y + Math.sin(angle) * len);
       ctx.stroke();
     }
   }
@@ -306,6 +376,18 @@ export function buildMeadowScene(renderer, { propsOnly = false, slotQuads = null
     screenToGround: (sx, sy) => screenToGround(camera, sx, sy),
   });
   scene.add(props);
+
+  // One expressed light direction (field r2): warm key from the upper-left
+  // producing down-right facet shading in the 55-75 degree section 12 band,
+  // plus cool ambient fill. Intensities calibrated so a mid-facing lit
+  // surface renders near its authored color (terrain is unlit/baked and
+  // unaffected).
+  const key = new THREE.DirectionalLight(0xfff0d2, 0.85);
+  key.position.set(-700, 950, -420);
+  key.target.position.set(0, 0, 0);
+  scene.add(key);
+  scene.add(key.target);
+  scene.add(new THREE.AmbientLight(0xd8dccc, 0.55));
 
   if (propsOnly) {
     // §6.1-style ID mask: props alone on a white ground/background.

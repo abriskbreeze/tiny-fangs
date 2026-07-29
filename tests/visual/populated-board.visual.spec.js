@@ -23,7 +23,7 @@ test('all board anchors and hand cards place with ≤2px registration', async ({
   expect(report.maxCornerError).toBeLessThanOrEqual(2);
 });
 
-test('populated board renders deterministically across loads', async ({ page }) => {
+test('populated board renders deterministically across loads', async ({ page }, testInfo) => {
   await openBoard(page);
   await page.waitForTimeout(600); // template aperture images settle
   const first = await page.screenshot();
@@ -31,5 +31,9 @@ test('populated board renders deterministically across loads', async ({ page }) 
   await page.waitForFunction(() => window.__TF_BOARD_READY__ === true);
   await page.waitForTimeout(600);
   const second = await page.screenshot();
+  if (!first.equals(second)) {
+    await testInfo.attach('board-first.png', { body: first, contentType: 'image/png' });
+    await testInfo.attach('board-second.png', { body: second, contentType: 'image/png' });
+  }
   expect(first.equals(second)).toBe(true);
 });

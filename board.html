@@ -11,7 +11,10 @@
     .board-card { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
     .board-card .tf-aaa-card { box-shadow: none; }
     .card-shadow { position: absolute; pointer-events: none; }
-    .hand-card-aaa { position: absolute; transform-origin: 50% 100%; }
+    /* will-change promotes each hand card to its own compositing layer at
+       first paint, pinning the compositor's raster scale — without it the
+       scaled/rotated subtree re-rasters nondeterministically under load. */
+    .hand-card-aaa { position: absolute; transform-origin: 50% 100%; will-change: transform; }
   </style>
 </head>
 <body>
