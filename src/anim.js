@@ -29,6 +29,20 @@ function semanticEl(name) {
   }
 }
 
+// Phase 10b: when the AAA shell is mounted, semantic card targets resolve to
+// the chassis faces inside the shell (the face carries no transform, so the
+// classic accent classes — shake/flash/ko — apply without fighting the
+// homography on the wrapper). Classic resolution is untouched otherwise.
+function aaaShellActive() {
+  const doc = globalThis.document;
+  return doc?.documentElement?.dataset?.presentation === 'aaa'
+    && Boolean(doc.querySelector?.('#aaa-stage .aaa-frame'));
+}
+
+function aaaTarget(selector) {
+  return globalThis.document?.querySelector?.(`#aaa-stage ${selector}`) ?? null;
+}
+
 // Animation timing constants (keep in sync with CSS)
 export const ANIM_TIMING = {
   SHAKE: 600,
@@ -94,28 +108,48 @@ export const Anim = {
   // Active-shell semantic targets. Null when the slot is empty or the shell
   // is not mounted; play(null) is already a safe no-op.
   activeCardEl(side) {
+    if (aaaShellActive()) {
+      const key = side === 'me' ? 'me' : 'opp';
+      return aaaTarget(`[data-anchor="${key}.active"] .tf-aaa-card`);
+    }
     const container = semanticEl(side === 'me' ? 'me.active' : 'opp.active');
     return container?.querySelector?.('.card-active') ?? null;
   },
 
   lpEl(side) {
+    if (aaaShellActive()) {
+      return aaaTarget(side === 'me' || side === 'myLp' ? '#aaa-my-lp' : '#aaa-opp-lp');
+    }
     return semanticEl(side === 'me' || side === 'myLp' ? 'me.life' : 'opp.life');
   },
 
   setSlotEl(side) {
+    if (aaaShellActive()) {
+      return aaaTarget(`[data-anchor="${side === 'me' ? 'me' : 'opp'}.set"] .tf-aaa-card`);
+    }
     return semanticEl(side === 'me' ? 'me.set' : 'opp.set');
   },
 
   benchContainerEl(side) {
+    // AAA has no bench container; per-card targets below cover the bench and
+    // container-wide plays no-op safely (play(null) resolves immediately).
+    if (aaaShellActive()) return null;
     return semanticEl(side === 'me' ? 'me.bench' : 'opp.bench');
   },
 
   benchCardEl(side, index) {
+    if (aaaShellActive()) {
+      const slot = index === 0 ? 'a' : 'b';
+      return aaaTarget(`[data-anchor="${side === 'me' ? 'me' : 'opp'}.bench.${slot}"] .tf-aaa-card`);
+    }
     const container = this.benchContainerEl(side);
     return container?.querySelector?.(`.card-mini:nth-child(${index + 1})`) ?? null;
   },
 
   benchCardEls(side) {
+    if (aaaShellActive()) {
+      return [this.benchCardEl(side, 0), this.benchCardEl(side, 1)].filter(Boolean);
+    }
     const container = this.benchContainerEl(side);
     return container?.querySelectorAll
       ? [...container.querySelectorAll('.card-mini')]

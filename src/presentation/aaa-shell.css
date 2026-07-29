@@ -485,3 +485,16 @@
 @media (prefers-reduced-motion: reduce) {
   .aaa-flip--moving, .aaa-flip--exiting { transition: none !important; }
 }
+
+/* ── Phase 10b: reduced-motion equivalents for effect accents (AAA scope).
+   Color flashes remain (state change stays communicated); displacement
+   motion is suppressed and KO becomes a plain fade. ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-presentation="aaa"] .anim-shake { animation: none; }
+  :root[data-presentation="aaa"] .anim-pulse { animation: none; }
+  :root[data-presentation="aaa"] .anim-ko {
+    animation: none;
+    opacity: 0.25;
+    transition: opacity 200ms linear;
+  }
+}
