@@ -1,0 +1,35 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r3",
+  "critic": 2,
+  "crops": {
+    "field-full": "A",
+    "field-opponent": "A",
+    "field-divider": "A",
+    "field-player": "A",
+    "field-hand": "B",
+    "field-corner-tl": "A",
+    "field-corner-tr": "A",
+    "field-corner-bl": "A",
+    "field-corner-br": "A",
+    "field-card-contact": "A"
+  },
+  "overall": "A",
+  "improvementsForA": [
+    "Replace the placeholder rune/glyph rules text on every card with real legible type -- as rendered, no card name, type line, or rules text is readable anywhere on the field, which reads as unfinished despite the polish.",
+    "Dial back the global yellow bloom/haze: in field-corner-tl the stream, fence, and flowers are washed to near-blur, and the same amber veil flattens local contrast across the whole field. Keep the golden-hour grade but restore detail contrast in the corners.",
+    "The ground texture visibly bleeds over card faces (clearest in field-card-contact and field-hand): parchment areas pick up green grass mottling as if the cards were printed under the field. Mask cards out of the ground texture/grade so paper stays clean and the card reads as a separate physical object.",
+    "Differentiate the hand from board cards: the four hand cards lie flat on the grass exactly like fielded cards, with no fan, lift, or scale change, so the hand does not read as held cards.",
+    "In field-corner-tr the large tree canopy has semi-translucent yellow facets that read as stained glass rather than sunlit foliage; unify the foliage material with the opaque trees elsewhere.",
+    "Tighten the divider's glow falloff -- the seam itself is beautifully integrated, but its bloom smears into adjacent grass and contributes to the overall haze."
+  ],
+  "improvementsForB": [
+    "The environment is essentially a graybox: a flat mustard ground plane with visible horizontal banding stripes and zero ground cover between the tree ring and the play area. It needs an actual grass material, flowers/clutter, and painterly value variation before it reads as a meadow at all.",
+    "There is no coherent light: nothing on the field casts a shadow (trees, fence, rocks, cards all sit shadowless), so every object floats. Pick a sun direction and add unified cast shadows plus warm/cool grading.",
+    "Both water features (top-left and bottom-right corners) read as floating angular UI panels -- hard-edged blue polygons with loose cyan rectangles inside -- rather than ponds with banks that meet the ground. Resolve their shorelines and reflections.",
+    "The top-left fence rails hover with no contact shadow and the posts do not visibly meet the ground; ground every prop.",
+    "Cards are flat stickers: no edge thickness, near-invisible drop shadows, and deck stacks show no stacked-paper depth. Add card edges and contact-darkened shadows so cards sit on the world.",
+    "Palette and art cohesion: teal card sleeves and purple card backs fight the mustard field, and the card art is repeated silhouette screen-print (the same black cat on many cards). The typography and readable rules text are genuinely excellent -- keep that layer and bring the illustration/material quality up to match."
+  ],
+  "notes": "A reads as a painted place: coherent golden-hour light, cast shadows, resolved stream/fence/flower corners, card stacks with real edge thickness, and a divider that crackles through the grass rather than sitting on top of it. B is dramatically more readable as a game (real names, types, and rules text versus A's placeholder glyphs) and its fanned hand is better staged, but its world is an unlit mustard graybox with floating props, panel-like water, and shadowless sticker cards. The decisive factors were environment resolution, light coherence, and card grounding, all of which A wins in nine of ten crops; A's one systemic failure is that nothing on its cards can actually be read."
+}
