@@ -89,20 +89,23 @@ function addShadow(layer, corners) {
   layer.appendChild(spill);
 }
 
-// Field r3 card stock: even stepped extrusion toward the shadow side so
-// every card reads as thick paper, and deck/grave piles read as real stacks.
-function addCardStock(wrapper, isStack) {
-  const steps = isStack
-    ? [[9.6, 13.2, '#8F7355'], [6.4, 8.8, '#CBA87E'], [3.2, 4.4, '#8F7355'], [1.4, 1.9, '#C4A47A']]
-    : [[3.4, 4.6, '#8F7355'], [2.2, 3.0, '#B99977'], [1.1, 1.5, '#C4A47A']];
-  for (const [dx, dy, tint] of steps) {
+// Field r4 card stock: SCALE-AWARE stepped extrusion — offsets are authored
+// in final screen px and divided by the card's render scale, so the edge
+// stays visible after the homography shrinks the chassis (r3's fixed 3-4 px
+// slabs collapsed to ~1.5 px on board cards and read as stickers).
+function addCardStock(wrapper, isStack, renderScale = 1) {
+  const screenSteps = isStack
+    ? [[13, 18, '#7E6248'], [9, 12.5, '#CBA87E'], [5, 7, '#8F7355'], [2.2, 3, '#C4A47A']]
+    : [[5.5, 7.5, '#7E6248'], [3.6, 5, '#B99977'], [1.8, 2.5, '#C4A47A']];
+  for (const [dx, dy, tint] of screenSteps) {
     const slab = document.createElement('div');
     slab.style.position = 'absolute';
     slab.style.width = '333px';
     slab.style.height = '505px';
     slab.style.borderRadius = '21px';
-    slab.style.background = `linear-gradient(150deg, ${tint} 0%, #9A7D5F 100%)`;
-    slab.style.transform = `translate(${dx}px, ${dy}px)`;
+    slab.style.background = `linear-gradient(150deg, ${tint} 0%, #96795B 100%)`;
+    slab.style.transform =
+      `translate(${(dx / renderScale).toFixed(2)}px, ${(dy / renderScale).toFixed(2)}px)`;
     wrapper.appendChild(slab);
   }
 }
@@ -138,7 +141,11 @@ async function main() {
     const wrapper = document.createElement('div');
     wrapper.className = 'board-card';
     wrapper.dataset.anchor = anchorId;
-    addCardStock(wrapper, STACK_ANCHORS.has(anchorId));
+    {
+      const quadXs = corners.map((c) => c[0]);
+      const quadWidth = Math.max(...quadXs) - Math.min(...quadXs);
+      addCardStock(wrapper, STACK_ANCHORS.has(anchorId), quadWidth / 333);
+    }
     const card = buildCardFace(faceModel(spec));
     card.style.position = 'absolute';
     wrapper.appendChild(card);
@@ -170,7 +177,7 @@ async function main() {
       'radial-gradient(48% 48% at 52% 54%, rgba(26,16,8,0.42) 0%, rgba(26,16,8,0.2) 52%, rgba(26,16,8,0) 72%)';
     handShadow.style.transform = 'translate(20px, 30px)';
     wrapper.appendChild(handShadow);
-    addCardStock(wrapper, false);
+    addCardStock(wrapper, false, HAND_SCALE);
     const source = VERSES[entry.id];
     const card = buildCardFace(normalizeFaceModel(source, entry.kind));
     card.style.position = 'absolute';

@@ -1,5 +1,5 @@
 {
-  "role": "13.7 sealed A/B commitment (field, field-r3)",
-  "sha256": "sha256:7ebf0dba1b082d1d909f86aa3ea413c6c3392d152dd673f4539664857be355fe",
+  "role": "13.7 sealed A/B commitment (field, field-r4)",
+  "sha256": "sha256:7a967fd1d1c3724a48e48842bca1c59b37d24e155be6c9ea7f13025591a224ed",
   "status": "sealed-external"
 }

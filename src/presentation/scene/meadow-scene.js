@@ -104,12 +104,13 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
     const sy = 120 + rng() * (941 - 200);
     if (measured.some(([l, t, r, b]) =>
       sx > l - 60 && sx < r + 60 && sy > t - 60 && sy < b + 60)) continue;
+    if (sy > 340 && sy < 490) continue; // divider detection window stays clean
     const at = toTexture(sx, sy);
-    const radius = (90 + rng() * 150) * texturePerScreenPx * 0.5;
+    const radius = (110 + rng() * 190) * texturePerScreenPx * 0.5;
     const toward = rng() < 0.5
-      ? 'rgba(145, 135, 81, 0.10)'
-      : 'rgba(194, 171, 77, 0.10)';
-    const zero = toward.replace(/0\.10\)$/, '0)');
+      ? 'rgba(145, 135, 81, 0.16)'
+      : 'rgba(194, 171, 77, 0.16)';
+    const zero = toward.replace(/0\.16\)$/, '0)');
     const blotch = ctx.createRadialGradient(at.x, at.y, 0, at.x, at.y, radius);
     blotch.addColorStop(0, toward);
     blotch.addColorStop(1, zero);
@@ -121,7 +122,7 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   // (left/right beyond ~13%, top beyond ~16%, corners), painted as blurred
   // strokes along the projected edge lines.
   ctx.filter = 'blur(34px)';
-  ctx.globalAlpha = 0.72;
+  ctx.globalAlpha = 0.66;
   ctx.fillStyle = '#3A5449'; /* toward R2's measured foliage median */
   const edgeQuad = (cornerA, cornerB, innerA, innerB) => {
     const a = toTexture(...cornerA);
@@ -169,16 +170,29 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
       ctx.fillRect(-rtx, -rtx, rtx * 2, rtx * 2);
       ctx.restore();
     };
+    // r4: offsets must clear the canopy silhouette — under this camera a
+    // canopy of radius ~35s screen px hides any shadow closer than that
+    // (the r3 critics never saw the shadows the texture contained).
     for (const [sx, sy, s] of TREE_ANCHORS) {
       const wobble = 0.9 + shadowRng() * 0.2;
-      softEllipse(sx + 12 * s, sy + 8 * s, 30 * s * wobble, 14 * s, 0.27);
-      softEllipse(sx + 34 * s, sy + 22 * s, 42 * s * wobble, 15 * s, 0.13);
+      softEllipse(sx + 44 * s, sy + 30 * s, 38 * s * wobble, 16 * s, 0.3);
+      softEllipse(sx + 78 * s, sy + 52 * s, 46 * s * wobble, 17 * s, 0.17);
+      softEllipse(sx + 110 * s, sy + 74 * s, 40 * s * wobble, 14 * s, 0.08);
     }
     for (const [sx, sy, s] of SHRUB_ANCHORS) {
-      softEllipse(sx + 9 * s, sy + 6 * s, 25 * s * (0.85 + shadowRng() * 0.3), 11 * s, 0.22);
+      const distantTopBand = sy < 90;
+      const reach = distantTopBand ? 0.55 : 1;
+      softEllipse(
+        sx + 30 * s * reach, sy + 20 * s * reach,
+        26 * s * (0.85 + shadowRng() * 0.3), 12 * s, 0.26,
+      );
+      if (!distantTopBand) {
+        softEllipse(sx + 54 * s, sy + 36 * s, 30 * s, 12 * s, 0.12);
+      }
     }
     for (const [sx, sy, s] of ROCK_ANCHORS) {
-      softEllipse(sx + 8 * s, sy + 5 * s, 19 * s, 9 * s, 0.2);
+      softEllipse(sx + 22 * s, sy + 15 * s, 20 * s, 9 * s, 0.24);
+      softEllipse(sx + 38 * s, sy + 26 * s, 18 * s, 8 * s, 0.1);
     }
     {
       const [from, to] = FENCE_RUN;
@@ -186,9 +200,60 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
         const t = i / 4;
         const sx = from[0] + (to[0] - from[0]) * t;
         const sy = from[1] + (to[1] - from[1]) * t;
-        softEllipse(sx + 10, sy + 7, 12, 4.5, 0.2);
+        softEllipse(sx + 16, sy + 11, 14, 5, 0.24);
+        softEllipse(sx + 30, sy + 21, 12, 4.5, 0.12);
       }
     }
+
+    // r4 painted organic water: curved streams with banks, depth, and foam
+    // painted INTO the terrain (the r3 plane-strip river read as "angular
+    // UI panels" to both critics). Screen-space quadratic paths.
+    const paintStream = (pathPoints, widthPx) => {
+      const texturePoints = pathPoints.map(([sx, sy]) => toTexture(sx, sy));
+      const stroke = (lineWidth, color, blur = 0) => {
+        ctx.save();
+        if (blur) ctx.filter = `blur(${blur}px)`;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth * texturePerScreenPx;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(texturePoints[0].x, texturePoints[0].y);
+        for (let i = 1; i < texturePoints.length - 1; i++) {
+          const xc = (texturePoints[i].x + texturePoints[i + 1].x) / 2;
+          const yc = (texturePoints[i].y + texturePoints[i + 1].y) / 2;
+          ctx.quadraticCurveTo(texturePoints[i].x, texturePoints[i].y, xc, yc);
+        }
+        const last = texturePoints[texturePoints.length - 1];
+        ctx.lineTo(last.x, last.y);
+        ctx.stroke();
+        ctx.restore();
+      };
+      stroke(widthPx * 1.9, 'rgba(84, 73, 47, 0.85)', 6);      // mud bank
+      stroke(widthPx * 1.45, 'rgba(174, 161, 142, 0.9)', 3);   // sand edge
+      stroke(widthPx * 1.05, '#3f6668', 2);                    // depth
+      stroke(widthPx * 0.72, '#5b8a8a');                       // water
+      stroke(widthPx * 0.3, 'rgba(143, 216, 203, 0.65)', 1);   // sheen line
+      // Foam flecks along the banks.
+      for (let i = 0; i < 26; i++) {
+        const t = i / 25;
+        const seg = Math.min(texturePoints.length - 2, Math.floor(t * (texturePoints.length - 1)));
+        const local = t * (texturePoints.length - 1) - seg;
+        const fx = texturePoints[seg].x + (texturePoints[seg + 1].x - texturePoints[seg].x) * local;
+        const fy = texturePoints[seg].y + (texturePoints[seg + 1].y - texturePoints[seg].y) * local;
+        const side = shadowRng() < 0.5 ? -1 : 1;
+        ctx.fillStyle = `rgba(246, 241, 220, ${0.35 + shadowRng() * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(
+          fx + side * widthPx * 0.42 * texturePerScreenPx * (0.8 + shadowRng() * 0.4),
+          fy + (shadowRng() - 0.5) * 3 * texturePerScreenPx,
+          (0.7 + shadowRng() * 1.1) * texturePerScreenPx, 0, Math.PI * 2,
+        );
+        ctx.fill();
+      }
+    };
+    paintStream([[14, -30], [58, 18], [108, 58], [185, 96]], 30);
+    paintStream([[1586, 862], [1636, 900], [1676, 946], [1710, 1000]], 34);
   }
 
   // Field r2: the divider's light bleeds into the grass — a soft warm wash
@@ -252,7 +317,7 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
       const isUpper = anchorName.startsWith('opp.');
       const base = isUpper ? [194, 171, 77] : [179, 167, 79];
       // 1.25x LINEAR luminance target: sRGB channels scale by 1.25^(1/2.4).
-      const line = base.map((c) => Math.min(255, Math.round(c * 1.13)));
+      const line = base.map((c) => Math.min(255, Math.round(c * 1.145)));
       ctx.strokeStyle = `rgb(${line[0]}, ${line[1]}, ${line[2]})`;
       ctx.lineWidth = lineWidthTexture;
       ctx.lineJoin = 'round';
@@ -295,23 +360,40 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
     ctx.lineCap = 'round';
     // r3: stroke width/alpha/length raised until the weave survives the
     // full-field view (r2's strokes were sub-visible at 1x).
-    for (let i = 0; i < 3200; i++) {
+    for (let i = 0; i < 4200; i++) {
       const sx = 150 + rng() * 1372;
       const sy = 120 + rng() * 760;
       if (quiet.some(([l, t, r, b]) => sx > l && sx < r && sy > t && sy < b)) continue;
-      if (sy > 380 && sy < 450) continue; // divider band stays clean
+      // Strokes point ~77 deg upward and reach ~14 px above their root, so
+      // the exclusion covers the detection window (380-450) plus that reach.
+      if (sy > 378 && sy < 466) continue;
       const at = toTexture(sx, sy);
-      const len = (4 + rng() * 6) * texturePerScreenPx;
+      const len = (5 + rng() * 7) * texturePerScreenPx;
       const angle = -1.35 + (rng() - 0.5) * 0.55;
       const tone = rng();
       ctx.strokeStyle = tone < 0.5
-        ? `rgba(138, 128, 74, ${0.14 + rng() * 0.14})`
-        : `rgba(228, 216, 126, ${0.12 + rng() * 0.14})`;
-      ctx.lineWidth = Math.max(1.4, 1.4 * texturePerScreenPx);
+        ? `rgba(132, 122, 68, ${0.18 + rng() * 0.16})`
+        : `rgba(232, 220, 128, ${0.15 + rng() * 0.16})`;
+      ctx.lineWidth = Math.max(1.6, 1.7 * texturePerScreenPx);
       ctx.beginPath();
       ctx.moveTo(at.x, at.y);
       ctx.lineTo(at.x + Math.cos(angle) * len, at.y + Math.sin(angle) * len);
       ctx.stroke();
+    }
+    // r4 clover patches: clustered dark-green cover breaking up the fill.
+    for (let i = 0; i < 30; i++) {
+      const cx0 = 170 + rng() * 1332;
+      const cy0 = 140 + rng() * 720;
+      if (quiet.some(([l, t, r, b]) => cx0 > l - 30 && cx0 < r + 30 && cy0 > t - 30 && cy0 < b + 30)) continue;
+      if (cy0 > 360 && cy0 < 470) continue;
+      const dots = 8 + Math.floor(rng() * 9);
+      for (let d = 0; d < dots; d++) {
+        const at = toTexture(cx0 + (rng() - 0.5) * 42, cy0 + (rng() - 0.5) * 30);
+        ctx.fillStyle = `rgba(96, 112, 58, ${0.18 + rng() * 0.16})`;
+        ctx.beginPath();
+        ctx.arc(at.x, at.y, (1.4 + rng() * 1.8) * texturePerScreenPx, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // r3 painted flower speckles: warm cream/gold and sparse lavender dots
     // with darker cores, outside the quiet rects, divider window, and slot
@@ -325,7 +407,7 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
           Math.max(...xs) + 8, Math.max(...ys) + 8];
       })
       : [];
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 190; i++) {
       const sx = 160 + rng() * 1352;
       const sy = 130 + rng() * 740;
       const petal = rng();
@@ -351,15 +433,15 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   // a few percent of luminance, so the open field has macro structure.
   {
     const bandAnchor = toTexture(836, 414);
-    const bandStep = 92 * texturePerScreenPx;
+    const bandStep = 128 * texturePerScreenPx;
     ctx.save();
     ctx.translate(bandAnchor.x, bandAnchor.y);
     ctx.rotate(-0.045);
     for (let band = -8; band <= 8; band++) {
       if (band === 0) continue; // divider row stays clean
       ctx.fillStyle = band % 2 === 0
-        ? 'rgba(255, 244, 190, 0.045)'
-        : 'rgba(96, 92, 50, 0.04)';
+        ? 'rgba(255, 244, 190, 0.03)'
+        : 'rgba(96, 92, 50, 0.026)';
       ctx.fillRect(-size, band * bandStep - bandStep / 2, size * 2, bandStep);
     }
     ctx.restore();
@@ -438,11 +520,13 @@ function paintDividerTexture() {
 
   // Center diamond core with halo.
   const cx = width / 2;
-  const diamondHalo = ctx.createRadialGradient(cx, midY, 0, cx, midY, 70);
-  diamondHalo.addColorStop(0, 'rgba(245, 215, 131, 0.5)');
+  // r4: halo kept small — a wide halo leaves columns threshold-marginal, so
+  // grain/grade jitter widens the measured diamond nondeterministically.
+  const diamondHalo = ctx.createRadialGradient(cx, midY, 0, cx, midY, 52);
+  diamondHalo.addColorStop(0, 'rgba(245, 215, 131, 0.36)');
   diamondHalo.addColorStop(1, 'rgba(245, 215, 131, 0)');
   ctx.fillStyle = diamondHalo;
-  ctx.fillRect(cx - 70, midY - 70, 140, 140);
+  ctx.fillRect(cx - 52, midY - 52, 104, 104);
   ctx.fillStyle = SUN_CORE;
   ctx.beginPath();
   ctx.moveTo(cx, midY - 40);
@@ -559,7 +643,10 @@ export function buildMeadowScene(renderer, { propsOnly = false, slotQuads = null
   const moteSeeds = [];
   for (let i = 0; i < moteCount; i++) {
     const sx = 240 + rng() * 1190;
-    const sy = 140 + rng() * 660;
+    let sy = 140 + rng() * 660;
+    // Motes stay clear of the divider row: a gold point drifting over the
+    // detection window reads as (and measures as) part of the diamond.
+    while (sy > 345 && sy < 485) sy = 140 + rng() * 660;
     const at = screenToGround(camera, sx, sy);
     moteSeeds.push({
       x: at.x, z: at.z,

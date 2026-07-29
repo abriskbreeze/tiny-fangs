@@ -128,60 +128,8 @@ function fenceRun(from, to, rng) {
   return group;
 }
 
-// River (field r3): banked stream — dark mud outer band, light sand inner
-// edge, softened water, and a dashed sheen with sparkle highlights instead
-// of one hard cyan ribbon ("masking-tape strip" per both r2 critics).
-const BANK_MUD = 0x54492f;
-const BANK_SAND = 0xc9b689;
-function riverRibbon(points, width) {
-  const group = new THREE.Group();
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    const length = a.distanceTo(b);
-    const angle = -Math.atan2(b.z - a.z, b.x - a.x);
-    const mx = (a.x + b.x) / 2;
-    const mz = (a.z + b.z) / 2;
-    const strip = (stripWidth, y, color, lengthScale = 1.1) => {
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(length * lengthScale, stripWidth),
-        basic(color),
-      );
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.rotation.z = angle;
-      mesh.position.set(mx, y, mz);
-      group.add(mesh);
-      return mesh;
-    };
-    strip(width * 1.55, 0.4, BANK_MUD, 1.16);
-    strip(width * 1.18, 0.5, BANK_SAND, 1.12);
-    strip(width, 0.6, WATER);
-    // Dashed sheen: three short bright dashes per segment, not a solid band.
-    for (const [t, dashLength, offset] of [
-      [0.22, 0.16, -0.12], [0.55, 0.2, 0.1], [0.82, 0.13, -0.06],
-    ]) {
-      const dash = new THREE.Mesh(
-        new THREE.PlaneGeometry(length * dashLength, width * 0.22),
-        basic(WATER_LIT),
-      );
-      dash.rotation.x = -Math.PI / 2;
-      dash.rotation.z = angle;
-      dash.position.set(
-        a.x + (b.x - a.x) * t, 0.7,
-        a.z + (b.z - a.z) * t + offset * width,
-      );
-      group.add(dash);
-      const sparkle = new THREE.Mesh(
-        new THREE.PlaneGeometry(length * 0.035, width * 0.08),
-        basic(0xf6f1dc),
-      );
-      sparkle.rotation.copy(dash.rotation);
-      sparkle.position.set(dash.position.x, 0.8, dash.position.z);
-      group.add(sparkle);
-    }
-  }
-  return group;
-}
+// River: painted organically into the terrain texture since field r4
+// (plane strips read as "angular UI panels" to both r3 critics).
 
 // Flower: small vertical cross-quads with a warm bloom disc.
 function flower(rng) {
@@ -231,7 +179,7 @@ export const SHRUB_ANCHORS = [
   [1160, 62, 1.3], [1360, 56, 1.4],
   [240, 886, 1.2], [420, 902, 1.1], [1300, 894, 1.2], [1460, 880, 1.3],
   [98, 470, 1.3], [58, 250, 1.2], [116, 300, 1.2], [118, 430, 1.1], [1546, 460, 1.1], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [700, 40, 1.4], [1080, 44, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
-  [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2],
+  [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2], [380, 902, 1.3], [1250, 898, 1.2], [470, 912, 1.1],
 ];
 export const ROCK_ANCHORS = [
   [60, 420, 1.2], [96, 500, 0.9],
@@ -290,7 +238,7 @@ export function buildMeadowProps({ rng, screenToGround }) {
   // The deep-left foliage rectangle (screen 20-130, 550-720) is a measured
   // §12 palette region: shrubs inside it are calibrated to R2's foliage
   // median rather than the jittered mix.
-  const DEEP_LEFT = { color: 0x6fa598, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
+  const DEEP_LEFT = { color: 0x6cc6ba, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
   for (const [sx, sy, s] of SHRUB_ANCHORS) {
     place(DEEP_LEFT.test(sx, sy) ? shrub(s, DEEP_LEFT.color) : shrub(s), sx, sy);
   }
@@ -305,14 +253,6 @@ export function buildMeadowProps({ rng, screenToGround }) {
     screenToGround(...FENCE_RUN[0]), screenToGround(...FENCE_RUN[1]), rng,
   ));
 
-  // River — enters top-left envelope, exits bottom-right envelope; visible
-  // water stays in the outer 8%.
-  props.add(riverRibbon([
-    screenToGround(30, -40), screenToGround(96, 40), screenToGround(180, 84),
-  ], 34));
-  props.add(riverRibbon([
-    screenToGround(1600, 872), screenToGround(1648, 906), screenToGround(1700, 980),
-  ], 40));
 
   // Flowers — 65–85% of blooms in the outer 15%; central incidents isolated
   // 2–5-flower clusters at least 90 px apart (two authored incidents).
