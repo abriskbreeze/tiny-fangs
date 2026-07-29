@@ -57,7 +57,16 @@ test('the coin is a 3D gold coin in aaa mode with the classic 1780ms timing inta
   await expect(overlay.locator('.aaa-coin')).toHaveCount(1);
   await expect(overlay.locator('pre')).toHaveCount(0);
   const heads = overlay.locator('.aaa-coin-face--heads');
-  expect(await heads.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('radial-gradient');
+  const tails = overlay.locator('.aaa-coin-face--tails');
+  // The faces now carry the authored coin art (ART-SPEC §5). The gold CSS
+  // radial-gradient remains the procedural floor and is what renders when the
+  // files are absent — that fallback is pinned in aaa-asset-degradation.spec.
+  await expect
+    .poll(() => heads.evaluate((el) => getComputedStyle(el).backgroundImage))
+    .toContain('coin-heads.webp');
+  await expect
+    .poll(() => tails.evaluate((el) => getComputedStyle(el).backgroundImage))
+    .toContain('coin-tails.webp');
 
   // Exact timing contract: still visible at duration-1, gone at duration.
   await page.clock.runFor(COIN_FLIP_DURATION_MS - 1);

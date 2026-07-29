@@ -1,16 +1,18 @@
 import { expect, test } from '@playwright/test';
 import {
-  APERTURE_INSET_RANGE,
+  ART_WINDOW_RATIO,
   CHASSIS_HEIGHT,
   CHASSIS_WIDTH,
+  FRAME_INSET_RANGE,
   NAMEPLATE,
   NAMEPLATE_FIXTURES,
   SAFE_RECTS,
 } from '../../src/presentation/cards/chassis-geometry.js';
 
 // Art bible §7 chassis gates measured on the real rendered DOM (accepted
-// hash 84b89838…). These are objective geometry gates — the aesthetic
-// golden-sample verdict belongs to the §13 blind critics, not this spec.
+// hash 84b89838…, retargeted to the approved 2026-07-29 inset-window layout).
+// These are objective geometry gates — the aesthetic golden-sample verdict
+// belongs to the §13 blind critics, not this spec.
 
 const CHASSIS_URL = '/showcase.html?mode=chassis';
 const GEOMETRY_TOLERANCE_PX = 1;
@@ -40,6 +42,8 @@ const FRONT_SPECIMENS = [
 const MEASURED_RECTS = {
   cost: '.tf-aaa-card__cost',
   nameplateOuter: '.tf-aaa-card__nameplate',
+  titleText: '.tf-aaa-card__title',
+  artFocalSafe: '.tf-aaa-card__art',
   typeSubtitle: '.tf-aaa-card__type',
   familySeal: '.tf-aaa-card__seal',
   rulesText: '.tf-aaa-card__rules',
@@ -58,12 +62,48 @@ test('front chassis renders at exactly 333 × 505 with the authored ratio', asyn
   }
 });
 
-test('§7.2 cumulative aperture inset stays within 10.5–12.5% per side', async ({ page }) => {
+// §7.2 frame construction: 21 → 15 → 13 → 3 → 1 at insets 6 / 2 / 10 / 2,
+// cumulative 20 px = 6.006% per side.
+const FRAME_LAYERS = [
+  { selector: '.tf-aaa-card', inset: 0, radius: 21 },
+  { selector: '.tf-aaa-card__keyline', inset: 6, radius: 15 },
+  { selector: '.tf-aaa-card__rail', inset: 2, radius: 13 },
+  { selector: '.tf-aaa-card__inner-keyline', inset: 10, radius: 3 },
+  { selector: '.tf-aaa-card__panel', inset: 2, radius: 1 },
+];
+
+test('§7.2 frame layers stay concentric and inset 5.5–7.0% per side', async ({ page }) => {
   await openChassis(page);
   for (const { id } of FRONT_SPECIMENS) {
     const cardBox = await page
       .locator(`[data-specimen="${id}"] .tf-aaa-card`)
       .boundingBox();
+
+    // Each layer's radius is its parent's minus that layer's own inset, so
+    // every corner is a true offset of the 21 px physical corner.
+    let cumulative = 0;
+    let parentRadius = null;
+    for (const layer of FRAME_LAYERS) {
+      const locator = page.locator(`[data-specimen="${id}"] ${layer.selector}`);
+      const box = await locator.boundingBox();
+      cumulative += layer.inset;
+      expect(box.x - cardBox.x, `${id} ${layer.selector} inset`).toBeCloseTo(
+        cumulative,
+        0,
+      );
+      const radius = await locator.evaluate(
+        (node) => parseFloat(getComputedStyle(node).borderTopLeftRadius),
+      );
+      expect(radius, `${id} ${layer.selector} radius`).toBeCloseTo(layer.radius, 1);
+      if (parentRadius !== null) {
+        expect(
+          parentRadius - layer.inset,
+          `${id} ${layer.selector} is concentric with its parent`,
+        ).toBeCloseTo(layer.radius, 1);
+      }
+      parentRadius = layer.radius;
+    }
+
     const panelBox = await page
       .locator(`[data-specimen="${id}"] .tf-aaa-card__panel`)
       .boundingBox();
@@ -71,16 +111,16 @@ test('§7.2 cumulative aperture inset stays within 10.5–12.5% per side', async
     const rightInset = cardBox.x + cardBox.width - (panelBox.x + panelBox.width);
     for (const inset of [leftInset, rightInset]) {
       expect(inset / cardBox.width, id).toBeGreaterThanOrEqual(
-        APERTURE_INSET_RANGE.min,
+        FRAME_INSET_RANGE.min,
       );
       expect(inset / cardBox.width, id).toBeLessThanOrEqual(
-        APERTURE_INSET_RANGE.max,
+        FRAME_INSET_RANGE.max,
       );
     }
   }
 });
 
-test('§7.3 physical art aperture proportions hold', async ({ page }) => {
+test('§7.3 inset art window proportions hold at 7:5', async ({ page }) => {
   await openChassis(page);
   for (const { id } of FRONT_SPECIMENS) {
     const cardBox = await page
@@ -93,14 +133,27 @@ test('§7.3 physical art aperture proportions hold', async ({ page }) => {
     const heightFrac = artBox.height / cardBox.height;
     const topFrac = (artBox.y - cardBox.y) / cardBox.height;
     const endFrac = (artBox.y - cardBox.y + artBox.height) / cardBox.height;
-    expect(widthFrac, id).toBeGreaterThanOrEqual(0.75);
-    expect(widthFrac, id).toBeLessThanOrEqual(0.79);
-    expect(heightFrac, id).toBeGreaterThanOrEqual(0.5);
-    expect(heightFrac, id).toBeLessThanOrEqual(0.55);
-    expect(topFrac, id).toBeGreaterThanOrEqual(0.03);
-    expect(topFrac, id).toBeLessThanOrEqual(0.06);
-    expect(endFrac, id).toBeGreaterThanOrEqual(0.55);
-    expect(endFrac, id).toBeLessThanOrEqual(0.59);
+    expect(artBox.width / artBox.height, id).toBeCloseTo(ART_WINDOW_RATIO, 2);
+    expect(widthFrac, id).toBeGreaterThanOrEqual(0.83);
+    expect(widthFrac, id).toBeLessThanOrEqual(0.85);
+    expect(heightFrac, id).toBeGreaterThanOrEqual(0.385);
+    expect(heightFrac, id).toBeLessThanOrEqual(0.405);
+    expect(topFrac, id).toBeGreaterThanOrEqual(0.145);
+    expect(topFrac, id).toBeLessThanOrEqual(0.165);
+    expect(endFrac, id).toBeGreaterThanOrEqual(0.54);
+    expect(endFrac, id).toBeLessThanOrEqual(0.56);
+
+    // The frame is opaque and visible all the way around the window: the art
+    // must sit strictly inside the parchment panel on every side.
+    const panelBox = await page
+      .locator(`[data-specimen="${id}"] .tf-aaa-card__panel`)
+      .boundingBox();
+    expect(artBox.x, `${id} art left inside panel`).toBeGreaterThan(panelBox.x);
+    expect(artBox.y, `${id} art top inside panel`).toBeGreaterThan(panelBox.y);
+    expect(
+      artBox.x + artBox.width,
+      `${id} art right inside panel`,
+    ).toBeLessThan(panelBox.x + panelBox.width);
   }
 });
 
@@ -129,7 +182,7 @@ test('§7.4 content rectangles land on their authored coordinates', async ({ pag
   }
 });
 
-test('§7.4 nameplate fixtures render unclipped at locked 22 px type', async ({ page }) => {
+test('nameplate fixtures render unclipped at locked 22 px type', async ({ page }) => {
   await openChassis(page);
   const alegreyaLoaded = await page.evaluate(() =>
     document.fonts.check('22px Alegreya'),
@@ -151,8 +204,8 @@ test('§7.4 nameplate fixtures render unclipped at locked 22 px type', async ({ 
     expect(fontSize, fixture.id).toBe(`${NAMEPLATE.fontSizePx}px`);
 
     // No compression/clipping: the rendered text must sit fully inside the
-    // 230 × 50 text box with ≥2 px horizontal clearance each side. Vertical
-    // containment allows the full two-line block (2 × 24.5 px) whose leading
+    // 211 × 36 text box with ≥2 px horizontal clearance each side. Vertical
+    // containment allows the full single-line block (24.5 px) whose leading
     // itself provides the ink clearance.
     expect(textBox.x - titleBox.x, fixture.id).toBeGreaterThanOrEqual(
       NAMEPLATE.minClearancePx,
@@ -167,7 +220,7 @@ test('§7.4 nameplate fixtures render unclipped at locked 22 px type', async ({ 
       fixture.id,
     ).toBeLessThanOrEqual(titleBox.y + titleBox.height + 0.5);
 
-    // Two lines maximum at the fixed 24.5 px line height.
+    // One line maximum at the fixed 24.5 px line height.
     expect(textBox.height, fixture.id).toBeLessThanOrEqual(
       NAMEPLATE.maxLines * NAMEPLATE.lineHeightPx + 0.5,
     );

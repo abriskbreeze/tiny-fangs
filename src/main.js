@@ -95,7 +95,8 @@
     };
 
     const { playEvents, playServerEvents, sideKey, EVENT_HANDLERS } = createEventPlayback({
-      Anim, log, VERSES, CREATURES
+      Anim, log, VERSES, CREATURES,
+      presentResult: presentGameOverEvent,
     });
     runtime.playEvents = playEvents;
     runtime.playServerEvents = playServerEvents;
@@ -532,6 +533,20 @@
           + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
         aaaCoinScene.appendChild(aaaCoin);
         overlay.appendChild(aaaCoinScene);
+        // Coin art (ART-SPEC §5). Fire-and-forget on purpose: nothing below
+        // awaits this, so not one frame delay moves and the 1780 ms result
+        // contract is untouched. The H/T letters stay as the floor and go
+        // transparent only if the faces actually load.
+        import('./presentation/assets/image-assets.js')
+          .then(({ imageAssets, UI_ASSET_PATHS }) => {
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--heads'),
+              UI_ASSET_PATHS.coinHeads, { size: 'contain' });
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--tails'),
+              UI_ASSET_PATHS.coinTails, { size: 'contain' });
+          })
+          .catch(() => {});
       } else {
         overlay.appendChild(coinDisplay);
       }
@@ -658,6 +673,20 @@
           + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
         aaaCoinScene.appendChild(aaaCoin);
         overlay.appendChild(aaaCoinScene);
+        // Coin art (ART-SPEC §5). Fire-and-forget on purpose: nothing below
+        // awaits this, so not one frame delay moves and the 1780 ms result
+        // contract is untouched. The H/T letters stay as the floor and go
+        // transparent only if the faces actually load.
+        import('./presentation/assets/image-assets.js')
+          .then(({ imageAssets, UI_ASSET_PATHS }) => {
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--heads'),
+              UI_ASSET_PATHS.coinHeads, { size: 'contain' });
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--tails'),
+              UI_ASSET_PATHS.coinTails, { size: 'contain' });
+          })
+          .catch(() => {});
       } else {
         overlay.appendChild(coinDisplay);
       }
@@ -1061,6 +1090,11 @@
             doSummon, doCast, doSet, doAttack, doRetreat, endTurn,
             showCardDetail, showGraveyard, showRules,
             setQuality: applyAaaQuality,
+            // Drag-to-play: the shell owns the gesture, classic owns the
+            // rules. These are the SAME three functions the classic drop
+            // path uses, so shared/engine.js stays the only authority and
+            // every selection/validation modal still runs.
+            canPlayCard, getPlayType, executeDrop,
           },
           onError: (error) => console.warn('AAA shell error; staying classic', error),
         });
@@ -1434,9 +1468,39 @@
       }
     }
 
+    // ── card-detail back navigation ────────────────────────────────
+    // The detail surface is opened from hand, board, own Set, and the
+    // graveyard browser. Only the graveyard needs a "back" destination, so
+    // that one caller records an explicit origin; every other entry point
+    // leaves it null and `closeCardModal` keeps its plain "just close"
+    // contract. Never a global flag — the origin is set at the exact call
+    // site that owns the return trip.
+    let cardDetailOrigin = null;
+
+    function openCardDetailFromGraveyard(uid, who) {
+      const list = $('modal-opts');
+      const scrollTop = list ? list.scrollTop : 0;
+      showCardDetail(uid); // clears cardDetailOrigin as every caller does
+      if ($('cardModal').classList.contains('open')) {
+        cardDetailOrigin = { kind: 'graveyard', who, scrollTop };
+      }
+    }
+
+    function returnToGraveyard(origin) {
+      const modal = $('modal');
+      const open = modal.classList.contains('open');
+      // The list normally stays mounted under the detail. Only rebuild it if
+      // something closed it, and never steal the slot from another modal.
+      if (open && modal.dataset.graveyardSide !== origin.who) return;
+      if (!open) showGraveyard(origin.who);
+      const list = $('modal-opts');
+      if (list) list.scrollTop = origin.scrollTop;
+    }
+
     function showSetVerseDetail() {
       const card = state.G.me.setVerse;
       if (!card) return;
+      cardDetailOrigin = null;
 
       const el = $('cardDetail');
       const triggerHtml = card.trigger ? `<div class="ability-box"><div class="ability-name">Trigger</div><div class="ability-text">${card.trigger}</div></div>` : '';
@@ -1458,6 +1522,10 @@
       // Find card
       let card = findCard(uid);
       if (!card) return;
+
+      // Default origin: the board. `openCardDetailFromGraveyard` re-arms the
+      // graveyard return immediately after this call.
+      cardDetailOrigin = null;
 
       const el = $('cardDetail');
 
@@ -1541,12 +1609,30 @@
         `;
       }
 
+      // AAA only: the detail overlay is the one surface that earns the large
+      // (1600 × 1200) derivative — the board and hand stay on thumbnails. The
+      // classic renderer keeps its ASCII art untouched. Dynamic import so the
+      // classic bundle never pulls the presentation asset map, and fail-silent
+      // throughout: no file, no image, ASCII art stays.
+      if (document.documentElement.dataset.presentation === 'aaa' && card.id) {
+        const artBox = el.querySelector('.art-box');
+        if (artBox) {
+          import('./presentation/assets/image-assets.js')
+            .then(({ imageAssets }) =>
+              imageAssets.applyCardArt(artBox, card.id, 'detail', { flag: 'artWired' }))
+            .catch(() => {});
+        }
+      }
+
       $('cardModal').classList.add('open');
     }
 
     function closeCardModal(e, force) {
       if (force || e.target === $('cardModal')) {
         $('cardModal').classList.remove('open');
+        const origin = cardDetailOrigin;
+        cardDetailOrigin = null;
+        if (origin?.kind === 'graveyard') returnToGraveyard(origin);
       }
     }
 
@@ -1925,7 +2011,9 @@
         const loser = playerWon ? state.G.opp : state.G.me;
         const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
         state.G.winner = playerWon ? 'You' : 'Rival';
-        showResult(playerWon, reason);
+        // The engine's `gameOver` already reached the presenter during this
+        // dispatch; the guarded funnel is the safety net, not a second owner.
+        presentTerminalResult(playerWon, reason);
         return;
       }
 
@@ -1964,7 +2052,7 @@
         // Deck out - player loses
         log('Deck out!', 'dmg');
         state.G.winner = player === state.G.me ? 'Rival' : 'You';
-        showResult(state.G.winner === 'You', 'Deck out');
+        presentTerminalResult(state.G.winner === 'You', 'Deck out');
       }
     }
 
@@ -1991,7 +2079,7 @@
         state.G.winner = result.winner;
         const loser = result.winner === 'You' ? state.G.opp : state.G.me;
         const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
-        showResult(result.winner === 'You', reason);
+        presentTerminalResult(result.winner === 'You', reason);
       }
     }
 
@@ -2005,8 +2093,10 @@
       $('modal-title').textContent = title;
       // For graveyard modals, add hold-to-zoom handlers
       if (opts.graveyard) {
+        // A plain click opens the same detail the 400 ms hold opens; the hold
+        // stays as the touch affordance (INP-06/INP-08/OVR-02).
         $('modal-opts').innerHTML = options.map((o, i) => `
-          <div class="option" data-uid="${o.uid || ''}" onpointerdown="graveCardPress('${o.uid}', '${opts.player}')" onpointerup="graveCardRelease()" onpointerleave="graveCardRelease()">
+          <div class="option" data-uid="${o.uid || ''}" onpointerdown="graveCardPress('${o.uid}', '${opts.player}')" onpointerup="graveCardRelease()" onpointerleave="graveCardRelease()" onclick="graveCardClick('${o.uid}', '${opts.player}')">
             <div class="name">${o.name}</div>
             <div class="sub">${o.sub}</div>
           </div>
@@ -2023,6 +2113,17 @@
       // Store onClose callback for Close button
       window._modalOnClose = opts.onClose || null;
       $('modal').dataset.escapeDismiss = opts.semantic ? 'false' : 'true';
+      // Only the graveyard browser dismisses on a backdrop click. Decision
+      // modals (targets, Optional, Skitter) must never resolve by accident,
+      // so they keep their explicit-choice contract (OVR-01/05/06/08).
+      if (opts.graveyard || opts.backdropDismiss) {
+        $('modal').dataset.backdropDismiss = 'true';
+        if (opts.graveyard) $('modal').dataset.graveyardSide = opts.player;
+        else delete $('modal').dataset.graveyardSide;
+      } else {
+        delete $('modal').dataset.backdropDismiss;
+        delete $('modal').dataset.graveyardSide;
+      }
       // Hide cancel button if noCancel option is set
       const cancelBtn = $('modal').querySelector('.cancel');
       if (cancelBtn) cancelBtn.style.display = opts.noCancel ? 'none' : '';
@@ -2273,6 +2374,29 @@
           : '[ DEFEAT ]';
     }
 
+    /**
+     * Solo result owner for the engine's `gameOver` event.
+     *
+     * Injected into `createEventPlayback` so terminal presentation happens
+     * exactly once, at the end of the frame that ended the match, no matter
+     * which side acted. Multiplayer keeps its own `showGameOver` modal, so
+     * this presenter stands down while a networked match is mounted.
+     */
+    function presentGameOverEvent(event) {
+      if (state.G?.isMultiplayer) return;
+      if ($('result').classList.contains('open')) return;
+      presentTerminalResult(sideKey(event?.winner) === 'me', event?.reason);
+    }
+
+    /**
+     * The one place the terminal overlay opens. First terminal state wins:
+     * an already-open result is never re-decided by a later event.
+     */
+    function presentTerminalResult(win, reason = '') {
+      if ($('result').classList.contains('open')) return;
+      showResult(win, reason);
+    }
+
     function restartGame(navigate = () => location.reload()) {
       clearGame();
       navigate();
@@ -2292,11 +2416,13 @@
       const title = who === 'me' ? 'Your Graveyard' : "Rival's Graveyard";
 
       if (player.grave.length === 0) {
+        // Empty view keeps the same dismissal affordance as the list — there
+        // are no entries, so it deliberately skips the graveyard markup.
         showModal(title, [{
           name: 'Empty',
           sub: 'No cards in graveyard',
           action: () => closeModal()
-        }]);
+        }], { backdropDismiss: true });
         return;
       }
 
@@ -2514,12 +2640,17 @@
 
     // Graveyard card zoom
     let graveZoomTimer = null;
+    let graveHoldFired = false;
     function graveCardPress(uid, who) {
       if (!uid) return;
+      graveHoldFired = false;
       graveZoomTimer = setTimeout(() => {
         const player = who === 'me' ? state.G.me : state.G.opp;
         const card = player.grave.find(c => c.uid === uid);
-        if (card) showCardDetail(uid);
+        if (card) {
+          graveHoldFired = true;
+          openCardDetailFromGraveyard(uid, who);
+        }
       }, 400);
     }
     function graveCardRelease() {
@@ -2528,8 +2659,33 @@
         graveZoomTimer = null;
       }
     }
+    // Plain click: the fast path to the same detail. When the hold already
+    // fired during this press the trailing click is swallowed so one press
+    // never opens the detail twice.
+    function graveCardClick(uid, who) {
+      graveCardRelease();
+      if (graveHoldFired) {
+        graveHoldFired = false;
+        return;
+      }
+      if (!uid) return;
+      const player = who === 'me' ? state.G.me : state.G.opp;
+      if (!player?.grave.some(c => c.uid === uid)) return;
+      openCardDetailFromGraveyard(uid, who);
+    }
     window.graveCardPress = graveCardPress;
     window.graveCardRelease = graveCardRelease;
+    window.graveCardClick = graveCardClick;
+
+    // Backdrop dismissal is opt-in per modal (graveyard only). Clicking
+    // outside the graveyard browser closes the whole stack, detail included.
+    $('modal').addEventListener('click', (e) => {
+      if (e.target !== $('modal')) return;
+      if ($('modal').dataset.backdropDismiss !== 'true') return;
+      cardDetailOrigin = null;
+      $('cardModal').classList.remove('open');
+      closeModal();
+    });
 
     // Generated card and grave markup binds release/leave handlers directly.
     // A platform cancellation may bypass those element handlers, so keep one
@@ -2680,7 +2836,8 @@
     setupHoldButton(document.getElementById('m-btn-end'));
     setupHoldButton(document.getElementById('d-btn-end'));
 
-    const playAgainButton = document.querySelector('#result button');
+    const playAgainButton = $('result-restart')
+      ?? document.querySelector('#result button');
     playAgainButton?.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();

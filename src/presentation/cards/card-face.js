@@ -10,26 +10,41 @@ import {
   SAFE_RECTS,
 } from './chassis-geometry.js';
 import { GOLDEN_SAMPLE_ART } from './art/golden-sample-art.js';
+import { imageAssets } from '../assets/image-assets.js';
+import { PRESENTATION_FACE_INVENTORY } from '../../../shared/face-registry.js';
 
-// Template art resolves through the bundler so production builds serve real
-// asset URLs (the previous hard-coded '/src/assets/…' path 404'd in dist).
-// import.meta.glob is statically analyzable; the map is faceId -> built URL.
-const FACE_ART_URLS = (() => {
-  try {
-    const modules = import.meta.glob(
-      '../../assets/cards/faces/*/thumbnail.webp',
-      { eager: true, query: '?url', import: 'default' },
-    );
-    const byId = {};
-    for (const [path, url] of Object.entries(modules)) {
-      const match = path.match(/faces\/([^/]+)\/thumbnail\.webp$/);
-      if (match) byId[match[1]] = url;
-    }
-    return byId;
-  } catch {
-    return {}; // non-Vite consumers (unit tests) fall back to the dev path
+// Frame artwork per face family (ART-SPEC §1). Frames are opaque plates with a
+// transparent art aperture; they paint over the art window and under the text,
+// so the DOM keeps compositing name, rules and medallion numerals on top.
+export const FRAME_ASSET_PATHS = Object.freeze({
+  creature: 'src/assets/frames/creature.webp',
+  cast: 'src/assets/frames/verse-cast.webp',
+  set: 'src/assets/frames/verse-set.webp',
+  token: 'src/assets/frames/token.webp',
+});
+
+// ART-SPEC §2. `standard` is the deck back; `set-hidden` is the face-down set
+// verse, which must stay identity-free — every hidden set card renders the
+// identical file, so two different set verses are pixel-identical from behind.
+export const BACK_ASSET_PATHS = Object.freeze({
+  standard: 'src/assets/backs/standard.webp',
+  setHidden: 'src/assets/backs/set-hidden.webp',
+});
+
+// Token creatures carry the token frame rather than the creature frame.
+const TOKEN_FACE_IDS = new Set(
+  PRESENTATION_FACE_INVENTORY
+    .filter((face) => face.kind === 'token')
+    .map((face) => face.presentationFaceId),
+);
+
+export function frameAssetPathFor(model) {
+  if (!model || model.kind === 'back') return null;
+  if (model.kind === 'creature' && TOKEN_FACE_IDS.has(model.faceId)) {
+    return FRAME_ASSET_PATHS.token;
   }
-})();
+  return FRAME_ASSET_PATHS[model.kind] ?? null;
+}
 
 const FAMILY_LABEL = {
   creature: null, // creature subtype comes from the card's own subtitle
@@ -39,7 +54,11 @@ const FAMILY_LABEL = {
 
 export function normalizeFaceModel(card, kind) {
   if (kind === 'back') {
-    return { kind: 'back' };
+    // 'setHidden' selects the face-down set-verse back. It carries no card
+    // identity by construction: the variant is chosen from the slot, never
+    // from the card, so two different set verses render the same file.
+    const backVariant = card?.backVariant === 'setHidden' ? 'setHidden' : 'standard';
+    return { kind: 'back', backVariant };
   }
   if (!FAMILY_LABEL.hasOwnProperty(kind)) {
     throw new Error(`Unknown card face kind: ${kind}`);
@@ -91,7 +110,14 @@ function el(doc, className, rect) {
   return node;
 }
 
-export function buildCardFace(model, { document: doc = globalThis.document } = {}) {
+export function buildCardFace(model, {
+  document: doc = globalThis.document,
+  // Which card-art derivative to request. 'thumbnail' is the board/hand size;
+  // the card-detail overlay asks for 'detail'. `source.png` is an archival
+  // master and is never a runtime option.
+  artVariant = 'thumbnail',
+  assets = imageAssets,
+} = {}) {
   const kind = model.kind;
   const rects = SAFE_RECTS[kind];
   if (!rects) {
@@ -104,8 +130,9 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
   root.style.height = `${CHASSIS_HEIGHT}px`;
 
   // §7.2 frame hierarchy, outside-in. Insets are authored px at 333 width:
-  // lip 11.5 (3.45%), keyline 3 (0.9%), family rail 21 (6.3%), inner
-  // keyline 3 (0.9%) — cumulative 38.5 px = 11.56% per side.
+  // lip 6 (1.8%), keyline 2 (0.6%), family rail 10 (3.0%), inner keyline 2
+  // (0.6%) — cumulative 20 px = 6.006% per side. The frame is opaque: the art
+  // window is inset a further 6 px inside the parchment field.
   const keyline = el(doc, 'tf-aaa-card__keyline');
   const rail = el(doc, 'tf-aaa-card__rail');
   const innerKeyline = el(doc, 'tf-aaa-card__inner-keyline');
@@ -119,38 +146,20 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
   root.append(content);
 
   if (kind === 'back') {
+    // The inline sigil is the procedural floor and always renders; the back
+    // plate paints over it if and only if the file actually loads.
     const sigil = el(doc, 'tf-aaa-card__back-sigil', rects.artFocalSafe);
     sigil.innerHTML = GOLDEN_SAMPLE_ART.backSigil;
     content.append(sigil);
+
+    const plate = el(doc, 'tf-aaa-card__back-plate');
+    content.append(plate);
+    assets.applyBackground(plate, BACK_ASSET_PATHS[model.backVariant ?? 'standard']);
     return root;
   }
 
-  // Physical art aperture (§7.3): authored aperture art when the face has a
-  // golden-sample piece; painterly placeholder ground otherwise.
-  const art = el(doc, 'tf-aaa-card__art');
-  const aperture = model.faceId ? GOLDEN_SAMPLE_ART[model.faceId] : null;
-  if (aperture) {
-    art.innerHTML = aperture;
-  } else if (model.faceId) {
-    // Phase 6 template mode: the face registry maps every renderable face to
-    // its faction template at the canonical manifest path.
-    const artUrl = FACE_ART_URLS[model.faceId]
-      ?? `/src/assets/cards/faces/${model.faceId}/thumbnail.webp`;
-    art.style.backgroundImage = `url('${artUrl}')`;
-    art.style.backgroundSize = 'cover';
-    art.style.backgroundPosition = 'center';
-    art.dataset.artTier = 'template-placeholder';
-  } else {
-    art.dataset.artPending = 'true';
-  }
-  content.append(art);
-
-  const typeRow = el(doc, 'tf-aaa-card__type', rects.typeSubtitle);
-  const typeChip = doc.createElement('span');
-  typeChip.textContent = model.typeLabel;
-  typeRow.append(typeChip);
-  content.append(typeRow);
-
+  // DOM order follows the approved reading order: nameplate band first, then
+  // the inset art window beneath it.
   const nameplate = el(doc, 'tf-aaa-card__nameplate', rects.nameplateOuter);
   const title = doc.createElement('div');
   title.className = 'tf-aaa-card__title';
@@ -161,15 +170,67 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
   nameplate.append(title);
   content.append(nameplate);
 
+  // Inset art window (§7.3): a 7:5 window carried by the authored
+  // artFocalSafe rectangle, with the opaque frame visible all around it.
+  // Authored aperture art when the face has a golden-sample piece; painterly
+  // placeholder ground otherwise.
+  const art = el(doc, 'tf-aaa-card__art', rects.artFocalSafe);
+  const aperture = model.faceId ? GOLDEN_SAMPLE_ART[model.faceId] : null;
+  if (aperture) {
+    art.innerHTML = aperture;
+    // Golden-sample pieces were authored for the old 256 × 267 aperture. The
+    // window is now a crop, so they fill it the same way a real 7:5 raster
+    // does (cover), rather than letterboxing inside it.
+    const apertureSvg = art.querySelector('svg');
+    if (apertureSvg) apertureSvg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  } else if (model.faceId) {
+    // Card art at the requested derivative, falling back to the JPEG when
+    // WebP is unsupported or the WebP slot is dead. The painterly CSS ground
+    // underneath stays put until a file genuinely loads.
+    art.dataset.artTier = 'template-placeholder';
+    art.dataset.artVariant = artVariant;
+    assets.applyCardArt(art, model.faceId, artVariant, { flag: 'artWired' });
+  } else {
+    art.dataset.artPending = 'true';
+  }
+  content.append(art);
+
+  // The frame plate: an opaque image with a transparent art aperture, painted
+  // over the art window and the procedural §7.2 frame stack, and under every
+  // text and medallion rectangle (z-order lives in cards.css). When the file
+  // is missing this layer stays empty and the CSS frame hierarchy shows
+  // through unchanged.
+  const framePath = frameAssetPathFor(model);
+  if (framePath) {
+    const frame = el(doc, 'tf-aaa-card__frame');
+    content.append(frame);
+    assets.applyBackground(frame, framePath, { size: '100% 100%', flag: 'frameWired' });
+  }
+
+  // The seal stamps the art window's bottom edge, so it is appended after the
+  // art to paint over it.
   const seal = el(doc, 'tf-aaa-card__seal', rects.familySeal);
   content.append(seal);
+
+  const typeRow = el(doc, 'tf-aaa-card__type', rects.typeSubtitle);
+  const typeChip = doc.createElement('span');
+  typeChip.className = 'tf-aaa-card__type-text';
+  typeChip.textContent = model.typeLabel;
+  typeRow.append(typeChip);
+  content.append(typeRow);
 
   const rules = el(doc, 'tf-aaa-card__rules', rects.rulesText);
   rules.textContent = model.rulesText;
   content.append(rules);
 
+  // The flavor line is wrapped so its rendered ink box can be measured
+  // against the footer rectangle (a centered flex child can overflow in both
+  // directions, which scrollHeight alone would miss).
   const footer = el(doc, 'tf-aaa-card__footer', rects.footer);
-  footer.textContent = model.flavor;
+  const footerText = doc.createElement('span');
+  footerText.className = 'tf-aaa-card__footer-text';
+  footerText.textContent = model.flavor;
+  footer.append(footerText);
   content.append(footer);
 
   const cost = el(doc, 'tf-aaa-card__cost', rects.cost);

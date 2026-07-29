@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-  APERTURE_INSET_RANGE,
+  ART_WINDOW_RATIO,
   CHASSIS_HEIGHT,
   CHASSIS_RATIO,
   CHASSIS_WIDTH,
   FOOTER_TO_STAT_MIN_GAP_PX,
+  FRAME_INSET_RANGE,
   NAMEPLATE,
   NAMEPLATE_FIXTURES,
   NESTED_PAIRS,
+  RESERVED_RECTS,
   SAFE_RECTS,
   SIBLING_MIN_GAP_PX,
+  STRADDLE_PAIRS,
   rectGap,
   rectHeight,
   rectWidth,
@@ -17,8 +20,9 @@ import {
 } from '../../src/presentation/cards/chassis-geometry.js';
 
 // These contracts re-derive the art bible §7 requirements (accepted hash
-// 84b89838…) from the authored geometry, so any drift in the module is caught
-// against the bible's own numbers rather than a copy of the module.
+// 84b89838…, as revised by the approved 2026-07-29 inset-window layout) from
+// the authored geometry, so any drift in the module is caught against the
+// design's own numbers rather than a copy of the module.
 
 describe('chassis ratio and bounds', () => {
   it('keeps the unprojected chassis ratio inside the authored range', () => {
@@ -42,9 +46,14 @@ describe('chassis ratio and bounds', () => {
 });
 
 describe('§7.4 sibling non-overlap contract', () => {
-  const nested = new Set(NESTED_PAIRS.map((pair) => pair.join(':')));
-  const isNested = (a, b) =>
-    nested.has(`${a}:${b}`) || nested.has(`${b}:${a}`);
+  // Two declared exemptions, both structural rather than incidental: the
+  // title box nests inside the nameplate, and the family seal deliberately
+  // straddles the art window's lower edge.
+  const exempt = new Set(
+    [...NESTED_PAIRS, ...STRADDLE_PAIRS].map((pair) => pair.join(':')),
+  );
+  const isExempt = (a, b) =>
+    exempt.has(`${a}:${b}`) || exempt.has(`${b}:${a}`);
 
   for (const [family, rects] of Object.entries(SAFE_RECTS)) {
     it(`${family}: sibling rectangles keep at least ${SIBLING_MIN_GAP_PX} px`, () => {
@@ -53,7 +62,7 @@ describe('§7.4 sibling non-overlap contract', () => {
         for (let j = i + 1; j < names.length; j++) {
           const a = names[i];
           const b = names[j];
-          if (isNested(a, b)) continue;
+          if (isExempt(a, b)) continue;
           expect(
             rectsOverlap(rects[a], rects[b]),
             `${family}.${a} overlaps ${family}.${b}`,
@@ -86,20 +95,61 @@ describe('§7.4 sibling non-overlap contract', () => {
       expect(titleText.bottom).toBeLessThanOrEqual(nameplateOuter.bottom);
     }
   });
+
+  // The one overlap the contract allows has to be the intended one: a seal
+  // that genuinely sits on the art window's lower edge, not a rectangle that
+  // has drifted wholly onto or off the illustration.
+  it('the family seal straddles the art window bottom edge, exempting nothing else', () => {
+    expect(STRADDLE_PAIRS).toStrictEqual([['familySeal', 'artFocalSafe']]);
+    for (const family of ['creature', 'cast', 'set']) {
+      const { familySeal, artFocalSafe } = SAFE_RECTS[family];
+      expect(familySeal.top).toBeLessThan(artFocalSafe.bottom);
+      expect(familySeal.bottom).toBeGreaterThan(artFocalSafe.bottom);
+      expect(familySeal.left).toBeGreaterThanOrEqual(artFocalSafe.left);
+      expect(familySeal.right).toBeLessThanOrEqual(artFocalSafe.right);
+    }
+  });
+
+  // Reserved rectangles are still held to the contract: the approved layout
+  // must leave room for them without touching the art window or nameplate.
+  it('reserved rectangles stay clear of the art window and the nameplate', () => {
+    expect(RESERVED_RECTS).toStrictEqual(['statusStack', 'inspectGlyph']);
+    for (const family of ['creature', 'cast', 'set']) {
+      const rects = SAFE_RECTS[family];
+      for (const reserved of RESERVED_RECTS) {
+        for (const neighbour of ['artFocalSafe', 'nameplateOuter']) {
+          expect(
+            rectsOverlap(rects[reserved], rects[neighbour]),
+            `${family}.${reserved} overlaps ${neighbour}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
 });
 
 describe('§7.3 / §7.4 anatomy proportions', () => {
-  it('art focal-safe sits inside the physical aperture band', () => {
-    // Aperture width 75–79% of chassis means per-side insets of 10.5–12.5%.
-    const minInset = CHASSIS_WIDTH * APERTURE_INSET_RANGE.min;
-    const maxInset = CHASSIS_WIDTH * APERTURE_INSET_RANGE.max;
+  it('the art window clears the opaque frame band on both sides', () => {
+    // The frame is opaque and 5.5–7.0% of the width per side; the art window
+    // is inset further still, so the frame reads all the way around it.
+    const minInset = CHASSIS_WIDTH * FRAME_INSET_RANGE.min;
+    const maxInset = CHASSIS_WIDTH * FRAME_INSET_RANGE.max;
+    expect(maxInset).toBeGreaterThan(minInset);
     for (const family of ['creature', 'cast', 'set']) {
       const art = SAFE_RECTS[family].artFocalSafe;
-      // Focal-safe is the smaller unobscured rectangle, so it must clear the
-      // maximum aperture inset on both sides.
-      expect(art.left).toBeGreaterThanOrEqual(minInset);
-      expect(CHASSIS_WIDTH - art.right).toBeGreaterThanOrEqual(minInset);
-      expect(maxInset).toBeGreaterThan(minInset);
+      expect(art.left).toBeGreaterThan(maxInset);
+      expect(CHASSIS_WIDTH - art.right).toBeGreaterThan(maxInset);
+      expect(art.top).toBeGreaterThan(maxInset);
+    }
+  });
+
+  it('the art window is exactly 7:5 and 39.6% of chassis height', () => {
+    for (const family of ['creature', 'cast', 'set']) {
+      const art = SAFE_RECTS[family].artFocalSafe;
+      expect(rectWidth(art)).toBe(280);
+      expect(rectHeight(art)).toBe(200);
+      expect(rectWidth(art) / rectHeight(art)).toBeCloseTo(ART_WINDOW_RATIO, 6);
+      expect(rectHeight(art) / CHASSIS_HEIGHT).toBeCloseTo(0.396, 3);
     }
   });
 
@@ -121,10 +171,9 @@ describe('§7.3 / §7.4 anatomy proportions', () => {
   });
 
   it('family seal straddles the art/rules join at 55–64% of card height', () => {
-    // §7.3 prose gives the 55–64% straddle band; §7.4's exact rectangle
-    // (290–327) is the operative authored geometry and its bottom edge is
-    // 64.75%. The consistent reading is that the straddle point — the seal's
-    // vertical center on the art/rules join — sits inside the band.
+    // §7.3 prose gives the 55–64% straddle band; the approved rectangle
+    // (257–300) centers at 55.1%, so the straddle point — the seal's vertical
+    // center on the art window's lower edge — still sits inside the band.
     for (const family of ['creature', 'cast', 'set']) {
       const seal = SAFE_RECTS[family].familySeal;
       const center = (seal.top + seal.bottom) / 2 / CHASSIS_HEIGHT;
@@ -143,7 +192,7 @@ describe('§7.3 / §7.4 anatomy proportions', () => {
 });
 
 describe('nameplate contract', () => {
-  it('outer and text boxes match the locked §7.4 dimensions', () => {
+  it('outer and text boxes match the locked dimensions', () => {
     const { nameplateOuter, titleText } = SAFE_RECTS.creature;
     expect(rectWidth(nameplateOuter)).toBe(NAMEPLATE.outerWidth);
     expect(rectHeight(nameplateOuter)).toBe(NAMEPLATE.outerHeight);
@@ -151,11 +200,33 @@ describe('nameplate contract', () => {
     expect(rectHeight(titleText)).toBe(NAMEPLATE.textHeight);
   });
 
-  it('the 230×50 text box fits exactly two 24.5 px lines at 22 px type', () => {
+  it('the declared padding is what separates the text box from the outer', () => {
+    const { nameplateOuter, titleText } = SAFE_RECTS.creature;
+    expect(titleText.left - nameplateOuter.left).toBe(NAMEPLATE.paddingX);
+    expect(nameplateOuter.right - titleText.right).toBe(NAMEPLATE.paddingX);
+    expect(titleText.top - nameplateOuter.top).toBe(NAMEPLATE.paddingY);
+    expect(nameplateOuter.bottom - titleText.bottom).toBe(NAMEPLATE.paddingY);
+  });
+
+  it('the 211×36 text box fits exactly one 24.5 px line at 22 px type', () => {
     expect(NAMEPLATE.maxLines * NAMEPLATE.lineHeightPx).toBeLessThanOrEqual(
       NAMEPLATE.textHeight + 0.001,
     );
+    // And a second line would not fit, which is why maxLines is 1.
+    expect((NAMEPLATE.maxLines + 1) * NAMEPLATE.lineHeightPx).toBeGreaterThan(
+      NAMEPLATE.textHeight,
+    );
     expect(NAMEPLATE.fontSizePx).toBe(22);
+  });
+
+  it('the nameplate band clears the cost medallion it sits beside', () => {
+    for (const family of ['creature', 'cast', 'set']) {
+      const { nameplateOuter, cost } = SAFE_RECTS[family];
+      expect(nameplateOuter.left - cost.right).toBeGreaterThanOrEqual(
+        SIBLING_MIN_GAP_PX,
+      );
+      expect(nameplateOuter.right).toBeLessThanOrEqual(CHASSIS_WIDTH);
+    }
   });
 
   it('carries the three catalog nameplate fixtures verbatim', () => {

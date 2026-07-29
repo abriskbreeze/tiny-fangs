@@ -13,6 +13,11 @@
   background: #23281f;
   overflow: hidden;
   z-index: 0;
+  /* Game chrome is not selectable text — dragging on the board, the rails,
+     or the count chips must not paint a document selection. Scoped to the
+     stage so the rules overlay and the setup room code stay selectable. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .aaa-frame {
@@ -179,6 +184,45 @@
   border: 1px solid rgba(238, 195, 78, 0.4);
 }
 
+/* Status art (ART-SPEC §4). The three-letter text stays in the DOM — it is
+   the accessible value and what the status e2e specs read — but goes
+   transparent once a real icon is behind it. `data-asset-wired` is set by
+   image-assets.js only after the file loads, so with no art the charm is
+   byte-for-byte the lettered chip it has always been. */
+.aaa-status-charm[data-asset-wired] {
+  color: transparent;
+  background-color: transparent;
+  border-color: transparent;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Life and mana pips (ART-SPEC §5). Same contract: the ♥/♡/●/○ glyph is the
+   floor and stays in textContent, so `#aaa-my-lp` still reads '♥♥♥'. */
+.aaa-vital-token {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.aaa-vital-token[data-asset-wired] {
+  color: transparent;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
+
+/* Filled vs empty must stay legible once art replaces the glyph pair. */
+.aaa-vital-token[data-asset-wired][data-filled="false"] {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+
+/* The turn marker rides as a medallion at the chip's left edge. */
+.aaa-turn-chip[data-asset-wired] { padding-left: 34px; }
+
 /* ── Phase 9a: setup, deck select, generic modal, card detail in the AAA
    material system. Every selector is gated by the aaa flag; classic
    rendering is untouched. ─────────────────────────────────────────── */
@@ -336,6 +380,26 @@
   pointer-events: none;
 }
 
+/* Ring art (ART-SPEC §5). `data-ring-art` is set on the stage only when both
+   ring files load, so the authored border-and-glow above is the live
+   rendering until real art exists — and stays the rendering if it never
+   does. The rings must read over artwork, so nothing else changes. */
+[data-ring-art="true"] .aaa-card--targetable::after {
+  border-color: transparent;
+  box-shadow: none;
+  background-image: var(--tf-ring-target);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+[data-ring-art="true"] .aaa-hand-card--selected::after {
+  border-color: transparent;
+  box-shadow: none;
+  background-image: var(--tf-ring-selection);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
 .aaa-timer-chip {
   position: absolute;
   right: 22px;
@@ -395,6 +459,15 @@
   box-shadow: inset 0 0 22px rgba(120, 84, 18, 0.55), 0 0 42px rgba(238, 195, 78, 0.4);
 }
 .aaa-coin-face--tails { transform: rotateY(180deg); }
+
+/* Coin art (ART-SPEC §5). The H/T letters and the gold CSS coin are the
+   floor; a loaded face covers them. `background-image` is applied by
+   image-assets.js, so the gradient below stays authoritative until then. */
+.aaa-coin-face[data-asset-wired] {
+  color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
 
 :root[data-presentation="aaa"] .trigger-box {
   font-family: 'Alegreya', Georgia, serif;
@@ -511,5 +584,58 @@
 
 /* ── Phase 13: render-quality override chip ───────────────────────── */
 .aaa-quality-chip { left: 204px; }
+
+/* ── Phase 14: drag-to-play (proxy + golden-quad drop zones) ──────── */
+
+/* Highlights live in their own stage layer, in frame coordinates, so they
+   scale with the board and survive a mid-drag re-render. DOM order (before
+   the card layer) keeps them seated under the cards — no z-index needed. */
+.aaa-drop-zone {
+  position: absolute;
+  pointer-events: none;
+  border: 3px dashed rgba(245, 215, 131, 0.72);
+  border-radius: 14px;
+  background: radial-gradient(60% 60% at 50% 50%,
+    rgba(245, 215, 131, 0.2) 0%, rgba(245, 215, 131, 0.05) 62%, rgba(245, 215, 131, 0) 100%);
+  box-shadow: 0 0 22px rgba(245, 215, 131, 0.28) inset;
+}
+.aaa-drop-zone--hover {
+  border-color: rgba(255, 238, 178, 0.95);
+  background: radial-gradient(62% 62% at 50% 50%,
+    rgba(255, 238, 178, 0.34) 0%, rgba(255, 238, 178, 0.12) 60%, rgba(255, 238, 178, 0) 100%);
+  box-shadow: 0 0 34px rgba(255, 238, 178, 0.45) inset;
+}
+
+/* The proxy is fixed to the viewport (outside the scaled frame) so it tracks
+   the raw pointer exactly, like the classic ghost. */
+.aaa-drag-proxy {
+  position: fixed;
+  z-index: 9999;
+  width: 333px;
+  height: 505px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(var(--aaa-drag-scale, 0.3));
+  transform-origin: 50% 50%;
+  opacity: 0.92;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.55));
+}
+.aaa-drag-proxy .tf-aaa-card { position: absolute; inset: 0; }
+/* The pick-up pop. JS withholds this class under reduced motion; the media
+   query below is the belt-and-braces half of the same contract. */
+.aaa-drag-proxy--lively {
+  animation: aaa-drag-pop 140ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes aaa-drag-pop {
+  from { transform: translate(-50%, -50%) scale(calc(var(--aaa-drag-scale, 0.3) * 0.8)); }
+  to { transform: translate(-50%, -50%) scale(var(--aaa-drag-scale, 0.3)); }
+}
+.aaa-drag-proxy.unaffordable {
+  filter: grayscale(0.85) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.5));
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aaa-drag-proxy--lively { animation: none !important; }
+}
 
 .aaa-ward-charm { display: inline-block; margin-top: 4px; }

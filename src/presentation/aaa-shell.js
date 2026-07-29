@@ -10,6 +10,11 @@
 
 import * as THREE from 'three';
 import { buildCardFace, normalizeFaceModel } from './cards/card-face.js';
+import {
+  imageAssets,
+  STATUS_ASSET_PATHS,
+  UI_ASSET_PATHS,
+} from './assets/image-assets.js';
 import { getEffectiveAtk } from '../abilities.js';
 import './cards/cards.css';
 // NOTE: aaa-shell.css is imported EAGERLY by src/main.js, not here. This
@@ -33,6 +38,42 @@ const FRAME_W = 1672;
 const FRAME_H = 941;
 const HAND_BOTTOM = 934;
 const HAND_SCALE = 0.42;
+
+// Phase 14: drag-to-play. The threshold is the SAME 15 px contract the
+// classic shell uses (src/main.js DRAG_THRESHOLD, covered by INP-02): below
+// it a pointer sequence is a press (click → the existing modal flow), at or
+// above it becomes a drag.
+const DRAG_THRESHOLD = 15;
+const DRAG_PROXY_SCALE = 0.3;
+
+// The playable "field" for a cast verse is the union of every golden quad —
+// the same "anywhere on the board" target classic gives `.d-field`.
+const FIELD_BAND = (() => {
+  const xs = [];
+  const ys = [];
+  for (const corners of Object.values(GOLDEN_QUADS)) {
+    for (const [x, y] of corners) { xs.push(x); ys.push(y); }
+  }
+  return Object.freeze({
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+  });
+})();
+
+function quadFrameRect(anchorId) {
+  const corners = GOLDEN_QUADS[anchorId];
+  if (!corners) return null;
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+  };
+}
 
 function faceKindOf(card) {
   if (!card) return null;
@@ -70,8 +111,19 @@ export function createAaaShell({
   let mounted = false;
   let resizeHandler = null;
   let particleLayer = null;
+  let dropLayer = null;
   let particles = null;
   let audio = null;
+  // Phase 14 drag-to-play. `latestG` is the projected state the last update
+  // rendered — drag decisions (affordability, legal zones) always read it, so
+  // they can never go stale against the engine. `drag` is null unless a
+  // pointer sequence is in flight.
+  let latestG = null;
+  let drag = null;
+  // A completed drag must not also fire the hand card's click handler (which
+  // opens the classic picker modal). Cleared on the next pointerdown so an
+  // off-element release can never poison a later press.
+  let suppressNextClick = false;
   // Phase 10a: uid-keyed FLIP outers. Each card with an identity renders
   // inside a persistent frame-spanning outer; zone changes animate the outer
   // with a deterministic fixed-curve transform that always settles to ''.
@@ -183,6 +235,27 @@ export function createAaaShell({
     stage.style.top = `${Math.max(0, (win.innerHeight - FRAME_H * scale) / 2)}px`;
   }
 
+  // Targeting/selection rings are drawn by CSS pseudo-elements, so their art
+  // is published as custom properties on the stage. `data-ring-art` appears
+  // only once BOTH rings load, and CSS keys the swap off it — so a missing
+  // file leaves the authored border-and-glow exactly as it was.
+  //
+  // Deliberately OUTSIDE the mount critical path: art is decoration and must
+  // never be able to influence whether the scene reports itself mounted.
+  let ringArtWired = false;
+  function wireRingArt() {
+    if (ringArtWired || !stage) return;
+    ringArtWired = true;
+    try {
+      Promise.all([
+        imageAssets.applyCssVar(stage, '--tf-ring-selection', UI_ASSET_PATHS.selectionRing),
+        imageAssets.applyCssVar(stage, '--tf-ring-target', UI_ASSET_PATHS.legalTargetRing),
+      ]).then(([selection, target]) => {
+        if (selection && target && stage) stage.dataset.ringArt = 'true';
+      }, () => {});
+    } catch { /* art never blocks the shell */ }
+  }
+
   function mount() {
     if (mounted) return true;
     // `static` never mounts a WebGL scene at all. Reporting an unmounted
@@ -199,6 +272,9 @@ export function createAaaShell({
       canvas.width = FRAME_W;
       canvas.height = FRAME_H;
       shadowLayer = el('div', 'aaa-layer aaa-shadow-layer', stage);
+      // Drop-zone highlights sit under the cards and are NOT cleared by
+      // update(): a re-render mid-drag must not drop the affordance.
+      dropLayer = el('div', 'aaa-layer aaa-drop-layer', stage);
       cardLayer = el('div', 'aaa-layer aaa-card-layer', stage);
       particleLayer = el('div', 'aaa-layer aaa-particle-layer', stage);
       hudLayer = el('div', 'aaa-layer aaa-hud-layer', stage);
@@ -232,6 +308,16 @@ export function createAaaShell({
         particleMax: particles.max,
         lightSpill: profile.lightSpill,
       });
+      // Read-only drag seam (same __tfAaa* convention): lets a test assert
+      // the press/drag threshold and residue directly instead of inferring.
+      win.__tfAaaDrag = () => (drag
+        ? {
+          active: drag.active,
+          canAfford: drag.canAfford,
+          uid: drag.uid ?? null,
+          zones: drag.zones.map((zone) => zone.id),
+        }
+        : null);
 
       renderer = new THREE.WebGLRenderer({
         canvas, antialias: profile.antialias, preserveDrawingBuffer: true,
@@ -247,6 +333,7 @@ export function createAaaShell({
       win.addEventListener('resize', resizeHandler);
       fitStage();
       mounted = true;
+      wireRingArt();
       return true;
     } catch (error) {
       onError?.(error);
@@ -298,13 +385,24 @@ export function createAaaShell({
     // During a targeting selection (Phase 9b) a highlighted card resolves
     // the selector instead: diegetic pick through the SAME option action.
     if (!faceDown && card?.uid) {
+      const graveSide = anchorId.endsWith('.grave')
+        ? (anchorId.startsWith('me.') ? 'me' : 'opp')
+        : null;
       wrapper.classList.add('aaa-board-card--inspectable');
       wrapper.dataset.uid = card.uid;
       wrapper.style.pointerEvents = 'auto';
+      if (graveSide) wrapper.dataset.graveSide = graveSide;
       wrapper.addEventListener('click', () => {
         if (wrapper.classList.contains('aaa-card--targetable')
           && typeof win._aaaTargetPick === 'function') {
           win._aaaTargetPick(card.uid);
+          return;
+        }
+        // A grave stack is a pile, not a card: clicking it opens the whole
+        // browser (the top card is reachable as its first entry). The grave
+        // is public, so both sides open.
+        if (graveSide) {
+          actions.showGraveyard?.(graveSide);
           return;
         }
         actions.showCardDetail?.(card.uid);
@@ -318,9 +416,9 @@ export function createAaaShell({
     // Engine truth: creature.status carries poison/trapped; fortified is a
     // boolean flag (the pre-audit check read fields that never exist).
     const marks = [];
-    if (card.status === 'poison') marks.push(['psn', 'poisoned']);
-    if (card.status === 'trapped') marks.push(['trp', 'trapped']);
-    if (card.fortified) marks.push(['frt', 'fortified']);
+    if (card.status === 'poison') marks.push(['psn', 'poisoned', 'poison']);
+    if (card.status === 'trapped') marks.push(['trp', 'trapped', 'trapped']);
+    if (card.fortified) marks.push(['frt', 'fortified', 'fortified']);
     if (!marks.length) return;
     const corners = GOLDEN_QUADS[anchorId];
     const xs = corners.map((c) => c[0]);
@@ -328,10 +426,239 @@ export function createAaaShell({
     const rail = el('div', 'aaa-status-rail', hudLayer);
     rail.style.left = `${Math.max(...xs) + 4}px`;
     rail.style.top = `${Math.min(...ys) + 6}px`;
-    for (const [text, label] of marks) {
+    for (const [text, label, iconKey] of marks) {
       const charm = el('span', 'aaa-status-charm', rail, text);
       charm.setAttribute('aria-label', label);
+      // The three-letter text stays in the DOM as the procedural floor and as
+      // the accessible/e2e-observable value; CSS hides the glyph only once an
+      // icon has actually loaded (see .aaa-status-charm[data-asset-wired]).
+      imageAssets.applyBackground(charm, STATUS_ASSET_PATHS[iconKey], { size: 'contain' });
     }
+  }
+
+  // A life/mana pip. The unicode glyph remains the element's text so the HUD's
+  // aggregate textContent ('♥♥♡') is unchanged whether or not art is present;
+  // the token image, when it loads, paints over it and the glyph goes
+  // transparent. Filled and empty stay distinguishable in both modes.
+  function vitalToken(parent, glyph, filled, assetPath) {
+    const token = el('span', 'aaa-vital-token', parent, glyph);
+    token.dataset.filled = filled ? 'true' : 'false';
+    imageAssets.applyBackground(token, assetPath, { size: 'contain' });
+    return token;
+  }
+
+  function fillVitals(node, filledCount, emptyCount, glyphs, assetPath) {
+    node.textContent = '';
+    for (let i = 0; i < filledCount; i += 1) {
+      vitalToken(node, glyphs[0], true, assetPath);
+    }
+    for (let i = 0; i < emptyCount; i += 1) {
+      vitalToken(node, glyphs[1], false, assetPath);
+    }
+  }
+
+  // ── drag-to-play ────────────────────────────────────────────────
+  //
+  // Presentation only. The shell owns pointer tracking, the proxy, and the
+  // quad hit-test; every rules question (is this playable? what would it do?
+  // execute it) is answered by the SAME classic functions the classic drop
+  // uses — `canPlayCard`, `getPlayType`, `executeDrop` — so shared/engine.js
+  // stays the only rules authority and all validation/selection modals still
+  // run unchanged.
+
+  function frameRectToViewport(rect) {
+    const frame = stage?.getBoundingClientRect();
+    if (!frame || !rect) return null;
+    const scale = frame.width / FRAME_W || 1;
+    return {
+      left: frame.left + rect.x * scale,
+      top: frame.top + rect.y * scale,
+      right: frame.left + (rect.x + rect.w) * scale,
+      bottom: frame.top + (rect.y + rect.h) * scale,
+    };
+  }
+
+  function rectContains(rect, x, y) {
+    return Boolean(rect)
+      && x >= rect.left && x <= rect.right
+      && y >= rect.top && y <= rect.bottom;
+  }
+
+  // Legal drop zones for a card, derived strictly from the classic play type
+  // so a highlighted quad can never promise something the engine refuses.
+  function dropZonesFor(card) {
+    if (!card) return [];
+    if (actions.canPlayCard && !actions.canPlayCard(card)) return [];
+    const playType = actions.getPlayType?.(card) ?? null;
+    if (!playType) return [];
+    const anchored = (ids) => ids
+      .map((id) => ({ id, playType, ...quadFrameRect(id) }))
+      .filter((zone) => zone.w > 0);
+    if (playType === 'summon-active') return anchored(['me.active']);
+    if (playType === 'summon-bench') {
+      const bench = latestG?.me?.bench ?? [];
+      const free = [];
+      if (!bench[0]) free.push('me.bench.a');
+      if (!bench[1]) free.push('me.bench.b');
+      return anchored(free);
+    }
+    if (playType === 'set-verse') return anchored(['me.set']);
+    // A cast verse resolves against the board as a whole: the whole field
+    // band is one zone, mirroring classic's `.d-field` drop target.
+    if (playType === 'cast') return [{ id: 'field', playType, ...FIELD_BAND }];
+    return [];
+  }
+
+  function clearDropZones() {
+    dropLayer?.replaceChildren();
+  }
+
+  function highlightDropZones() {
+    clearDropZones();
+    if (!dropLayer || !drag?.canAfford) return;
+    for (const zone of drag.zones) {
+      const node = el('div', 'aaa-drop-zone', dropLayer);
+      node.dataset.drop = zone.id;
+      node.style.left = `${zone.x}px`;
+      node.style.top = `${zone.y}px`;
+      node.style.width = `${zone.w}px`;
+      node.style.height = `${zone.h}px`;
+    }
+  }
+
+  function updateDropZoneHover(hitId) {
+    if (!dropLayer) return;
+    for (const node of dropLayer.children) {
+      node.classList.toggle('aaa-drop-zone--hover', node.dataset.drop === hitId);
+    }
+  }
+
+  function detectDropZone(x, y) {
+    if (!drag) return null;
+    for (const zone of drag.zones) {
+      if (rectContains(frameRectToViewport(zone), x, y)) return zone;
+    }
+    return null;
+  }
+
+  function overField(x, y) {
+    return rectContains(frameRectToViewport(FIELD_BAND), x, y);
+  }
+
+  function createDragProxy() {
+    const proxy = el('div', 'aaa-drag-proxy', doc.body);
+    if (!prefersReducedMotion()) proxy.classList.add('aaa-drag-proxy--lively');
+    proxy.dataset.uid = drag.card?.uid ?? '';
+    proxy.style.setProperty('--aaa-drag-scale', String(DRAG_PROXY_SCALE));
+    proxy.appendChild(safeFace(drag.card, faceKindOf(drag.card)));
+    positionDragProxy(proxy, drag.currentX, drag.currentY);
+    drag.proxy = proxy;
+  }
+
+  function positionDragProxy(proxy, x, y) {
+    proxy.style.left = `${x}px`;
+    proxy.style.top = `${y}px`;
+  }
+
+  function detachDragListeners() {
+    doc.removeEventListener('pointermove', onDragMove);
+    doc.removeEventListener('pointerup', onDragEnd);
+    doc.removeEventListener('pointercancel', onDragEnd);
+  }
+
+  // Total teardown: no proxy, no highlights, no listeners, no drag record.
+  // pointercancel takes exactly this path and nothing else (INP-05).
+  function cleanupDrag() {
+    detachDragListeners();
+    drag?.proxy?.remove();
+    clearDropZones();
+    drag = null;
+  }
+
+  function beginDrag(card, event) {
+    // Primary button only: right-click stays the inspect gesture.
+    if (event.button !== undefined && event.button !== 0) return;
+    suppressNextClick = false;
+    const G = latestG;
+    if (!card || !G || !G.myTurn || G.winner != null) return;
+    // A drag already in flight (lost pointerup) is torn down first.
+    if (drag) cleanupDrag();
+    const clientX = event.clientX ?? 0;
+    const clientY = event.clientY ?? 0;
+    drag = {
+      card,
+      uid: card.uid ?? null,
+      startX: clientX,
+      startY: clientY,
+      currentX: clientX,
+      currentY: clientY,
+      // Same affordability rule as classic cardPress.
+      canAfford: (card.cost ?? 0) <= (G.me?.mana ?? 0),
+      zones: dropZonesFor(card),
+      active: false,
+      proxy: null,
+    };
+    doc.addEventListener('pointermove', onDragMove);
+    doc.addEventListener('pointerup', onDragEnd);
+    doc.addEventListener('pointercancel', onDragEnd);
+  }
+
+  function onDragMove(event) {
+    if (!drag) return;
+    const clientX = event.clientX ?? 0;
+    const clientY = event.clientY ?? 0;
+    drag.currentX = clientX;
+    drag.currentY = clientY;
+
+    // Only suppress scrolling once this is confirmed to be a drag.
+    if (drag.active && event.cancelable) event.preventDefault();
+
+    const dx = clientX - drag.startX;
+    const dy = clientY - drag.startY;
+    if (!drag.active && Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
+      drag.active = true;
+      createDragProxy();
+      if (drag.canAfford) highlightDropZones();
+    }
+
+    if (!drag.active || !drag.proxy) return;
+    positionDragProxy(drag.proxy, clientX, clientY);
+    if (drag.canAfford) {
+      updateDropZoneHover(detectDropZone(clientX, clientY)?.id ?? null);
+      drag.proxy.classList.remove('unaffordable');
+    } else {
+      // Same "unavailable" cue classic paints on its ghost.
+      drag.proxy.classList.toggle('unaffordable', overField(clientX, clientY));
+    }
+  }
+
+  function onDragEnd(event) {
+    if (!drag) { detachDragListeners(); return; }
+    const wasActive = drag.active;
+    const clientX = event.clientX ?? drag.currentX;
+    const clientY = event.clientY ?? drag.currentY;
+    const cancelled = event.type === 'pointercancel';
+    const card = drag.card;
+    const canAfford = drag.canAfford;
+    const zone = wasActive && !cancelled && canAfford
+      ? detectDropZone(clientX, clientY)
+      : null;
+
+    const captureTarget = event.target;
+    if (Number.isInteger(event.pointerId)
+      && captureTarget?.hasPointerCapture?.(event.pointerId)) {
+      captureTarget.releasePointerCapture(event.pointerId);
+    }
+
+    // Tear everything down BEFORE dispatching: the play triggers a re-render
+    // and no artifact may outlive the gesture.
+    cleanupDrag();
+    if (wasActive) suppressNextClick = true;
+    if (!zone) return;
+    // The card must still be the same hand card the gesture started on.
+    const live = (latestG?.me?.hand ?? []).find((c) => c.uid === card.uid);
+    if (!live) return;
+    actions.executeDrop?.(live, { type: zone.playType });
   }
 
   function renderHand(hand, myTurn, selectedCard = null) {
@@ -362,7 +689,13 @@ export function createAaaShell({
       wrapper.style.transform = `scale(${HAND_SCALE}) rotate(${tilt}deg)`;
       if (myTurn) {
         wrapper.classList.add('aaa-hand-card--live');
+        // Drag-to-play is an ADDITION: past the 15 px threshold the pointer
+        // sequence becomes a drag and the click below is suppressed; below it
+        // the press still opens the picker (keyboard/AT users keep the click
+        // path untouched).
+        wrapper.addEventListener('pointerdown', (event) => beginDrag(card, event));
         wrapper.addEventListener('click', () => {
+          if (suppressNextClick) { suppressNextClick = false; return; }
           // A hand card routes to its family's existing action flow — the
           // same modal/validation path as the classic buttons.
           if (card.cardType === 'creature') actions.doSummon?.();
@@ -392,14 +725,15 @@ export function createAaaShell({
     el('div', 'aaa-vitals-label', mySide, 'You');
     const myLp = el('div', 'aaa-hearts', mySide);
     myLp.id = 'aaa-my-lp';
-    myLp.textContent = '♥'.repeat(Math.max(0, G.me.lp)) + '♡'.repeat(Math.max(0, 3 - G.me.lp));
+    fillVitals(myLp, Math.max(0, G.me.lp), Math.max(0, 3 - G.me.lp), ['♥', '♡'], UI_ASSET_PATHS.lifeToken);
     const myMana = el('div', 'aaa-mana', mySide);
     myMana.id = 'aaa-my-mana';
     myMana.setAttribute('aria-label', `mana ${G.me.mana} of ${G.me.maxMana}`);
-    myMana.textContent = '●'.repeat(G.me.mana) + '○'.repeat(Math.max(0, G.me.maxMana - G.me.mana));
+    fillVitals(myMana, G.me.mana, Math.max(0, G.me.maxMana - G.me.mana), ['●', '○'], UI_ASSET_PATHS.manaToken);
     if (G.me.unbreakable) {
       const ward = el('div', 'aaa-status-charm aaa-ward-charm', mySide, 'ward');
       ward.setAttribute('aria-label', 'unbreakable this turn');
+      imageAssets.applyBackground(ward, STATUS_ASSET_PATHS.unbreakable, { size: 'contain' });
     }
 
     // Top-right rail: rival vitals + hand count.
@@ -409,16 +743,17 @@ export function createAaaShell({
     el('div', 'aaa-vitals-label', oppSide, 'Rival');
     const oppLp = el('div', 'aaa-hearts', oppSide);
     oppLp.id = 'aaa-opp-lp';
-    oppLp.textContent = '♥'.repeat(Math.max(0, G.opp.lp)) + '♡'.repeat(Math.max(0, 3 - G.opp.lp));
+    fillVitals(oppLp, Math.max(0, G.opp.lp), Math.max(0, 3 - G.opp.lp), ['♥', '♡'], UI_ASSET_PATHS.lifeToken);
     const oppMana = el('div', 'aaa-mana', oppSide);
     oppMana.id = 'aaa-opp-mana';
-    oppMana.textContent = '●'.repeat(G.opp.mana) + '○'.repeat(Math.max(0, G.opp.maxMana - G.opp.mana));
+    fillVitals(oppMana, G.opp.mana, Math.max(0, G.opp.maxMana - G.opp.mana), ['●', '○'], UI_ASSET_PATHS.manaToken);
     const oppHand = el('div', 'aaa-opp-hand', oppSide);
     oppHand.id = 'aaa-opp-hand';
     oppHand.textContent = `hand ${G.opp.handCount ?? G.opp.hand?.length ?? 0}`;
     if (G.opp.unbreakable) {
       const ward = el('div', 'aaa-status-charm aaa-ward-charm', oppSide, 'ward');
       ward.setAttribute('aria-label', 'rival unbreakable this turn');
+      imageAssets.applyBackground(ward, STATUS_ASSET_PATHS.unbreakable, { size: 'contain' });
     }
 
     // Turn token near the divider's right end, with the match timer under
@@ -427,6 +762,12 @@ export function createAaaShell({
     turnChip.id = 'aaa-turn';
     turnChip.textContent = `Turn ${G.turn} — ${myTurn ? 'You' : 'Rival'}`;
     turnChip.dataset.owner = myTurn ? 'me' : 'opp';
+    // The marker rides as a left-hand medallion on the chip, so the chip's
+    // own text (asserted by the shell e2e specs) is untouched either way.
+    imageAssets.applyBackground(turnChip, UI_ASSET_PATHS.turnMarker, {
+      size: '22px 22px',
+      position: 'left 8px center',
+    });
     const timerChip = el('div', 'aaa-timer-chip', hudLayer);
     timerChip.id = 'aaa-timer';
     timerChip.textContent = doc.getElementById('d-time')?.textContent ?? '0:00';
@@ -445,7 +786,10 @@ export function createAaaShell({
       const button = el('button', 'aaa-action', bar, label);
       button.id = `aaa-action-${id}`;
       button.type = 'button';
-      button.disabled = !myTurn;
+      // Terminal states disable the rail alongside off-turn, matching the
+      // classic `updateButtons` contract: once a match is decided the AAA
+      // action rail stops offering moves.
+      button.disabled = !myTurn || G.winner != null;
       button.addEventListener('click', () => handler?.());
     }
 
@@ -498,6 +842,8 @@ export function createAaaShell({
   function update(G, options = {}) {
     if (!mounted && !mount()) return;
     if (!G) return;
+    // Drag decisions always read the freshest projected state.
+    latestG = G;
     const reduced = prefersReducedMotion();
     // FLIP First: capture the rect of every keyed card still on stage.
     const prevRects = new Map();
@@ -601,11 +947,16 @@ export function createAaaShell({
   }
 
   function dispose() {
+    cleanupDrag();
+    suppressNextClick = false;
+    latestG = null;
+    dropLayer = null;
     if (resizeHandler) win.removeEventListener('resize', resizeHandler);
     resizeHandler = null;
     if (win.__tfAaaAudio === audio) win.__tfAaaAudio = null;
     win.__tfAaaBurst = null;
     win.__tfAaaQuality = null;
+    win.__tfAaaDrag = null;
     audio?.dispose?.();
     audio = null;
     particles = null;
