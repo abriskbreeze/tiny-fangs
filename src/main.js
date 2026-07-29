@@ -44,6 +44,7 @@
     import { applyPresentationMode } from './presentation/presentation-mode.js';
     import { createHtmlKeyedView, syncElementToHtml } from './presentation/dom/html-keyed-view.js';
     import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
+    import { createAaaShell } from './presentation/aaa-shell.js';
 
     applyPresentationMode();
     installVisualQaContract({
@@ -937,6 +938,46 @@
 
       // Log
       renderLog();
+
+      // Phase 8: the AAA shell mirrors this exact projected state after the
+      // classic render (so its log/affordance mirrors read final DOM). It is
+      // presentation-only; on any mount failure gameplay continues classic.
+      renderAaaShell();
+    }
+
+    // ═══ Phase 8 AAA shell (behind the `aaa` presentation flag) ═══
+    let aaaShell = null;
+
+    function isAaaMode() {
+      return document.documentElement.dataset.presentation === 'aaa';
+    }
+
+    function renderAaaShell() {
+      if (!isAaaMode() || !state.G) return;
+      if (!aaaShell) {
+        aaaShell = createAaaShell({
+          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn },
+          onError: (error) => console.warn('AAA shell error; staying classic', error),
+        });
+      }
+      const host = document.getElementById('aaa-stage');
+      if (host) host.style.display = '';
+      aaaShell.update(state.G);
+      // Mirror the classic affordability computation (single source of truth
+      // in updateButtons) onto the AAA action rail.
+      const mirror = [
+        ['aaa-action-summon', 'd-btn-summon'],
+        ['aaa-action-attack', 'd-btn-atk'],
+        ['aaa-action-cast', 'd-btn-cast'],
+        ['aaa-action-set', 'd-btn-set'],
+        ['aaa-action-retreat', 'd-btn-retreat'],
+        ['aaa-action-end', 'd-btn-end'],
+      ];
+      for (const [aaaId, classicId] of mirror) {
+        const target = document.getElementById(aaaId);
+        const source = document.getElementById(classicId);
+        if (target && source) target.disabled = source.disabled;
+      }
     }
 
     function renderLog() {

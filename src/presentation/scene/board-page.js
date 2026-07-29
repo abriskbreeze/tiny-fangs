@@ -11,7 +11,8 @@ import * as THREE from 'three';
 import { CREATURES, VERSES } from '../../../shared/cards.js';
 import { buildCardFace, normalizeFaceModel } from '../cards/card-face.js';
 import '../cards/cards.css';
-import { applyQuadTransform, projectRectCorners } from '../dom/quad-transform.js';
+import { projectRectCorners } from '../dom/quad-transform.js';
+import { addCardStock, mountBoardCard } from '../dom/board-card-mount.js';
 import { buildMeadowScene } from './meadow-scene.js';
 
 // Representative midgame board: both actives engaged, benches partly filled,
@@ -49,66 +50,7 @@ function faceModel(spec) {
   return normalizeFaceModel(card, spec.kind);
 }
 
-function addShadow(layer, corners) {
-  const xs = corners.map((c) => c[0]);
-  const ys = corners.map((c) => c[1]);
-  const left = Math.min(...xs);
-  const top = Math.min(...ys);
-  const width = Math.max(...xs) - left;
-  const height = Math.max(...ys) - top;
-  // Field r3: DIRECTIONAL grounded shadow under the scene's single sun
-  // (upper-left key => shadow offset down-right), replacing r2's centered
-  // halo. A tight dark core at the contact edge plus a longer soft tail.
-  const pad = 14;
-  const core = document.createElement('div');
-  core.className = 'card-shadow';
-  core.style.left = `${left - pad + 15}px`;
-  core.style.top = `${top - pad + 21}px`;
-  core.style.width = `${width + pad * 2}px`;
-  core.style.height = `${height + pad * 2}px`;
-  core.style.background =
-    'radial-gradient(50% 50% at 46% 44%, rgba(26,16,8,0.52) 0%, rgba(26,16,8,0.3) 50%, rgba(26,16,8,0) 72%)';
-  layer.appendChild(core);
-  const tail = document.createElement('div');
-  tail.className = 'card-shadow';
-  tail.style.left = `${left - pad + 34}px`;
-  tail.style.top = `${top - pad + 44}px`;
-  tail.style.width = `${width + pad * 2 + 26}px`;
-  tail.style.height = `${height + pad * 2}px`;
-  tail.style.background =
-    'radial-gradient(52% 48% at 50% 48%, rgba(30,22,10,0.2) 0%, rgba(30,22,10,0) 68%)';
-  layer.appendChild(tail);
-  const spill = document.createElement('div');
-  spill.className = 'card-shadow';
-  spill.style.left = `${left - pad - 9}px`;
-  spill.style.top = `${top - pad - 11}px`;
-  spill.style.width = `${width + pad * 2}px`;
-  spill.style.height = `${height + pad * 2}px`;
-  spill.style.background =
-    'radial-gradient(44% 44% at 40% 36%, rgba(245,215,131,0.15) 0%, rgba(245,215,131,0) 68%)';
-  layer.appendChild(spill);
-}
 
-// Field r4 card stock: SCALE-AWARE stepped extrusion — offsets are authored
-// in final screen px and divided by the card's render scale, so the edge
-// stays visible after the homography shrinks the chassis (r3's fixed 3-4 px
-// slabs collapsed to ~1.5 px on board cards and read as stickers).
-function addCardStock(wrapper, isStack, renderScale = 1) {
-  const screenSteps = isStack
-    ? [[13, 18, '#7E6248'], [9, 12.5, '#CBA87E'], [5, 7, '#8F7355'], [2.2, 3, '#C4A47A']]
-    : [[5.5, 7.5, '#7E6248'], [3.6, 5, '#B99977'], [1.8, 2.5, '#C4A47A']];
-  for (const [dx, dy, tint] of screenSteps) {
-    const slab = document.createElement('div');
-    slab.style.position = 'absolute';
-    slab.style.width = '333px';
-    slab.style.height = '505px';
-    slab.style.borderRadius = '21px';
-    slab.style.background = `linear-gradient(150deg, ${tint} 0%, #96795B 100%)`;
-    slab.style.transform =
-      `translate(${(dx / renderScale).toFixed(2)}px, ${(dy / renderScale).toFixed(2)}px)`;
-    wrapper.appendChild(slab);
-  }
-}
 
 async function main() {
   const canvas = document.getElementById('scene-canvas');
@@ -136,22 +78,13 @@ async function main() {
     const spec = BOARD_FACES[anchorId];
     if (!spec || SKIP_ANCHORS.has(anchorId)) continue;
     const corners = quads.face ?? quads;
-    addShadow(shadowLayer, corners);
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'board-card';
-    wrapper.dataset.anchor = anchorId;
-    {
-      const quadXs = corners.map((c) => c[0]);
-      const quadWidth = Math.max(...quadXs) - Math.min(...quadXs);
-      addCardStock(wrapper, STACK_ANCHORS.has(anchorId), quadWidth / 333);
-    }
-    const card = buildCardFace(faceModel(spec));
-    card.style.position = 'absolute';
-    wrapper.appendChild(card);
-    // Homography: card chassis rect → golden quad.
-    applyQuadTransform(wrapper, 333, 505, corners);
-    layer.appendChild(wrapper);
+    // Shared shell/harness card mount: stock slabs + shadows + homography.
+    mountBoardCard({
+      layer, shadowLayer, corners,
+      face: buildCardFace(faceModel(spec)),
+      isStack: STACK_ANCHORS.has(anchorId),
+      anchorId,
+    });
 
     const projected = projectRectCorners(333, 505, corners);
     const maxCornerError = Math.max(
