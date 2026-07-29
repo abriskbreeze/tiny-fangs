@@ -1,0 +1,35 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r4",
+  "critic": 2,
+  "crops": {
+    "field-full": "A",
+    "field-opponent": "A",
+    "field-divider": "A",
+    "field-player": "A",
+    "field-hand": "A",
+    "field-corner-tl": "A",
+    "field-corner-tr": "A",
+    "field-corner-bl": "A",
+    "field-corner-br": "A",
+    "field-card-contact": "A"
+  },
+  "overall": "A",
+  "improvementsForA": [
+    "Pull back the global warm haze/bloom: it washes over card faces (opponent creature card, player 8-cost card, whole opponent row) so cards read as if behind frosted amber glass; the sunlight should sit on the meadow, not fog the UI surfaces.",
+    "Replace the placeholder glyph rule-text with real readable type: not a single card function is legible anywhere on the board, which fails the 'readable game surfaces' bar outright.",
+    "Resolve the mushy depth-of-field in the corners: field-corner-bl dissolves into paint mud with no clear silhouettes, and corner-tl's foreground shrubs and fence posts smear together; keep the blur but restore edge definition on hero shapes.",
+    "Raise the contrast of empty slot outlines: the opponent's empty slot is almost invisible under the haze, so the play grid loses affordance exactly where the player needs it.",
+    "The uniform canvas/crosshatch texture stamped across the entire frame (visible in field-divider and field-player) flattens depth cues; vary its scale with distance or reduce its opacity.",
+    "The divider's bloom is uneven: over-hot at the left edge and irregular in thickness mid-span; keep the terrain-hugging kinks but even out the energy falloff."
+  ],
+  "improvementsForB": [
+    "The ground plane is a flat mustard fill with confetti speckles: there is no grass material, no dappled sun, no hue or value gradient, so the meadow never reads as a lit place; paint an actual grass surface with one light direction.",
+    "Trees and bushes are unshaded flat polygon clusters that cast almost no shadows on the ground (corner-tr, corner-br); establish a single sun with consistent cast shadows to ground the scenery.",
+    "The cyan river is a glowing UI stroke, not water (corner-tl, corner-br): give it banks, depth color, and lighting that belongs to the scene instead of an outer-glow effect.",
+    "Card art is a repeated black-cat silhouette across many distinct cards (Duskfang, Cindermaw, Emberfang, Predator's Mark, Ignite, Last Breath are near-identical); distinct illustrations are required for a shippable board.",
+    "Cards sit on the field with small uniform offset shadows and no ground interaction, so they read as pasted stickers; add contact-darkening and shadow softness that responds to the surface.",
+    "Unify the palette: teal sleeve edges, purple card backs, and the mustard field clash with no shared color grade or ambient light tying them together."
+  ],
+  "notes": "A is the only render that reads as a place: painterly sunlit grass, coherent warm light with long cast shadows, a stream with real water, and cards that visibly stack with edge thickness and soft grounded shadows. Its failures are legibility failures (glyph gibberish text, haze over card faces, over-soft corners), which are fixable finishing problems. B is crisp and fully readable but is flat vector graybox everywhere that matters: unlit mustard ground, unshaded polygon foliage, a neon river, and repeated placeholder card art, so it never approaches believable scenery. A sweeps all ten crops; B's readability is real but it is the only axis it wins."
+}
