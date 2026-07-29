@@ -13,6 +13,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -32,12 +33,49 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm ci
 
-      - name: Build
+      - name: Install multiplayer server dependencies
+        run: npm --prefix server ci
+
+      - name: Install pinned Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Unit tests
+        run: npm test -- --run
+
+      - name: Multiplayer server process tests
+        run: npm run test:server-process
+
+      - name: Production build
         run: npm run build
+
+      - name: Browser smoke
+        run: npm run test:e2e
+
+      - name: Multiplayer smoke
+        run: npm run test:multiplayer
+
+      - name: Visual smoke
+        run: npm run test:visual
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence-${{ github.run_id }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            playwright-report/
+            test-results/
+            artifacts/visual/
+            !artifacts/visual/blind-mappings/**
 
       # enablement: true creates the Pages site on first run if missing
       # (fixes HttpError Not Found / Get Pages site failed)

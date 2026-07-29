@@ -1,0 +1,153 @@
+{
+  "sideA": {
+    "F": 8.7,
+    "C": 8.2,
+    "K": 8.4,
+    "L": 8.8,
+    "R": 6.8,
+    "S": 7.8,
+    "A": 6.0,
+    "wow": 8.3,
+    "T": 8.03
+  },
+  "sideB": {
+    "F": 7.4,
+    "C": 7.8,
+    "K": 7.6,
+    "L": 6.3,
+    "R": 8.8,
+    "S": 8.5,
+    "A": 8.6,
+    "wow": 6.9,
+    "T": 7.71
+  },
+  "cropPreferences": {
+    "cards-full": "A",
+    "card-creature-frame": "A",
+    "card-cast-frame": "A",
+    "card-set-frame": "A",
+    "card-back": "A",
+    "card-art": "A",
+    "card-title": "B",
+    "card-rules": "B",
+    "card-stats": "A",
+    "card-contact": "A"
+  },
+  "findings": [
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "Frame-family anatomy drifts: the creature card carries a separate angled title banner plus rules panel, while cast and set collapse to a single medallion-plus-panel layout. The three faces do not share one structural chassis; they read as three related but separately-authored frames."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "The card back is almost entirely occluded behind the set card in the staging; the fourth specimen cannot be judged at full frame, weakening the four-card showcase brief."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-back",
+      "description": "Gold border linework wobbles and breaks: corner ornaments are asymmetric (top-left cluster differs from the others), the bottom region carries a stray arrow-like squiggle, and the outer rectangle's line weight fluctuates. At 2x it reads hand-wavered rather than manufactured."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-title",
+      "description": "The title zone on cast/set faces contains no title band at all \u2014 only the compass/moon medallion. Independent of pseudo-text, the information hierarchy lacks a name slot on two of three faces; type identity rests entirely on rail color."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-cast-frame",
+      "description": "Badge metallurgy is inconsistent across the family: creature and set mana octagons are gilt, the cast octagon is silver-teal. Same slot, different material language."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "cards-full",
+      "description": "Evidence mismatch: the metric report's exact-zero corner-concentricity errors and deltaE00 0.0 palette rows are implausible as measurements of this painterly, hand-wavered geometry; the packet's determinism/geometry evidence does not credibly cover this side."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "Oversharpened halo along the outer stone rim and painterly keyline wobble at the frame corner joins, visible at 2x."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Heart badge rim stroke weight differs between the ATK heart (with sword) and the HP heart; the sword crossing also slightly clips the frame keyline."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-art",
+      "description": "Droplet glow bloom slightly clips into the upper aperture bevel; vignette darkening is uneven in the aperture corners."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-creature-frame",
+      "description": "Layer misregistration reads as a rendering glitch: a dark offset band peeks along the top and right of the art aperture (same seam visible on the cast frame's right art edge). If it is an intentional layer shadow it is not resolved as one."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-set-frame",
+      "description": "A green sliver/outline peeks from behind the nameplate's lower-left edge (faintly present on the creature nameplate too) \u2014 an unfinished underlayer showing through."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-contact",
+      "description": "Ground integration is effectively absent: against the near-black olive background the contact shadows are invisible, so the cards float on a void. The claimed showcase-shadow metric row (offset ~44/69 px, ~57 deg) cannot be visually confirmed anywhere in the render."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-contact",
+      "description": "Flavor lines sit directly on the colored rail (dark red italic on teal, dark on plum) at marginal contrast \u2014 clearly below body-text comfort. The text-contrast metric row only measures body ink vs parchment (6.88:1) and does not cover this failing surface."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "Wolf illustration is formally muddled: hind leg and tail shapes merge ambiguously, and an unexplained brown vertical band runs behind the silhouette."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Stat badge pairing is unresolved: crisp amber hexagon (40) against an irregular soft maroon blob (60); the blob's rim darkening looks accidental rather than crafted."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-back",
+      "description": "Back composition is sparse; the deliberately broken gold arcs read as unfinished rather than designed at 2x, and the burst texture bands slightly."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-title",
+      "description": "Slashed monospace zero in the cost badge reads as theta/8 at glance distance; the mono digits sit slightly high in the circular badge."
+    }
+  ],
+  "threeStrengthsPerSide": {
+    "A": [
+      "Material believability: weathered stone rims, gilt inner rails, and enamel-gem stat hearts read as a genuinely manufactured premium object (card-creature-frame, card-stats).",
+      "Lighting and ground integration: warm directional sun, soft believable contact shadows, and cards that sit convincingly on textured grass (cards-full, card-contact).",
+      "Illustration and palette harmony: the cast card's glowing droplet nocturne and the set card's dusk monolith are cohesive, atmospheric pieces that share one palette world with their frames (card-art, card-set-frame)."
+    ],
+    "B": [
+      "Typographic craft and hierarchy: beveled nameplate, small-caps kicker tag, generous rules leading, and clean serif/mono pairing give a genuinely readable, well-ordered face (card-title, card-rules).",
+      "System coherence: one chassis with per-family rail swaps, identical badge slots, and a back that shares the gold-on-plum language \u2014 four specimens that are unmistakably one product (cards-full).",
+      "Geometric precision: concentric corner radii, consistent insets, and clean edge geometry that the packet's deterministic metric evidence credibly supports (card-creature-frame, metric-report)."
+    ]
+  },
+  "notes": "T computed as weighted mean on the 0-10 scale (sum of weighted scores / 100). The two sides are near-opposite failure profiles. Side A delivers the premium tactile physical-card fantasy \u2014 material, lighting, ground contact, atmosphere \u2014 and wins eight of ten crops on pure visual quality, but its family system is structurally loose (anatomy drift between faces, no title slot on two faces, wobbling back linework) and the packet's machine evidence (zero-error concentricity, deltaE00 0.0, byte-identical determinism) is not plausible testimony for its hand-painterly geometry. Side B is the inverse: a disciplined, deterministic, highly readable chassis whose metric rows are believable, but whose presentation subsystem is under-lit and un-grounded (invisible shadows on a void background), with visible layer-registration seams and flavor-text contrast the metric report does not cover. Neither side clears a 9 wow. Sampled palette medians and parchment values in the metric report correspond far better to one side's flat geometry than the other's; I flag this as an evidence-coverage gap for the packet as a whole rather than assigning authorship. Declared divergences (content, pseudo-text vs real text, subject choice) were excluded from scoring; A's R score reflects missing structural title zones, not glyph legibility, and B's R credit reflects hierarchy craft, not English readability."
+}

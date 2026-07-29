@@ -1,0 +1,35 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r2",
+  "critic": 2,
+  "crops": {
+    "field-full": "B",
+    "field-opponent": "B",
+    "field-divider": "B",
+    "field-player": "B",
+    "field-hand": "B",
+    "field-corner-tl": "B",
+    "field-corner-tr": "B",
+    "field-corner-bl": "B",
+    "field-corner-br": "B",
+    "field-card-contact": "B"
+  },
+  "overall": "B",
+  "improvementsForA": [
+    "The ground is a flat, untextured olive-mustard gradient that reads as a UI background, not a meadow — add grass texture, tonal variation, flowers, and worn paths so the playfield reads as terrain.",
+    "Environment props (rocks, trees, stream) are unshaded near-black low-poly silhouettes with zero cast shadows; the corner crops show raw facets floating on a void. Establish one sun direction and give every prop a grounded shadow and lit/shadow faces.",
+    "Cards have no physical presence: no edge thickness, only a faint uniform halo instead of a contact shadow (see field-card-contact — Duskfang floats). Add card-stock extrusion and a directional grounded shadow consistent with the scene light.",
+    "The palette is muddy — mustard field against near-black props with no atmosphere or warm sunlight grading; introduce a coherent golden-hour grade tying cards, ground, and props together.",
+    "The stream is two flat cyan ribbon bands with no highlights, banks, or interaction with the surrounding rocks; it reads as a decal, not water.",
+    "The divider is a clean glow line but sits on dead-flat ground, which makes the whole center of the field feel like empty negative space; give the seam something to interact with."
+  ],
+  "improvementsForB": [
+    "Card body/rules text is illegible placeholder glyph strings on every card (hand, player row, opponent row); replace with real readable type — right now only cost/ATK/HP badges are readable, which fails the game-surface readability bar.",
+    "Bloom/haze is overcooked in the top-left quadrant (field-corner-tl is washed to near-white in places) and along the divider; pull the glow back so local contrast and the fence/stream detail survive.",
+    "The large top-right tree canopy reads as a mushy translucent yellow-green blob fused with the grass behind it (field-corner-tr); tighten silhouettes and make canopy material opaque and consistently lit.",
+    "The divider light seam has ragged kinks along its run that read as rendering error rather than intentional energy-crack; either smooth the path or commit to a deliberate crackle motif.",
+    "Empty slot outlines are extremely faint against bright sunlit grass (opponent and player rows); boost the affordance so playable zones stay readable in full sun.",
+    "Detail crops show smeary, over-soft micro-detail on rocks and flowers at 2x (bl/br corners); sharpen the painterly texture pass so close inspection holds up."
+  ],
+  "notes": "B is a believable sunlit meadow: coherent golden-hour light with long cast shadows, textured grass with flowers and a real stream, and cards that physically sit on the world with visible deck thickness and grounded contact shadows. A is a competent flat UI mockup — readable text but an untextured mustard field, unlit black polygon props with no shadows, and cards that float as 2D overlays, so it never reads as a place. B's one serious failure is that all rules text is placeholder glyphs, plus heavy bloom in the top-left; those are fixable polish issues, while A's gap is foundational."
+}

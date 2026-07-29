@@ -1,0 +1,45 @@
+{
+ "critic1": {
+  "cropWins": 1,
+  "improvementsForChallenger": [
+   "The ground is a flat mustard fill with faint stripes \u2014 no grass texture, flowers, clover, or ground cover anywhere; it reads as a graybox stage, not a meadow. Add painterly ground variation, patches, and scatter detail.",
+   "There is no coherent sun: trees, rocks, and fences cast no shadows onto the ground and receive almost no directional shading, so every environment prop floats. Add one consistent key-light direction with cast shadows and warm/cool separation.",
+   "Water is presented as hard-edged flat rectangles with visible plane borders (top-left stream, bottom-right dock) \u2014 these look like unfinished placement geometry; blend banks, add depth color and edge foam.",
+   "Cards sit on a thin offset drop shadow that reads as a UI decal rather than physical contact \u2014 add a tight contact shadow, visible edge thickness shading, and subtle ground-color bounce onto the card underside.",
+   "The teal sleeve borders on cast-verse cards clash with the parchment/olive/plum palette and fight the otherwise cohesive vintage look \u2014 retune them toward the field palette.",
+   "The tiny clipped card at the right edge of the opponent row is half cut off and unreadable at its rendered scale \u2014 fix the row layout so all cards fit and remain legible."
+  ],
+  "overallChallenger": false,
+  "ties": 0,
+  "wonCrops": [
+   "field-hand"
+  ]
+ },
+ "critic2": {
+  "cropWins": 1,
+  "improvementsForChallenger": [
+   "The environment is essentially a graybox: a flat mustard ground plane with visible horizontal banding stripes and zero ground cover between the tree ring and the play area. It needs an actual grass material, flowers/clutter, and painterly value variation before it reads as a meadow at all.",
+   "There is no coherent light: nothing on the field casts a shadow (trees, fence, rocks, cards all sit shadowless), so every object floats. Pick a sun direction and add unified cast shadows plus warm/cool grading.",
+   "Both water features (top-left and bottom-right corners) read as floating angular UI panels -- hard-edged blue polygons with loose cyan rectangles inside -- rather than ponds with banks that meet the ground. Resolve their shorelines and reflections.",
+   "The top-left fence rails hover with no contact shadow and the posts do not visibly meet the ground; ground every prop.",
+   "Cards are flat stickers: no edge thickness, near-invisible drop shadows, and deck stacks show no stacked-paper depth. Add card edges and contact-darkened shadows so cards sit on the world.",
+   "Palette and art cohesion: teal card sleeves and purple card backs fight the mustard field, and the card art is repeated silhouette screen-print (the same black cat on many cards). The typography and readable rules text are genuinely excellent -- keep that layer and bring the illustration/material quality up to match."
+  ],
+  "overallChallenger": false,
+  "ties": 0,
+  "wonCrops": [
+   "field-hand"
+  ]
+ },
+ "gatePass": false,
+ "revision": "field-r3",
+ "schema": "tiny-fangs.field-verdict.v1",
+ "unsealedMapping": {
+  "challenger": "B",
+  "challengerCaptureSha256": "sha256:0144a3eeb4e1f765c9cc11e223af0d7eb029cd9e6c3f744113d7ed5541b48f41",
+  "reference": "A",
+  "referenceSha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+  "schema": "tiny-fangs.blind-mapping.v1",
+  "set": "field-r3"
+ }
+}

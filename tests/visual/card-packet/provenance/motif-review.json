@@ -1,0 +1,63 @@
+{
+  "reviewerStatement": "I independently compared this asset and its source record against R1 (docs/exec-50304c60-4218-4f0b-b73f-27b218d4b941.png) and R2 (docs/exec-cb613d03-7a77-4266-bd6b-e0d83428f067.png) using every motif checklist row. I read both references at full size, made close-up crops of the highest-risk regions (R1 card back, R1 teal wisp art window, R2 deck-back stacks), read all four rendered crops plus cards-full.png, and inspected the authored SVG path geometry in src/presentation/cards/art/golden-sample-art.js line by line. I found no traced or closely copied silhouette, composition, ornament path, or motif; all similarity is confined to the deliberately shared sampled palette/material mood and generic TCG layout conventions, which I document explicitly below rather than certify silently.",
+  "overallDecision": "approve",
+  "assets": {
+    "duskfang": {
+      "rows": [
+        { "row": 1, "verdict": "distinct", "evidence": "Compared the howling wolf against every creature/object in R1/R2 (moss golem, unicorn, trees, teardrop wisp, stone arch, cave mound); no wolf or canid appears anywhere in either reference, so the species is original." },
+        { "row": 2, "verdict": "distinct", "evidence": "The seated howl-profile silhouette with raised muzzle, ear wedge, and curled tail is built from original cubic paths (golden-sample-art.js lines 53-68) and has no counterpart pose or focal arrangement in either reference to trace." },
+        { "row": 3, "verdict": "distinct", "evidence": "Compared the tree line: the asset uses a flat zigzag of hard triangles (line 40) versus R1/R2's rounded low-poly faceted canopy clusters, and no grave, fence, rock, flower, or river form from the references is reused in the scene." },
+        { "row": 4, "verdict": "distinct", "evidence": "Compared the frame's fang-in-amber-oval divider emblem against R1's divider marks (leaf-sprig scroll, multi-point compass rosette, crescent-in-circle) and R2's leaf placeholder emblem; the slot convention is shared but the fang glyph geometry is original." },
+        { "row": 5, "verdict": "distinct", "evidence": "Compared borders: the asset is a flat rounded-rectangle cream rim with a plain amber band, while R1 uses weathered beveled metal frames with corner rivets, edge filigree, and corner-cut art-window panels; none of those ornament paths or panel cuts is reproduced." },
+        { "row": 6, "verdict": "not-applicable", "evidence": "This asset is a card face with no card-back sigil, constellation, or rotational-cue content to compare." },
+        { "row": 7, "verdict": "distinct", "evidence": "Compared the prop map: the scene has a triangle treeline, two hill bands, a ridge, and four grass strokes, sharing neither the cluster spacing nor the corner rock/flower/low-poly-tree silhouettes that edge the R1/R2 boards." },
+        { "row": 8, "verdict": "distinct", "evidence": "Compared text and sockets: the asset uses real English serif rules text versus R1/R2's pseudo-glyph rune strings, and its flat hexagon ATK (40) and plain maroon circle HP (60) share only the generic bottom-corner stat convention, not R1's sword-gem and heart-gem shapes." },
+        { "row": 9, "verdict": "distinct", "evidence": "The amber/gold frame color, parchment body, and navy-to-amber dusk gradient (#372F3F to #EDC674) are sampled from the reference palette as the art direction allows; I verified the retention is palette/material-only with no shared geometry riding along." },
+        { "row": 10, "verdict": "distinct", "evidence": "The full glowing moon upper-right is generic geometry (three circles, lines 35-38); R1's only moon is a crescent line drawing on the card back, not a scene element, and I noticed no other overlap." }
+      ]
+    },
+    "manaSurge": {
+      "rows": [
+        { "row": 1, "verdict": "distinct", "evidence": "Compared subjects: the asset depicts a stone spring/fountain erupting a column of mana light, while R1/R2's mana motif is a floating teardrop wisp; the object identity differs." },
+        { "row": 2, "verdict": "distinct", "evidence": "Compared focal composition against a close-up crop of the R1 teal art: a full-height symmetric light spire rising from a pool between corner foliage masses (lines 113-137) versus R1's small droplet hovering over a flat flower-and-rock field; the silhouettes are unrelated." },
+        { "row": 3, "verdict": "distinct", "evidence": "Verified the wisp form specifically: R1's wisp is a round-bottomed teardrop with a curling pointed tip and white core; the asset contains no teardrop anywhere - its orbiting accents are plain circles and its spring stones are smooth quads/ellipses, not R1's faceted low-poly rocks." },
+        { "row": 4, "verdict": "distinct", "evidence": "Compared the fang-in-teal-oval divider emblem against the R1 teal card's multi-point compass rosette at the same slot; the position convention matches but no rosette point geometry is reused." },
+        { "row": 5, "verdict": "distinct", "evidence": "Compared frames: flat teal band with rounded corners versus R1's beveled teal metal frame with corner-cut art window, corner ornaments, and edge filigree; no ornament path carried over." },
+        { "row": 6, "verdict": "not-applicable", "evidence": "Card face; no card-back sigil, constellation, or rotational-cue content to compare." },
+        { "row": 7, "verdict": "distinct", "evidence": "Compared environment props: the corner foliage masses are two smooth quadratic blobs (lines 109-110) rather than low-poly canopy clusters, and the ground is flat bands with no copy of R1's scattered-flower-and-rock prop map." },
+        { "row": 8, "verdict": "distinct", "evidence": "Compared text and badges: English rules text versus pseudo-glyph strings, and the mana '0' sits in a plain cream circle versus R1's octagonal shield-shaped badge." },
+        { "row": 9, "verdict": "distinct", "evidence": "The teal family (#277A79/#8FD8CB), gold core (#F5D783), and parchment are deliberately sampled per the art direction; the retention is confined to color/material roles." },
+        { "row": 10, "verdict": "distinct", "evidence": "Both cards read as 'teal cast card with glowing cyan magic above grey stones' - a subject-family echo that follows from the sanctioned palette/mood guidance - but I traced every path (spire, pool, stones, droplets) and each is independently constructed geometry, not a redrawn reference form." }
+      ]
+    },
+    "phantomWall": {
+      "rows": [
+        { "row": 1, "verdict": "distinct", "evidence": "Compared subjects: a spectral curved battlement/rampart versus R1's freestanding stone arch monument and R2's cave mound; the structures are different object identities." },
+        { "row": 2, "verdict": "distinct", "evidence": "Compared composition: a full-width curved wall with crenellations spanning the frame (lines 165-169) versus R1's single centered arch on a grass mound; silhouette and focal arrangement do not match." },
+        { "row": 3, "verdict": "distinct", "evidence": "Compared forms: the drifting wisps are plain opacity circles, the masonry courses are original quadratic lines, and the asset contains no arch/grave, fence, flower, or river form echoing the references." },
+        { "row": 4, "verdict": "distinct", "evidence": "Compared the fang-in-plum-oval divider emblem against the R1 purple card's crescent-in-circle divider at the same slot; no crescent or circle-frame geometry is reused." },
+        { "row": 5, "verdict": "distinct", "evidence": "Compared frames: flat plum band with rounded corners versus R1's weathered purple metal frame with gold corner details and beveled art window; no ornament path or panel cut reproduced." },
+        { "row": 6, "verdict": "not-applicable", "evidence": "Card face; no card-back sigil, constellation, or rotational-cue content to compare." },
+        { "row": 7, "verdict": "distinct", "evidence": "Compared prop maps: one faint moon disc and four wisp dots at irregular stations versus R1's firefly cluster around the arch and R2's night-forest scatter; neither spacing nor corner silhouettes correspond." },
+        { "row": 8, "verdict": "distinct", "evidence": "Compared text and badges: English rules text versus pseudo-glyph strings; the '1' cost sits in a plain cream circle versus R1's gold octagon badge." },
+        { "row": 9, "verdict": "distinct", "evidence": "The plum/night-violet family (#6A5A66/#2A2430) and parchment are deliberately sampled from the reference's purple card per the art direction; retention is palette-only." },
+        { "row": 10, "verdict": "distinct", "evidence": "The faint low moon disc (line 161) echoes only the nocturne mood; R1's crescent divider and R2's night-forest crescent differ in shape and placement, and I noticed no other overlap." }
+      ]
+    },
+    "backSigil": {
+      "rows": [
+        { "row": 1, "verdict": "distinct", "evidence": "Compared central marks: twin separated fangs with tips inward (lines 228-230) versus R1's crescent moon and R2's lozenge diamond; no fang motif exists in either reference." },
+        { "row": 2, "verdict": "distinct", "evidence": "Compared composition against a close-up of the R1 back: the asset centers a symmetric double ring around the fangs, while R1 places an off-center crescent inside one large open arc within a rectangular border, and R2 centers a diamond in a floral rectangle." },
+        { "row": 3, "verdict": "not-applicable", "evidence": "The back sigil contains no wisp, grave, tree, leaf, fence, rock, flower, or river forms to compare." },
+        { "row": 4, "verdict": "distinct", "evidence": "Verified against the R1 back close-up that the fang family emblem borrows no crescent, arc, or lozenge geometry; the fang paths are original cubic curves with a separate original brow stroke." },
+        { "row": 5, "verdict": "distinct", "evidence": "Compared corner ornaments: the asset uses four short quadratic hook curves (lines 221-224) with no rectangular border at all, versus R1's dart/arrow finials mounted on a double-line rectangular border and R2's floral filigree frame." },
+        { "row": 6, "verdict": "distinct", "evidence": "Closest schema overlap in the whole review: both backs use thin gold line work, a circular motif, and small star accents on dark violet; but the asset's full double concentric circles with compass ticks and deliberate asymmetry have no counterpart in R1's single arc + crescent + four-point sparkles, and its star accents are plain dots at different stations - shared visual language, not copied paths." },
+        { "row": 7, "verdict": "not-applicable", "evidence": "No environment props, clusters, or corner scene silhouettes exist on the back sigil." },
+        { "row": 8, "verdict": "distinct", "evidence": "The back carries no pseudo-writing, glyph strings, or stat sockets; the only icon, the fang glyph, is original as established in rows 1 and 4." },
+        { "row": 9, "verdict": "distinct", "evidence": "The navy ground (#372F3F) and gold line color (#EEC34E) intentionally match the reference back's purple-and-gold materiality per the art direction; retention is color/material-only." },
+        { "row": 10, "verdict": "distinct", "evidence": "The radial sunburst ray background behind the sigil appears on neither reference back (R1 is flat purple, R2 is flat dark green-grey), and I noticed no other similarity." }
+      ]
+    }
+  },
+  "escalations": []
+}

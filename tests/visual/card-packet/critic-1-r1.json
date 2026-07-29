@@ -1,0 +1,117 @@
+{
+  "sideA": {
+    "F": 9.0,
+    "C": 8.4,
+    "K": 8.7,
+    "L": 9.2,
+    "R": 7.4,
+    "S": 8.6,
+    "A": 5.5,
+    "wow": 8.2,
+    "T": 83.3
+  },
+  "sideB": {
+    "F": 6.8,
+    "C": 7.2,
+    "K": 6.5,
+    "L": 5.8,
+    "R": 9.0,
+    "S": 8.5,
+    "A": 8.5,
+    "wow": 6.4,
+    "T": 72.1
+  },
+  "cropPreferences": {
+    "cards-full": "A",
+    "card-creature-frame": "A",
+    "card-cast-frame": "A",
+    "card-set-frame": "A",
+    "card-back": "A",
+    "card-art": "A",
+    "card-title": "B",
+    "card-rules": "B",
+    "card-stats": "A",
+    "card-contact": "A"
+  },
+  "findings": [
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-title",
+      "description": "The cast and set families have no dedicated nameplate band; the title crop lands on an ornamental rosette divider with no title zone at all. Only the creature card carries a small banner strip. This is a structural hierarchy hole in the frame system (independent of the declared pseudo-text divergence): a player scanning for 'what is this card called' has no consistent anchor across families."
+    },
+    {
+      "side": "A",
+      "severity": "P2",
+      "crop": "card-rules",
+      "description": "Packet-evidence mismatch: the metric report's palette rows claim deltaE00 of 0.0 against flat family targets and the corner-construction row reports exact CSS-style layer radii (keyline 9.5, rail 6.5, panel 0.0 with 0.0 error). These measurements are not plausibly obtainable from this side's painterly, texture-noised rendering, and byte-identical determinism across runs is unsupported for a render with this much organic grain. The packet's A-category evidence does not cover this side."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "cards-full",
+      "description": "A partially cropped ornamental border band runs along the very top edge of the frame and is cut mid-motif; it reads as an accidental crop of a larger decoration rather than intentional staging."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "At 2x the gold filigree shows organic mush: corner ornaments differ left vs right without a mirrored logic, and inner keylines wobble in width. Charming as hand-craft, but below the precision of a manufactured print frame."
+    },
+    {
+      "side": "A",
+      "severity": "P3",
+      "crop": "card-rules",
+      "description": "Glyph rows drift slightly in baseline and inter-glyph spacing between lines 1-3; the leading ability icons (diamond/eye/lozenge) are a nice keyword device but their optical sizes are inconsistent."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-creature-frame",
+      "description": "A dark offset rectangle edge is visible at the top-right of the art window (a misaligned art-layer duplicate or shadow layer peeking past the mask). Visible at full frame on the creature card; a straightforward but real compositing defect."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-back",
+      "description": "The card back is a single small shield sigil inside one thin gold circle with a few broken hairline arcs on a near-empty navy field. It reads provisional/generic; premium TCG backs carry edge-to-edge pattern density and layered border work. Weakest subsystem on this side."
+    },
+    {
+      "side": "B",
+      "severity": "P2",
+      "crop": "card-contact",
+      "description": "No ground plane: cards float on a featureless dark green void and contact shadows are dark-on-dark, effectively invisible. The specimens do not read as objects resting on a surface, undercutting the manufactured-object brief."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-stats",
+      "description": "Flavor text ('It hunts with ghosts.') sits directly on the saturated orange rail band; dark-brown italic on mid-orange looks marginal against 4.5:1. The passing text-contrast metric row measures ink on parchment, so this flavor-on-rail case is uncovered by the report. Same pattern on teal and plum rails in card-contact."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-creature-frame",
+      "description": "Wolf silhouette anatomy is awkward: the muzzle reads as a bird beak (yellow crescent), and an orange arc shape behind the haunch is ambiguous between art element and rail show-through."
+    },
+    {
+      "side": "B",
+      "severity": "P3",
+      "crop": "card-set-frame",
+      "description": "Phantom Wall art contains a lone translucent circle floating over the battlement with no lighting logic; it reads as an unfinished placeholder effect. The 60 HP badge on the creature card is likewise a flat rounded blob with less craft than the ATK hexagon."
+    }
+  ],
+  "threeStrengthsPerSide": {
+    "A": [
+      "Material believability: carved, beveled frame families with worn stone rims, aged parchment panels, and jeweled stat badges (sword-through-heart ATK, gold-rimmed heart HP) that read as physical manufactured objects at both full frame and 2x.",
+      "Lighting and ground integration: a consistent golden-hour cast, soft directional contact shadows, and a grass-and-flower tabletop that seats all four specimens convincingly in one environment.",
+      "Card back craft: the celestial plum back with layered gold linework, moon-and-stars motif, and corner flourishes has genuine premium density and pairs with the faces without copying them."
+    ],
+    "B": [
+      "Typographic craft and hierarchy: real typeset serif nameplates, small-caps type-line tags (TWILIGHT WOLF / CAST VERSE / SET VERSE), italic flavor lines, and distinct stat-badge shapes give a complete, scannable information system.",
+      "System coherence: one chassis, one badge grammar, one sunburst parchment treatment across all three faces with only the rail hue and family icon changing - a disciplined, manufacturable family system.",
+      "Evidence quality: the packet's metric rows (flat palette medians at deltaE 0.0, exact concentric corner radii, 6.88:1 body ink contrast, uniform 57-degree shadow centroids, byte-identical dual-run hash) are internally consistent and plausibly correspond to this construction style."
+    ]
+  },
+  "notes": "Two opposite philosophies. Side A is an art-direction statement: painterly, materially rich, environmentally grounded, and immediately premium, but it is missing a title/nameplate subsystem on two of three families, its fine linework goes mushy at 2x, and the packet's machine evidence (exact radii, deltaE 0.0 palette hits, byte-determinism) cannot plausibly describe it, which craters its A category. Side B is an engineering statement: complete information hierarchy, disciplined family system, and metrics that credibly describe what is on screen, but it reads as a flat UI mockup - void background, invisible contact shadows, sparse card back, and small compositing defects (offset art-layer edge). A wins 8 of 10 crops on pure visual quality; B wins the two typography crops. Neither side is shippable alone: the target is A's materials and ground plane carrying B's typographic and systemic discipline. All metric rows claim pass and none is visibly falsified for the construction style they describe, so no 8.9 category cap was applied; the A-side A-category score reflects evidence non-coverage, not a failed row."
+}

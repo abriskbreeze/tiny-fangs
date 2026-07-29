@@ -1,6 +1,8 @@
 import { applyDamage } from './game.js';
+import { uid as uniqueUid } from './state.js';
 import { getEffectiveAtk as sharedGetEffectiveAtk } from '../shared/engine.js';
 import { CREATURES } from '../shared/cards.js';
+import { stampDerivedPresentationFace } from '../shared/face-registry.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ABILITY EFFECTS - Display helpers + shared ATK (combat SSOT)
@@ -243,7 +245,7 @@ export function applySpawn(owner) {
     return null; // Bench full
   }
   
-  const antling = {
+  const antling = stampDerivedPresentationFace({
     id: 'antling',
     name: 'Antling',
     subtitle: 'Swarm Token',
@@ -253,9 +255,9 @@ export function applySpawn(owner) {
     cost: 0,
     cardType: 'creature',
     ability: null,
-    uid: Math.random().toString(36).slice(2, 9),
+    uid: uniqueUid(),
     isToken: true
-  };
+  }, 'antling');
   
   owner.bench.push(antling);
   return antling;

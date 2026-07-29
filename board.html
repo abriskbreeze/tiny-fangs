@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tiny Fangs — Populated Board Harness</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #23281f; overflow: hidden; }
+    #stage { position: relative; width: 1672px; height: 941px; transform-origin: 0 0; }
+    #scene-canvas { position: absolute; inset: 0; display: block; }
+    #shadow-layer, #dom-layer { position: absolute; inset: 0; pointer-events: none; }
+    .board-card { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+    .board-card .tf-aaa-card { box-shadow: none; }
+    .card-shadow { position: absolute; pointer-events: none; }
+    /* will-change promotes each hand card to its own compositing layer at
+       first paint, pinning the compositor's raster scale — without it the
+       scaled/rotated subtree re-rasters nondeterministically under load. */
+    /* Explicit chassis size: every child is absolutely positioned, so without
+       it the wrapper collapses to 0x0 and the transform-origin breaks. */
+    .hand-card-aaa { position: absolute; width: 333px; height: 505px; transform-origin: 50% 100%; will-change: transform; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="scene-canvas" width="1672" height="941"></canvas>
+    <div id="shadow-layer"></div>
+    <div id="dom-layer"></div>
+  </div>
+  <script type="module" src="/src/presentation/scene/board-page.js"></script>
+</body>
+</html>

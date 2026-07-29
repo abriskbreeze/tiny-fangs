@@ -3,6 +3,68 @@
 All notable changes to Tiny Fangs.
 
 
+## [Unreleased]
+
+Desktop "AAA" presentation. The classic ASCII presentation is unchanged, still
+the default, and still fully playable — all of the below is opt-in.
+
+### Added
+- **Presentation modes.** New opt-in 3D presentation via `?presentation=aaa`
+  (or `localStorage['tinyFangs.presentation.mode']`). Anything else, including
+  no flag at all, keeps the classic ASCII board.
+- **Meadow board.** A Three.js meadow rendered under a locked camera: terrain,
+  divider and rune diamond, perimeter trees/shrubs/rocks/fence/river/flowers,
+  engraved zone decals and slot marks, and seeded ambient motion (canopy sway,
+  dust motes, fireflies, river shimmer).
+- **Card system.** A layered card chassis with illustrated faces, nameplates,
+  rules text, health medallions showing current HP, effective-ATK inks, and
+  status charms (poison, trapped, fortify, unbreakable ward) — on active *and*
+  bench creatures. Faction template art ships for every renderable face.
+- **Board HUD.** Quiet edge rails for hearts, mana, deck and grave counts, turn
+  token, match clock, log, and a six-action rail whose enabled state mirrors the
+  classic buttons exactly.
+- **Overlays in the board's material.** Setup and deck select, generic and
+  response modals, card detail, a 3D gold coin flip (classic timing preserved),
+  parchment reveals, the graveyard browser with hold-to-zoom, the rules book,
+  and the result screen.
+- **Motion, effects, and audio.** Uid-keyed FLIP transitions (hand to board,
+  retreat swaps, draw, grave exit), damage/heal/KO/LP accents, float text and
+  screen flash, a pooled particle system, and an audio director with a Sound
+  toggle that persists mute and volume.
+- **Accessibility.** Keyboard traversal with visible focus rings, 40 px minimum
+  targets, WCAG AA rail contrast, labeled ownership, and a reduced-motion path
+  that keeps color feedback while suppressing displacement.
+- **Render quality control.** A Quality chip in the HUD cycles High / Low /
+  Static and remembers the choice; `?quality=` overrides it for a session.
+  Without a choice the tier is picked from device capability, and Static — which
+  renders no scene at all — is always available as the safe floor.
+
+### Changed
+- The AAA presentation is code-split: classic mode never downloads it. The
+  classic entry bundle is 170.90 kB (49.61 kB gzipped) with the shell and
+  Three.js in a separate 575.93 kB chunk fetched only under the flag.
+- Fonts are self-hosted (JetBrains Mono woff2, SIL OFL 1.1); no remote font
+  requests remain.
+- Opponent face-down Set verses no longer carry hidden card identity in state
+  projections or events.
+- Animations resolve targets through a semantic registry rather than selector
+  lists, so effects address the visible shell instead of hidden duplicates.
+
+### Fixed
+- Status charms never rendered on benched creatures — poison, trapped, and
+  fortify were invisible outside the active slot.
+- Card art 404'd in production builds; face art now resolves through the
+  bundler and ships as hashed assets.
+- A failed AAA mount (no WebGL, context loss, or a failed chunk load) left a
+  dead screen because the AAA styles hide the classic board. It now falls back
+  to the classic presentation and the game stays playable.
+- Between 600 px and 900 px wide, the script and the stylesheet disagreed about
+  which board to show, so multiplayer could reveal a shell the CSS was hiding.
+  Both now read the same 900 px rule.
+
+---
+
+
 ## [0.4.87] - 2026-07-27
 
 ### Changed

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CREATURES } from '../src/cards.js';
 import { state, clearGame, setGame } from '../src/state.js';
 import { applyDamage } from '../src/game.js';
+import { resolvePresentationFaceId } from '../shared/face-registry.js';
 import {
   getEffectiveAtk,
   getEffectiveDamageReduction,
@@ -123,6 +124,7 @@ describe('getEffectiveAtk() - ATK Modifiers', () => {
     expect(getEffectiveAtk(alpha, state.G.me, state.G.opp)).toBe(55); // 35 + 10 + 10
   });
 });
+
 
 describe('getEffectiveDamageReduction() - Damage Reduction', () => {
   beforeEach(() => {
@@ -401,6 +403,22 @@ describe('Broodmother Spawn', () => {
     expect(antling.hp).toBe(10);
     expect(antling.atk).toBe(10);
     expect(antling.isToken).toBe(true);
+    expect(antling.presentationFaceId).toBe('antling');
+    expect(resolvePresentationFaceId(antling)).toBe('antling');
+    expect(antling).toStrictEqual({
+      id: 'antling',
+      name: 'Antling',
+      subtitle: 'Swarm Token',
+      hp: 10,
+      curHp: 10,
+      atk: 10,
+      cost: 0,
+      cardType: 'creature',
+      ability: null,
+      uid: expect.any(String),
+      isToken: true,
+      presentationFaceId: 'antling'
+    });
     expect(state.G.me.bench).toContain(antling);
   });
 
@@ -414,4 +432,3 @@ describe('Broodmother Spawn', () => {
     expect(state.G.me.bench).toHaveLength(2);
   });
 });
-

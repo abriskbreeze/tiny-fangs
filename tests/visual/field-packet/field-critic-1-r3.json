@@ -1,0 +1,34 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r3",
+  "critic": 1,
+  "crops": {
+    "field-full": "A",
+    "field-opponent": "A",
+    "field-divider": "A",
+    "field-player": "A",
+    "field-hand": "B",
+    "field-corner-tl": "A",
+    "field-corner-tr": "A",
+    "field-corner-bl": "A",
+    "field-corner-br": "A",
+    "field-card-contact": "A"
+  },
+  "overall": "A",
+  "improvementsForA": [
+    "Card body text is illegible rune-gibberish on every card (hand, player row, opponent row) — replace the placeholder glyph strings with real, readable names and rules text; right now the game surfaces cannot actually be read.",
+    "Dial back the uniform warm yellow haze/bloom that sits over the whole frame like a filter — it milks out contrast around the divider and washes card faces; keep the golden-hour key light but let shadowed grass go genuinely cooler and darker so the sun reads as directional, not global.",
+    "Detail crops are soft and mushy at 2x (corner-bl canopy is a watercolor smear, corner-tr tree facets lose their edges) — the environment assets need more native resolution or crisper texture work so close inspection holds up.",
+    "Empty card-slot outlines are faint ghost rectangles that read as smudges on the grass — give slots a crisper, intentional affordance (etched line, subtle inlay) consistent with the card frames.",
+    "The divider's overexposed glow band bleeds a hot halo onto nearby grass and card edges — tighten its falloff so the crack stays a world feature instead of a screen-space bloom stripe."
+  ],
+  "improvementsForB": [
+    "The ground is a flat mustard fill with faint stripes — no grass texture, flowers, clover, or ground cover anywhere; it reads as a graybox stage, not a meadow. Add painterly ground variation, patches, and scatter detail.",
+    "There is no coherent sun: trees, rocks, and fences cast no shadows onto the ground and receive almost no directional shading, so every environment prop floats. Add one consistent key-light direction with cast shadows and warm/cool separation.",
+    "Water is presented as hard-edged flat rectangles with visible plane borders (top-left stream, bottom-right dock) — these look like unfinished placement geometry; blend banks, add depth color and edge foam.",
+    "Cards sit on a thin offset drop shadow that reads as a UI decal rather than physical contact — add a tight contact shadow, visible edge thickness shading, and subtle ground-color bounce onto the card underside.",
+    "The teal sleeve borders on cast-verse cards clash with the parchment/olive/plum palette and fight the otherwise cohesive vintage look — retune them toward the field palette.",
+    "The tiny clipped card at the right edge of the opponent row is half cut off and unreadable at its rendered scale — fix the row layout so all cards fit and remain legible."
+  ],
+  "notes": "A reads as an actual sunlit place: one golden-hour light, resolved stream/fence/flower corners, grounded card shadows, and visible card-edge thickness, though it is hurt by a heavy yellow haze, soft 2x detail, and — critically — unreadable rune placeholder text on every card. B is the only render you can actually play (real names, real rules text, clean typography, which wins it the hand crop), but its environment is graybox-flat: unshaded low-poly props with no cast shadows, hard-edged water rectangles, and a texture-free mustard ground that no one would believe is a meadow. Scenery, light coherence, and card grounding decide 9 of 10 crops for A; the shippable field is A's world carrying B's card legibility."
+}

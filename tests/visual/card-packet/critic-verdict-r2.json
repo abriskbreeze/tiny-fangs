@@ -1,0 +1,130 @@
+{
+  "schema": "tiny-fangs.card-critic-verdict.v1",
+  "revision": "card-showcase-r2",
+  "unsealedMapping": {
+    "challenger": "B",
+    "challengerCaptureSha256": "sha256:bb45597245436969a2d550443560880b6952465a3903d9bf4a8ad72b7179a29d",
+    "reference": "A",
+    "referenceSha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "schema": "tiny-fangs.blind-mapping.v1",
+    "set": "card-showcase-r1"
+  },
+  "critic3": {
+    "T": 77.6,
+    "wow": 6.8,
+    "categories": {
+      "F": 7.0,
+      "C": 7.8,
+      "K": 7.4,
+      "L": 6.8,
+      "R": 9.3,
+      "S": 8.8,
+      "A": 8.8
+    },
+    "cropWins": 1,
+    "p0p1": 0,
+    "p2": 3,
+    "singleCriticPass": false,
+    "findings": [
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-set-frame",
+        "description": "Phantom Wall illustration is generic and underworked: a flat wall with scattered dots, and a translucent circle overlapping the crenellations that reads as an unintended lens/moon artifact rather than composed art."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "cards-full",
+        "description": "The environment is a flat vertical-striped chartreuse gradient \u2014 wallpaper, not a tabletop. Cards cast soft shadows onto an abstract plane, undermining the manufactured-object-on-a-surface premise the staging implies."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-creature-frame",
+        "description": "A dark backing layer protrudes as a visible step above the top edge behind the rail (top-right, repeated on the cast frame). Because it half-emerges only at one corner it reads as a misregistered layer at 2x rather than a deliberate offset-spine motif."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-back",
+        "description": "Back composition is sparse: incomplete/asymmetric corner brackets and floating comma-like swashes that are not anchored to the emblem geometry; feels like a wireframe of a back rather than a finished one."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-rules",
+        "description": "Sunburst ray texture runs directly beneath body text, adding low-level luminance noise behind letterforms; contrast still passes but the panel would be cleaner with the rays masked out of the text measure."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-stats",
+        "description": "Stat chips are mismatched in visual weight (amber hexagon vs larger maroon circle), and the slashed-zero mono numerals clash with the book-serif voice of the rest of the card."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-title",
+        "description": "Title plate border treatment drifts across families \u2014 the set-verse plate carries a dark green-tinted outer stroke the other plates lack."
+      }
+    ]
+  },
+  "critic4": {
+    "T": 76.0,
+    "wow": 6.8,
+    "categories": {
+      "F": 6.8,
+      "C": 7.8,
+      "K": 7.2,
+      "L": 6.2,
+      "R": 9.2,
+      "S": 8.8,
+      "A": 9.0
+    },
+    "cropWins": 2,
+    "p0p1": 0,
+    "p2": 3,
+    "singleCriticPass": false,
+    "findings": [
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "cards-full",
+        "description": "No ground plane: cards float on an abstract striped olive gradient with only a faint uniform shadow. Lighting/material integration is essentially flat, so the staging reads as a UI mockup rather than photographed physical objects."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-creature-frame",
+        "description": "The amber rail is asymmetric \u2014 a wide bar on the right, nearly nothing on the left \u2014 reading as a misregistered backing layer rather than an intentional frame construction."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-set-frame",
+        "description": "The art window is mostly empty plum space; the small wall illustration floats low with no anchor, leaving the top half of the window dead. Weakest illustration of the set."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-stats",
+        "description": "Monospace UI numerals (40/60) and the slashed/dotted zero on the cost badge read as debug-console type, tonally off against the Alegreya serif used everywhere else."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-back",
+        "description": "Radial sunburst shows visible banding between spokes; crescent accent strokes are asymmetric top-right vs bottom-left, slightly unbalancing an otherwise clean emblem."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-cast-frame",
+        "description": "The CAST VERSE ribbon overlaps the art window edge with an ambiguous half-in/half-out registration, and the nameplate drop shadow is heavy relative to the otherwise flat material language."
+      }
+    ]
+  },
+  "gatePass": false,
+  "trend": "r1 challenger T 72.1/77.0 -> r2 77.6/76.0; L 5.8/6.3 -> 6.5(c3)/6.2(c4)"
+}

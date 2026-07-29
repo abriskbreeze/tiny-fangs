@@ -8,6 +8,7 @@ import { CREATURES, VERSES, DECKS } from './cards.js';
 import { processEffects } from './effects.js';
 import { findMatchingTriggers, sortByPriority, matchesTrigger } from './triggers.js';
 import { applyCreatureDamageReduction } from './damage-reduction.js';
+import { stampDerivedPresentationFace } from './face-registry.js';
 import {
   tryLethalSurvival,
   canOfferDamageSwap,
@@ -18,8 +19,12 @@ import {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
+// The monotonic suffix guarantees uniqueness even when Math.random is stubbed
+// deterministic (tests do this); keyed board rendering fails closed on
+// duplicate uids instead of silently mis-targeting cards.
+let uidSerial = 0;
 function uid() {
-  return Math.random().toString(36).substr(2, 9);
+  return `${Math.random().toString(36).substr(2, 9)}-${(++uidSerial).toString(36)}`;
 }
 
 function shuffle(arr) {
@@ -640,7 +645,6 @@ function executeTrigger(verse, context, owner, enemy, ownerSide, enemySide) {
       if (!owner.usedLastBreath && owner.lp <= damageAmount) {
         negated = true;
         owner.usedLastBreath = true;
-        events.push({ type: 'triggerVerse', side: ownerSide, verse: 'Last Breath' });
       }
       break;
     }
@@ -1404,7 +1408,7 @@ export function setVerse(state, playerIdx, cardUid) {
   player.hand = player.hand.filter(c => c.uid !== cardUid);
   player.setVerse = card;
   
-  events.push({ type: 'setVerse', side, verse: card.name });
+  events.push({ type: 'setVerse', side });
   return { state, events };
 }
 
@@ -1517,7 +1521,7 @@ export function endTurn(state, playerIdx) {
   
   // Broodmother spawn
   if (player.active && player.active.id === 'broodmother' && player.bench.length < 2) {
-    const antling = mkCreature('hiveling');
+    const antling = stampDerivedPresentationFace(mkCreature('hiveling'), 'antling');
     antling.name = 'Antling';
     antling.hp = 10;
     antling.curHp = 10;
@@ -1778,7 +1782,10 @@ export function executeAction(state, playerIdx, action) {
     state.winner = playerIdx;
     result.events.push({ type: 'gameOver', winner: side, reason: 'LP depleted' });
   }
-  if (opponent.deck.length === 0 && opponent.hand.length === 0) {
+  const alreadyEmittedDeckOut = result.events.some(
+    event => event.type === 'gameOver' && event.reason === 'Deck out'
+  );
+  if (opponent.deck.length === 0 && opponent.hand.length === 0 && !alreadyEmittedDeckOut) {
     state.winner = playerIdx;
     result.events.push({ type: 'gameOver', winner: side, reason: 'Deck out' });
   }

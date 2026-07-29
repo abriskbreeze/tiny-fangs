@@ -1,0 +1,138 @@
+{
+  "schema": "tiny-fangs.card-critic-verdict.v1",
+  "revision": "card-showcase-r1",
+  "unsealedMapping": {
+    "challenger": "B",
+    "challengerCaptureSha256": "sha256:92244c4013d4acc09b1cdae3ac4f599b7813995603f8d094b21ebd2807ba50a9",
+    "reference": "A",
+    "referenceSha256": "sha256:4ecb53d517d40edc5a7b4907e6991c6b8dcce40cc34e6a21c14b709ed2228056",
+    "schema": "tiny-fangs.blind-mapping.v1",
+    "set": "card-showcase-r1"
+  },
+  "critic1": {
+    "T": 72.1,
+    "wow": 6.4,
+    "categories": {
+      "F": 6.8,
+      "C": 7.2,
+      "K": 6.5,
+      "L": 5.8,
+      "R": 9.0,
+      "S": 8.5,
+      "A": 8.5
+    },
+    "cropWins": 2,
+    "ties": 0,
+    "p0p1": 0,
+    "p2": 3,
+    "singleCriticPass": false,
+    "findings": [
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-creature-frame",
+        "description": "A dark offset rectangle edge is visible at the top-right of the art window (a misaligned art-layer duplicate or shadow layer peeking past the mask). Visible at full frame on the creature card; a straightforward but real compositing defect."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-back",
+        "description": "The card back is a single small shield sigil inside one thin gold circle with a few broken hairline arcs on a near-empty navy field. It reads provisional/generic; premium TCG backs carry edge-to-edge pattern density and layered border work. Weakest subsystem on this side."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-contact",
+        "description": "No ground plane: cards float on a featureless dark green void and contact shadows are dark-on-dark, effectively invisible. The specimens do not read as objects resting on a surface, undercutting the manufactured-object brief."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-stats",
+        "description": "Flavor text ('It hunts with ghosts.') sits directly on the saturated orange rail band; dark-brown italic on mid-orange looks marginal against 4.5:1. The passing text-contrast metric row measures ink on parchment, so this flavor-on-rail case is uncovered by the report. Same pattern on teal and plum rails in card-contact."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-creature-frame",
+        "description": "Wolf silhouette anatomy is awkward: the muzzle reads as a bird beak (yellow crescent), and an orange arc shape behind the haunch is ambiguous between art element and rail show-through."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-set-frame",
+        "description": "Phantom Wall art contains a lone translucent circle floating over the battlement with no lighting logic; it reads as an unfinished placeholder effect. The 60 HP badge on the creature card is likewise a flat rounded blob with less craft than the ATK hexagon."
+      }
+    ]
+  },
+  "critic2": {
+    "T": 77.0,
+    "wow": 6.9,
+    "categories": {
+      "F": 7.4,
+      "C": 7.8,
+      "K": 7.6,
+      "L": 6.3,
+      "R": 8.8,
+      "S": 8.5,
+      "A": 8.6
+    },
+    "cropWins": 2,
+    "ties": 0,
+    "p0p1": 0,
+    "p2": 4,
+    "singleCriticPass": false,
+    "findings": [
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-creature-frame",
+        "description": "Layer misregistration reads as a rendering glitch: a dark offset band peeks along the top and right of the art aperture (same seam visible on the cast frame's right art edge). If it is an intentional layer shadow it is not resolved as one."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-set-frame",
+        "description": "A green sliver/outline peeks from behind the nameplate's lower-left edge (faintly present on the creature nameplate too) \u2014 an unfinished underlayer showing through."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-contact",
+        "description": "Ground integration is effectively absent: against the near-black olive background the contact shadows are invisible, so the cards float on a void. The claimed showcase-shadow metric row (offset ~44/69 px, ~57 deg) cannot be visually confirmed anywhere in the render."
+      },
+      {
+        "side": "B",
+        "severity": "P2",
+        "crop": "card-contact",
+        "description": "Flavor lines sit directly on the colored rail (dark red italic on teal, dark on plum) at marginal contrast \u2014 clearly below body-text comfort. The text-contrast metric row only measures body ink vs parchment (6.88:1) and does not cover this failing surface."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-creature-frame",
+        "description": "Wolf illustration is formally muddled: hind leg and tail shapes merge ambiguously, and an unexplained brown vertical band runs behind the silhouette."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-stats",
+        "description": "Stat badge pairing is unresolved: crisp amber hexagon (40) against an irregular soft maroon blob (60); the blob's rim darkening looks accidental rather than crafted."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-back",
+        "description": "Back composition is sparse; the deliberately broken gold arcs read as unfinished rather than designed at 2x, and the burst texture bands slightly."
+      },
+      {
+        "side": "B",
+        "severity": "P3",
+        "crop": "card-title",
+        "description": "Slashed monospace zero in the cost badge reads as theta/8 at glance distance; the mono digits sit slightly high in the circular badge."
+      }
+    ]
+  },
+  "gatePass": false,
+  "note": "First-revision blind review. Gate formula from art bible 13.5 applied to the challenger side after unsealing; scores from two independent fresh critics."
+}

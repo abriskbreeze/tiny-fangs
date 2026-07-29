@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TINY FANGS v0.4.86</title>
-  <script type="module" crossorigin src="./assets/index-BV-Vee71.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CB5e0a9T.css">
+  <title>TINY FANGS v0.4.87</title>
+  <script type="module" crossorigin src="./assets/index-BHwss8WA.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DWRnUJRC.css">
 </head>
 <body>
   <div class="bg-img"></div>
@@ -13,7 +13,7 @@
   <!-- SETUP -->
   <div id="setup" class="setup">
     <h1>TINY FANGS</h1>
-    <p class="sub">v0.4.86 • Card Battler</p>
+    <p class="sub">v0.4.87 • Card Battler</p>
 
     <!-- Mode Selection -->
     <div id="mode-select">
@@ -63,27 +63,27 @@
     <div id="deck-select" style="display: none;">
     <h2>Choose Your Deck</h2>
     <div class="deck-grid">
-      <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
+      <button class="deck-btn" onclick="selectPlayerDeck('shadow')" onmouseenter="deckHover?.('shadow', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shadow')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()" onpointercancel="deckRelease?.()">
         <div class="icon">(O)</div>
         <div class="name">Shadow</div>
         <div class="desc">Control & graveyard synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('fang')" onmouseenter="deckHover?.('fang', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('fang')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
+      <button class="deck-btn" onclick="selectPlayerDeck('fang')" onmouseenter="deckHover?.('fang', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('fang')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()" onpointercancel="deckRelease?.()">
         <div class="icon">/\\</div>
         <div class="name">Fang</div>
         <div class="desc">Aggro & direct damage</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('venom')" onmouseenter="deckHover?.('venom', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('venom')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
+      <button class="deck-btn" onclick="selectPlayerDeck('venom')" onmouseenter="deckHover?.('venom', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('venom')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()" onpointercancel="deckRelease?.()">
         <div class="icon">*X*</div>
         <div class="name">Venom</div>
         <div class="desc">Poison & lifesteal</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('swarm')" onmouseenter="deckHover?.('swarm', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('swarm')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
+      <button class="deck-btn" onclick="selectPlayerDeck('swarm')" onmouseenter="deckHover?.('swarm', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('swarm')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()" onpointercancel="deckRelease?.()">
         <div class="icon">}:{</div>
         <div class="name">Swarm</div>
         <div class="desc">Pack tactics & bench synergy</div>
       </button>
-      <button class="deck-btn" onclick="selectPlayerDeck('shell')" onmouseenter="deckHover?.('shell', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shell')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()">
+      <button class="deck-btn" onclick="selectPlayerDeck('shell')" onmouseenter="deckHover?.('shell', event)" onmouseleave="deckLeave?.()" onpointerdown="deckPress?.('shell')" onpointerup="deckRelease?.()" onpointerleave="deckRelease?.()" onpointercancel="deckRelease?.()">
         <div class="icon">[=]</div>
         <div class="name">Shell</div>
         <div class="desc">Defense & damage reduction</div>
@@ -183,7 +183,7 @@
   <!-- DESKTOP -->
   <div id="desktop" class="desktop">
     <div class="d-top">
-      <div class="logo">TINY FANGS v0.4.86</div>
+      <div class="logo">TINY FANGS v0.4.87</div>
       <div class="right">
         <span id="d-turn-indicator" class="turn-indicator"></span>
         <span>Turn <span id="d-turn">1</span></span>
@@ -302,6 +302,10 @@
     </div>
   </div>
 
+  <!-- AAA presentation stage (Phase 8): empty and display:none unless the
+       aaa presentation flag is active; classic markup above is untouched. -->
+  <div id="aaa-stage" style="display: none;"></div>
+
   <!-- Card Detail Modal -->
   <div id="cardModal" class="card-modal" onclick="closeCardModal(event)">
     <div class="card-detail" id="cardDetail"></div>
@@ -382,7 +386,10 @@
   <!-- Result -->
   <div id="result" class="result">
     <h2 id="result-text"></h2>
-    <button onclick="location.reload()">Play Again</button>
+    <!-- No inline handler: `src/main.js` binds this to `restartGame()`, which
+         disposes the match owner (state, timer, long-press) before navigating.
+         An inline `location.reload()` would race ahead of that disposal. -->
+    <button id="result-restart" type="button">Play Again</button>
   </div>
 
 </body>

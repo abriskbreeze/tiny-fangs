@@ -1,7 +1,31 @@
+import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
 import { createGame, executeAction, endTurn, getStateForPlayer } from './GameEngine.js';
 
-const PORT = 3001;
+const DEFAULT_PORT = 3001;
+
+function parseServerPort(value) {
+  if (value === undefined) return DEFAULT_PORT;
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error('must be an integer from 1 to 65535');
+  }
+
+  const port = Number(value);
+  if (!Number.isSafeInteger(port) || port > 65_535) {
+    throw new Error('must be an integer from 1 to 65535');
+  }
+
+  return port;
+}
+
+let PORT;
+try {
+  PORT = parseServerPort(process.env.TINY_FANGS_WS_PORT);
+} catch (error) {
+  console.error(`Invalid TINY_FANGS_WS_PORT: ${error.message}`);
+  process.exit(1);
+}
+
 const rooms = new Map(); // roomCode → Room
 
 // ═══════════════════════════════════════════════════════════════
@@ -16,6 +40,7 @@ class Room {
     ];
     this.status = 'waiting';  // waiting | ready | playing | finished
     this.gameState = null;
+    this.pendingAction = null;
     this.createdAt = Date.now();
   }
 
@@ -73,6 +98,7 @@ class Room {
     }
     
     this.status = 'playing';
+    this.pendingAction = null;
     console.log(`🎮 Game started! Player ${firstPlayer + 1} goes first`);
     
     return { firstPlayer };
@@ -145,6 +171,87 @@ class Room {
   getPlayerData(ws) {
     return this.players.find(p => p.ws === ws);
   }
+
+  getPendingPlayerIdx() {
+    if (!this.pendingAction) return null;
+    if (this.pendingAction.side === 'p1') return 0;
+    if (this.pendingAction.side === 'p2') return 1;
+    return null;
+  }
+
+  prepareAction(player, action) {
+    const responseActions = new Set([
+      'respondOptionalTrigger',
+      'skitterDecline',
+      'skitterSwap',
+    ]);
+    const actionName = action?.action;
+
+    if (!this.pendingAction) {
+      if (responseActions.has(actionName)) {
+        return { error: 'No pending response' };
+      }
+      return { action };
+    }
+
+    if (player.playerIdx !== this.getPendingPlayerIdx()) {
+      return { error: 'Action unavailable' };
+    }
+
+    if (!responseActions.has(actionName)) {
+      return { error: 'Response pending' };
+    }
+
+    const ownKeys = Object.keys(action);
+    if (this.pendingAction.type === 'optionalTrigger') {
+      if (
+        actionName !== 'respondOptionalTrigger' ||
+        typeof action.confirmed !== 'boolean' ||
+        ownKeys.length !== 2
+      ) {
+        return { error: 'Invalid pending response' };
+      }
+      return {
+        action: {
+          action: actionName,
+          confirmed: action.confirmed,
+          verseId: this.pendingAction.verseId,
+          context: this.pendingAction.context,
+        },
+      };
+    }
+
+    if (this.pendingAction.type === 'skitterSwap') {
+      if (actionName === 'skitterDecline' && ownKeys.length === 1) {
+        return { action: { action: actionName } };
+      }
+
+      if (
+        actionName !== 'skitterSwap' ||
+        !Number.isInteger(action.benchIdx) ||
+        ownKeys.length !== 2
+      ) {
+        return { error: 'Invalid pending response' };
+      }
+
+      const option = this.pendingAction.benchOptions?.find(
+        (candidate) => candidate.idx === action.benchIdx,
+      );
+      const currentBenchCard =
+        this.gameState.players[player.playerIdx].bench[action.benchIdx];
+      if (!option || currentBenchCard?.uid !== option.uid) {
+        return { error: 'Invalid pending response' };
+      }
+      return {
+        action: {
+          action: actionName,
+          benchIdx: action.benchIdx,
+        },
+      };
+    }
+
+    return { error: 'Invalid pending response' };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -188,12 +295,13 @@ function handleCreate(ws) {
 function handleJoin(ws, message) {
   const { roomCode } = message;
   
-  if (!roomCode) {
+  if (typeof roomCode !== 'string' || !roomCode.trim()) {
     send(ws, { type: 'error', message: 'Missing roomCode' });
     return;
   }
 
-  const room = rooms.get(roomCode.toUpperCase());
+  const normalizedRoomCode = roomCode.trim().toUpperCase();
+  const room = rooms.get(normalizedRoomCode);
   
   if (!room) {
     send(ws, { type: 'error', message: 'Room not found' });
@@ -206,17 +314,17 @@ function handleJoin(ws, message) {
   }
 
   room.addPlayer(ws);
-  ws.roomCode = roomCode.toUpperCase();
+  ws.roomCode = normalizedRoomCode;
 
-  console.log(`👥 Player joined room ${roomCode}`);
+  console.log(`👥 Player joined room ${normalizedRoomCode}`);
 
   // Notify joiner
-  send(ws, { type: 'roomJoined', roomCode: roomCode.toUpperCase() });
+  send(ws, { type: 'roomJoined', roomCode: normalizedRoomCode });
 
   // Notify creator
   send(room.players[0].ws, { type: 'opponentJoined' });
 
-  console.log(`✅ Room ${roomCode} now has 2 players`);
+  console.log(`✅ Room ${normalizedRoomCode} now has 2 players`);
 }
 
 function handleDeckSelect(ws, message) {
@@ -288,7 +396,17 @@ function handleAction(ws, message) {
 
   console.log(`⚔️  P${player.playerIdx + 1} action:`, message.action);
 
-  const result = executeAction(room.gameState, player.playerIdx, message.action);
+  const prepared = room.prepareAction(player, message.action);
+  if (prepared.error) {
+    send(ws, { type: 'error', message: prepared.error });
+    return;
+  }
+
+  const result = executeAction(
+    room.gameState,
+    player.playerIdx,
+    prepared.action,
+  );
   
   if (result.error) {
     send(ws, { type: 'error', message: result.error });
@@ -297,9 +415,10 @@ function handleAction(ws, message) {
 
   // Update game state
   room.gameState = result.state;
+  room.pendingAction = result.pendingAction ?? null;
 
   // Broadcast state + events to both players (include pendingAction if any)
-  room.broadcastState(result.events, result.pendingAction);
+  room.broadcastState(result.events, room.pendingAction);
 
   // Check for game over
   if (room.gameState.winner !== null) {
@@ -323,6 +442,15 @@ function handleEndTurn(ws) {
   const player = room.getPlayerData(ws);
   if (!player) {
     send(ws, { type: 'error', message: 'Player not found' });
+    return;
+  }
+
+  if (room.pendingAction) {
+    const isOwner = player.playerIdx === room.getPendingPlayerIdx();
+    send(ws, {
+      type: 'error',
+      message: isOwner ? 'Response pending' : 'Action unavailable',
+    });
     return;
   }
 
@@ -376,10 +504,35 @@ function handleLeave(ws) {
 // WEBSOCKET SERVER
 // ═══════════════════════════════════════════════════════════════
 
-const wss = new WebSocketServer({ port: PORT });
+const httpServer = createServer((request, response) => {
+  if (request.method === 'GET' && request.url === '/healthz') {
+    response.writeHead(200, {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'application/json; charset=utf-8',
+    });
+    response.end(JSON.stringify({ status: 'ok' }));
+    return;
+  }
 
-console.log(`🎮 Tiny Fangs server listening on ws://localhost:${PORT}`);
-console.log(`📊 Server started at ${new Date().toLocaleString()}`);
+  response.writeHead(404, {
+    'Content-Type': 'text/plain; charset=utf-8',
+  });
+  response.end('Not Found');
+});
+
+const wss = new WebSocketServer({ server: httpServer });
+
+httpServer.listen(PORT, () => {
+  console.log(`🎮 Tiny Fangs server listening on ws://localhost:${PORT}`);
+  console.log(`📊 Health check available at http://localhost:${PORT}/healthz`);
+  console.log(`📊 Server started at ${new Date().toLocaleString()}`);
+});
+
+httpServer.on('error', (error) => {
+  console.error('❌ HTTP server error:', error);
+  clearInterval(roomCleanupInterval);
+  process.exit(1);
+});
 
 wss.on('connection', (ws) => {
   console.log('🔌 Client connected');
@@ -427,7 +580,7 @@ wss.on('connection', (ws) => {
 });
 
 // Cleanup old rooms every 5 minutes
-setInterval(() => {
+const roomCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms.entries()) {
     if (room.isEmpty() && (now - room.createdAt) > 5 * 60 * 1000) {
@@ -436,3 +589,47 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+
+let shuttingDown = false;
+
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`🛑 ${signal} received; shutting down`);
+  clearInterval(roomCleanupInterval);
+
+  for (const client of wss.clients) {
+    client.terminate();
+  }
+
+  const forceExitTimer = setTimeout(() => {
+    console.error('❌ Server shutdown timed out');
+    process.exit(1);
+  }, 5_000);
+  forceExitTimer.unref();
+
+  wss.close((webSocketError) => {
+    if (webSocketError) {
+      clearTimeout(forceExitTimer);
+      console.error('❌ WebSocket shutdown error:', webSocketError);
+      process.exit(1);
+      return;
+    }
+
+    httpServer.close((httpError) => {
+      clearTimeout(forceExitTimer);
+      if (httpError) {
+        console.error('❌ HTTP shutdown error:', httpError);
+        process.exitCode = 1;
+        return;
+      }
+
+      console.log('✅ Tiny Fangs server stopped');
+      process.exitCode = 0;
+    });
+  });
+}
+
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));

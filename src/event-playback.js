@@ -9,8 +9,47 @@ import { sideKey } from './side-key.js';
  * @param {function} deps.log
  * @param {object} deps.VERSES
  * @param {object} deps.CREATURES
+ * @param {function} [deps.presentResult] — sole owner of terminal result
+ *   presentation. Receives the engine's `gameOver` event
+ *   (`{ winner: 'p1'|'p2'|'me'|'opp', reason }`) after the rest of the frame
+ *   has played. Omitted (multiplayer) means playback presents nothing and the
+ *   caller keeps its own terminal presentation.
  */
-export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
+export function createEventPlayback({
+  Anim,
+  log,
+  VERSES,
+  CREATURES,
+  presentResult,
+}) {
+  function resolveBenchSide(event) {
+    const side = sideKey(event.side ?? event.animKey);
+    return side === 'me' || side === 'opp' ? side : null;
+  }
+
+  function resolveBenchIndex(event) {
+    const index = event.benchIndex ?? event.benchIdx ?? event.index;
+    return Number.isInteger(index) && index >= 0 ? index : null;
+  }
+
+  function playSemanticBench(side, animations, duration) {
+    if (!side) return Promise.resolve();
+
+    // Active-shell bench container via the semantic registry; hidden
+    // duplicate trees are never animated (plan Phase 4 acceptance).
+    const container = typeof Anim.benchContainerEl === 'function'
+      ? Anim.benchContainerEl(side)
+      : null;
+    if (container && typeof Anim.play === 'function') {
+      for (const [animation, animationDuration] of animations) {
+        Anim.play(container, animation, animationDuration);
+      }
+    }
+    return typeof Anim.wait === 'function'
+      ? Anim.wait(duration)
+      : Promise.resolve();
+  }
+
   const EVENT_HANDLERS = {
     summon: (e) => {
       if (e.slot === 'bench') {
@@ -25,6 +64,18 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
       if (e.source) {
         log(`${e.source}: ${e.amount} damage`, 'dmg');
       }
+    },
+    benchDamage: (e) => {
+      const side = resolveBenchSide(e);
+      const index = resolveBenchIndex(e);
+      if (side && index !== null && typeof Anim.benchDamage === 'function') {
+        return Anim.benchDamage(side, index, e.amount);
+      }
+      return playSemanticBench(
+        side,
+        [['anim-shake', 600], ['anim-flash-red', 300]],
+        600,
+      );
     },
     lpDamage: async (e) => {
       // Prefer absolute engine side (p1/p2); fall back to client animKey
@@ -46,6 +97,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     ko: async (e) => {
       await Anim.ko(sideKey(e.side));
       log(`${e.creature} KO'd!`, 'dmg');
+    },
+    benchKo: (e) => {
+      const side = resolveBenchSide(e);
+      const index = resolveBenchIndex(e);
+      if (side && index !== null && typeof Anim.benchKo === 'function') {
+        return Anim.benchKo(side, index);
+      }
+      return playSemanticBench(side, [['anim-ko', 400]], 400);
     },
 
     heal: async (e) => {
@@ -96,14 +155,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     },
 
     setStatus: async (e) => {
-      const selector = sideKey(e.side) === 'me'
-        ? '#m-my-active .card-active, #d-opp-active .card-active'
-        : '#m-opp-active .card-active, #d-opp-active .card-active';
+      const el = typeof Anim.activeCardEl === 'function'
+        ? Anim.activeCardEl(sideKey(e.side))
+        : null;
       if (e.status === 'poison') {
-        Anim.playOn(selector, 'anim-poison', 600);
+        Anim.play(el, 'anim-poison', 600);
         log('Poisoned!', 'dmg');
       } else if (e.status === 'trapped') {
-        Anim.playOn(selector, 'anim-trapped', 600);
+        Anim.play(el, 'anim-trapped', 600);
         log('Trapped!', 'dmg');
       }
       return Anim.wait(400);
@@ -135,7 +194,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
 
     setFlag: () => Promise.resolve(),
     turnStart: () => Promise.resolve(),
-    gameOver: () => Promise.resolve(),
+    // Single result owner: every terminal path — player attack, rival attack,
+    // either side's poison/end-turn tick, either side's deck out — reaches the
+    // overlay through this one handler, because the engine emits `gameOver`
+    // for all of them and playback is the only consumer.
+    gameOver: (e) => {
+      if (typeof presentResult !== 'function') return Promise.resolve();
+      return Promise.resolve(presentResult(e));
+    },
 
     skitterSwap: () => Promise.resolve(),
     skitterDecline: () => Promise.resolve(),
@@ -143,40 +209,62 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
     triggerDeclined: () => Promise.resolve(),
   };
 
+  function getEventHandler(event) {
+    return Object.prototype.hasOwnProperty.call(EVENT_HANDLERS, event?.type)
+      ? EVENT_HANDLERS[event.type]
+      : null;
+  }
+
+  function safeEventType(event) {
+    return getEventHandler(event) ? event.type : 'unknown';
+  }
+
+  function summarizeDebugEvent(event) {
+    const amount = Number.isFinite(event?.amount) ? `(${event.amount})` : '';
+    const sourceTag = event?.source == null ? '' : '[source]';
+    return `${safeEventType(event)}${amount}${sourceTag}`;
+  }
+
+  function isDebugEnabled() {
+    return globalThis.localStorage?.getItem('tinyFangsDebug') === '1';
+  }
+
   async function playEvents(events) {
     if (!events || events.length === 0) return;
 
     for (const event of events) {
-      const handler = EVENT_HANDLERS[event.type];
+      const handler = getEventHandler(event);
       if (handler) {
         try {
           await handler(event);
-        } catch (err) {
-          console.error(`Error playing event ${event.type}:`, err);
+        } catch {
+          console.error(`Error playing event ${safeEventType(event)}`);
         }
       } else {
-        console.warn(`Unknown event type: ${event.type}`, event);
+        console.warn('Unknown event type');
       }
       await Anim.wait(50);
     }
   }
 
   async function playServerEvents(events) {
-    if (localStorage.getItem('tinyFangsDebug')) {
-      console.log('[DEBUG] Playing events:', events.map(e =>
-        `${e.type}${e.amount ? `(${e.amount})` : ''}${e.source ? `[${e.source}]` : ''}`
-      ));
+    const debugEnabled = isDebugEnabled();
+    if (debugEnabled) {
+      console.log(
+        '[DEBUG] Playing events:',
+        events.map(summarizeDebugEvent),
+      );
     }
     for (const e of events) {
-      const handler = EVENT_HANDLERS[e.type];
+      const handler = getEventHandler(e);
       if (handler) {
         try {
           await handler(e);
-        } catch (err) {
-          console.error(`Error playing event ${e.type}:`, err);
+        } catch {
+          console.error(`Error playing event ${safeEventType(e)}`);
         }
-      } else if (localStorage.getItem('tinyFangsDebug')) {
-        console.log('Unknown event:', e.type);
+      } else if (debugEnabled) {
+        console.log('[DEBUG] Unknown event type');
       }
       await Anim.wait(50);
     }

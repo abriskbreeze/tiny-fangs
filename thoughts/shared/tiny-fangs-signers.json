@@ -1,0 +1,27 @@
+{
+  "schema": "tiny-fangs.signer-registry.v1",
+  "registryRevision": 1,
+  "note": "Public keys only; private keys are held outside the repository in ~/.tiny-fangs/signing/. Entries are append-only per art bible 13.8.1; status transitions add a new registry revision.",
+  "signers": [
+    {
+      "signerId": "creator-fable-agent",
+      "displayIdentity": "Claude Fable 5 coding agent (golden-sample art author), operated for aBriskBreeze <joeking212@gmail.com>",
+      "publicKey": "yXH3CIbO+1cm78aUof5rMuYj91w8nUo6RfUd9ToEPEI=",
+      "fingerprint": "4271e16ad5eb1be757697c01c2ca79c69bf4fe2ef8f6de3db57b5cc1a9156775",
+      "roles": ["creator"],
+      "validFrom": "2026-07-28T00:00:00Z",
+      "validUntil": null,
+      "status": "active"
+    },
+    {
+      "signerId": "reviewer-fresh-agent",
+      "displayIdentity": "Independent fresh-context provenance review agent (Claude subagent with no authoring-session context), operated for aBriskBreeze <joeking212@gmail.com>",
+      "publicKey": "3hsL2hznt2p0anEKjNvYuaguyTekAwKLRAwz5GnwNWA=",
+      "fingerprint": "733b9064a8d55304c21ca3bb55c0d101e19de457f1f7ee97071a4058d52da69d",
+      "roles": ["provenance-reviewer"],
+      "validFrom": "2026-07-28T00:00:00Z",
+      "validUntil": null,
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r4",
+  "critic": 1,
+  "crops": {
+    "field-full": "A",
+    "field-opponent": "A",
+    "field-divider": "A",
+    "field-player": "A",
+    "field-hand": "A",
+    "field-corner-tl": "A",
+    "field-corner-tr": "A",
+    "field-corner-bl": "A",
+    "field-corner-br": "A",
+    "field-card-contact": "A"
+  },
+  "overall": "A",
+  "improvementsForA": [
+    "Replace the pseudo-glyph rules text with real, legible typography: every face-up card (hand fan, board creatures, the 8/12/18 card) carries decorative scribble marks instead of words, which instantly reads as unfinished concept art the moment a player looks down.",
+    "Pull back the global warm bloom/haze: the yellow wash flattens contrast across the entire midfield, overexposes the top-left corner (fence and brook dissolve into milky blur), and makes the whole render feel like it is behind frosted glass.",
+    "Resolve the detail crops at asset level: the corner-tl fence posts smear into mush, and the corner-bl foreground mass is ambiguous between a boulder and a bush at 2x; these need crisper edges and clearer material identity.",
+    "Fix the corner-tr canopy material: the sunlit tree crown reads semi-transparent where the light overlay sits on the low-poly geometry, so the tree looks ghosted instead of solid.",
+    "Strengthen the empty card-slot outlines: under the haze the faint white rectangles nearly vanish, so the playable zones on both rows are hard to read at a glance.",
+    "Unify the card frame color script: the teal-framed wisp cards jump out of the otherwise gold/parchment system; either motivate the teal as a faction color with supporting accents or bring the frames back to the warm palette."
+  ],
+  "improvementsForB": [
+    "The play surface is a flat mustard poster, not a meadow: add painted value variation, grass tufting, warm/cool patches, and dappled shadows cast from the perimeter trees so the board reads as ground rather than a UI backdrop.",
+    "Perimeter vegetation is placeholder-grade: the trees, bushes, and rocks are untextured low-poly blobs in near-uniform dark green with almost no shading gradient or contact shadow into the field (corner-tr and corner-bl are especially empty and unfinished).",
+    "The river reads as a glowing neon-cyan ribbon with an outer glow, like a UI path, not water; give it banks, depth, foam, and sun-consistent specular instead of emissive glow.",
+    "Commit to a single sun: cards drop crisp shadows to the lower-right but the scenery is lit flat/ambient, so the world and the cards do not share one light; add long warm directional shadows from every tree, rock, and fence post.",
+    "The center divider is a perfectly straight flat line with a flat diamond sitting on top of the ground; let its glow fall off onto the grass, add slight organic waver, and let scene shadows interact with it so it exists in the world.",
+    "Card fronts are pure flat vector: add subtle paper grain, edge wear, and a lighting response (soft top-light gradient) so the very readable card design also feels like a physical object in the scene."
+  ],
+  "notes": "A reads as a painted place: one warm low sun, long integrated shadows, a brook, fence, flowers, and grass texture under every card, with card stacks that visibly sink into the scene. B is far more readable (real card names and rules text, crisp edge thickness, clean shadows) but its world is a flat mustard board with placeholder low-poly blobs and a neon river, so it never reads as scenery. A's failures are finishing failures (fake glyph text, heavy bloom, blurry corners); B's failures are foundational environment-art failures, which is why A sweeps every crop and takes the overall."
+}

@@ -7,6 +7,15 @@
 // Card definitions
 export { CREATURES, VERSES, DECKS } from './cards.js';
 
+// Stable presentation identity (no browser asset metadata)
+export {
+  DERIVED_FACE_REGISTRY,
+  PRESENTATION_FACE_INVENTORY,
+  buildPresentationFaceInventory,
+  resolvePresentationFaceId,
+  stampDerivedPresentationFace
+} from './face-registry.js';
+
 // Effects system
 export { Effects, processEffects, resolveTarget, evalCondition } from './effects.js';
 

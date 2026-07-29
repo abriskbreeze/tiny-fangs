@@ -1,0 +1,641 @@
+/* Phase 8 AAA shell — stage, layers, and quiet edge rails.
+   Loaded only by aaa-shell.js; classic mode never imports this file's
+   selectors outside the [data-presentation="aaa"] gate. */
+
+:root[data-presentation="aaa"] #mobile,
+:root[data-presentation="aaa"] #desktop {
+  display: none !important;
+}
+
+:root[data-presentation="aaa"] #aaa-stage {
+  position: fixed;
+  inset: 0;
+  background: #23281f;
+  overflow: hidden;
+  z-index: 0;
+  /* Game chrome is not selectable text — dragging on the board, the rails,
+     or the count chips must not paint a document selection. Scoped to the
+     stage so the rules overlay and the setup room code stay selectable. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.aaa-frame {
+  position: absolute;
+  width: 1672px;
+  height: 941px;
+  transform-origin: 0 0;
+}
+
+.aaa-canvas { position: absolute; inset: 0; display: block; }
+
+.aaa-layer { position: absolute; inset: 0; pointer-events: none; }
+.aaa-hud-layer { pointer-events: none; }
+
+.board-card .tf-aaa-card { box-shadow: none; }
+
+.aaa-board-card--inspectable { cursor: pointer; }
+.aaa-board-card--inspectable:hover { filter: brightness(1.05); }
+
+/* Hand fan: explicit chassis size (children are absolute), raster pinned. */
+.aaa-hand-card {
+  position: absolute;
+  width: 333px;
+  height: 505px;
+  transform-origin: 50% 100%;
+  will-change: transform;
+  pointer-events: none;
+}
+.aaa-hand-card--live { pointer-events: auto; cursor: pointer; }
+.aaa-hand-card--live:hover { filter: brightness(1.06); }
+.aaa-hand-shadow {
+  position: absolute;
+  left: -26px;
+  top: -10px;
+  width: 385px;
+  height: 545px;
+  background: radial-gradient(48% 48% at 52% 54%,
+    rgba(26, 16, 8, 0.42) 0%, rgba(26, 16, 8, 0.2) 52%, rgba(26, 16, 8, 0) 72%);
+}
+
+/* ── quiet edge rails ─────────────────────────────────────────────── */
+
+.aaa-rail {
+  position: absolute;
+  pointer-events: auto;
+  font-family: 'Alegreya', Georgia, serif;
+  color: #3B2317;
+}
+
+.aaa-vitals {
+  background: linear-gradient(157deg, rgba(231, 199, 158, 0.94) 0%, rgba(220, 186, 150, 0.94) 100%);
+  border: 1.5px solid rgba(59, 35, 23, 0.55);
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 2px 3px 8px rgba(26, 16, 8, 0.35);
+  min-width: 118px;
+}
+.aaa-vitals-label {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.aaa-hearts { font-size: 22px; color: #8f2f2a; line-height: 1.15; }
+.aaa-mana { font-size: 15px; color: #277A79; letter-spacing: 0.12em; }
+.aaa-opp-hand { font-size: 12.5px; opacity: 0.8; }
+
+.aaa-rail--left { left: 18px; top: 396px; }
+.aaa-rail--top-right { right: 18px; top: 16px; }
+
+.aaa-turn-chip {
+  position: absolute;
+  right: 22px;
+  top: 396px;
+  pointer-events: none;
+  font-family: 'Alegreya', Georgia, serif;
+  font-size: 14.5px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(59, 35, 23, 0.5);
+  background: rgba(245, 215, 131, 0.92);
+  color: #3B2317;
+  box-shadow: 1px 2px 6px rgba(26, 16, 8, 0.3);
+}
+.aaa-turn-chip[data-owner="opp"] { background: rgba(220, 186, 150, 0.92); }
+
+.aaa-action-rail {
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.aaa-action {
+  font-family: 'Alegreya', Georgia, serif;
+  font-size: 15px;
+  padding: 8px 18px;
+  min-width: 128px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(59, 35, 23, 0.6);
+  background: linear-gradient(157deg, #E7C79E 0%, #CBA87E 100%);
+  color: #3B2317;
+  cursor: pointer;
+  box-shadow: 2px 3px 6px rgba(26, 16, 8, 0.35);
+}
+.aaa-action:hover:not(:disabled) { filter: brightness(1.07); }
+.aaa-action:focus-visible { outline: 3px solid #EEC34E; outline-offset: 2px; }
+.aaa-action:disabled { opacity: 0.45; cursor: default; }
+#aaa-action-end { background: linear-gradient(157deg, #EEC34E 0%, #D9A93C 100%); }
+
+.aaa-log-rail {
+  left: 18px;
+  bottom: 18px;
+  width: 300px;
+  max-height: 150px;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgba(35, 40, 31, 0.72);
+  border: 1px solid rgba(238, 195, 78, 0.35);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.aaa-log-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #DCBA96;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aaa-count-chip {
+  position: absolute;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 26px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(59, 35, 23, 0.85);
+  color: #F5D783;
+  border: 1px solid rgba(238, 195, 78, 0.5);
+}
+
+.aaa-status-rail {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.aaa-status-charm {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 7px;
+  background: rgba(59, 35, 23, 0.85);
+  color: #DCBA96;
+  border: 1px solid rgba(238, 195, 78, 0.4);
+}
+
+/* Status art (ART-SPEC §4). The three-letter text stays in the DOM — it is
+   the accessible value and what the status e2e specs read — but goes
+   transparent once a real icon is behind it. `data-asset-wired` is set by
+   image-assets.js only after the file loads, so with no art the charm is
+   byte-for-byte the lettered chip it has always been. */
+.aaa-status-charm[data-asset-wired] {
+  color: transparent;
+  background-color: transparent;
+  border-color: transparent;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Life and mana pips (ART-SPEC §5). Same contract: the ♥/♡/●/○ glyph is the
+   floor and stays in textContent, so `#aaa-my-lp` still reads '♥♥♥'. */
+.aaa-vital-token {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.aaa-vital-token[data-asset-wired] {
+  color: transparent;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
+
+/* Filled vs empty must stay legible once art replaces the glyph pair. */
+.aaa-vital-token[data-asset-wired][data-filled="false"] {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+
+/* The turn marker rides as a medallion at the chip's left edge. */
+.aaa-turn-chip[data-asset-wired] { padding-left: 34px; }
+
+/* ── Phase 9a: setup, deck select, generic modal, card detail in the AAA
+   material system. Every selector is gated by the aaa flag; classic
+   rendering is untouched. ─────────────────────────────────────────── */
+
+:root[data-presentation="aaa"] body {
+  background:
+    radial-gradient(120% 90% at 50% 8%, rgba(245, 215, 131, 0.14) 0%, rgba(245, 215, 131, 0) 55%),
+    linear-gradient(178deg, #2c332a 0%, #23281f 62%, #1c211a 100%);
+}
+
+:root[data-presentation="aaa"] .setup {
+  font-family: 'Alegreya', Georgia, serif;
+  color: #DCBA96;
+}
+:root[data-presentation="aaa"] .setup h1 {
+  color: #F5D783;
+  letter-spacing: 0.22em;
+  text-shadow: 0 2px 0 rgba(26, 16, 8, 0.65), 0 0 26px rgba(238, 195, 78, 0.35);
+}
+:root[data-presentation="aaa"] .setup .sub { color: rgba(220, 186, 150, 0.75); }
+:root[data-presentation="aaa"] .setup h2 {
+  color: #E7C79E;
+  font-family: 'Alegreya', Georgia, serif;
+  letter-spacing: 0.12em;
+}
+
+:root[data-presentation="aaa"] .mode-btn,
+:root[data-presentation="aaa"] .deck-btn,
+:root[data-presentation="aaa"] .diff-btn {
+  font-family: 'Alegreya', Georgia, serif;
+  background: linear-gradient(157deg, #E7C79E 0%, #CBA87E 100%);
+  color: #3B2317;
+  border: 1.5px solid rgba(59, 35, 23, 0.6);
+  border-radius: 12px;
+  box-shadow: 2px 3px 8px rgba(26, 16, 8, 0.45),
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55);
+}
+:root[data-presentation="aaa"] .mode-btn .desc { color: rgba(59, 35, 23, 0.72); }
+:root[data-presentation="aaa"] .mode-btn:hover,
+:root[data-presentation="aaa"] .deck-btn:hover,
+:root[data-presentation="aaa"] .diff-btn:hover {
+  filter: brightness(1.07);
+  border-color: rgba(238, 195, 78, 0.9);
+}
+:root[data-presentation="aaa"] .diff-btn.active {
+  background: linear-gradient(157deg, #EEC34E 0%, #D9A93C 100%);
+  border-color: rgba(59, 35, 23, 0.85);
+}
+:root[data-presentation="aaa"] .setup input {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(35, 40, 31, 0.85);
+  color: #F5D783;
+  border: 1.5px solid rgba(238, 195, 78, 0.5);
+  border-radius: 10px;
+}
+
+/* Generic + response modals: parchment panel, ink text, gold accents. */
+:root[data-presentation="aaa"] .modal { background: rgba(20, 24, 18, 0.66); }
+:root[data-presentation="aaa"] .modal-box {
+  font-family: 'Alegreya', Georgia, serif;
+  background:
+    repeating-conic-gradient(
+      from 0.17turn,
+      rgba(59, 35, 23, 0.04) 0deg 7deg,
+      rgba(255, 250, 238, 0.045) 7deg 13deg
+    ),
+    linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6),
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55);
+}
+:root[data-presentation="aaa"] .modal-box .title {
+  color: #3B2317;
+  border-bottom: 1.5px solid rgba(59, 35, 23, 0.35);
+  letter-spacing: 0.08em;
+}
+:root[data-presentation="aaa"] .modal-box .option {
+  background: rgba(255, 250, 238, 0.5);
+  border: 1.5px solid rgba(59, 35, 23, 0.45);
+  border-radius: 10px;
+  color: #3B2317;
+}
+:root[data-presentation="aaa"] .modal-box .option:hover:not(.off) {
+  background: rgba(245, 215, 131, 0.55);
+  border-color: rgba(59, 35, 23, 0.8);
+}
+:root[data-presentation="aaa"] .modal-box .option .name { color: #3B2317; }
+:root[data-presentation="aaa"] .modal-box .option .sub { color: rgba(59, 35, 23, 0.7); }
+:root[data-presentation="aaa"] .modal-box .option.off {
+  opacity: 0.45;
+  background: rgba(59, 35, 23, 0.08);
+}
+:root[data-presentation="aaa"] .modal-box .cancel {
+  font-family: 'Alegreya', Georgia, serif;
+  background: rgba(59, 35, 23, 0.85);
+  color: #DCBA96;
+  border: 1.5px solid rgba(238, 195, 78, 0.4);
+  border-radius: 10px;
+}
+/* Selector ownership cues survive the material change. */
+:root[data-presentation="aaa"] .modal-box .option.selector-yours {
+  border-color: rgba(238, 195, 78, 0.95);
+  background: rgba(245, 215, 131, 0.4);
+}
+:root[data-presentation="aaa"] .modal-box .option.selector-enemy {
+  border-color: rgba(106, 90, 102, 0.95);
+  background: rgba(106, 90, 102, 0.18);
+}
+
+/* Card detail modal: dim scrim; the detail panel becomes parchment. */
+:root[data-presentation="aaa"] .card-modal { background: rgba(20, 24, 18, 0.72); }
+:root[data-presentation="aaa"] .card-detail {
+  font-family: 'Alegreya', Georgia, serif;
+  background:
+    linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6);
+}
+:root[data-presentation="aaa"] .card-detail .close-btn {
+  font-family: 'Alegreya', Georgia, serif;
+  background: rgba(59, 35, 23, 0.85);
+  color: #DCBA96;
+  border: 1.5px solid rgba(238, 195, 78, 0.4);
+  border-radius: 10px;
+}
+
+/* ── Phase 9b: targeting/selected states and the timer chip ─────────── */
+
+.aaa-card--targetable {
+  filter: brightness(1.08);
+}
+.aaa-card--targetable::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 3px solid rgba(238, 195, 78, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 0 18px rgba(238, 195, 78, 0.65), inset 0 0 14px rgba(238, 195, 78, 0.3);
+  pointer-events: none;
+}
+.aaa-hand-card--selected {
+  filter: brightness(1.1);
+}
+.aaa-hand-card--selected::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3.5px solid rgba(238, 195, 78, 0.95);
+  border-radius: 26px;
+  box-shadow: 0 0 20px rgba(238, 195, 78, 0.6);
+  pointer-events: none;
+}
+
+/* Ring art (ART-SPEC §5). `data-ring-art` is set on the stage only when both
+   ring files load, so the authored border-and-glow above is the live
+   rendering until real art exists — and stays the rendering if it never
+   does. The rings must read over artwork, so nothing else changes. */
+[data-ring-art="true"] .aaa-card--targetable::after {
+  border-color: transparent;
+  box-shadow: none;
+  background-image: var(--tf-ring-target);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+[data-ring-art="true"] .aaa-hand-card--selected::after {
+  border-color: transparent;
+  box-shadow: none;
+  background-image: var(--tf-ring-selection);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.aaa-timer-chip {
+  position: absolute;
+  right: 22px;
+  top: 432px;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(238, 195, 78, 0.4);
+  background: rgba(35, 40, 31, 0.75);
+  color: #DCBA96;
+}
+
+/* Targeting mode: the scrim passes clicks to the board; the selector panel
+   docks to the right edge so highlighted targets stay visible/clickable. */
+:root[data-presentation="aaa"] .modal.aaa-targeting {
+  pointer-events: none;
+  background: rgba(20, 24, 18, 0.22);
+}
+:root[data-presentation="aaa"] .modal.aaa-targeting .modal-box {
+  pointer-events: auto;
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* ── Phase 9c: coin, reveals, result, graveyard, rules ─────────────── */
+
+.aaa-coin-overlay { perspective: 900px; }
+.aaa-coin-scene { transition: transform 0.08s ease-out; }
+.aaa-coin {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  transform-style: preserve-3d;
+}
+.aaa-coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Alegreya', Georgia, serif;
+  font-size: 84px;
+  font-weight: 700;
+  color: #3B2317;
+  backface-visibility: hidden;
+  background:
+    radial-gradient(58% 58% at 36% 32%, #F8E3A2 0%, #EEC34E 52%, #C9992F 100%);
+  border: 7px solid #A87A22;
+  box-shadow: inset 0 0 22px rgba(120, 84, 18, 0.55), 0 0 42px rgba(238, 195, 78, 0.4);
+}
+.aaa-coin-face--tails { transform: rotateY(180deg); }
+
+/* Coin art (ART-SPEC §5). The H/T letters and the gold CSS coin are the
+   floor; a loaded face covers them. `background-image` is applied by
+   image-assets.js, so the gradient below stays authoritative until then. */
+.aaa-coin-face[data-asset-wired] {
+  color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root[data-presentation="aaa"] .trigger-box {
+  font-family: 'Alegreya', Georgia, serif;
+  background:
+    repeating-conic-gradient(
+      from 0.17turn,
+      rgba(59, 35, 23, 0.04) 0deg 7deg,
+      rgba(255, 250, 238, 0.045) 7deg 13deg
+    ),
+    linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6);
+}
+:root[data-presentation="aaa"] .trigger-header { color: #8f2f2a; }
+:root[data-presentation="aaa"] .trigger-hint { color: rgba(59, 35, 23, 0.6); }
+
+:root[data-presentation="aaa"] .result {
+  font-family: 'Alegreya', Georgia, serif;
+  background: rgba(20, 24, 18, 0.85);
+}
+:root[data-presentation="aaa"] .result h2 {
+  color: #F5D783;
+  text-shadow: 0 2px 0 rgba(26, 16, 8, 0.65), 0 0 30px rgba(238, 195, 78, 0.4);
+  letter-spacing: 0.14em;
+}
+:root[data-presentation="aaa"] .result button {
+  font-family: 'Alegreya', Georgia, serif;
+  background: linear-gradient(157deg, #EEC34E 0%, #D9A93C 100%);
+  color: #3B2317;
+  border: 1.5px solid rgba(59, 35, 23, 0.7);
+  border-radius: 12px;
+  box-shadow: 2px 3px 8px rgba(26, 16, 8, 0.5);
+}
+
+:root[data-presentation="aaa"] .rules-box {
+  font-family: 'Alegreya', Georgia, serif;
+  background: linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6);
+}
+:root[data-presentation="aaa"] .rules-header {
+  color: #3B2317;
+  border-bottom: 1.5px solid rgba(59, 35, 23, 0.35);
+}
+:root[data-presentation="aaa"] .rules-content h3 { color: #6b3f14; }
+
+.aaa-count-chip--action { cursor: pointer; }
+.aaa-count-chip--action:hover { filter: brightness(1.2); }
+.aaa-count-chip--action:focus-visible { outline: 2.5px solid #EEC34E; outline-offset: 2px; }
+
+.aaa-rules-link {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  pointer-events: auto;
+  font-family: 'Alegreya', Georgia, serif;
+  font-size: 13.5px;
+  padding: 5px 14px;
+  min-height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(238, 195, 78, 0.45);
+  background: rgba(35, 40, 31, 0.75);
+  color: #DCBA96;
+  cursor: pointer;
+}
+.aaa-rules-link:hover { filter: brightness(1.15); }
+.aaa-rules-link:focus-visible { outline: 2.5px solid #EEC34E; outline-offset: 2px; }
+
+/* ── Phase 10a: uid-keyed FLIP motion ──────────────────────────────── */
+
+.aaa-flip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.aaa-flip--moving {
+  transition: transform 380ms cubic-bezier(0.22, 0.9, 0.24, 1.02);
+  will-change: transform;
+}
+.aaa-flip--exiting {
+  transition: transform 420ms cubic-bezier(0.4, 0.1, 0.6, 1), opacity 420ms linear;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aaa-flip--moving, .aaa-flip--exiting { transition: none !important; }
+}
+
+/* ── Phase 10b: reduced-motion equivalents for effect accents (AAA scope).
+   Color flashes remain (state change stays communicated); displacement
+   motion is suppressed and KO becomes a plain fade. ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-presentation="aaa"] .anim-shake { animation: none; }
+  :root[data-presentation="aaa"] .anim-pulse { animation: none; }
+  :root[data-presentation="aaa"] .anim-ko {
+    animation: none;
+    opacity: 0.25;
+    transition: opacity 200ms linear;
+  }
+}
+
+/* ── Phase 10c: pooled particles + sound chip ─────────────────────── */
+.aaa-particle-layer { pointer-events: none; z-index: 5; }
+.aaa-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.aaa-sound-chip { left: 96px; }
+
+/* ── Phase 13: render-quality override chip ───────────────────────── */
+.aaa-quality-chip { left: 204px; }
+
+/* ── Phase 14: drag-to-play (proxy + golden-quad drop zones) ──────── */
+
+/* Highlights live in their own stage layer, in frame coordinates, so they
+   scale with the board and survive a mid-drag re-render. DOM order (before
+   the card layer) keeps them seated under the cards — no z-index needed. */
+.aaa-drop-zone {
+  position: absolute;
+  pointer-events: none;
+  border: 3px dashed rgba(245, 215, 131, 0.72);
+  border-radius: 14px;
+  background: radial-gradient(60% 60% at 50% 50%,
+    rgba(245, 215, 131, 0.2) 0%, rgba(245, 215, 131, 0.05) 62%, rgba(245, 215, 131, 0) 100%);
+  box-shadow: 0 0 22px rgba(245, 215, 131, 0.28) inset;
+}
+.aaa-drop-zone--hover {
+  border-color: rgba(255, 238, 178, 0.95);
+  background: radial-gradient(62% 62% at 50% 50%,
+    rgba(255, 238, 178, 0.34) 0%, rgba(255, 238, 178, 0.12) 60%, rgba(255, 238, 178, 0) 100%);
+  box-shadow: 0 0 34px rgba(255, 238, 178, 0.45) inset;
+}
+
+/* The proxy is fixed to the viewport (outside the scaled frame) so it tracks
+   the raw pointer exactly, like the classic ghost. */
+.aaa-drag-proxy {
+  position: fixed;
+  z-index: 9999;
+  width: 333px;
+  height: 505px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(var(--aaa-drag-scale, 0.3));
+  transform-origin: 50% 50%;
+  opacity: 0.92;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.55));
+}
+.aaa-drag-proxy .tf-aaa-card { position: absolute; inset: 0; }
+/* The pick-up pop. JS withholds this class under reduced motion; the media
+   query below is the belt-and-braces half of the same contract. */
+.aaa-drag-proxy--lively {
+  animation: aaa-drag-pop 140ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes aaa-drag-pop {
+  from { transform: translate(-50%, -50%) scale(calc(var(--aaa-drag-scale, 0.3) * 0.8)); }
+  to { transform: translate(-50%, -50%) scale(var(--aaa-drag-scale, 0.3)); }
+}
+.aaa-drag-proxy.unaffordable {
+  filter: grayscale(0.85) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.5));
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aaa-drag-proxy--lively { animation: none !important; }
+}
+
+.aaa-ward-charm { display: inline-block; margin-top: 4px; }

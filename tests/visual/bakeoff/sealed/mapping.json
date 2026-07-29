@@ -1,0 +1,7 @@
+{
+  "mapping": {
+    "O": "B",
+    "P": "A"
+  },
+  "schema": "tiny-fangs.blind-mapping.v1"
+}

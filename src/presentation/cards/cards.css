@@ -1,0 +1,381 @@
+/* AAA card chassis — art bible §5 palette, §7 frame hierarchy, §8 typography.
+   Authored at the 333 × 505 unprojected chassis; other render sizes apply the
+   §7.4 per-axis transform on the caller side. Loaded only by AAA/showcase
+   surfaces — never by the classic shell. */
+
+@import url('../../fonts/alegreya.css');
+@import url('../../fonts/jetbrains-mono.css');
+
+.tf-aaa-card {
+  --tf-parchment: #DCBA96;
+  --tf-ink: #3B2317;
+  --tf-ivory-lip: #DEBB91;
+  --tf-back-navy: #372F3F;
+  --tf-filigree: #EEC34E;
+  --tf-family: #B47015; /* creature amber default */
+  --tf-family-light: color-mix(in srgb, var(--tf-family) 72%, #F5E6C8);
+  --tf-family-dark: color-mix(in srgb, var(--tf-family) 68%, #241812);
+
+  position: relative;
+  box-sizing: border-box;
+  /* §7.2 physical corner radius 5.5–7.0% of width → 21 px at 333. */
+  border-radius: 21px;
+  background:
+    /* paper luminance grain, 1–3% RMS (§7.6) */
+    repeating-conic-gradient(
+      from 0.17turn,
+      rgba(59, 35, 23, 0.05) 0deg 7deg,
+      rgba(255, 250, 238, 0.055) 7deg 13deg
+    ),
+    linear-gradient(157deg, #E7C79E 0%, var(--tf-ivory-lip) 46%, #CBA87E 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55),
+    inset -1px -1px 0 rgba(74, 52, 34, 0.35);
+  font-family: 'Alegreya', Georgia, serif;
+  color: var(--tf-ink);
+  /* A card is a prop, not a document: dragging across a face must never
+     leave a text selection behind. Prose surfaces (the rules overlay) are
+     deliberately untouched. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tf-aaa-card--cast { --tf-family: #277A79; }
+.tf-aaa-card--set { --tf-family: #6A5A66; }
+
+/* ── §7.2 frame hierarchy, outside-in ─────────────────────────────── */
+
+/* Concentric radius construction (§7.2): each layer's radius is the parent's
+   radius minus that layer's inset, so every corner stays a true offset of the
+   21 px physical corner. 21 → 15 → 13 → 3 → 1. Cumulative inset per side is
+   6 + 2 + 10 + 2 = 20 px (6.006% of 333), and the frame is opaque all the way
+   round — the art window sits 6 px further in. */
+
+.tf-aaa-card__keyline {
+  position: absolute;
+  inset: 6px; /* lip: 1.8% on every side */
+  border-radius: 15px; /* concentric: 21 − 6 */
+  background: color-mix(in srgb, var(--tf-ink) 82%, #000);
+}
+
+.tf-aaa-card__rail {
+  position: absolute;
+  inset: 2px; /* separation keyline thickness */
+  border-radius: 13px; /* concentric: 15 − 2 */
+  background:
+    /* §7.2: highlight bevel upper-left, recessed bevel lower-right, both
+       contained inside the rail width */
+    linear-gradient(
+      143deg,
+      var(--tf-family-light) 0%,
+      var(--tf-family-light) 5%,
+      var(--tf-family) 15%,
+      var(--tf-family) 82%,
+      var(--tf-family-dark) 93%,
+      var(--tf-family-dark) 100%
+    );
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 246, 226, 0.28),
+    inset -1px -1px 0 rgba(20, 14, 10, 0.4);
+}
+
+.tf-aaa-card__inner-keyline {
+  position: absolute;
+  inset: 10px; /* family rail band thickness */
+  border-radius: 3px; /* concentric: 13 − 10 */
+  background: color-mix(in srgb, var(--tf-ink) 78%, #000);
+}
+
+.tf-aaa-card__panel {
+  position: absolute;
+  inset: 2px; /* inner keyline; cumulative 20 px = 6.006% per side */
+  border-radius: 1px; /* concentric: 3 − 2 */
+  background:
+    repeating-conic-gradient(
+      from 0.61turn,
+      rgba(59, 35, 23, 0.045) 0deg 9deg,
+      rgba(255, 250, 238, 0.05) 9deg 15deg
+    ),
+    repeating-linear-gradient(
+      4deg,
+      rgba(59, 35, 23, 0.03) 0 1px, rgba(0, 0, 0, 0) 1px 3px
+    ),
+    linear-gradient(168deg, #E3C29C 0%, var(--tf-parchment) 55%, #CEAA82 100%);
+}
+
+/* ── content overlay: exact §7.4 card-local rectangles ────────────── */
+
+.tf-aaa-card__content {
+  position: absolute;
+  inset: 0;
+}
+
+.tf-aaa-card__content > div {
+  position: absolute;
+  box-sizing: border-box;
+  /* Text, medallions and the family seal composite above the frame plate.
+     The art window and the plate opt into lower layers below. */
+  z-index: 2;
+}
+
+/* ── image-backed frame plate (ART-SPEC §1) ───────────────────────────
+   An opaque frame with a transparent art aperture, laid over the art window
+   and the procedural §7.2 frame stack, beneath all text. The element is
+   always present and always empty until image-assets.js proves the file
+   loads, so a missing frame degrades to the CSS frame hierarchy with no
+   flash of a broken image and no layout change. */
+.tf-aaa-card__frame {
+  inset: 0;
+  z-index: 1;
+  border-radius: 21px; /* matches the chassis physical corner */
+  pointer-events: none;
+}
+
+/* Card back plate (ART-SPEC §2): full-bleed over the inline sigil. */
+.tf-aaa-card__back-plate {
+  inset: 0;
+  z-index: 1;
+  border-radius: 21px;
+  pointer-events: none;
+}
+
+/* Inset art window (§7.3): the authored 280 × 200 (7:5) artFocalSafe
+   rectangle, positioned by the builder from chassis-geometry. The opaque
+   frame and parchment field surround it on all four sides. */
+.tf-aaa-card__art {
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 0; /* under the frame plate's aperture */
+  background:
+    radial-gradient(
+      130% 90% at 30% 22%,
+      color-mix(in srgb, var(--tf-family-light) 55%, #F2E2BC) 0%,
+      color-mix(in srgb, var(--tf-family) 70%, #6B5432) 58%,
+      color-mix(in srgb, var(--tf-family-dark) 80%, #241812) 100%
+    );
+  /* authored art keyline: the art/frame junction is a deliberate 1.5 px
+     ink line plus inner vignette, never a raw layer edge (critic r1 P2) */
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--tf-ink) 85%, #000),
+    inset 0 0 22px rgba(36, 24, 18, 0.45);
+}
+
+.tf-aaa-card__art > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The type line now sits on the parchment shelf below the art window, so it
+   needs no opaque ground of its own — ink on parchment clears §5 rule 4. */
+.tf-aaa-card__type {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--tf-ink) 88%, var(--tf-family));
+}
+
+.tf-aaa-card__type-text {
+  display: inline-block;
+  font-size: 13px;
+  line-height: 16.25px; /* 13 × 1.25, unchanged; the 20 px band holds it */
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tf-aaa-card__nameplate {
+  border-radius: 7px;
+  background:
+    linear-gradient(173deg, #EDD3AC 0%, #E0BE95 60%, #D2AC7F 100%);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--tf-ink) 65%, transparent),
+    inset 0 1px 0 2.5px rgba(255, 246, 226, 0.5),
+    0 0 0 1.5px color-mix(in srgb, var(--tf-ink) 70%, transparent),
+    0 2px 3px rgba(36, 24, 18, 0.4);
+}
+
+/* Nameplate contract: 211 × 36 text box, 22 px / 24.5 px, 8/5 px padding,
+   one line, no compression, no ellipsis. */
+.tf-aaa-card__title {
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  width: 211px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.tf-aaa-card__title-text {
+  display: inline-block;
+  font-size: 22px;
+  line-height: 24.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.tf-aaa-card__seal {
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 36% 30%,
+      var(--tf-family-light) 0%,
+      var(--tf-family) 52%,
+      var(--tf-family-dark) 100%
+    );
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--tf-ink) 72%, transparent),
+    0 0 0 3.5px var(--tf-filigree),
+    0 1px 3px rgba(36, 24, 18, 0.5);
+}
+
+/* Fang mark inside the family seal — same twin-fang motif as the back
+   sigil, kept small enough to read as a stamp at board scale. */
+.tf-aaa-card__seal::after {
+  content: '';
+  position: absolute;
+  inset: 6px 10px 8px 10px;
+  background-color: color-mix(in srgb, #F6E8CE 88%, var(--tf-family-light));
+  clip-path: polygon(
+    18% 12%, 40% 22%, 50% 14%, 60% 22%, 82% 12%,
+    72% 46%, 58% 88%, 52% 52%, 46% 88%, 30% 46%
+  );
+}
+
+/* The approved rules box is 265 × 98: 8 px shorter than the old 250 × 106 but
+   15 px wider, which is a net win. The worst case (titanback, 77 chars) sets
+   in three lines — 67 px of ink in 90 px of content box — so 16 px / 1.4 is
+   unchanged from the old chassis. */
+.tf-aaa-card__rules {
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+.tf-aaa-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ≥4.5:1 against parchment (§5 rule 4): stay close to full ink. */
+  color: color-mix(in srgb, var(--tf-ink) 94%, var(--tf-parchment));
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+/* The approved footer band is 165 × 24, 14 px shorter than the old 165 × 38.
+   Four catalog flavors still need two lines (Whisper 38 chars, Mana Surge 38,
+   Phantom Wall 36, Blood Moon 46), and two lines only fit under a 12 px
+   leading — the old 13 px / 1.3 measured 33.8 px and overflowed by 9.8. So
+   the flavor line drops to 11.5 px on an 11.5 px leading: 2 × 11.5 = 23 px
+   inside the 24 px band. */
+.tf-aaa-card__footer-text {
+  display: inline-block;
+  font-style: italic;
+  font-size: 11.5px;
+  line-height: 11.5px;
+  text-align: center;
+}
+
+/* ── medallions: numerals in the mono face, weight 700, tabular ───── */
+
+.tf-aaa-card__medallion-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tf-ink);
+}
+
+.tf-aaa-card__cost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 30px;
+  background:
+    radial-gradient(circle at 34% 28%, #EFD8B2 0%, var(--tf-parchment) 55%, #C9A276 100%);
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--tf-ink) 75%, transparent),
+    0 0 0 4.5px var(--tf-family),
+    0 1px 3px rgba(36, 24, 18, 0.5);
+}
+
+/* Attack silhouette is edged/weapon-derived (§7.3). */
+.tf-aaa-card__attack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  clip-path: polygon(50% 0%, 93% 25%, 100% 72%, 50% 100%, 0% 72%, 7% 25%);
+  background:
+    linear-gradient(150deg, var(--tf-family-light) 0%, var(--tf-family) 55%, var(--tf-family-dark) 100%);
+}
+
+.tf-aaa-card__attack .tf-aaa-card__medallion-num,
+.tf-aaa-card__health .tf-aaa-card__medallion-num {
+  color: #F6E8CE;
+  text-shadow: 0 1px 0 rgba(36, 24, 18, 0.55);
+}
+
+/* Health silhouette is rounded/heart-derived (§7.3). */
+.tf-aaa-card__health {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  border-radius: 50% 50% 46% 46% / 58% 58% 40% 40%;
+  background:
+    radial-gradient(circle at 36% 30%, #8F4F43 0%, #6E352C 55%, #45201B 100%);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--tf-ink) 75%, transparent);
+}
+
+/* ── card back (§7.6): shared navy, fine gold line work, central sigil ── */
+
+.tf-aaa-card--back .tf-aaa-card__rail,
+.tf-aaa-card--back .tf-aaa-card__inner-keyline {
+  background: var(--tf-back-navy);
+}
+
+.tf-aaa-card--back .tf-aaa-card__panel {
+  background:
+    repeating-conic-gradient(
+      from 0.4turn,
+      rgba(238, 195, 78, 0.025) 0deg 6deg,
+      rgba(20, 16, 26, 0.03) 6deg 12deg
+    ),
+    radial-gradient(120% 120% at 50% 42%, #453B50 0%, var(--tf-back-navy) 58%, #241F2C 100%);
+}
+
+/* The inline sigil is the procedural floor; the back plate covers it. */
+.tf-aaa-card__back-sigil { z-index: 0; }
+
+.tf-aaa-card__back-sigil > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Phase 5 medallion states: ink shifts only, geometry untouched ── */
+.tf-aaa-card__health[data-damaged="true"] .tf-aaa-card__medallion-num {
+  color: #ffd9c8;
+  text-shadow: 0 0 6px rgba(143, 47, 42, 0.9);
+}
+.tf-aaa-card__attack[data-boosted="true"] .tf-aaa-card__medallion-num {
+  color: #ffe9a8;
+  text-shadow: 0 0 6px rgba(238, 195, 78, 0.9);
+}
+.tf-aaa-card__attack[data-reduced="true"] .tf-aaa-card__medallion-num {
+  color: #cfc4bd;
+}

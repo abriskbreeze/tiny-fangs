@@ -1,0 +1,37 @@
+{
+  "schema": "tiny-fangs.field-verdict.v1",
+  "revision": "field-r1",
+  "unsealedMapping": {
+    "challenger": "A",
+    "challengerCaptureSha256": "sha256:5c94313c782da2e6395fad132f0caf19a6d948b619413056c60f26cd75c8b780",
+    "reference": "B",
+    "referenceSha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+    "schema": "tiny-fangs.blind-mapping.v1",
+    "set": "field-r1"
+  },
+  "critic1": {
+    "cropWins": 0,
+    "ties": 0,
+    "overallChallenger": false,
+    "improvementsForChallenger": [
+      "Replace the abstract dark-teal polygon clumps at the field edges with resolved environment props (shaded trees, rocks, flower clusters); in every corner crop they currently read as unfinished masking shapes, not a meadow.",
+      "Remove or drastically soften the heavy dark corner vignette; it muddies the olive ground into dirty gradients and fights the 'sunlit meadow' brief instead of framing it.",
+      "Give cards physical presence: add edge thickness, a visible stacked pile for deck/grave zones, and warmer, tighter contact shadows so cards stop floating on a flat color field.",
+      "Add ground micro-detail to the play surface (grass texture, scattered petals, mow-band variation, subtle noise); the flat mustard fill between cards reads as a UI background, not terrain.",
+      "Integrate the divider into the world: let its light spill onto the ground and introduce slight organic irregularity; the current perfectly straight beam reads as a plastic strip laid over the scene."
+    ]
+  },
+  "critic2": {
+    "cropWins": 0,
+    "ties": 1,
+    "overallChallenger": false,
+    "improvementsForChallenger": [
+      "Ground the cards: add soft contact shadows and slight stack thickness under decks and creatures so they stop floating on flat color and appear to rest on the field",
+      "Replace the abstract corner polygon blobs with readable environment props; the bottom-left and bottom-right corner crops are currently illegible overlapping flat shapes with no silhouette logic",
+      "Break up the flat olive ground with texture and life: subtle grass mottling, flower clusters, or tonal variation so the play surface reads as meadow rather than a solid fill",
+      "Establish a light direction: the dark vignette currently reads as smudge; convert it into believable foliage shade with a warm sun-side gradient and consistent shadowing on props",
+      "Give the divider material presence: the bare thin line with a diamond reads as UI, not battlefield; add a soft glow, ground interaction, or embossed treatment so it belongs to the world"
+    ]
+  },
+  "gatePass": false
+}

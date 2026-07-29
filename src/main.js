@@ -1,7 +1,17 @@
     import { CREATURES, VERSES, DECKS } from './cards.js';
-    import { $, uid, state, setGame, clearGame } from './state.js';
+    import {
+      $,
+      uid,
+      state,
+      setGame,
+      clearGame,
+      readGameElapsedSeconds,
+      resetGameTimer,
+      startGameTimer,
+      stopGameTimer,
+    } from './state.js';
     import { ANIM_TIMING, Anim } from './anim.js';
-    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntries, renderLogInline, getActiveEffects } from './render.js';
+    import { hearts, manaStr, renderManaPips, renderSetVerse, renderActiveCard, renderMiniCard, renderBench, renderHandCard, renderLogEntry, renderLogInlineEntry, getActiveEffects } from './render.js';
     import { getAllMoves, scoreMove, pickBestMove, getScoredMoves } from './ai.js';
     import {
       log,
@@ -26,11 +36,28 @@
       shouldScurryTrigger,
       executeScurry
     } from './abilities.js';
+    import { isMobileViewport } from './viewport.js';
     import { executeAction as sharedExecuteAction } from '../shared/engine.js';
     import { createEventPlayback } from './event-playback.js';
     import { createSoloDispatch } from './solo-dispatch.js';
     import { createMpClient } from './mp-client.js';
     import { createSoloAi } from './solo-ai.js';
+    import { applyPresentationMode } from './presentation/presentation-mode.js';
+    import { createHtmlKeyedView, syncElementToHtml } from './presentation/dom/html-keyed-view.js';
+    import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
+    // Flag-gated presentation styling: tiny, and it dresses setup/modals/coin
+    // before any shell mounts, so it must not ride the lazy shell chunk.
+    import './presentation/aaa-shell.css';
+
+    applyPresentationMode();
+    installVisualQaContract({
+      activation: {
+        clearGame,
+        setGame,
+        showGameRoute: showVisualFixtureRoute,
+        render,
+      },
+    });
 
     // Expose Anim globally so effects.js can access it
     globalThis.Anim = Anim;
@@ -61,15 +88,21 @@
       draw: null,
       playEvents: null,
       playServerEvents: null,
+      clearGame,
+      resetGameTimer,
+      startGameTimer: () => startGameTimer(updateTimer),
+      stopGameTimer,
     };
 
     const { playEvents, playServerEvents, sideKey, EVENT_HANDLERS } = createEventPlayback({
-      Anim, log, VERSES, CREATURES
+      Anim, log, VERSES, CREATURES,
+      presentResult: presentGameOverEvent,
     });
     runtime.playEvents = playEvents;
     runtime.playServerEvents = playServerEvents;
 
-    const { dispatchLocalAction, handleLocalPendingAction } = createSoloDispatch(runtime);
+    const soloRuntime = Object.create(runtime);
+    const { dispatchLocalAction, handleLocalPendingAction } = createSoloDispatch(soloRuntime);
     runtime.dispatchLocalAction = dispatchLocalAction;
 
     const mp = createMpClient(runtime);
@@ -92,6 +125,11 @@
       runtime.render = render;
       runtime.renderLog = renderLog;
       runtime.showModal = showModal;
+      soloRuntime.showModal = (title, options, opts = {}) => showModal(
+        title,
+        options,
+        { semantic: true, noCancel: true, ...opts },
+      );
       runtime.closeModal = closeModal;
       runtime.highlightEndTurn = highlightEndTurn;
       runtime.playTurnEndAnimation = playTurnEndAnimation;
@@ -118,6 +156,7 @@
      */
     async function dispatchAction(type, params = {}) {
       if (!state.G) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
 
       // Multiplayer: validate turn and send to server
@@ -476,7 +515,41 @@
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
       const coinDisplay = document.createElement('pre');
       coinDisplay.style.cssText = 'color:var(--text);text-align:center;font-family:monospace;transition:transform 0.08s ease-out;line-height:1.2;';
-      overlay.appendChild(coinDisplay);
+      // Phase 9c: in aaa mode the same overlay/lifecycle hosts a CSS-3D gold
+      // coin instead of ASCII art; every frame delay below is unchanged, so
+      // the result timing contract (1780 ms) is byte-identical to classic.
+      const isAaaCoin = document.documentElement.dataset.presentation === 'aaa';
+      let aaaCoinScene = null;
+      let aaaCoin = null;
+      let aaaRotation = 0;
+      if (isAaaCoin) {
+        overlay.classList.add('aaa-coin-overlay');
+        aaaCoinScene = document.createElement('div');
+        aaaCoinScene.className = 'aaa-coin-scene';
+        aaaCoin = document.createElement('div');
+        aaaCoin.className = 'aaa-coin';
+        aaaCoin.innerHTML =
+          '<div class="aaa-coin-face aaa-coin-face--heads">H</div>'
+          + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
+        aaaCoinScene.appendChild(aaaCoin);
+        overlay.appendChild(aaaCoinScene);
+        // Coin art (ART-SPEC §5). Fire-and-forget on purpose: nothing below
+        // awaits this, so not one frame delay moves and the 1780 ms result
+        // contract is untouched. The H/T letters stay as the floor and go
+        // transparent only if the faces actually load.
+        import('./presentation/assets/image-assets.js')
+          .then(({ imageAssets, UI_ASSET_PATHS }) => {
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--heads'),
+              UI_ASSET_PATHS.coinHeads, { size: 'contain' });
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--tails'),
+              UI_ASSET_PATHS.coinTails, { size: 'contain' });
+          })
+          .catch(() => {});
+      } else {
+        overlay.appendChild(coinDisplay);
+      }
       document.body.appendChild(overlay);
 
       // Animation sequence: rise, spin, fall, bounce, reveal
@@ -508,14 +581,28 @@
         { art: coinSmall[result], size: 'small', delay: 400 },
       ];
 
-      // Play animation
-      for (const frame of frames) {
-        coinDisplay.textContent = frame.art;
-        coinDisplay.style.fontSize = fontSize[frame.size];
+      // Play animation (same frames/delays in both presentations)
+      const aaaScale = { small: 0.62, med: 0.85, big: 1.12 };
+      for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+        const frame = frames[frameIndex];
+        if (aaaCoin) {
+          aaaRotation += 90;
+          if (frameIndex === frames.length - 1) {
+            // Land exactly on the flipped result face.
+            aaaRotation = Math.ceil(aaaRotation / 360) * 360
+              + (result === 'tails' ? 180 : 0);
+          }
+          aaaCoin.style.transition = `transform ${frame.delay}ms ease-in-out`;
+          aaaCoin.style.transform =
+            `scale(${aaaScale[frame.size]}) rotateY(${aaaRotation}deg)`;
+        } else {
+          coinDisplay.textContent = frame.art;
+          coinDisplay.style.fontSize = fontSize[frame.size];
+        }
         if (frame.bounce) {
-          coinDisplay.style.transform = 'translateY(-20px)';
+          (aaaCoinScene ?? coinDisplay).style.transform = 'translateY(-20px)';
           await Anim.wait(60);
-          coinDisplay.style.transform = 'translateY(0)';
+          (aaaCoinScene ?? coinDisplay).style.transform = 'translateY(0)';
         }
         await Anim.wait(frame.delay);
       }
@@ -568,7 +655,41 @@
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
       const coinDisplay = document.createElement('pre');
       coinDisplay.style.cssText = 'color:var(--text);text-align:center;font-family:monospace;transition:transform 0.08s ease-out;line-height:1.2;';
-      overlay.appendChild(coinDisplay);
+      // Phase 9c: in aaa mode the same overlay/lifecycle hosts a CSS-3D gold
+      // coin instead of ASCII art; every frame delay below is unchanged, so
+      // the result timing contract (1780 ms) is byte-identical to classic.
+      const isAaaCoin = document.documentElement.dataset.presentation === 'aaa';
+      let aaaCoinScene = null;
+      let aaaCoin = null;
+      let aaaRotation = 0;
+      if (isAaaCoin) {
+        overlay.classList.add('aaa-coin-overlay');
+        aaaCoinScene = document.createElement('div');
+        aaaCoinScene.className = 'aaa-coin-scene';
+        aaaCoin = document.createElement('div');
+        aaaCoin.className = 'aaa-coin';
+        aaaCoin.innerHTML =
+          '<div class="aaa-coin-face aaa-coin-face--heads">H</div>'
+          + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
+        aaaCoinScene.appendChild(aaaCoin);
+        overlay.appendChild(aaaCoinScene);
+        // Coin art (ART-SPEC §5). Fire-and-forget on purpose: nothing below
+        // awaits this, so not one frame delay moves and the 1780 ms result
+        // contract is untouched. The H/T letters stay as the floor and go
+        // transparent only if the faces actually load.
+        import('./presentation/assets/image-assets.js')
+          .then(({ imageAssets, UI_ASSET_PATHS }) => {
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--heads'),
+              UI_ASSET_PATHS.coinHeads, { size: 'contain' });
+            imageAssets.applyBackground(
+              aaaCoin.querySelector('.aaa-coin-face--tails'),
+              UI_ASSET_PATHS.coinTails, { size: 'contain' });
+          })
+          .catch(() => {});
+      } else {
+        overlay.appendChild(coinDisplay);
+      }
       document.body.appendChild(overlay);
 
       const frames = [
@@ -678,6 +799,38 @@
       }
     }
 
+    function isDesktopBehaviorQaEnabled() {
+      return new URLSearchParams(location.search).get('behaviorQa') === '1';
+    }
+
+    function showVisualFixtureRoute(presentation = {}) {
+      $('setup').classList.add('hidden');
+      $('modal').classList.remove('open');
+      $('responseModal').classList.remove('open');
+      $('rulesModal').classList.remove('open');
+      $('cardModal').classList.remove('open');
+      $('triggerModal').classList.remove('open', 'cast', 'set', 'creature');
+      $('result').classList.remove('open', 'win', 'lose');
+      state.animating = false;
+
+      if (isDesktopBehaviorQaEnabled() && presentation.result) {
+        showResult(
+          presentation.result.outcome,
+          presentation.result.reason,
+        );
+      }
+
+      if (
+        isDesktopBehaviorQaEnabled() &&
+        presentation.response?.pendingAction
+      ) {
+        void handleLocalPendingAction(
+          presentation.response.pendingAction,
+          presentation.response.ownerSide === 'p2' ? 1 : 0,
+        );
+      }
+    }
+
     async function startGame(deckId, playerFirst = true) {
       closeModal();
 
@@ -702,8 +855,7 @@
         aiDifficulty: selectedDifficulty, // 1=Pup, 2=Hunter
       };
 
-      state.startTime = Date.now();
-      state.timerInt = setInterval(updateTimer, 1000);
+      startGameTimer(updateTimer);
 
       $('setup').classList.add('hidden');
 
@@ -738,15 +890,51 @@
 
     // Timer update function (uses ANIM_TIMING)
     function updateTimer() {
-      const s = Math.floor((Date.now() - state.startTime) / 1000);
+      const s = readGameElapsedSeconds();
       const str = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
       $('m-time').textContent = str;
       $('d-time').textContent = str;
+      // Phase 9b: the AAA timer chip mirrors the same clock.
+      const aaaTimer = document.getElementById('aaa-timer');
+      if (aaaTimer) aaaTimer.textContent = str;
     }
 
     // ═══════════════════════════════════════════════════════════════
     // RENDER
     // ═══════════════════════════════════════════════════════════════
+
+    // Phase 4: uid-keyed zone rendering. Markup still comes from the same
+    // src/render.js template strings byte-for-byte; the keyed view only
+    // preserves per-card DOM identity across re-renders so FLIP motion can
+    // key on uid. Views lazily rebind if a container node is ever replaced.
+    const keyedZoneViews = new Map(); // container id -> { container, view }
+
+    function keyedZoneView(containerId) {
+      const container = $(containerId);
+      let entry = keyedZoneViews.get(containerId);
+      if (!entry || entry.container !== container) {
+        container.innerHTML = '';
+        entry = { container, view: createHtmlKeyedView(container) };
+        keyedZoneViews.set(containerId, entry);
+      }
+      return entry.view;
+    }
+
+    // Single-slot zones addressed by element id (set verses): patch the slot
+    // node in place from the same rendered markup instead of outerHTML
+    // replacement, so anim id-selectors and captured references stay valid.
+    const setSlotApplied = new Map(); // slot id -> { node, html }
+
+    function patchSetSlot(id, verse, isPlayer) {
+      const node = $(id);
+      const html = renderSetVerse(verse, id, isPlayer);
+      const applied = setSlotApplied.get(id);
+      if (applied && applied.node === node && applied.html === html) return;
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      syncElementToHtml(node, template.content.firstElementChild);
+      setSlotApplied.set(id, { node, html });
+    }
 
     function render() {
       if (!state.G) return;
@@ -783,33 +971,51 @@
       $('m-opp-grave-slot').classList.toggle('has-grave', state.G.opp.grave.length > 0);
       $('d-set-verse').textContent = state.G.me.setVerse ? '✓' : '-';
 
-      // Set Verses
-      $('m-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'm-my-set', true);
-      $('m-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'm-opp-set', false);
-      $('d-my-set').outerHTML = renderSetVerse(state.G.me.setVerse, 'd-my-set', true);
-      $('d-opp-set').outerHTML = renderSetVerse(state.G.opp.setVerse, 'd-opp-set', false);
+      // Set Verses — patched in place (same renderSetVerse markup) so the
+      // id-addressed slot node keeps one DOM identity instead of being
+      // destroyed by outerHTML on every render.
+      patchSetSlot('m-my-set', state.G.me.setVerse, true);
+      patchSetSlot('m-opp-set', state.G.opp.setVerse, false);
+      patchSetSlot('d-my-set', state.G.me.setVerse, true);
+      patchSetSlot('d-opp-set', state.G.opp.setVerse, false);
 
       // Active creatures
       // Calculate ATK modifiers for display
       const myAtkInfo = state.G.me.active ? getAtkModifiers(state.G.me.active, state.G.me, state.G.opp) : null;
       const oppAtkInfo = state.G.opp.active ? getAtkModifiers(state.G.opp.active, state.G.opp, state.G.me) : null;
 
-      $('m-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
-      $('m-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
-      $('d-my-active').innerHTML = renderActiveCard(state.G.me.active, myAtkInfo, state.G.me);
-      $('d-opp-active').innerHTML = renderActiveCard(state.G.opp.active, oppAtkInfo, state.G.opp);
+      const activeModels = (card, atkInfo, ownerPlayer) => [
+        card
+          ? { uid: card.uid, html: renderActiveCard(card, atkInfo, ownerPlayer) }
+          : { uid: '__empty__', html: renderActiveCard(null) },
+      ];
+      keyedZoneView('m-my-active').reconcile(activeModels(state.G.me.active, myAtkInfo, state.G.me));
+      keyedZoneView('m-opp-active').reconcile(activeModels(state.G.opp.active, oppAtkInfo, state.G.opp));
+      keyedZoneView('d-my-active').reconcile(activeModels(state.G.me.active, myAtkInfo, state.G.me));
+      keyedZoneView('d-opp-active').reconcile(activeModels(state.G.opp.active, oppAtkInfo, state.G.opp));
 
-      // Bench
-      $('m-my-bench').innerHTML = renderBench(state.G.me.bench);
-      $('m-opp-bench').innerHTML = renderBench(state.G.opp.bench);
-      $('d-my-bench').innerHTML = renderBench(state.G.me.bench);
-      $('d-opp-bench').innerHTML = renderBench(state.G.opp.bench);
+      // Bench (two slots, filled or empty, exactly as renderBench composed them)
+      const benchModels = (bench) => [0, 1].map((slot) => (
+        bench[slot]
+          ? { uid: bench[slot].uid, html: renderMiniCard(bench[slot]) }
+          : { uid: `__empty-${slot}__`, html: '<div class="card-empty"></div>' }
+      ));
+      keyedZoneView('m-my-bench').reconcile(benchModels(state.G.me.bench));
+      keyedZoneView('m-opp-bench').reconcile(benchModels(state.G.opp.bench));
+      keyedZoneView('d-my-bench').reconcile(benchModels(state.G.me.bench));
+      keyedZoneView('d-opp-bench').reconcile(benchModels(state.G.opp.bench));
 
       // Hand
       $('m-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
       $('d-hand-ct').textContent = state.G.me.handCount ?? state.G.me.hand?.length ?? 0;
-      $('m-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, false, state.selectedCard)).join('');
-      $('d-hand').innerHTML = state.G.me.hand.map(c => renderHandCard(c, true, state.selectedCard)).join('');
+      keyedZoneView('m-hand').reconcile(state.G.me.hand.map(c => ({
+        uid: c.uid,
+        html: renderHandCard(c, false, state.selectedCard),
+      })));
+      keyedZoneView('d-hand').reconcile(state.G.me.hand.map(c => ({
+        uid: c.uid,
+        html: renderHandCard(c, true, state.selectedCard),
+      })));
 
       // Buttons
       updateButtons();
@@ -821,14 +1027,131 @@
 
       // Log
       renderLog();
+
+      // Phase 8: the AAA shell mirrors this exact projected state after the
+      // classic render (so its log/affordance mirrors read final DOM). It is
+      // presentation-only; on any mount failure gameplay continues classic.
+      renderAaaShell();
+    }
+
+    // ═══ Phase 8 AAA shell (behind the `aaa` presentation flag) ═══
+    let aaaShell = null;
+    // Phase 13: the shell (and three.js behind it) is code-split. Classic
+    // mode never fetches the chunk; the first aaa render kicks off a single
+    // cached import and re-renders when it lands.
+    let aaaShellModule = null;
+    let aaaShellModulePromise = null;
+
+    // Phase 13: the render-quality tier the user explicitly picked from the
+    // HUD chip this session. Null means "resolve from ?quality= / storage /
+    // capability detection" — the shell owns that precedence.
+    let aaaQuality = null;
+
+    function isAaaMode() {
+      return document.documentElement.dataset.presentation === 'aaa';
+    }
+
+    // Quality changes rebuild the shell rather than mutating it: the WebGL
+    // renderer cannot change antialiasing in place. Board state is untouched
+    // (the shell renders purely from state.G), so nothing is lost, and a
+    // `static` pick simply fails to mount and takes the RSP-07 path below.
+    function applyAaaQuality(tier) {
+      aaaQuality = tier;
+      aaaShell?.dispose?.();
+      aaaShell = null;
+      renderAaaShell();
+    }
+
+    function renderAaaShell() {
+      if (!isAaaMode() || !state.G) return;
+      if (!aaaShellModule) {
+        if (!aaaShellModulePromise) {
+          aaaShellModulePromise = import('./presentation/aaa-shell.js')
+            .then((module) => {
+              aaaShellModule = module;
+              renderAaaShell();
+            })
+            .catch((error) => {
+              // Same RSP-07 contract as a mount failure: the aaa CSS hides
+              // the classic shells, so a missing chunk must downgrade the
+              // presentation flag rather than leave a dead screen.
+              console.warn('AAA shell failed to load; staying classic', error);
+              document.documentElement.dataset.presentation = 'classic';
+              const host = document.getElementById('aaa-stage');
+              if (host) host.style.display = 'none';
+            });
+        }
+        return;
+      }
+      if (!aaaShell) {
+        aaaShell = aaaShellModule.createAaaShell({
+          quality: aaaQuality,
+          actions: {
+            doSummon, doCast, doSet, doAttack, doRetreat, endTurn,
+            showCardDetail, showGraveyard, showRules,
+            setQuality: applyAaaQuality,
+            // Drag-to-play: the shell owns the gesture, classic owns the
+            // rules. These are the SAME three functions the classic drop
+            // path uses, so shared/engine.js stays the only authority and
+            // every selection/validation modal still runs.
+            canPlayCard, getPlayType, executeDrop,
+          },
+          onError: (error) => console.warn('AAA shell error; staying classic', error),
+        });
+      }
+      const host = document.getElementById('aaa-stage');
+      if (host) host.style.display = '';
+      aaaShell.update(state.G, { selectedCard: state.selectedCard });
+      if (!aaaShell.mounted) {
+        // RSP-07: the scene failed to mount (no WebGL, context loss, or a
+        // scene error). The aaa CSS hides the classic shells, so a silent
+        // failure would leave a dead screen — downgrade the presentation
+        // flag itself so the classic renderer takes over fully.
+        document.documentElement.dataset.presentation = 'classic';
+        if (host) host.style.display = 'none';
+        aaaShell = null;
+        return;
+      }
+      // Mirror the classic affordability computation (single source of truth
+      // in updateButtons) onto the AAA action rail.
+      const mirror = [
+        ['aaa-action-summon', 'd-btn-summon'],
+        ['aaa-action-attack', 'd-btn-atk'],
+        ['aaa-action-cast', 'd-btn-cast'],
+        ['aaa-action-set', 'd-btn-set'],
+        ['aaa-action-retreat', 'd-btn-retreat'],
+        ['aaa-action-end', 'd-btn-end'],
+      ];
+      for (const [aaaId, classicId] of mirror) {
+        const target = document.getElementById(aaaId);
+        const source = document.getElementById(classicId);
+        if (target && source) target.disabled = source.disabled;
+      }
     }
 
     function renderLog() {
-      $('m-log').innerHTML = renderLogInline(state.G.log, 8);
-      $('d-log').innerHTML = renderLogEntries(state.G.log, 12);
+      // Keyed by absolute log index: entries are append-only within a game,
+      // so existing lines keep their DOM node and only new lines are created.
+      const log = state.G.log;
+      const mobileWindow = log.slice(-8);
+      const mobileStart = log.length - mobileWindow.length;
+      keyedZoneView('m-log').reconcile(mobileWindow.map((entry, i) => ({
+        uid: `log-${mobileStart + i}`,
+        html: renderLogInlineEntry(entry),
+      })));
+      // Desktop shows the full retained history, newest first (BUG-B1).
+      const desktopWindow = log.slice(-500);
+      const desktopStart = log.length - desktopWindow.length;
+      keyedZoneView('d-log').reconcile(desktopWindow.slice().reverse().map((entry, i) => ({
+        uid: `log-${desktopStart + desktopWindow.length - 1 - i}`,
+        html: renderLogEntry(entry),
+      })));
     }
 
     function updateButtons() {
+      const isTerminal =
+        state.G.winner != null &&
+        (!state.G.isVisualFixture || isDesktopBehaviorQaEnabled());
       const hasCreature = state.G.me.hand.some(c => c.cardType === 'creature');
       const hasCast = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'cast');
       const hasSet = state.G.me.hand.some(c => c.cardType === 'verse' && c.type === 'set');
@@ -839,12 +1162,12 @@
       const attackAllowed = canAttack && !state.G.hasAttacked && !state.G.hasRetreated;
       const retreatAllowed = canRetreat && !state.G.hasAttacked && !state.G.hasRetreated;
 
-      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = !hasCreature || !state.G.myTurn);
-      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = !hasCast || !state.G.myTurn);
-      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = !hasSet || state.G.me.setVerse || !state.G.myTurn);
-      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = !attackAllowed || !state.G.myTurn);
-      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = !retreatAllowed || !state.G.myTurn);
-      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = !state.G.myTurn);
+      ['m-btn-summon','d-btn-summon'].forEach(id => $(id).disabled = isTerminal || !hasCreature || !state.G.myTurn);
+      ['m-btn-cast','d-btn-cast'].forEach(id => $(id).disabled = isTerminal || !hasCast || !state.G.myTurn);
+      ['m-btn-set','d-btn-set'].forEach(id => $(id).disabled = isTerminal || !hasSet || state.G.me.setVerse || !state.G.myTurn);
+      ['m-btn-atk','d-btn-atk'].forEach(id => $(id).disabled = isTerminal || !attackAllowed || !state.G.myTurn);
+      ['m-btn-retreat','d-btn-retreat'].forEach(id => $(id).disabled = isTerminal || !retreatAllowed || !state.G.myTurn);
+      ['m-btn-end','d-btn-end'].forEach(id => $(id).disabled = isTerminal || !state.G.myTurn);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -936,7 +1259,7 @@
       }
 
       // Check if we should enter drag mode
-      if (!state.drag.active && dist > DRAG_THRESHOLD) {
+      if (!state.drag.active && dist >= DRAG_THRESHOLD) {
         // Cancel long press
         if (state.longPressTimer) {
           clearTimeout(state.longPressTimer);
@@ -966,7 +1289,7 @@
     }
 
     function isOverField(x, y) {
-      const isMobile = window.innerWidth < 900;
+      const isMobile = isMobileViewport();
       // Check if over the battlefield area (not the hand)
       const fieldEl = isMobile
         ? document.querySelector('.m-field-half.you')
@@ -981,6 +1304,14 @@
       document.removeEventListener('pointerup', onDragEnd);
       document.removeEventListener('pointercancel', onDragEnd);
 
+      const captureTarget = e.target;
+      if (
+        Number.isInteger(e.pointerId) &&
+        captureTarget?.hasPointerCapture?.(e.pointerId)
+      ) {
+        captureTarget.releasePointerCapture(e.pointerId);
+      }
+
       if (state.longPressTimer) {
         clearTimeout(state.longPressTimer);
         state.longPressTimer = null;
@@ -990,8 +1321,9 @@
         const clientX = e.clientX ?? state.drag.currentX;
         const clientY = e.clientY ?? state.drag.currentY;
 
-        // Only execute drop if affordable
-        if (state.drag.canAfford) {
+        // Cancellation is cleanup-only, even if the final coordinates are over
+        // a legal field target.
+        if (e.type !== 'pointercancel' && state.drag.canAfford) {
           const zone = detectDropZone(clientX, clientY);
           if (zone) {
             executeDrop(state.drag.card, zone);
@@ -1043,7 +1375,7 @@
     }
 
     function getFieldElement() {
-      const isMobile = window.innerWidth < 900;
+      const isMobile = isMobileViewport();
       return isMobile
         ? document.querySelector('#mobile .m-field-half.you')?.parentElement || document.querySelector('#mobile')
         : document.querySelector('.d-field');
@@ -1136,9 +1468,39 @@
       }
     }
 
+    // ── card-detail back navigation ────────────────────────────────
+    // The detail surface is opened from hand, board, own Set, and the
+    // graveyard browser. Only the graveyard needs a "back" destination, so
+    // that one caller records an explicit origin; every other entry point
+    // leaves it null and `closeCardModal` keeps its plain "just close"
+    // contract. Never a global flag — the origin is set at the exact call
+    // site that owns the return trip.
+    let cardDetailOrigin = null;
+
+    function openCardDetailFromGraveyard(uid, who) {
+      const list = $('modal-opts');
+      const scrollTop = list ? list.scrollTop : 0;
+      showCardDetail(uid); // clears cardDetailOrigin as every caller does
+      if ($('cardModal').classList.contains('open')) {
+        cardDetailOrigin = { kind: 'graveyard', who, scrollTop };
+      }
+    }
+
+    function returnToGraveyard(origin) {
+      const modal = $('modal');
+      const open = modal.classList.contains('open');
+      // The list normally stays mounted under the detail. Only rebuild it if
+      // something closed it, and never steal the slot from another modal.
+      if (open && modal.dataset.graveyardSide !== origin.who) return;
+      if (!open) showGraveyard(origin.who);
+      const list = $('modal-opts');
+      if (list) list.scrollTop = origin.scrollTop;
+    }
+
     function showSetVerseDetail() {
       const card = state.G.me.setVerse;
       if (!card) return;
+      cardDetailOrigin = null;
 
       const el = $('cardDetail');
       const triggerHtml = card.trigger ? `<div class="ability-box"><div class="ability-name">Trigger</div><div class="ability-text">${card.trigger}</div></div>` : '';
@@ -1160,6 +1522,10 @@
       // Find card
       let card = findCard(uid);
       if (!card) return;
+
+      // Default origin: the board. `openCardDetailFromGraveyard` re-arms the
+      // graveyard return immediately after this call.
+      cardDetailOrigin = null;
 
       const el = $('cardDetail');
 
@@ -1243,12 +1609,30 @@
         `;
       }
 
+      // AAA only: the detail overlay is the one surface that earns the large
+      // (1600 × 1200) derivative — the board and hand stay on thumbnails. The
+      // classic renderer keeps its ASCII art untouched. Dynamic import so the
+      // classic bundle never pulls the presentation asset map, and fail-silent
+      // throughout: no file, no image, ASCII art stays.
+      if (document.documentElement.dataset.presentation === 'aaa' && card.id) {
+        const artBox = el.querySelector('.art-box');
+        if (artBox) {
+          import('./presentation/assets/image-assets.js')
+            .then(({ imageAssets }) =>
+              imageAssets.applyCardArt(artBox, card.id, 'detail', { flag: 'artWired' }))
+            .catch(() => {});
+        }
+      }
+
       $('cardModal').classList.add('open');
     }
 
     function closeCardModal(e, force) {
       if (force || e.target === $('cardModal')) {
         $('cardModal').classList.remove('open');
+        const origin = cardDetailOrigin;
+        cardDetailOrigin = null;
+        if (origin?.kind === 'graveyard') returnToGraveyard(origin);
       }
     }
 
@@ -1307,6 +1691,7 @@
     // ═══════════════════════════════════════════════════════════════
 
     function doSummon() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       const creatures = state.G.me.hand.filter(c => c.cardType === 'creature');
       if (!creatures.length) return;
@@ -1339,6 +1724,7 @@
     }
 
     function doCast() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       const casts = state.G.me.hand.filter(c => c.cardType === 'verse' && c.type === 'cast');
       console.log('🎯 doCast - cast verses in hand:', casts.map(c => ({ name: c.name, selection: c.selection })));
@@ -1424,7 +1810,7 @@
               name: opt.creature.name,
               sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
               action: () => { window._modalOnClose = null; closeModal(); resolve({ type: 'own', uid: opt.creature.uid }); }
-            })), { onClose: resolve });
+            })), { onClose: resolve, semantic: true });
           });
           if (!selection) return;
         } else if (sel.location === 'board' && sel.filter === 'any') {
@@ -1462,7 +1848,7 @@
             name: creature.name,
             sub: `${creature.hp} HP / ${creature.atk} ATK • Cost ${creature.cost}`,
             action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: creature.uid }); }
-          })), { onClose: resolve });
+          })), { onClose: resolve, semantic: true });
         });
       }
       
@@ -1485,7 +1871,7 @@
             name: opt.creature.name,
             sub: `${opt.creature.curHp}/${opt.creature.hp} HP • ${opt.location}`,
             action: () => { window._modalOnClose = null; closeModal(); resolve({ uid: opt.creature.uid }); }
-          })), { onClose: resolve });
+          })), { onClose: resolve, semantic: true });
         });
       }
       
@@ -1500,6 +1886,7 @@
     }
 
     function doSet() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return; // Block during animations
       if (state.G.me.setVerse) {
         log('Already have a set verse!');
@@ -1533,6 +1920,7 @@
     // Wrapper
     async function doAttack() {
       if (!state.G) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
       if (state.G.actionLock) return;
       if (!state.G.me.active) return;
@@ -1566,6 +1954,7 @@
 
     // Shows modal to pick bench creature, then dispatches action
     function doRetreat() {
+      if (!state.G || state.G.winner != null) return;
       if (state.animating) return;
       if (!state.G.me.active || !state.G.me.bench.length) return;
 
@@ -1601,7 +1990,7 @@
     // Wrapper
     async function endTurn() {
       if (!state.G) return;
-      if (state.G.winner) return;
+      if (state.G.winner != null) return;
       if (state.animating) return;
       await dispatchAction('endTurn', {});
     }
@@ -1616,6 +2005,17 @@
       // AI's mana increment/refill, AI's draw
       const result = await dispatchLocalAction({ type: 'endTurn' });
       if (result.error) return;
+
+      if (state.G.winner != null) {
+        const playerWon = state.G.winner === 'You' || state.G.winner === 0;
+        const loser = playerWon ? state.G.opp : state.G.me;
+        const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
+        state.G.winner = playerWon ? 'You' : 'Rival';
+        // The engine's `gameOver` already reached the presenter during this
+        // dispatch; the guarded funnel is the safety net, not a second owner.
+        presentTerminalResult(playerWon, reason);
+        return;
+      }
 
       // Mark that AI setup was done by shared engine (mana refilled, card drawn)
       state.G._aiSetupDone = true;
@@ -1652,7 +2052,7 @@
         // Deck out - player loses
         log('Deck out!', 'dmg');
         state.G.winner = player === state.G.me ? 'Rival' : 'You';
-        showResult(state.G.winner === 'You');
+        presentTerminalResult(state.G.winner === 'You', 'Deck out');
       }
     }
 
@@ -1677,7 +2077,9 @@
       }
       if (result.winner) {
         state.G.winner = result.winner;
-        showResult(result.winner === 'You');
+        const loser = result.winner === 'You' ? state.G.opp : state.G.me;
+        const reason = loser.deck?.length === 0 ? 'Deck out' : 'LP depleted';
+        presentTerminalResult(result.winner === 'You', reason);
       }
     }
 
@@ -1691,8 +2093,10 @@
       $('modal-title').textContent = title;
       // For graveyard modals, add hold-to-zoom handlers
       if (opts.graveyard) {
+        // A plain click opens the same detail the 400 ms hold opens; the hold
+        // stays as the touch affordance (INP-06/INP-08/OVR-02).
         $('modal-opts').innerHTML = options.map((o, i) => `
-          <div class="option" data-uid="${o.uid || ''}" onpointerdown="graveCardPress('${o.uid}', '${opts.player}')" onpointerup="graveCardRelease()" onpointerleave="graveCardRelease()">
+          <div class="option" data-uid="${o.uid || ''}" onpointerdown="graveCardPress('${o.uid}', '${opts.player}')" onpointerup="graveCardRelease()" onpointerleave="graveCardRelease()" onclick="graveCardClick('${o.uid}', '${opts.player}')">
             <div class="name">${o.name}</div>
             <div class="sub">${o.sub}</div>
           </div>
@@ -1708,6 +2112,18 @@
       window._modalActions = options.map(o => o.action);
       // Store onClose callback for Close button
       window._modalOnClose = opts.onClose || null;
+      $('modal').dataset.escapeDismiss = opts.semantic ? 'false' : 'true';
+      // Only the graveyard browser dismisses on a backdrop click. Decision
+      // modals (targets, Optional, Skitter) must never resolve by accident,
+      // so they keep their explicit-choice contract (OVR-01/05/06/08).
+      if (opts.graveyard || opts.backdropDismiss) {
+        $('modal').dataset.backdropDismiss = 'true';
+        if (opts.graveyard) $('modal').dataset.graveyardSide = opts.player;
+        else delete $('modal').dataset.graveyardSide;
+      } else {
+        delete $('modal').dataset.backdropDismiss;
+        delete $('modal').dataset.graveyardSide;
+      }
       // Hide cancel button if noCancel option is set
       const cancelBtn = $('modal').querySelector('.cancel');
       if (cancelBtn) cancelBtn.style.display = opts.noCancel ? 'none' : '';
@@ -1715,17 +2131,41 @@
     }
 
     function modalAction(i) {
-      if (window._modalActions && window._modalActions[i]) {
+      if (
+        $('modal').classList.contains('open') &&
+        window._modalActions &&
+        window._modalActions[i]
+      ) {
         window._modalActions[i]();
       }
     }
 
+    // Phase 9b: presentation-only board targeting highlights. The selector
+    // modal remains the resolution authority; a highlighted AAA card click
+    // routes through the SAME option action (exactly-once by construction).
+    function aaaSetTargetHighlights(uids) {
+      const stage = document.getElementById('aaa-stage');
+      if (!stage) return;
+      const wanted = new Set(uids ?? []);
+      for (const node of stage.querySelectorAll('[data-uid]')) {
+        node.classList.toggle('aaa-card--targetable', wanted.has(node.dataset.uid));
+      }
+      // Targeting mode docks the selector panel aside and lets the scrim
+      // pass clicks through, so highlighted board cards are physically
+      // clickable (the panel remains the keyboard/list path).
+      $('modal').classList.toggle('aaa-targeting', Boolean(uids && uids.length));
+      if (!uids || !uids.length) window._aaaTargetPick = null;
+    }
+
     function closeModal() {
       $('modal').classList.remove('open');
+      window._modalActions = null;
+      aaaSetTargetHighlights(null);
       // Call onClose callback if set (for selection modals to resolve with null)
       if (window._modalOnClose) {
-        window._modalOnClose(null);
+        const onClose = window._modalOnClose;
         window._modalOnClose = null;
+        onClose(null);
       }
     }
 
@@ -1795,7 +2235,13 @@
         return null;
       }
 
-      // Show selector modal with ownership styling
+      // Show selector modal with ownership styling; mirror the legal
+      // targets onto the AAA board as clickable highlights.
+      aaaSetTargetHighlights(options.map((opt) => opt.creature.uid));
+      window._aaaTargetPick = (uid) => {
+        const index = options.findIndex((opt) => opt.creature.uid === uid);
+        if (index >= 0) creatureSelectorAction(index);
+      };
       return new Promise(resolve => {
         $('modal-title').textContent = prompt;
         $('modal-opts').innerHTML = options.map((opt, i) => `
@@ -1814,11 +2260,13 @@
             resolve(null);
           };
         }
+        $('modal').dataset.escapeDismiss = 'false';
         $('modal').classList.add('open');
       });
     }
 
     function creatureSelectorAction(i) {
+      aaaSetTargetHighlights(null);
       if (window._creatureSelectorOptions && window._creatureSelectorOptions[i]) {
         const opt = window._creatureSelectorOptions[i];
         closeModal();
@@ -1907,10 +2355,51 @@
       $('responseModal').classList.remove('open');
     }
 
-    function showResult(win) {
-      clearInterval(state.timerInt);
-      $('result').classList.add('open', win ? 'win' : 'lose');
-      $('result-text').textContent = win ? '[ VICTORY ]' : '[ DEFEAT ]';
+    function showResult(outcome, reason = '') {
+      const win = outcome === true || outcome === 'victory';
+      const normalizedReason = String(reason).toLowerCase();
+      const deckOut = normalizedReason.includes('deck');
+      const result = $('result');
+      stopGameTimer();
+      result.classList.remove('win', 'lose');
+      result.classList.add('open', win ? 'win' : 'lose');
+      result.dataset.outcome = win ? 'victory' : 'defeat';
+      result.dataset.reason = deckOut ? 'deck-out' : normalizedReason;
+      $('result-text').textContent = deckOut
+        ? win
+          ? '[ VICTORY — DECK OUT ]'
+          : '[ DEFEAT — DECK OUT ]'
+        : win
+          ? '[ VICTORY ]'
+          : '[ DEFEAT ]';
+    }
+
+    /**
+     * Solo result owner for the engine's `gameOver` event.
+     *
+     * Injected into `createEventPlayback` so terminal presentation happens
+     * exactly once, at the end of the frame that ended the match, no matter
+     * which side acted. Multiplayer keeps its own `showGameOver` modal, so
+     * this presenter stands down while a networked match is mounted.
+     */
+    function presentGameOverEvent(event) {
+      if (state.G?.isMultiplayer) return;
+      if ($('result').classList.contains('open')) return;
+      presentTerminalResult(sideKey(event?.winner) === 'me', event?.reason);
+    }
+
+    /**
+     * The one place the terminal overlay opens. First terminal state wins:
+     * an already-open result is never re-decided by a later event.
+     */
+    function presentTerminalResult(win, reason = '') {
+      if ($('result').classList.contains('open')) return;
+      showResult(win, reason);
+    }
+
+    function restartGame(navigate = () => location.reload()) {
+      clearGame();
+      navigate();
     }
 
     function showRules() {
@@ -1927,11 +2416,13 @@
       const title = who === 'me' ? 'Your Graveyard' : "Rival's Graveyard";
 
       if (player.grave.length === 0) {
+        // Empty view keeps the same dismissal affordance as the list — there
+        // are no entries, so it deliberately skips the graveyard markup.
         showModal(title, [{
           name: 'Empty',
           sub: 'No cards in graveyard',
           action: () => closeModal()
-        }]);
+        }], { backdropDismiss: true });
         return;
       }
 
@@ -2149,12 +2640,17 @@
 
     // Graveyard card zoom
     let graveZoomTimer = null;
+    let graveHoldFired = false;
     function graveCardPress(uid, who) {
       if (!uid) return;
+      graveHoldFired = false;
       graveZoomTimer = setTimeout(() => {
         const player = who === 'me' ? state.G.me : state.G.opp;
         const card = player.grave.find(c => c.uid === uid);
-        if (card) showCardDetail(uid);
+        if (card) {
+          graveHoldFired = true;
+          openCardDetailFromGraveyard(uid, who);
+        }
       }, 400);
     }
     function graveCardRelease() {
@@ -2163,8 +2659,42 @@
         graveZoomTimer = null;
       }
     }
+    // Plain click: the fast path to the same detail. When the hold already
+    // fired during this press the trailing click is swallowed so one press
+    // never opens the detail twice.
+    function graveCardClick(uid, who) {
+      graveCardRelease();
+      if (graveHoldFired) {
+        graveHoldFired = false;
+        return;
+      }
+      if (!uid) return;
+      const player = who === 'me' ? state.G.me : state.G.opp;
+      if (!player?.grave.some(c => c.uid === uid)) return;
+      openCardDetailFromGraveyard(uid, who);
+    }
     window.graveCardPress = graveCardPress;
     window.graveCardRelease = graveCardRelease;
+    window.graveCardClick = graveCardClick;
+
+    // Backdrop dismissal is opt-in per modal (graveyard only). Clicking
+    // outside the graveyard browser closes the whole stack, detail included.
+    $('modal').addEventListener('click', (e) => {
+      if (e.target !== $('modal')) return;
+      if ($('modal').dataset.backdropDismiss !== 'true') return;
+      cardDetailOrigin = null;
+      $('cardModal').classList.remove('open');
+      closeModal();
+    });
+
+    // Generated card and grave markup binds release/leave handlers directly.
+    // A platform cancellation may bypass those element handlers, so keep one
+    // document-level cleanup path for every hold interaction.
+    document.addEventListener('pointercancel', () => {
+      cardRelease();
+      setVerseRelease();
+      graveCardRelease();
+    });
 
     function toggleMenu() {
       alert('Menu: Coming soon!');
@@ -2174,25 +2704,73 @@
     // KEYBOARD
     // ═══════════════════════════════════════════════════════════════
 
-    // Dismiss trigger modal on any keypress
+    function isEditableKeyboardTarget(target) {
+      if (!(target instanceof Element)) return false;
+      return target.matches('input, textarea, select, [contenteditable="true"]');
+    }
+
+    function hasBlockingKeyboardOverlay() {
+      return [
+        'modal',
+        'responseModal',
+        'rulesModal',
+        'cardModal',
+        'triggerModal',
+        'result',
+      ].some(id => $(id)?.classList.contains('open'));
+    }
+
+    function dismissKeyboardOverlay() {
+      if ($('triggerModal').classList.contains('open')) {
+        dismissTriggerReveal();
+        return true;
+      }
+      if ($('cardModal').classList.contains('open')) {
+        closeCardModal(new Event('keydown'), true);
+        return true;
+      }
+      if ($('rulesModal').classList.contains('open')) {
+        closeRules();
+        return true;
+      }
+      if (
+        $('modal').classList.contains('open') &&
+        $('modal').dataset.escapeDismiss !== 'false'
+      ) {
+        closeModal();
+        return true;
+      }
+      return false;
+    }
+
     document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'escape' && dismissKeyboardOverlay()) {
+        e.preventDefault();
+        return;
+      }
       if ($('triggerModal').classList.contains('open')) {
         dismissTriggerReveal();
         e.preventDefault();
         return;
       }
-    });
+      if (isEditableKeyboardTarget(e.target)) return;
+      if (
+        !state.G ||
+        state.G.winner != null ||
+        !state.G.myTurn ||
+        state.animating ||
+        hasBlockingKeyboardOverlay()
+      ) {
+        return;
+      }
 
-    document.addEventListener('keydown', e => {
-      if (!state.G || state.G.winner || !state.G.myTurn) return;
-      const k = e.key.toLowerCase();
       if (k === 's') doSummon();
       else if (k === 'c') doCast();
       else if (k === 't') doSet();
       else if (k === 'a') doAttack();
       else if (k === 'r') doRetreat();
       else if (k === 'e') endTurn();
-      else if (k === 'escape') closeModal();
       // Debug: test animations with number keys
       else if (e.ctrlKey && k === '1') { Anim.attack('me', 'opp', 30); log('TEST: attack'); }
       else if (e.ctrlKey && k === '2') { Anim.damage('me', 20); log('TEST: damage'); }
@@ -2257,3 +2835,25 @@
     // Initialize hold buttons
     setupHoldButton(document.getElementById('m-btn-end'));
     setupHoldButton(document.getElementById('d-btn-end'));
+
+    const playAgainButton = $('result-restart')
+      ?? document.querySelector('#result button');
+    playAgainButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      restartGame();
+    }, true);
+
+    if (
+      globalThis.__TINY_FANGS_VISUAL_QA__ &&
+      isDesktopBehaviorQaEnabled()
+    ) {
+      globalThis.__TINY_FANGS_DESKTOP_BEHAVIOR_QA__ = Object.freeze({
+        handleLocalPendingAction,
+        hasGame: () => state.G !== null,
+        restartGame,
+        showModal,
+        showResult,
+        showTargetSelection,
+      });
+    }

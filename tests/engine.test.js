@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   summon,
   castVerse,
+  setVerse,
+  endTurn,
   attack,
   respondOptionalTrigger,
   executeAction,
@@ -9,6 +11,8 @@ import {
   mkCreature,
   mkVerse
 } from '../shared/engine.js';
+import { CREATURES } from '../shared/cards.js';
+import { resolvePresentationFaceId } from '../shared/face-registry.js';
 import { createCreature, createVerse } from '../src/game.js';
 
 function createTestState() {
@@ -198,6 +202,20 @@ describe('summon action', () => {
     // Soul Trap should still be set (not triggered/consumed)
     expect(state.players[0].setVerse).toBe(soulTrap);
     expect(state.players[0].grave).not.toContain(soulTrap);
+  });
+});
+
+describe('setVerse action privacy', () => {
+  it('emits an identity-free placement event', () => {
+    const state = createTestState();
+    const verse = mkVerse('brace');
+    state.players[0].hand.push(verse);
+
+    const result = setVerse(state, 0, verse.uid);
+
+    expect(result.error).toBeUndefined();
+    expect(result.events).toStrictEqual([{ type: 'setVerse', side: 'p1' }]);
+    expect(state.players[0].setVerse).toBe(verse);
   });
 });
 
@@ -622,6 +640,49 @@ describe('endTurn poison (solo parity)', () => {
     expect(poisonEvents).toHaveLength(1);
     expect(poisonEvents[0].amount).toBe(10);
     expect(state.players[0].active.curHp).toBe(20);
+  });
+});
+
+describe('Broodmother endTurn presentation identity', () => {
+  it('stamps Antling identity without changing its Hiveling-derived gameplay behavior', () => {
+    const state = createTestState();
+    state.players[0].active = mkCreature('broodmother');
+    state.players[1].deck = [mkCreature('whisper')];
+
+    const result = endTurn(state, 0);
+    const antling = state.players[0].bench[0];
+
+    expect(antling).toStrictEqual({
+      ...CREATURES.hiveling,
+      name: 'Antling',
+      hp: 10,
+      curHp: 10,
+      atk: 10,
+      cardType: 'creature',
+      status: null,
+      uid: expect.any(String),
+      firstAtk: true,
+      summonedThisTurn: false,
+      presentationFaceId: 'antling'
+    });
+    expect(resolvePresentationFaceId(antling)).toBe('antling');
+    expect(result.events).toStrictEqual([
+      {
+        type: 'abilityTrigger',
+        side: 'p1',
+        creature: 'Broodmother',
+        ability: 'Spawn'
+      },
+      {
+        type: 'summon',
+        side: 'p1',
+        creature: 'Antling',
+        slot: 'bench'
+      },
+      { type: 'manaGain', side: 'p2' },
+      { type: 'draw', count: 1 },
+      { type: 'turnStart', yourTurn: false }
+    ]);
   });
 });
 
