@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-29 04:50 EDT  
+**Last updated:** 2026-07-29 05:25 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -565,7 +565,8 @@ Evidence:
 - **ACCOMPLISHED (2026-07-29): Task 44 — perimeter props and all three §12 environment rows green.** Authored low-poly trees/shrubs/rocks/fence/river/flowers per the §4.3 envelopes with seeded scatter and a props-only ID mask: frame extents 10.5–11.2% per side (10–15), quiet zone 0.03% prop share, zero intrusion into any golden card envelope; deep-left palette improved to ΔE 1.41 via calibrated shrubs, divider rows unchanged. Two authored-mask fixes from the calibration loop (flowers out of the divider detection window; measured-region shrub colors). 5 meadow gates, 23/23 visual, 601/601 units. Handoff: task-44-meadow-props.md.
 - **ACCOMPLISHED (2026-07-29): Task 45 — zone decals/slot marks green.** All twelve camera-lock anchor footprints carry engraved outlines + rune diamonds painted at the §4.1 band; a real color-math defect was fixed at root (the band is a linear-luminance ratio; sRGB×1.25 measured 1.37–1.62, gamma-adjusted painting lands 1.157–1.247 across all anchors). New per-anchor metric + spec gate; 6 meadow gates, 24/24 visual, 601/601 units. Handoff: task-45-meadow-slots.md.
 - **ACCOMPLISHED (2026-07-29): Task 46 — seeded ambient motion + static fallback.** Canopy sway, dust motes, fireflies, and river shimmer as pure functions of time (renderAt(t) byte-reproducible; t=0 settled frame keeps every prior gate); reduced-motion holds the settled frame (gated via media emulation); the real 3840×2160 settled render now fills the environment/meadow-backdrop manifest slot (205KB WebP). 7 meadow gates, 25/25 visual, 601/601 units. Handoff: task-46-meadow-motion-fallback.md.
-- Remaining: canopy silhouette polish, populated-board capture + blind comparison vs R2 (Phase 7 exit gate).
+- **ACCOMPLISHED (2026-07-29): Task 47 — canopy silhouette polish.** Clustered flattened icosahedron lobes replace cones (organic silhouettes under the locked pitch); re-densified the three rows the change nudged; all 7 meadow gates green (extents 10.3–11.1%, slots 1.157–1.247, palette 0/0/3.43). 25/25 visual, 601/601 units. Handoff: task-47-canopy-polish.md.
+- Remaining: populated-board harness (DOM cards homography-composited at the golden quadrilaterals over the live meadow, midgame fixture) + deterministic capture, then the blind comparison vs R2 with two fresh critics (Phase 7 exit gate).
 
 ### Task 43 — Placeholder Assets at Exact Sizes (User Direction 2026-07-29)
 

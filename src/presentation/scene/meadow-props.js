@@ -29,7 +29,9 @@ function basic(color) {
   return new THREE.MeshBasicMaterial({ color });
 }
 
-// A tree: 2–3 stacked cones over a short trunk, slightly sheared.
+// A tree: an organic canopy mass of clustered flattened icosahedra over a
+// short trunk — clusters read as soft lobed silhouettes under the steep
+// camera pitch, where single cones flatten into hexagons.
 function tree(rng, scale) {
   const group = new THREE.Group();
   const trunk = new THREE.Mesh(
@@ -38,19 +40,23 @@ function tree(rng, scale) {
   );
   trunk.position.y = 20 * scale;
   group.add(trunk);
-  const layers = 2 + Math.floor(rng() * 2);
-  for (let i = 0; i < layers; i++) {
-    const radius = (52 - i * 12) * scale * (0.9 + rng() * 0.2);
-    const height = 58 * scale * (0.9 + rng() * 0.2);
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(radius, height, 6),
+  const lobes = 4 + Math.floor(rng() * 3);
+  for (let i = 0; i < lobes; i++) {
+    const radius = (30 + rng() * 22) * scale;
+    const lobe = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(radius, 0),
       new THREE.MeshBasicMaterial({
         color: jitterColor(rng() < 0.3 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
       }),
     );
-    cone.position.y = (34 + i * 34) * scale;
-    cone.rotation.y = rng() * Math.PI;
-    group.add(cone);
+    lobe.scale.y = 0.7 + rng() * 0.2;
+    lobe.position.set(
+      (rng() - 0.5) * 52 * scale,
+      (48 + rng() * 40) * scale,
+      (rng() - 0.5) * 44 * scale,
+    );
+    lobe.rotation.set(rng() * Math.PI, rng() * Math.PI, 0);
+    group.add(lobe);
   }
   return group;
 }
@@ -182,16 +188,18 @@ export function buildMeadowProps({ rng, screenToGround }) {
   const shrub = (scale, fixedColor = null) => {
     const group = new THREE.Group();
     for (let i = 0; i < 3; i++) {
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(48 * scale * (0.8 + rng() * 0.4), 42 * scale, 6),
+      const lobe = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(34 * scale * (0.8 + rng() * 0.4), 0),
         new THREE.MeshBasicMaterial({
           color: fixedColor
             ? jitterColor(fixedColor, rng, 0.03)
             : jitterColor(rng() < 0.35 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
         }),
       );
-      cone.position.set((rng() - 0.5) * 40 * scale, 14 * scale, (rng() - 0.5) * 30 * scale);
-      group.add(cone);
+      lobe.scale.y = 0.6 + rng() * 0.2;
+      lobe.position.set((rng() - 0.5) * 44 * scale, 15 * scale, (rng() - 0.5) * 34 * scale);
+      lobe.rotation.set(rng() * Math.PI, rng() * Math.PI, 0);
+      group.add(lobe);
     }
     return group;
   };
@@ -217,7 +225,7 @@ export function buildMeadowProps({ rng, screenToGround }) {
     [260, 60, 1.3], [480, 52, 1.2], [700, 64, 1.3], [940, 50, 1.2],
     [1160, 62, 1.3], [1360, 56, 1.4],
     [240, 886, 1.2], [420, 902, 1.1], [1300, 894, 1.2], [1460, 880, 1.3],
-    [98, 470, 1.3], [58, 250, 1.2], [1552, 300, 1.4], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
+    [98, 470, 1.3], [58, 250, 1.2], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
     [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2],
   ]) {
     place(DEEP_LEFT.test(sx, sy) ? shrub(s, DEEP_LEFT.color) : shrub(s), sx, sy);
