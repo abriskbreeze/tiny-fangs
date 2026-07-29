@@ -14,7 +14,9 @@
     /* will-change promotes each hand card to its own compositing layer at
        first paint, pinning the compositor's raster scale — without it the
        scaled/rotated subtree re-rasters nondeterministically under load. */
-    .hand-card-aaa { position: absolute; transform-origin: 50% 100%; will-change: transform; }
+    /* Explicit chassis size: every child is absolutely positioned, so without
+       it the wrapper collapses to 0x0 and the transform-origin breaks. */
+    .hand-card-aaa { position: absolute; width: 333px; height: 505px; transform-origin: 50% 100%; will-change: transform; }
   </style>
 </head>
 <body>

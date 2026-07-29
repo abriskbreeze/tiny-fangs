@@ -9,7 +9,9 @@
 
 import * as THREE from 'three';
 import { createCameraCandidate } from './graybox-scene.js';
-import { buildMeadowProps } from './meadow-props.js';
+import {
+  buildMeadowProps, FENCE_RUN, ROCK_ANCHORS, SHRUB_ANCHORS, TREE_ANCHORS,
+} from './meadow-props.js';
 
 export const MEADOW_SEED = 0x7f4a11;
 
@@ -119,7 +121,7 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   // (left/right beyond ~13%, top beyond ~16%, corners), painted as blurred
   // strokes along the projected edge lines.
   ctx.filter = 'blur(34px)';
-  ctx.globalAlpha = 0.62;
+  ctx.globalAlpha = 0.72;
   ctx.fillStyle = '#3A5449'; /* toward R2's measured foliage median */
   const edgeQuad = (cornerA, cornerB, innerA, innerB) => {
     const a = toTexture(...cornerA);
@@ -146,6 +148,49 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
   ctx.globalAlpha = 1;
   ctx.filter = 'none';
 
+  // Field r3: every prop casts a grounded shadow under the single warm key
+  // (light from upper-left => shadows fall down-right, dx:dy = 0.78:0.55).
+  // Positions come from the exported authored anchors; a separate seeded rng
+  // keeps the shared scene stream untouched.
+  {
+    const shadowRng = mulberry32(0x51ade7);
+    const softEllipse = (sx, sy, rx, ry, alpha, tint = '44, 56, 40') => {
+      const at = toTexture(sx, sy);
+      const rtx = rx * texturePerScreenPx;
+      const rty = ry * texturePerScreenPx;
+      ctx.save();
+      ctx.translate(at.x, at.y);
+      ctx.scale(1, rty / rtx);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rtx);
+      g.addColorStop(0, `rgba(${tint}, ${alpha})`);
+      g.addColorStop(0.62, `rgba(${tint}, ${alpha * 0.55})`);
+      g.addColorStop(1, `rgba(${tint}, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(-rtx, -rtx, rtx * 2, rtx * 2);
+      ctx.restore();
+    };
+    for (const [sx, sy, s] of TREE_ANCHORS) {
+      const wobble = 0.9 + shadowRng() * 0.2;
+      softEllipse(sx + 12 * s, sy + 8 * s, 30 * s * wobble, 14 * s, 0.27);
+      softEllipse(sx + 34 * s, sy + 22 * s, 42 * s * wobble, 15 * s, 0.13);
+    }
+    for (const [sx, sy, s] of SHRUB_ANCHORS) {
+      softEllipse(sx + 9 * s, sy + 6 * s, 25 * s * (0.85 + shadowRng() * 0.3), 11 * s, 0.22);
+    }
+    for (const [sx, sy, s] of ROCK_ANCHORS) {
+      softEllipse(sx + 8 * s, sy + 5 * s, 19 * s, 9 * s, 0.2);
+    }
+    {
+      const [from, to] = FENCE_RUN;
+      for (let i = 0; i < 5; i++) {
+        const t = i / 4;
+        const sx = from[0] + (to[0] - from[0]) * t;
+        const sy = from[1] + (to[1] - from[1]) * t;
+        softEllipse(sx + 10, sy + 7, 12, 4.5, 0.2);
+      }
+    }
+  }
+
   // Field r2: the divider's light bleeds into the grass — a soft warm wash
   // painted INTO the terrain along the divider row with seeded edge flecks,
   // kept below the 0.55 core-luminance threshold so band metrics hold.
@@ -159,10 +204,26 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
     gradient.addColorStop(0.5, 'rgba(245, 215, 131, 0.28)');
     gradient.addColorStop(1, 'rgba(245, 215, 131, 0)');
     ctx.fillStyle = gradient;
-    // wash in two spans, skipping the diamond window
+    // wash in irregular seeded segments (r3: organic falloff, not a strip),
+    // skipping the diamond window
     const gapHalf = 100 * texturePerScreenPx;
-    ctx.fillRect(left.x, mid.y - bleedHeight, (mid.x - gapHalf) - left.x, bleedHeight * 2);
-    ctx.fillRect(mid.x + gapHalf, mid.y - bleedHeight, right.x - (mid.x + gapHalf), bleedHeight * 2);
+    const spans = [
+      [left.x, mid.x - gapHalf],
+      [mid.x + gapHalf, right.x],
+    ];
+    for (const [x0, x1] of spans) {
+      const segments = 26;
+      const segmentWidth = (x1 - x0) / segments;
+      for (let i = 0; i < segments; i++) {
+        ctx.globalAlpha = 0.55 + rng() * 0.45;
+        const hScale = 0.7 + rng() * 0.6;
+        ctx.fillRect(
+          x0 + i * segmentWidth, mid.y - bleedHeight * hScale,
+          segmentWidth + 1, bleedHeight * 2 * hScale,
+        );
+      }
+    }
+    ctx.globalAlpha = 1;
     for (let i = 0; i < 60; i++) {
       let fx = left.x + rng() * (right.x - left.x);
       // keep flecks clear of the diamond's measurement window
@@ -232,24 +293,93 @@ function paintMeadowTexture(rng, camera, span, slotQuads) {
       [650, 620, 870, 715],
     ];
     ctx.lineCap = 'round';
-    for (let i = 0; i < 2600; i++) {
+    // r3: stroke width/alpha/length raised until the weave survives the
+    // full-field view (r2's strokes were sub-visible at 1x).
+    for (let i = 0; i < 3200; i++) {
       const sx = 150 + rng() * 1372;
       const sy = 120 + rng() * 760;
       if (quiet.some(([l, t, r, b]) => sx > l && sx < r && sy > t && sy < b)) continue;
       if (sy > 380 && sy < 450) continue; // divider band stays clean
       const at = toTexture(sx, sy);
-      const len = (3 + rng() * 5) * texturePerScreenPx;
-      const angle = -1.35 + (rng() - 0.5) * 0.5;
+      const len = (4 + rng() * 6) * texturePerScreenPx;
+      const angle = -1.35 + (rng() - 0.5) * 0.55;
       const tone = rng();
       ctx.strokeStyle = tone < 0.5
-        ? `rgba(145, 135, 81, ${0.10 + rng() * 0.10})`
-        : `rgba(222, 210, 120, ${0.08 + rng() * 0.10})`;
-      ctx.lineWidth = Math.max(1, 0.9 * texturePerScreenPx);
+        ? `rgba(138, 128, 74, ${0.14 + rng() * 0.14})`
+        : `rgba(228, 216, 126, ${0.12 + rng() * 0.14})`;
+      ctx.lineWidth = Math.max(1.4, 1.4 * texturePerScreenPx);
       ctx.beginPath();
       ctx.moveTo(at.x, at.y);
       ctx.lineTo(at.x + Math.cos(angle) * len, at.y + Math.sin(angle) * len);
       ctx.stroke();
     }
+    // r3 painted flower speckles: warm cream/gold and sparse lavender dots
+    // with darker cores, outside the quiet rects, divider window, and slot
+    // footprints, so the open field reads as meadow rather than fill.
+    const slotBoxes = slotQuads
+      ? Object.values(slotQuads).map((quad) => {
+        const cs = (quad.face ?? quad);
+        const xs = cs.map((c) => c[0]);
+        const ys = cs.map((c) => c[1]);
+        return [Math.min(...xs) - 8, Math.min(...ys) - 8,
+          Math.max(...xs) + 8, Math.max(...ys) + 8];
+      })
+      : [];
+    for (let i = 0; i < 120; i++) {
+      const sx = 160 + rng() * 1352;
+      const sy = 130 + rng() * 740;
+      const petal = rng();
+      const radius = (1.6 + rng() * 1.7) * texturePerScreenPx;
+      if (quiet.some(([l, t, r, b]) => sx > l && sx < r && sy > t && sy < b)) continue;
+      if (sy > 365 && sy < 465) continue;
+      if (slotBoxes.some(([l, t, r, b]) => sx > l && sx < r && sy > t && sy < b)) continue;
+      const at = toTexture(sx, sy);
+      ctx.fillStyle = petal < 0.55
+        ? 'rgba(238, 216, 146, 0.85)'
+        : petal < 0.8 ? 'rgba(244, 232, 200, 0.8)' : 'rgba(206, 178, 200, 0.75)';
+      ctx.beginPath();
+      ctx.arc(at.x, at.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(150, 108, 38, 0.7)';
+      ctx.beginPath();
+      ctx.arc(at.x, at.y, radius * 0.36, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // r3 mow-band variation: broad alternating bands parallel to the divider,
+  // a few percent of luminance, so the open field has macro structure.
+  {
+    const bandAnchor = toTexture(836, 414);
+    const bandStep = 92 * texturePerScreenPx;
+    ctx.save();
+    ctx.translate(bandAnchor.x, bandAnchor.y);
+    ctx.rotate(-0.045);
+    for (let band = -8; band <= 8; band++) {
+      if (band === 0) continue; // divider row stays clean
+      ctx.fillStyle = band % 2 === 0
+        ? 'rgba(255, 244, 190, 0.045)'
+        : 'rgba(96, 92, 50, 0.04)';
+      ctx.fillRect(-size, band * bandStep - bandStep / 2, size * 2, bandStep);
+    }
+    ctx.restore();
+  }
+
+  // r3 golden-hour grade: one warm wash from the sun's corner (upper-left)
+  // and a faint cool settle in the far lower-right, tying ground and props
+  // to the expressed key light.
+  {
+    const warm = ctx.createLinearGradient(0, 0, size * 0.8, size * 0.62);
+    warm.addColorStop(0, 'rgba(246, 208, 122, 0.11)');
+    warm.addColorStop(0.55, 'rgba(246, 208, 122, 0.035)');
+    warm.addColorStop(1, 'rgba(246, 208, 122, 0)');
+    ctx.fillStyle = warm;
+    ctx.fillRect(0, 0, size, size);
+    const cool = ctx.createLinearGradient(size, size, size * 0.55, size * 0.55);
+    cool.addColorStop(0, 'rgba(64, 76, 96, 0.055)');
+    cool.addColorStop(1, 'rgba(64, 76, 96, 0)');
+    ctx.fillStyle = cool;
+    ctx.fillRect(0, 0, size, size);
   }
 
   // Micro grain, kept under 3% luminance RMS centrally (§4.3 grass rule).
@@ -382,12 +512,12 @@ export function buildMeadowScene(renderer, { propsOnly = false, slotQuads = null
   // plus cool ambient fill. Intensities calibrated so a mid-facing lit
   // surface renders near its authored color (terrain is unlit/baked and
   // unaffected).
-  const key = new THREE.DirectionalLight(0xfff0d2, 0.85);
+  const key = new THREE.DirectionalLight(0xfff0d2, 1.0);
   key.position.set(-700, 950, -420);
   key.target.position.set(0, 0, 0);
   scene.add(key);
   scene.add(key.target);
-  scene.add(new THREE.AmbientLight(0xd8dccc, 0.55));
+  scene.add(new THREE.AmbientLight(0xd8dccc, 0.5));
 
   if (propsOnly) {
     // §6.1-style ID mask: props alone on a white ground/background.

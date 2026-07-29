@@ -7,11 +7,15 @@
 
 import * as THREE from 'three';
 
-const FOLIAGE = 0x334b42;
+// Field r3: foliage albedo lifted far out of near-black into lit mid-greens
+// (critic-verified: r2 canopies rendered as unlit black clumps). Three tones
+// give species-readable value separation under the single warm key.
+const FOLIAGE = 0x4d7350;
+const CANOPY_LIT = 0x74a05e;
 const SUNLIT_FOLIAGE = 0x918751;
-const TRUNK = 0x5a3e28;
-const ROCK = 0x57604f;
-const ROCK_LIT = 0x6b7458;
+const TRUNK = 0x6b4a30;
+const ROCK = 0x6a705c;
+const ROCK_LIT = 0x8a8f74;
 const FENCE = 0x967648;
 const WATER = 0x4a7a8c;
 const WATER_LIT = 0x8fd8cb;
@@ -54,7 +58,11 @@ function tree(rng, scale) {
     const lobe = new THREE.Mesh(
       new THREE.IcosahedronGeometry(radius, 0),
       new THREE.MeshLambertMaterial({
-        color: jitterColor(rng() < 0.3 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
+        color: jitterColor(
+          (() => { const pick = rng();
+            return pick < 0.3 ? SUNLIT_FOLIAGE : pick < 0.62 ? CANOPY_LIT : FOLIAGE; })(),
+          rng,
+        ),
         flatShading: true,
       }),
     );
@@ -120,28 +128,57 @@ function fenceRun(from, to, rng) {
   return group;
 }
 
-// River: a flat curved ribbon hugging a corner, water inside the outer band.
+// River (field r3): banked stream — dark mud outer band, light sand inner
+// edge, softened water, and a dashed sheen with sparkle highlights instead
+// of one hard cyan ribbon ("masking-tape strip" per both r2 critics).
+const BANK_MUD = 0x54492f;
+const BANK_SAND = 0xc9b689;
 function riverRibbon(points, width) {
   const group = new THREE.Group();
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i];
     const b = points[i + 1];
     const length = a.distanceTo(b);
-    const segment = new THREE.Mesh(
-      new THREE.PlaneGeometry(length * 1.1, width),
-      basic(WATER),
-    );
-    segment.rotation.x = -Math.PI / 2;
-    segment.rotation.z = -Math.atan2(b.z - a.z, b.x - a.x);
-    segment.position.set((a.x + b.x) / 2, 0.6, (a.z + b.z) / 2);
-    group.add(segment);
-    const sheen = new THREE.Mesh(
-      new THREE.PlaneGeometry(length * 1.05, width * 0.35),
-      basic(WATER_LIT),
-    );
-    sheen.rotation.copy(segment.rotation);
-    sheen.position.set(segment.position.x, 0.7, segment.position.z);
-    group.add(sheen);
+    const angle = -Math.atan2(b.z - a.z, b.x - a.x);
+    const mx = (a.x + b.x) / 2;
+    const mz = (a.z + b.z) / 2;
+    const strip = (stripWidth, y, color, lengthScale = 1.1) => {
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(length * lengthScale, stripWidth),
+        basic(color),
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotation.z = angle;
+      mesh.position.set(mx, y, mz);
+      group.add(mesh);
+      return mesh;
+    };
+    strip(width * 1.55, 0.4, BANK_MUD, 1.16);
+    strip(width * 1.18, 0.5, BANK_SAND, 1.12);
+    strip(width, 0.6, WATER);
+    // Dashed sheen: three short bright dashes per segment, not a solid band.
+    for (const [t, dashLength, offset] of [
+      [0.22, 0.16, -0.12], [0.55, 0.2, 0.1], [0.82, 0.13, -0.06],
+    ]) {
+      const dash = new THREE.Mesh(
+        new THREE.PlaneGeometry(length * dashLength, width * 0.22),
+        basic(WATER_LIT),
+      );
+      dash.rotation.x = -Math.PI / 2;
+      dash.rotation.z = angle;
+      dash.position.set(
+        a.x + (b.x - a.x) * t, 0.7,
+        a.z + (b.z - a.z) * t + offset * width,
+      );
+      group.add(dash);
+      const sparkle = new THREE.Mesh(
+        new THREE.PlaneGeometry(length * 0.035, width * 0.08),
+        basic(0xf6f1dc),
+      );
+      sparkle.rotation.copy(dash.rotation);
+      sparkle.position.set(dash.position.x, 0.8, dash.position.z);
+      group.add(sparkle);
+    }
   }
   return group;
 }
@@ -167,6 +204,42 @@ function flower(rng) {
   return group;
 }
 
+// Authored placement anchors, exported so the terrain painter can cast a
+// grounded shadow for every prop under the same sun without consuming the
+// scene's shared rng stream.
+export const TREE_ANCHORS = [
+  [1560, 60, 2.4], [1636, 130, 2.0], [1478, 34, 1.7], [1652, 40, 1.8],
+  [90, 856, 2.6], [200, 912, 2.0], [30, 780, 2.2], [10, 900, 1.8],
+  [1640, 470, 1.9], [1664, 560, 1.6], [1656, 630, 1.4],
+];
+export const SHRUB_ANCHORS = [
+  // left band (kept off the divider rows handled by rocks there)
+  [30, 120, 1.5], [64, 220, 1.3], [24, 320, 1.6], [40, 560, 1.4],
+  [70, 660, 1.2], [26, 720, 1.5],
+  // right band
+  [1640, 210, 1.5], [1610, 300, 1.3], [1650, 360, 1.4], [1636, 700, 1.5],
+  [1600, 760, 1.2],
+  // top band
+  [340, 24, 1.4], [560, 16, 1.2], [780, 26, 1.5], [1020, 18, 1.3],
+  [1240, 28, 1.4], [120, 30, 1.6],
+  // bottom corners
+  [320, 916, 1.5], [1380, 918, 1.4],
+  // inner rows deepening each band toward the 10-15% frame reading
+  [104, 150, 1.3], [96, 340, 1.4], [104, 610, 1.2], [90, 740, 1.3],
+  [1566, 240, 1.3], [1580, 330, 1.2], [1560, 720, 1.3], [1590, 640, 1.1],
+  [260, 60, 1.3], [480, 52, 1.2], [700, 64, 1.3], [940, 50, 1.2],
+  [1160, 62, 1.3], [1360, 56, 1.4],
+  [240, 886, 1.2], [420, 902, 1.1], [1300, 894, 1.2], [1460, 880, 1.3],
+  [98, 470, 1.3], [58, 250, 1.2], [116, 300, 1.2], [118, 430, 1.1], [1546, 460, 1.1], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [700, 40, 1.4], [1080, 44, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
+  [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2],
+];
+export const ROCK_ANCHORS = [
+  [60, 420, 1.2], [96, 500, 0.9],
+  [1622, 640, 1.1],
+  [130, 906, 1.4], [1568, 890, 1.5], [1500, 926, 1.0],
+];
+export const FENCE_RUN = [[120, 168], [285, 96]];
+
 /**
  * Build the full §4.3 prop layout. `screenToGround` comes from the meadow
  * scene so every envelope is authored in canonical 1672 × 941 screen space.
@@ -185,11 +258,7 @@ export function buildMeadowProps({ rng, screenToGround }) {
 
   // Trees — canopy masses top-right, bottom-left, extreme right-middle
   // (§4.3); no canopy center inside x 0.15–0.85 & y 0.18–0.74.
-  for (const [sx, sy, s] of [
-    [1560, 60, 2.4], [1636, 130, 2.0], [1478, 34, 1.7], [1652, 40, 1.8],
-    [90, 856, 2.6], [200, 912, 2.0], [30, 780, 2.2], [10, 900, 1.8],
-    [1640, 470, 1.9], [1664, 560, 1.6], [1656, 630, 1.4],
-  ]) {
+  for (const [sx, sy, s] of TREE_ANCHORS) {
     place(tree(rng, s), sx, sy);
   }
 
@@ -203,7 +272,11 @@ export function buildMeadowProps({ rng, screenToGround }) {
         new THREE.MeshLambertMaterial({
           color: fixedColor
             ? jitterColor(fixedColor, rng, 0.03)
-            : jitterColor(rng() < 0.35 ? SUNLIT_FOLIAGE : FOLIAGE, rng),
+            : jitterColor(
+              (() => { const pick = rng();
+                return pick < 0.35 ? SUNLIT_FOLIAGE : pick < 0.68 ? CANOPY_LIT : FOLIAGE; })(),
+              rng,
+            ),
           flatShading: true,
         }),
       );
@@ -217,43 +290,19 @@ export function buildMeadowProps({ rng, screenToGround }) {
   // The deep-left foliage rectangle (screen 20-130, 550-720) is a measured
   // §12 palette region: shrubs inside it are calibrated to R2's foliage
   // median rather than the jittered mix.
-  const DEEP_LEFT = { color: 0x82b39d, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
-  for (const [sx, sy, s] of [
-    // left band (kept off the divider rows handled by rocks there)
-    [30, 120, 1.5], [64, 220, 1.3], [24, 320, 1.6], [40, 560, 1.4],
-    [70, 660, 1.2], [26, 720, 1.5],
-    // right band
-    [1640, 210, 1.5], [1610, 300, 1.3], [1650, 360, 1.4], [1636, 700, 1.5],
-    [1600, 760, 1.2],
-    // top band
-    [340, 24, 1.4], [560, 16, 1.2], [780, 26, 1.5], [1020, 18, 1.3],
-    [1240, 28, 1.4], [120, 30, 1.6],
-    // bottom corners
-    [320, 916, 1.5], [1380, 918, 1.4],
-    // inner rows deepening each band toward the 10-15% frame reading
-    [104, 150, 1.3], [96, 340, 1.4], [104, 610, 1.2], [90, 740, 1.3],
-    [1566, 240, 1.3], [1580, 330, 1.2], [1560, 720, 1.3], [1590, 640, 1.1],
-    [260, 60, 1.3], [480, 52, 1.2], [700, 64, 1.3], [940, 50, 1.2],
-    [1160, 62, 1.3], [1360, 56, 1.4],
-    [240, 886, 1.2], [420, 902, 1.1], [1300, 894, 1.2], [1460, 880, 1.3],
-    [98, 470, 1.3], [58, 250, 1.2], [1552, 300, 1.4], [1540, 500, 1.2], [1536, 170, 1.3], [1544, 800, 1.2], [520, 46, 1.3], [700, 40, 1.4], [1080, 44, 1.3], [860, 44, 1.3], [1300, 48, 1.2], [1548, 700, 1.3], [1590, 420, 1.1], [1586, 540, 1.1],
-    [560, 890, 1.2], [1120, 888, 1.2], [180, 870, 1.3], [1420, 862, 1.2],
-  ]) {
+  const DEEP_LEFT = { color: 0x6fa598, test: (sx, sy) => sx < 170 && sy > 520 && sy < 780 };
+  for (const [sx, sy, s] of SHRUB_ANCHORS) {
     place(DEEP_LEFT.test(sx, sy) ? shrub(s, DEEP_LEFT.color) : shrub(s), sx, sy);
   }
 
   // Rocks — left-middle, right-middle, both foreground corners.
-  for (const [sx, sy, s] of [
-    [60, 420, 1.2], [96, 500, 0.9],
-    [1622, 640, 1.1],
-    [130, 906, 1.4], [1568, 890, 1.5], [1500, 926, 1.0],
-  ]) {
+  for (const [sx, sy, s] of ROCK_ANCHORS) {
     place(rock(rng, s), sx, sy);
   }
 
   // Fence — primary run x 105–290, y 82–175, angled 8–18°.
   props.add(fenceRun(
-    screenToGround(120, 168), screenToGround(285, 96), rng,
+    screenToGround(...FENCE_RUN[0]), screenToGround(...FENCE_RUN[1]), rng,
   ));
 
   // River — enters top-left envelope, exits bottom-right envelope; visible

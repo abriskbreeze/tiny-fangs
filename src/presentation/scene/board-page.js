@@ -56,27 +56,55 @@ function addShadow(layer, corners) {
   const top = Math.min(...ys);
   const width = Math.max(...xs) - left;
   const height = Math.max(...ys) - top;
-  // Field r2: tighter, warmer contact shadow with a hint of warm light
-  // spill on the key side.
-  const shadow = document.createElement('div');
-  shadow.className = 'card-shadow';
-  const pad = 16;
-  shadow.style.left = `${left - pad + 7}px`;
-  shadow.style.top = `${top - pad + 11}px`;
-  shadow.style.width = `${width + pad * 2}px`;
-  shadow.style.height = `${height + pad * 2}px`;
-  shadow.style.background =
-    'radial-gradient(52% 52% at 48% 46%, rgba(26,16,8,0.5) 0%, rgba(26,16,8,0.26) 52%, rgba(26,16,8,0) 74%)';
-  layer.appendChild(shadow);
+  // Field r3: DIRECTIONAL grounded shadow under the scene's single sun
+  // (upper-left key => shadow offset down-right), replacing r2's centered
+  // halo. A tight dark core at the contact edge plus a longer soft tail.
+  const pad = 14;
+  const core = document.createElement('div');
+  core.className = 'card-shadow';
+  core.style.left = `${left - pad + 15}px`;
+  core.style.top = `${top - pad + 21}px`;
+  core.style.width = `${width + pad * 2}px`;
+  core.style.height = `${height + pad * 2}px`;
+  core.style.background =
+    'radial-gradient(50% 50% at 46% 44%, rgba(26,16,8,0.52) 0%, rgba(26,16,8,0.3) 50%, rgba(26,16,8,0) 72%)';
+  layer.appendChild(core);
+  const tail = document.createElement('div');
+  tail.className = 'card-shadow';
+  tail.style.left = `${left - pad + 34}px`;
+  tail.style.top = `${top - pad + 44}px`;
+  tail.style.width = `${width + pad * 2 + 26}px`;
+  tail.style.height = `${height + pad * 2}px`;
+  tail.style.background =
+    'radial-gradient(52% 48% at 50% 48%, rgba(30,22,10,0.2) 0%, rgba(30,22,10,0) 68%)';
+  layer.appendChild(tail);
   const spill = document.createElement('div');
   spill.className = 'card-shadow';
-  spill.style.left = `${left - pad - 6}px`;
-  spill.style.top = `${top - pad - 8}px`;
+  spill.style.left = `${left - pad - 9}px`;
+  spill.style.top = `${top - pad - 11}px`;
   spill.style.width = `${width + pad * 2}px`;
   spill.style.height = `${height + pad * 2}px`;
   spill.style.background =
-    'radial-gradient(46% 46% at 42% 38%, rgba(245,215,131,0.14) 0%, rgba(245,215,131,0) 70%)';
+    'radial-gradient(44% 44% at 40% 36%, rgba(245,215,131,0.15) 0%, rgba(245,215,131,0) 68%)';
   layer.appendChild(spill);
+}
+
+// Field r3 card stock: even stepped extrusion toward the shadow side so
+// every card reads as thick paper, and deck/grave piles read as real stacks.
+function addCardStock(wrapper, isStack) {
+  const steps = isStack
+    ? [[9.6, 13.2, '#8F7355'], [6.4, 8.8, '#CBA87E'], [3.2, 4.4, '#8F7355'], [1.4, 1.9, '#C4A47A']]
+    : [[3.4, 4.6, '#8F7355'], [2.2, 3.0, '#B99977'], [1.1, 1.5, '#C4A47A']];
+  for (const [dx, dy, tint] of steps) {
+    const slab = document.createElement('div');
+    slab.style.position = 'absolute';
+    slab.style.width = '333px';
+    slab.style.height = '505px';
+    slab.style.borderRadius = '21px';
+    slab.style.background = `linear-gradient(150deg, ${tint} 0%, #9A7D5F 100%)`;
+    slab.style.transform = `translate(${dx}px, ${dy}px)`;
+    wrapper.appendChild(slab);
+  }
 }
 
 async function main() {
@@ -110,21 +138,7 @@ async function main() {
     const wrapper = document.createElement('div');
     wrapper.className = 'board-card';
     wrapper.dataset.anchor = anchorId;
-    // Field r2 card physicality: an edge-thickness slab behind every card,
-    // and stacked underlayers for deck/grave piles.
-    const underlayers = STACK_ANCHORS.has(anchorId) ? 3 : 1;
-    for (let i = underlayers; i >= 1; i--) {
-      const slab = document.createElement('div');
-      slab.style.position = 'absolute';
-      slab.style.width = '333px';
-      slab.style.height = '505px';
-      slab.style.borderRadius = '21px';
-      slab.style.background = i === 1
-        ? 'linear-gradient(150deg, #B99977 0%, #9A7D5F 100%)'
-        : 'linear-gradient(150deg, #CBA87E 0%, #B08F6C 100%)';
-      slab.style.transform = `translate(${i * 3.2}px, ${i * 4.4}px)`;
-      wrapper.appendChild(slab);
-    }
+    addCardStock(wrapper, STACK_ANCHORS.has(anchorId));
     const card = buildCardFace(faceModel(spec));
     card.style.position = 'absolute';
     wrapper.appendChild(card);
@@ -144,8 +158,22 @@ async function main() {
     const wrapper = document.createElement('div');
     wrapper.className = 'hand-card-aaa';
     wrapper.dataset.hand = entry.id;
+    // r3: directional ground shadow + card-stock edge inside the scaled
+    // wrapper, so hand cards sit on the meadow like the board cards.
+    const handShadow = document.createElement('div');
+    handShadow.style.position = 'absolute';
+    handShadow.style.left = '-26px';
+    handShadow.style.top = '-10px';
+    handShadow.style.width = '385px';
+    handShadow.style.height = '545px';
+    handShadow.style.background =
+      'radial-gradient(48% 48% at 52% 54%, rgba(26,16,8,0.42) 0%, rgba(26,16,8,0.2) 52%, rgba(26,16,8,0) 72%)';
+    handShadow.style.transform = 'translate(20px, 30px)';
+    wrapper.appendChild(handShadow);
+    addCardStock(wrapper, false);
     const source = VERSES[entry.id];
     const card = buildCardFace(normalizeFaceModel(source, entry.kind));
+    card.style.position = 'absolute';
     wrapper.appendChild(card);
     // transform-origin 50% 100% pins the UNTRANSFORMED bottom-center, so
     // offsets use the unscaled chassis box.
