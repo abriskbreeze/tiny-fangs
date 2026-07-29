@@ -178,3 +178,133 @@
   color: #DCBA96;
   border: 1px solid rgba(238, 195, 78, 0.4);
 }
+
+/* ── Phase 9a: setup, deck select, generic modal, card detail in the AAA
+   material system. Every selector is gated by the aaa flag; classic
+   rendering is untouched. ─────────────────────────────────────────── */
+
+:root[data-presentation="aaa"] body {
+  background:
+    radial-gradient(120% 90% at 50% 8%, rgba(245, 215, 131, 0.14) 0%, rgba(245, 215, 131, 0) 55%),
+    linear-gradient(178deg, #2c332a 0%, #23281f 62%, #1c211a 100%);
+}
+
+:root[data-presentation="aaa"] .setup {
+  font-family: 'Alegreya', Georgia, serif;
+  color: #DCBA96;
+}
+:root[data-presentation="aaa"] .setup h1 {
+  color: #F5D783;
+  letter-spacing: 0.22em;
+  text-shadow: 0 2px 0 rgba(26, 16, 8, 0.65), 0 0 26px rgba(238, 195, 78, 0.35);
+}
+:root[data-presentation="aaa"] .setup .sub { color: rgba(220, 186, 150, 0.75); }
+:root[data-presentation="aaa"] .setup h2 {
+  color: #E7C79E;
+  font-family: 'Alegreya', Georgia, serif;
+  letter-spacing: 0.12em;
+}
+
+:root[data-presentation="aaa"] .mode-btn,
+:root[data-presentation="aaa"] .deck-btn,
+:root[data-presentation="aaa"] .diff-btn {
+  font-family: 'Alegreya', Georgia, serif;
+  background: linear-gradient(157deg, #E7C79E 0%, #CBA87E 100%);
+  color: #3B2317;
+  border: 1.5px solid rgba(59, 35, 23, 0.6);
+  border-radius: 12px;
+  box-shadow: 2px 3px 8px rgba(26, 16, 8, 0.45),
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55);
+}
+:root[data-presentation="aaa"] .mode-btn .desc { color: rgba(59, 35, 23, 0.72); }
+:root[data-presentation="aaa"] .mode-btn:hover,
+:root[data-presentation="aaa"] .deck-btn:hover,
+:root[data-presentation="aaa"] .diff-btn:hover {
+  filter: brightness(1.07);
+  border-color: rgba(238, 195, 78, 0.9);
+}
+:root[data-presentation="aaa"] .diff-btn.active {
+  background: linear-gradient(157deg, #EEC34E 0%, #D9A93C 100%);
+  border-color: rgba(59, 35, 23, 0.85);
+}
+:root[data-presentation="aaa"] .setup input {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(35, 40, 31, 0.85);
+  color: #F5D783;
+  border: 1.5px solid rgba(238, 195, 78, 0.5);
+  border-radius: 10px;
+}
+
+/* Generic + response modals: parchment panel, ink text, gold accents. */
+:root[data-presentation="aaa"] .modal { background: rgba(20, 24, 18, 0.66); }
+:root[data-presentation="aaa"] .modal-box {
+  font-family: 'Alegreya', Georgia, serif;
+  background:
+    repeating-conic-gradient(
+      from 0.17turn,
+      rgba(59, 35, 23, 0.04) 0deg 7deg,
+      rgba(255, 250, 238, 0.045) 7deg 13deg
+    ),
+    linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6),
+    inset 1px 1px 0 rgba(255, 246, 226, 0.55);
+}
+:root[data-presentation="aaa"] .modal-box .title {
+  color: #3B2317;
+  border-bottom: 1.5px solid rgba(59, 35, 23, 0.35);
+  letter-spacing: 0.08em;
+}
+:root[data-presentation="aaa"] .modal-box .option {
+  background: rgba(255, 250, 238, 0.5);
+  border: 1.5px solid rgba(59, 35, 23, 0.45);
+  border-radius: 10px;
+  color: #3B2317;
+}
+:root[data-presentation="aaa"] .modal-box .option:hover:not(.off) {
+  background: rgba(245, 215, 131, 0.55);
+  border-color: rgba(59, 35, 23, 0.8);
+}
+:root[data-presentation="aaa"] .modal-box .option .name { color: #3B2317; }
+:root[data-presentation="aaa"] .modal-box .option .sub { color: rgba(59, 35, 23, 0.7); }
+:root[data-presentation="aaa"] .modal-box .option.off {
+  opacity: 0.45;
+  background: rgba(59, 35, 23, 0.08);
+}
+:root[data-presentation="aaa"] .modal-box .cancel {
+  font-family: 'Alegreya', Georgia, serif;
+  background: rgba(59, 35, 23, 0.85);
+  color: #DCBA96;
+  border: 1.5px solid rgba(238, 195, 78, 0.4);
+  border-radius: 10px;
+}
+/* Selector ownership cues survive the material change. */
+:root[data-presentation="aaa"] .modal-box .option.selector-yours {
+  border-color: rgba(238, 195, 78, 0.95);
+  background: rgba(245, 215, 131, 0.4);
+}
+:root[data-presentation="aaa"] .modal-box .option.selector-enemy {
+  border-color: rgba(106, 90, 102, 0.95);
+  background: rgba(106, 90, 102, 0.18);
+}
+
+/* Card detail modal: dim scrim; the detail panel becomes parchment. */
+:root[data-presentation="aaa"] .card-modal { background: rgba(20, 24, 18, 0.72); }
+:root[data-presentation="aaa"] .card-detail {
+  font-family: 'Alegreya', Georgia, serif;
+  background:
+    linear-gradient(157deg, #E7C79E 0%, #DCBA96 46%, #CBA87E 100%);
+  color: #3B2317;
+  border: 2px solid rgba(59, 35, 23, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(10, 8, 5, 0.6);
+}
+:root[data-presentation="aaa"] .card-detail .close-btn {
+  font-family: 'Alegreya', Georgia, serif;
+  background: rgba(59, 35, 23, 0.85);
+  color: #DCBA96;
+  border: 1.5px solid rgba(238, 195, 78, 0.4);
+  border-radius: 10px;
+}
