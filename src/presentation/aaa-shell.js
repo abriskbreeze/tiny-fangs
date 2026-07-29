@@ -480,7 +480,9 @@ export function createAaaShell({
       }
     };
     renderAnchor('opp.bench.a', G.opp.bench?.[0]);
+    renderStatuses('opp.bench.a', G.opp.bench?.[0]);
     renderAnchor('opp.bench.b', G.opp.bench?.[1]);
+    renderStatuses('opp.bench.b', G.opp.bench?.[1]);
     renderAnchor('opp.active', withEffective(G.opp.active, G.opp, G.me));
     renderStatuses('opp.active', G.opp.active);
     // Privacy: the rival Set is exactly opaque presence.
@@ -498,7 +500,9 @@ export function createAaaShell({
     renderAnchor('me.active', withEffective(G.me.active, G.me, G.opp));
     renderStatuses('me.active', G.me.active);
     renderAnchor('me.bench.a', G.me.bench?.[0]);
+    renderStatuses('me.bench.a', G.me.bench?.[0]);
     renderAnchor('me.bench.b', G.me.bench?.[1]);
+    renderStatuses('me.bench.b', G.me.bench?.[1]);
     renderAnchor('me.set', null, { faceDown: Boolean(G.me.setVerse) });
     renderAnchor('me.grave', G.me.grave?.[G.me.grave.length - 1] ?? null, {
       isStack: true, count: G.me.grave?.length ?? 0, countLabel: 'your graveyard',

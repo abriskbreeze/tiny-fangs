@@ -44,7 +44,6 @@
     import { applyPresentationMode } from './presentation/presentation-mode.js';
     import { createHtmlKeyedView, syncElementToHtml } from './presentation/dom/html-keyed-view.js';
     import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
-    import { createAaaShell } from './presentation/aaa-shell.js';
 
     applyPresentationMode();
     installVisualQaContract({
@@ -1004,6 +1003,11 @@
 
     // ═══ Phase 8 AAA shell (behind the `aaa` presentation flag) ═══
     let aaaShell = null;
+    // Phase 13: the shell (and three.js behind it) is code-split. Classic
+    // mode never fetches the chunk; the first aaa render kicks off a single
+    // cached import and re-renders when it lands.
+    let aaaShellModule = null;
+    let aaaShellModulePromise = null;
 
     function isAaaMode() {
       return document.documentElement.dataset.presentation === 'aaa';
@@ -1011,8 +1015,27 @@
 
     function renderAaaShell() {
       if (!isAaaMode() || !state.G) return;
+      if (!aaaShellModule) {
+        if (!aaaShellModulePromise) {
+          aaaShellModulePromise = import('./presentation/aaa-shell.js')
+            .then((module) => {
+              aaaShellModule = module;
+              renderAaaShell();
+            })
+            .catch((error) => {
+              // Same RSP-07 contract as a mount failure: the aaa CSS hides
+              // the classic shells, so a missing chunk must downgrade the
+              // presentation flag rather than leave a dead screen.
+              console.warn('AAA shell failed to load; staying classic', error);
+              document.documentElement.dataset.presentation = 'classic';
+              const host = document.getElementById('aaa-stage');
+              if (host) host.style.display = 'none';
+            });
+        }
+        return;
+      }
       if (!aaaShell) {
-        aaaShell = createAaaShell({
+        aaaShell = aaaShellModule.createAaaShell({
           actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn, showCardDetail, showGraveyard, showRules },
           onError: (error) => console.warn('AAA shell error; staying classic', error),
         });

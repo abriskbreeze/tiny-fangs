@@ -11,6 +11,26 @@ import {
 } from './chassis-geometry.js';
 import { GOLDEN_SAMPLE_ART } from './art/golden-sample-art.js';
 
+// Template art resolves through the bundler so production builds serve real
+// asset URLs (the previous hard-coded '/src/assets/…' path 404'd in dist).
+// import.meta.glob is statically analyzable; the map is faceId -> built URL.
+const FACE_ART_URLS = (() => {
+  try {
+    const modules = import.meta.glob(
+      '../../assets/cards/faces/*/thumbnail.webp',
+      { eager: true, query: '?url', import: 'default' },
+    );
+    const byId = {};
+    for (const [path, url] of Object.entries(modules)) {
+      const match = path.match(/faces\/([^/]+)\/thumbnail\.webp$/);
+      if (match) byId[match[1]] = url;
+    }
+    return byId;
+  } catch {
+    return {}; // non-Vite consumers (unit tests) fall back to the dev path
+  }
+})();
+
 const FAMILY_LABEL = {
   creature: null, // creature subtype comes from the card's own subtitle
   cast: 'Cast Verse',
@@ -114,8 +134,9 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
   } else if (model.faceId) {
     // Phase 6 template mode: the face registry maps every renderable face to
     // its faction template at the canonical manifest path.
-    art.style.backgroundImage =
-      `url('/src/assets/cards/faces/${model.faceId}/thumbnail.webp')`;
+    const artUrl = FACE_ART_URLS[model.faceId]
+      ?? `/src/assets/cards/faces/${model.faceId}/thumbnail.webp`;
+    art.style.backgroundImage = `url('${artUrl}')`;
     art.style.backgroundSize = 'cover';
     art.style.backgroundPosition = 'center';
     art.dataset.artTier = 'template-placeholder';
