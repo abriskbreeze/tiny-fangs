@@ -1,6 +1,6 @@
 # Tiny Fangs AAA Presentation — Living Goal Ledger
 
-**Last updated:** 2026-07-29 05:25 EDT  
+**Last updated:** 2026-07-29 06:05 EDT  
 **Overall status:** In progress  
 **Authoritative implementation plan:** `thoughts/shared/plans/PLAN-tiny-fangs-aaa-presentation.md`
 
@@ -566,7 +566,8 @@ Evidence:
 - **ACCOMPLISHED (2026-07-29): Task 45 — zone decals/slot marks green.** All twelve camera-lock anchor footprints carry engraved outlines + rune diamonds painted at the §4.1 band; a real color-math defect was fixed at root (the band is a linear-luminance ratio; sRGB×1.25 measured 1.37–1.62, gamma-adjusted painting lands 1.157–1.247 across all anchors). New per-anchor metric + spec gate; 6 meadow gates, 24/24 visual, 601/601 units. Handoff: task-45-meadow-slots.md.
 - **ACCOMPLISHED (2026-07-29): Task 46 — seeded ambient motion + static fallback.** Canopy sway, dust motes, fireflies, and river shimmer as pure functions of time (renderAt(t) byte-reproducible; t=0 settled frame keeps every prior gate); reduced-motion holds the settled frame (gated via media emulation); the real 3840×2160 settled render now fills the environment/meadow-backdrop manifest slot (205KB WebP). 7 meadow gates, 25/25 visual, 601/601 units. Handoff: task-46-meadow-motion-fallback.md.
 - **ACCOMPLISHED (2026-07-29): Task 47 — canopy silhouette polish.** Clustered flattened icosahedron lobes replace cones (organic silhouettes under the locked pitch); re-densified the three rows the change nudged; all 7 meadow gates green (extents 10.3–11.1%, slots 1.157–1.247, palette 0/0/3.43). 25/25 visual, 601/601 units. Handoff: task-47-canopy-polish.md.
-- Remaining: populated-board harness (DOM cards homography-composited at the golden quadrilaterals over the live meadow, midgame fixture) + deterministic capture, then the blind comparison vs R2 with two fresh critics (Phase 7 exit gate).
+- **ACCOMPLISHED (2026-07-29): Task 48 — populated board harness.** All twelve golden anchors carded via the homography contract (registration error 0.0000 px), fanned hand in the §12 envelope, per-card contact shadows, faction template art wired into every aperture from the canonical manifest paths (no broken/missing art anywhere — the visual half of the Phase 6 exit). One real placement bug fixed (transform-origin pins the untransformed bottom edge). 2 new gates; 27/27 visual; 601/601 units. Handoff: task-48-populated-board.md.
+- Remaining: the Phase 7 exit gate — blind field comparison vs R2 (identical crops, sealed mapping, two fresh critics; challenger must win).
 
 ### Task 43 — Placeholder Assets at Exact Sizes (User Direction 2026-07-29)
 

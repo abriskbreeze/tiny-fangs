@@ -101,6 +101,14 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
   const aperture = model.faceId ? GOLDEN_SAMPLE_ART[model.faceId] : null;
   if (aperture) {
     art.innerHTML = aperture;
+  } else if (model.faceId) {
+    // Phase 6 template mode: the face registry maps every renderable face to
+    // its faction template at the canonical manifest path.
+    art.style.backgroundImage =
+      `url('/src/assets/cards/faces/${model.faceId}/thumbnail.webp')`;
+    art.style.backgroundSize = 'cover';
+    art.style.backgroundPosition = 'center';
+    art.dataset.artTier = 'template-placeholder';
   } else {
     art.dataset.artPending = 'true';
   }
