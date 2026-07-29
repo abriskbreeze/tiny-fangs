@@ -1,3 +1,5 @@
+import { isMobileViewport } from './viewport.js';
+
 /**
  * Multiplayer WebSocket client — extracted from main.js
  * Factory injects client deps so this module stays free of circular imports.
@@ -214,7 +216,10 @@ export function createMpClient(deps) {
   function startMultiplayerGame(serverState, yourTurn, you) {
     // Hide setup, show game
     document.getElementById('setup').style.display = 'none';
-    const isMobile = window.innerWidth <= 600;
+    // Reveal the one shell the stylesheet is already laying out (RSP-02): the
+    // selection comes from the same 900px rule the CSS shell queries use, so
+    // the revealed shell and the styled shell can never disagree.
+    const isMobile = isMobileViewport();
     const gameEl = isMobile ? 'mobile' : 'desktop';
     document.getElementById(gameEl).style.display = 'flex';
 

@@ -534,6 +534,158 @@ test.describe('canonical desktop overlays, semantic decisions, and results', () 
     );
   });
 
+  // STA-10 (solo half). The test below this one proves clear-before-navigate
+  // through the injected `restartGame(navigate)` seam with a stubbed navigate,
+  // and a separately-issued `page.reload()` proves a clean mount. This test
+  // couples the three into one product journey: a REAL solo match reaches a
+  // REAL result overlay, the REAL Play Again button is clicked, and the page
+  // that comes back is proven clean and able to start a fresh match. A
+  // `pagehide` listener captures the owner's disposal state at the last
+  // instant before navigation, so "cleared before the reload" is observed
+  // rather than inferred; sessionStorage carries it across the reload.
+  const DISPOSAL_KEY = '__TINY_FANGS_SOLO_DISPOSAL_AT_UNLOAD__';
+
+  test('a real match, the real Play Again button, and a fresh mount form one coupled restart journey', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.goto('/?visualQa=1&behaviorQa=1');
+    expect(await desktopBehaviorQa(page)).toBe(true);
+
+    await page.evaluate(() => {
+      window.__RESTART_START__ = window.startGame('fang', true);
+    });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const { state } = await import('/src/state.js');
+            return Boolean(state.G);
+          }),
+        { timeout: 20_000 },
+      )
+      .toBe(true);
+    await expect(page.locator('#desktop')).toBeVisible();
+
+    // Reach a real terminal state through a real attack. Emberfang is always
+    // in the Fang deck and plays a single attack + lpDamage sequence.
+    await page.evaluate(async () => {
+      const { state } = await import('/src/state.js');
+      const creature = [...state.G.me.hand, ...state.G.me.deck].find(
+        (card) => card.cardType === 'creature' && card.id === 'emberfang',
+      );
+      state.G.me.active = creature;
+      state.G.me.hand = state.G.me.hand.filter(
+        (card) => card.uid !== creature.uid,
+      );
+      state.G.me.deck = state.G.me.deck.filter(
+        (card) => card.uid !== creature.uid,
+      );
+      state.G.opp.active = null;
+      state.G.opp.lp = 1;
+      state.G.firstTurn = false;
+      state.G.myTurn = true;
+      window.forcePlayerTurn();
+      window.__RESTART_ATTACK__ = window.doAttack();
+    });
+    await expect(page.locator('#result')).toHaveClass(/open/, {
+      timeout: 20_000,
+    });
+    await expect(page.locator('#result-text')).toHaveText('[ VICTORY ]');
+
+    // A real match owner exists at the moment Play Again is pressed.
+    const beforeRestart = await page.evaluate(async () => {
+      const { state } = await import('/src/state.js');
+      return {
+        hasGame: state.G !== null,
+        startTime: state.startTime,
+      };
+    });
+    expect(beforeRestart.hasGame).toBe(true);
+    expect(beforeRestart.startTime).not.toBeNull();
+
+    await page.evaluate(async (key) => {
+      const { state } = await import('/src/state.js');
+      sessionStorage.removeItem(key);
+      window.addEventListener('pagehide', () => {
+        sessionStorage.setItem(key, JSON.stringify({
+          gameCleared: state.G === null,
+          longPressTimerCleared: state.longPressTimer === null,
+          selectedCardCleared: state.selectedCard === null,
+          startTimeCleared: state.startTime === null,
+          timerIntervalCleared: state.timerInt === null,
+        }));
+      });
+    }, DISPOSAL_KEY);
+
+    await page.locator('#result button').click();
+
+    await expect(page.locator('#setup')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#result')).not.toHaveClass(/open/);
+    await expect(page.locator('#mode-select')).toBeVisible();
+
+    expect(
+      await page.evaluate(
+        (key) => JSON.parse(sessionStorage.getItem(key) ?? 'null'),
+        DISPOSAL_KEY,
+      ),
+    ).toEqual({
+      gameCleared: true,
+      longPressTimerCleared: true,
+      selectedCardCleared: true,
+      startTimeCleared: true,
+      timerIntervalCleared: true,
+    });
+    expect(
+      await page.evaluate(async () => {
+        const { state } = await import('/src/state.js');
+        return {
+          game: state.G,
+          longPressTimer: state.longPressTimer,
+          selectedCard: state.selectedCard,
+          startTime: state.startTime,
+          timerInt: state.timerInt,
+        };
+      }),
+    ).toEqual({
+      game: null,
+      longPressTimer: null,
+      selectedCard: null,
+      startTime: null,
+      timerInt: null,
+    });
+
+    // The fresh mount really starts a clean match, not a resumed one.
+    await page.evaluate(() => {
+      window.__RESTART_SECOND__ = window.startGame('venom', true);
+    });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const { state } = await import('/src/state.js');
+            if (!state.G) return null;
+            return {
+              graves: state.G.me.grave.length + state.G.opp.grave.length,
+              myLp: state.G.me.lp,
+              oppLp: state.G.opp.lp,
+              timerRunning: state.timerInt !== null && state.startTime !== null,
+              turn: state.G.turn,
+              winner: state.G.winner,
+            };
+          }),
+        { timeout: 20_000 },
+      )
+      .toEqual({
+        graves: 0,
+        myLp: 3,
+        oppLp: 3,
+        timerRunning: true,
+        turn: 1,
+        winner: null,
+      });
+  });
+
   test('Play Again clears the old owner before navigation and mounts a clean setup', async ({
     page,
   }) => {

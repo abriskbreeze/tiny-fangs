@@ -13,6 +13,18 @@
 - **Event System**: 5-level priority trigger resolution
 - **Full Animations**: Attack coils, damage shakes, KO effects, turn transitions
 
+## Presentation Modes
+
+The classic ASCII presentation is the default and is fully playable.
+
+- **Classic** (default) — the ASCII board, unchanged.
+- **AAA** (`?presentation=aaa`) — an opt-in 3D presentation: a Three.js meadow
+  board with illustrated card faces, edge rails, and motion/audio. Also settable
+  via `localStorage['tinyFangs.presentation.mode'] = 'aaa'`.
+
+The AAA shell is code-split, so classic never downloads it, and if it fails to
+load or WebGL is unavailable the game falls back to classic automatically.
+
 ## How to Play
 
 **Win by:**
@@ -29,7 +41,7 @@
 ```bash
 npm install
 npm run dev      # Dev server → http://localhost:5173
-npm test         # Run 298 tests
+npm test -- --run # Run 630 unit tests
 npm run build    # Build (GitHub Actions deploys dist/)
 
 # Multiplayer server
@@ -66,6 +78,7 @@ src/                       # Client modules
 ├── anim.js                # ASCII animations
 ├── render.js              # Board rendering
 ├── ai.js                  # Enemy AI logic
+├── presentation/          # Opt-in AAA presentation (see Presentation Modes)
 └── *.js                   # Other client utilities
 ```
 
@@ -109,8 +122,9 @@ See [`guides/CARD-AUTHORING.md`](guides/CARD-AUTHORING.md) for full guide.
 ## Tech Stack
 
 - Vanilla HTML/CSS/JS (no framework)
+- Three.js (opt-in AAA presentation only, lazy-loaded)
 - Vite for build/dev server
-- Vitest for testing (298 tests)
+- Vitest for unit tests (630), Playwright for E2E/visual
 - GitHub Pages for hosting
 
 ---

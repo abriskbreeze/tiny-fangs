@@ -509,4 +509,7 @@
 }
 .aaa-sound-chip { left: 96px; }
 
+/* ── Phase 13: render-quality override chip ───────────────────────── */
+.aaa-quality-chip { left: 204px; }
+
 .aaa-ward-charm { display: inline-block; margin-top: 4px; }

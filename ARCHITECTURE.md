@@ -1,7 +1,7 @@
 # Tiny Fangs — Architecture Reference
 
-**Version:** 0.4.87  
-**Last Updated:** 2026-07-27
+**Version:** 0.4.87 (+ unreleased AAA presentation work on `feat/cel-shaded-field`)  
+**Last Updated:** 2026-07-29
 
 ---
 
@@ -14,7 +14,7 @@
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │
 │  │   index.    │  │    src/     │  │   tests/    │  │   dist/    │  │
 │  │   html      │  │  modules    │  │   *.test    │  │   build    │  │
-│  │  (390 LOC)  │  │  (14 files) │  │  (13 files) │  │  (vite)    │  │
+│  │  (394 LOC)  │  │ (18 + pres) │  │  (42 files) │  │  (vite)    │  │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └─────┬──────┘  │
 │         │                │                │                │        │
 │         ▼                ▼                ▼                ▼        │
@@ -27,7 +27,7 @@
 │  │  • Trigger System (triggers.js, events.js)                   │   │
 │  │  • AI System (ai.js, abilities.js)                           │   │
 │  │  • Animation (anim.js)                                       │   │
-│  │  • Rendering (render.js)                                     │   │
+│  │  • Rendering (render.js — classic; presentation/ — AAA)       │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -656,11 +656,151 @@
 
 ---
 
+## Presentation Modes (Classic + AAA)
+
+Rendering is split behind a presentation flag. **Classic** — the ASCII board in
+`src/render.js` + `src/styles.css` — remains the default and is fully playable.
+**AAA** is an opt-in 3D presentation living entirely under `src/presentation/`.
+
+Presentation code is *presentation only*: it never mutates game state, and every
+affordance delegates to the same dispatch functions the classic buttons call, so
+`shared/engine.js` stays the only rules authority.
+
+### Flag resolution and routing
+
+```
+resolvePresentationMode()          src/presentation/presentation-mode.js
+   ?presentation=aaa|classic       (1) query string wins
+   localStorage                    (2) 'tinyFangs.presentation.mode'
+   'classic'                       (3) default
+        │
+        ▼
+applyPresentationMode()  →  <html data-presentation="classic|aaa">
+        │
+        ▼
+src/main.js :: render()  →  renderAaaShell()          [only when data-presentation="aaa"]
+        │
+        ├── lazy import('./presentation/aaa-shell.js')   ← code-split; classic never fetches it
+        ├── createAaaShell({ actions: { doSummon, doCast, doSet,
+        │                    doAttack, doRetreat, endTurn, ... } })
+        ├── shell.update(state.G, { selectedCard })
+        └── mirrors updateButtons() disabled state onto the AAA action rail
+```
+
+**RSP-07 downgrade (fail-safe).** The AAA CSS hides the classic shells, so a
+silent failure would leave a dead screen. Both failure paths in
+`src/main.js::renderAaaShell` therefore rewrite `data-presentation` back to
+`classic` and hide `#aaa-stage`, handing rendering fully to the classic
+renderer:
+
+| Failure | Handling |
+|---------|----------|
+| Lazy chunk fails to load | `catch` → downgrade to `classic`, hide `#aaa-stage` |
+| Scene fails to mount (no WebGL, context loss, scene error) | `!aaaShell.mounted` → downgrade to `classic`, drop the shell |
+
+### Quality tiers
+
+`capabilities.js` detects WebGL, reduced motion, save-data and low memory and
+derives a tier; `quality-tier.js` resolves the active one with the same
+precedence shape as the presentation flag:
+
+```
+HUD chip's session pick  →  ?quality=  →  localStorage
+  'tinyFangs.presentation.quality'      →  detectCapabilities()  →  'static'
+```
+
+| Tier | Scene | Antialias | Particle cap | Light spill |
+|------|-------|-----------|--------------|-------------|
+| `desktop-high` | yes | yes | 48 | yes |
+| `desktop-low` | yes | no | 16 | no |
+| `static` | no | no | 0 | no |
+
+Every step is total — an invalid or unreadable value is ignored rather than
+thrown, and detection failure lands on `static`, which is always playable
+because it renders no scene at all. Changing the tier **rebuilds** the shell
+(a WebGL renderer cannot change antialiasing in place); board state is untouched
+because the shell renders purely from `state.G`, and a `static` pick simply
+fails to mount and takes the RSP-07 path above.
+
+Shell selection has its own single source of truth in `src/viewport.js`:
+`DESKTOP_MIN_WIDTH = 900` mirrors the `@media (min-width: 900px)` shell queries
+in `src/styles.css`, so JS can never disagree with the stylesheet about which
+shell is visible.
+
+### Module map (`src/presentation/`)
+
+| Path | Role |
+|------|------|
+| `presentation-mode.js` | Flag resolution + `data-presentation` application |
+| `aaa-shell.js` / `aaa-shell.css` | The live AAA shell: meadow, board cards, quiet edge rails, action rail, FLIP motion, particle/audio seams |
+| `presentation-coordinator.js` | Optional scene lifecycle: mount, idempotent updates on deep snapshots (no mutable engine refs), full disposal, failure containment |
+| `capabilities.js` | WebGL / reduced-motion / save-data / memory detection |
+| `quality-tier.js` | Tier resolution (`?quality=` / storage / detection), profiles, HUD chip cycling |
+| `board-layout.js` | Board anchor layout constants |
+| `particle-pool.js` | Fixed-cap pooled DOM sparks (summon/damage/heal/KO); pointer-transparent; suppressed under reduced motion |
+| `audio-director.js` | Semantic audio slots, first-gesture unlock, persisted mute/volume, fail-silent on missing files |
+| `scene/` | Three.js meadow (`meadow-scene.js`, `meadow-props.js`), `golden-quads.js`, and the standalone harness pages (`meadow-page`, `board-page`, `graybox-page`, `composite-page`) |
+| `cards/` | Card chassis: `chassis-geometry.js`, `card-face.js`, `cards.css`, `showcase-page.js`, `art/` |
+| `dom/` | `keyed-board-view.js` (uid-keyed reconciler), `html-keyed-view.js`, `board-card-mount.js`, `quad-transform.js` (homography), `target-registry.js` |
+| `assets/` | Face manifest + draft/release validation, template face map, runtime face samples |
+| `testing/` | Deterministic fixtures, stable serialization, capture manifest, `__TINY_FANGS_VISUAL_READY__` readiness |
+
+### Camera lock and golden quads
+
+The camera is a **decision record**, not a live value: low-FOV perspective,
+FOV 30°, pitch 24.5°, distance 1950, at the canonical 1672 × 941 reference
+frame. The twelve board anchors' screen-space quadrilaterals are frozen in
+`tests/visual/baselines/camera-lock-v1/golden-quadrilaterals.json` and
+transcribed at full float precision into
+`src/presentation/scene/golden-quads.js` — 4-decimal rounding was measured to
+shift slot-mark antialiasing and break byte-identity gates.
+
+`dom/quad-transform.js` solves the 8-DOF projective homography that maps the
+333 × 505 DOM card chassis onto a golden quad via CSS `matrix3d`, so DOM text
+and controls share one geometry with the Three.js decals and shadows.
+
+### Semantic target registry + Anim seam
+
+```
+src/anim.js  ──▶  createTargetRegistry()  ──▶  live DOM element | null
+                  src/presentation/dom/target-registry.js
+```
+
+Animations resolve **semantic, side-relative names** (`me.active`,
+`opp.bench.1`, `me.life`, `me.mana`) instead of brittle selector lists.
+Resolution is shell-aware — classic desktop `d-*` ids, classic mobile `m-*`
+ids, and explicit `registerElement` entries from the AAA shell, which always
+win. Resolution is lazy (never cached across renders); an unknown or missing
+name resolves to `null`, which the Anim facade already treats as a safe no-op.
+This is what lets the *entire* classic event vocabulary (damage / heal / KO /
+bench / LP accents, float text, screen flash) play into the AAA shell with no
+changes to `src/event-playback.js`.
+
+Card identity is uid-keyed (`dom/keyed-board-view.js`): create / patch / move /
+remove with stable DOM nodes across zone moves, so FLIP motion animates the same
+node from hand to board.
+
+### Testing surfaces
+
+| Surface | Where | What it covers |
+|---------|-------|----------------|
+| Unit | `tests/presentation/*.test.js` | Flag resolution, coordinator, registry, keyed views, chassis geometry, manifest, audio, readiness |
+| E2E — AAA | `tests/e2e/aaa-*.spec.js` | shell, actions, cards, status, selectors, overlays, material, motion, effects, garnish, polish, affordances, **fallback** (WebGL blocked → real classic turn) |
+| E2E — classic | `tests/e2e/classic-*.spec.js`, `topology`, `solo-setup`, `timer-lifecycle`, `desktop-overlay-results` | Classic regression, input, responsive |
+| Multiplayer | `tests/e2e/multiplayer/*.spec.js` | Privacy, authority, owner responses, deck parity, lifecycle |
+| Visual (§12) | `tests/visual/*.visual.spec.js` | Classic capture byte-identity, meadow field metrics, card chassis, populated board, graybox, compositing spike |
+| Harness pages | `meadow.html`, `board.html`, `graybox.html`, `showcase.html`, `composite.html` | Standalone routes the visual suites drive |
+
+Run them with `npm run test:e2e`, `npm run test:multiplayer`, `npm run test:visual`
+(or `npm run test:presentation` for the full chain).
+
+---
+
 ## File Structure
 
 ```
 tiny-fangs/
-├── index.html          # HTML structure + setup screens (390 LOC)
+├── index.html          # HTML structure + setup screens + #aaa-stage (394 LOC)
 ├── VERSION             # Current version (v0.4.87)
 ├── CHANGELOG.md        # Version history
 ├── ARCHITECTURE.md     # This file
@@ -676,13 +816,25 @@ tiny-fangs/
 │   └── index.js        # Re-exports
 │
 ├── src/                # Client modules
-│   ├── main.js         # UI shell + wiring (~2.4k LOC after peel)
+│   ├── main.js         # UI shell + wiring (~2.7k LOC after peel)
 │   ├── event-playback.js # Engine events → Anim/log
 │   ├── solo-dispatch.js  # Solo executeAction bridge
 │   ├── solo-ai.js        # Pup/Hunter AI turns
 │   ├── mp-client.js      # WebSocket multiplayer client
 │   ├── side-key.js       # Engine side → me/opp
-│   ├── styles.css      # All CSS (~2,401 LOC)
+│   ├── viewport.js       # Shell selection rules (RSP-02, 900px)
+│   ├── presentation/     # Opt-in AAA presentation (see above)
+│   │   ├── presentation-mode.js   # Flag: classic (default) | aaa
+│   │   ├── aaa-shell.js / .css    # The live AAA shell
+│   │   ├── presentation-coordinator.js, capabilities.js, quality-tier.js
+│   │   ├── board-layout.js
+│   │   ├── particle-pool.js, audio-director.js
+│   │   ├── scene/        # Three.js meadow + harness pages
+│   │   ├── cards/        # Card chassis, faces, showcase
+│   │   ├── dom/          # Keyed views, homography, target registry
+│   │   ├── assets/       # Face manifest + validation
+│   │   └── testing/      # Deterministic fixtures + readiness
+│   ├── styles.css      # All classic CSS (~2,882 LOC)
 │   ├── cards.js        # Re-exports from shared/cards.js
 │   ├── effects.js      # Shared effects + animation layer
 │   ├── triggers.js     # Client trigger processing + UI prompts
@@ -707,8 +859,14 @@ tiny-fangs/
 │   ├── CARD-AUTHORING.md   # How to add cards
 │   └── EVENT-SYSTEM.md     # Event system details
 │
-├── tests/              # Vitest (~294 tests, 13 files)
+├── tests/              # Vitest units (630 tests, 42 files)
+│   ├── presentation/   # AAA presentation unit contracts
+│   ├── e2e/            # Playwright: aaa-*, classic-*, multiplayer/
+│   ├── visual/         # Playwright §12 visual gates + baselines
+│   └── server/         # Engine wrapper + server-process (separate config)
+├── scripts/            # Asset/packet/provenance tooling + bump.sh
 ├── dist/               # Built output (GitHub Pages)
+├── thoughts/           # Working ledger + task handoffs
 └── tasks/              # Planning docs
 ```
 
@@ -836,7 +994,8 @@ This led to:
 | Multiplayer | WebSocket to `WS_SERVER`; server validates via shared engine |
 | AI | `src/ai.js` scores moves (Pup / Hunter) |
 | Render | `src/render.js` + `await Anim.*` before `render()` |
+| Presentation | `data-presentation` on `<html>`; `renderAaaShell()` when `aaa`, downgrading to `classic` on any failure |
 
 ---
 
-*Last updated: v0.4.87 — 2026-07-27*
+*Last updated: v0.4.87 + unreleased AAA presentation — 2026-07-29*

@@ -10,8 +10,13 @@ export const CHASSIS_H = 505;
 
 // Directional grounded shadow under the scene's single sun (upper-left key
 // => shadow offset down-right): tight dark core, longer soft tail, and a
-// warm light spill on the sun side.
-export function addBoardShadow(layer, corners, { document: doc = globalThis.document } = {}) {
+// warm light spill on the sun side. `lightSpill: false` drops the third,
+// purely additive layer (Phase 13 desktop-low budget); the two grounding
+// layers — the ones that actually seat the card — always render.
+export function addBoardShadow(layer, corners, {
+  document: doc = globalThis.document,
+  lightSpill = true,
+} = {}) {
   const xs = corners.map((c) => c[0]);
   const ys = corners.map((c) => c[1]);
   const left = Math.min(...xs);
@@ -37,9 +42,11 @@ export function addBoardShadow(layer, corners, { document: doc = globalThis.docu
       'radial-gradient(50% 50% at 46% 44%, rgba(26,16,8,0.52) 0%, rgba(26,16,8,0.3) 50%, rgba(26,16,8,0) 72%)'),
     make(34, 44, 26,
       'radial-gradient(52% 48% at 50% 48%, rgba(30,22,10,0.2) 0%, rgba(30,22,10,0) 68%)'),
-    make(-9, -11, 0,
-      'radial-gradient(44% 44% at 40% 36%, rgba(245,215,131,0.15) 0%, rgba(245,215,131,0) 68%)'),
   ];
+  if (lightSpill) {
+    nodes.push(make(-9, -11, 0,
+      'radial-gradient(44% 44% at 40% 36%, rgba(245,215,131,0.15) 0%, rgba(245,215,131,0) 68%)'));
+  }
   return nodes;
 }
 
@@ -79,9 +86,12 @@ export function mountBoardCard({
   face,
   isStack = false,
   anchorId = null,
+  lightSpill = true,
   document: doc = globalThis.document,
 }) {
-  const shadows = shadowLayer ? addBoardShadow(shadowLayer, corners, { document: doc }) : [];
+  const shadows = shadowLayer
+    ? addBoardShadow(shadowLayer, corners, { document: doc, lightSpill })
+    : [];
   const wrapper = doc.createElement('div');
   wrapper.className = 'board-card';
   wrapper.style.position = 'absolute';

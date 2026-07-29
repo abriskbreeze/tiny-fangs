@@ -36,6 +36,7 @@
       shouldScurryTrigger,
       executeScurry
     } from './abilities.js';
+    import { isMobileViewport } from './viewport.js';
     import { executeAction as sharedExecuteAction } from '../shared/engine.js';
     import { createEventPlayback } from './event-playback.js';
     import { createSoloDispatch } from './solo-dispatch.js';
@@ -44,6 +45,9 @@
     import { applyPresentationMode } from './presentation/presentation-mode.js';
     import { createHtmlKeyedView, syncElementToHtml } from './presentation/dom/html-keyed-view.js';
     import { installVisualQaContract } from './presentation/testing/visual-qa-bootstrap.js';
+    // Flag-gated presentation styling: tiny, and it dresses setup/modals/coin
+    // before any shell mounts, so it must not ride the lazy shell chunk.
+    import './presentation/aaa-shell.css';
 
     applyPresentationMode();
     installVisualQaContract({
@@ -1009,8 +1013,24 @@
     let aaaShellModule = null;
     let aaaShellModulePromise = null;
 
+    // Phase 13: the render-quality tier the user explicitly picked from the
+    // HUD chip this session. Null means "resolve from ?quality= / storage /
+    // capability detection" — the shell owns that precedence.
+    let aaaQuality = null;
+
     function isAaaMode() {
       return document.documentElement.dataset.presentation === 'aaa';
+    }
+
+    // Quality changes rebuild the shell rather than mutating it: the WebGL
+    // renderer cannot change antialiasing in place. Board state is untouched
+    // (the shell renders purely from state.G), so nothing is lost, and a
+    // `static` pick simply fails to mount and takes the RSP-07 path below.
+    function applyAaaQuality(tier) {
+      aaaQuality = tier;
+      aaaShell?.dispose?.();
+      aaaShell = null;
+      renderAaaShell();
     }
 
     function renderAaaShell() {
@@ -1036,7 +1056,12 @@
       }
       if (!aaaShell) {
         aaaShell = aaaShellModule.createAaaShell({
-          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn, showCardDetail, showGraveyard, showRules },
+          quality: aaaQuality,
+          actions: {
+            doSummon, doCast, doSet, doAttack, doRetreat, endTurn,
+            showCardDetail, showGraveyard, showRules,
+            setQuality: applyAaaQuality,
+          },
           onError: (error) => console.warn('AAA shell error; staying classic', error),
         });
       }
@@ -1230,7 +1255,7 @@
     }
 
     function isOverField(x, y) {
-      const isMobile = window.innerWidth < 900;
+      const isMobile = isMobileViewport();
       // Check if over the battlefield area (not the hand)
       const fieldEl = isMobile
         ? document.querySelector('.m-field-half.you')
@@ -1316,7 +1341,7 @@
     }
 
     function getFieldElement() {
-      const isMobile = window.innerWidth < 900;
+      const isMobile = isMobileViewport();
       return isMobile
         ? document.querySelector('#mobile .m-field-half.you')?.parentElement || document.querySelector('#mobile')
         : document.querySelector('.d-field');

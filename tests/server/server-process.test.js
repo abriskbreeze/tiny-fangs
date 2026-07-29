@@ -186,6 +186,7 @@ async function startRawGame(host, guest, {
   return {
     guest: { gameStart: guestGame, socket: guest },
     host: { gameStart: hostGame, socket: host },
+    roomCode,
   };
 }
 
@@ -792,6 +793,178 @@ describe('multiplayer server protocol', () => {
     },
     20_000,
   );
+
+  // MP-07. `handleAction` and `handleEndTurn` both guard with
+  //
+  //   const player = room.getPlayerData(ws);
+  //   if (!player) { send(ws, { type: 'error', message: 'Player not found' }); return; }
+  //
+  // Reaching that branch requires `ws.roomCode` to name a room whose player
+  // list does not contain `ws`. Only three sites ever write `ws.roomCode`:
+  // `handleCreate` and `handleJoin` both set it to a room they have just
+  // inserted `ws` into, and `handleLeave` nulls it after removing `ws`. This
+  // test walks every publicly reachable way to try to break that invariant —
+  // leaving, re-creating, re-joining, joining a full room, joining one's own
+  // room, and surviving a reindexing replacement — and proves each one lands
+  // on a different, correct named error. The branch is therefore structurally
+  // unreachable defence in depth, not a missing test.
+  it('cannot reach the Player not found guard through any membership escape the protocol allows', async () => {
+    const port = await findAvailablePort();
+    const { child, output } = startServer(port);
+    await waitForHealth(port, child, output);
+    const endpoint = `ws://127.0.0.1:${port}`;
+    const hostSocket = await openWebSocket(endpoint);
+    const guestSocket = await openWebSocket(endpoint);
+    const replacementSocket = await openWebSocket(endpoint);
+    const outsiderSocket = await openWebSocket(endpoint);
+    const observedErrors = [];
+
+    try {
+      const started = await startRawGame(hostSocket, guestSocket);
+      const host = {
+        inbox: createMessageInbox(hostSocket),
+        socket: hostSocket,
+      };
+      const guest = {
+        inbox: createMessageInbox(guestSocket),
+        socket: guestSocket,
+      };
+      const replacement = {
+        inbox: createMessageInbox(replacementSocket),
+        socket: replacementSocket,
+      };
+      const outsider = {
+        inbox: createMessageInbox(outsiderSocket),
+        socket: outsiderSocket,
+      };
+
+      async function errorFor(peer, message) {
+        peer.socket.send(JSON.stringify(message));
+        const reply = await peer.inbox.next((m) => m.type === 'error');
+        observedErrors.push(reply.message);
+        return reply.message;
+      }
+
+      const current = started.host.gameStart.yourTurn ? host : guest;
+      const waiting = started.host.gameStart.yourTurn ? guest : host;
+
+      // Baseline: inside a playing room both seats resolve to a member, so the
+      // error comes from AFTER the `getPlayerData` guard.
+      await expect(
+        errorFor(current, { type: 'action', action: { action: 'notAnAction' } }),
+      ).resolves.toBe('Unknown action');
+      await expect(
+        errorFor(waiting, { type: 'action', action: { action: 'attack' } }),
+      ).resolves.toBe('Not your turn');
+
+      // Escape 1: leave explicitly, keeping the socket open. `handleLeave`
+      // nulls `roomCode` together with removing the player, so the next
+      // message is refused before any room lookup.
+      guest.socket.send(JSON.stringify({ type: 'leave' }));
+      await host.inbox.next((m) => m.type === 'opponentLeft');
+      await expect(
+        errorFor(guest, { type: 'action', action: { action: 'attack' } }),
+      ).resolves.toBe('Not in a room');
+      await expect(errorFor(guest, { type: 'endTurn' })).resolves.toBe(
+        'Not in a room',
+      );
+
+      // Leaving twice is silent and still leaves nothing to escape with.
+      guest.socket.send(JSON.stringify({ type: 'leave' }));
+      await expect(
+        errorFor(guest, { type: 'action', action: { action: 'attack' } }),
+      ).resolves.toBe('Not in a room');
+
+      // The survivor was reindexed into a waiting room, so its own next
+      // action is refused on room status, never on membership.
+      await expect(
+        errorFor(host, { type: 'action', action: { action: 'attack' } }),
+      ).resolves.toBe('Game not in progress');
+
+      // Escape 2: a full room refuses the join without rebinding roomCode.
+      await expect(
+        sendAndReceive(outsiderSocket, {
+          type: 'join',
+          roomCode: started.roomCode,
+        }),
+      ).resolves.toEqual({ type: 'roomJoined', roomCode: started.roomCode });
+      const overflowSocket = await openWebSocket(endpoint);
+      try {
+        await expect(
+          sendAndReceive(overflowSocket, {
+            type: 'join',
+            roomCode: started.roomCode,
+          }),
+        ).resolves.toEqual({ type: 'error', message: 'Room is full' });
+        await expect(
+          sendAndReceive(overflowSocket, {
+            type: 'action',
+            action: { action: 'attack' },
+          }),
+        ).resolves.toEqual({ type: 'error', message: 'Not in a room' });
+      } finally {
+        await closeWebSocket(overflowSocket);
+      }
+      await host.inbox.next((m) => m.type === 'opponentJoined');
+
+      // Escape 3: the reindexed room restarts with a different second seat.
+      // Both seats must still resolve, which is exactly the state the
+      // defensive branch exists to guard.
+      const hostRestart = host.inbox.next((m) => m.type === 'gameStart');
+      const outsiderRestart = outsider.inbox.next((m) => m.type === 'gameStart');
+      outsider.socket.send(
+        JSON.stringify({ type: 'deckSelect', deckId: 'venom' }),
+      );
+      await Promise.all([hostRestart, outsiderRestart]);
+      for (const peer of [host, outsider]) {
+        const message = await errorFor(peer, {
+          type: 'action',
+          action: { action: 'notAnAction' },
+        });
+        expect(['Not your turn', 'Unknown action']).toContain(message);
+      }
+
+      // Escape 4: creating a second room moves roomCode to a room the socket
+      // IS in, so the old playing room becomes unreachable rather than
+      // membership-less.
+      host.socket.send(JSON.stringify({ type: 'create' }));
+      const created = await host.inbox.next((m) => m.type === 'roomCreated');
+      expect(created.roomCode).not.toBe(started.roomCode);
+      await expect(
+        errorFor(host, { type: 'action', action: { action: 'attack' } }),
+      ).resolves.toBe('Game not in progress');
+      await expect(errorFor(host, { type: 'endTurn' })).resolves.toBe(
+        'Game not in progress',
+      );
+
+      // Escape 5: a socket that joins its own room occupies both seats and
+      // still resolves as a member of the room its roomCode names.
+      const ownRoom = await sendAndReceive(replacementSocket, {
+        type: 'create',
+      });
+      expect(ownRoom.type).toBe('roomCreated');
+      replacement.socket.send(
+        JSON.stringify({ type: 'join', roomCode: ownRoom.roomCode }),
+      );
+      await replacement.inbox.next((m) => m.type === 'roomJoined');
+      await expect(
+        errorFor(replacement, {
+          type: 'action',
+          action: { action: 'attack' },
+        }),
+      ).resolves.toBe('Game not in progress');
+
+      expect(observedErrors).not.toContain('Player not found');
+      expect(observedErrors).toHaveLength(11);
+    } finally {
+      await Promise.all([
+        closeWebSocket(outsiderSocket),
+        closeWebSocket(replacementSocket),
+        closeWebSocket(guestSocket),
+        closeWebSocket(hostSocket),
+      ]);
+    }
+  }, 20_000);
 
   it('notifies the survivor, reindexes it, and immediately deletes empty rooms', async () => {
     const port = await findAvailablePort();

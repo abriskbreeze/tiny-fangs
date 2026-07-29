@@ -9,20 +9,21 @@ const gameUrl =
   encodeURIComponent(`ws://127.0.0.1:${wsPort}`);
 // Task 25 made both gameplay shells explicitly inert on `gameStart` so no board
 // can surface before the awaited coin. `startMultiplayerGame` then reveals only
-// the shell its own `innerWidth <= 600` rule selects, so the non-selected shell
-// keeps inline `display: none` instead of deferring to CSS.
+// the shell it selects, so the non-selected shell keeps inline `display: none`.
 //
-// That incidentally removed the duplicate-shell symptom this test previously
-// froze: 601-899 no longer renders the mobile and desktop trees at once. What
-// survives is the underlying selection mismatch — the JS boundary is 600 while
-// the CSS boundary is 900, so 601-899 shows the desktop shell at a width CSS
-// still styles as narrow. Phase 12 still owes that focused fix, so the mismatch
-// stays frozen here as `selectedShell` rather than being silently accepted.
+// RSP-02 (repaired): that selection used to be its own `innerWidth <= 600` rule
+// while the stylesheet flips shells at `@media (min-width: 900px)`, so 601-899
+// revealed the desktop shell at a width CSS still styles as narrow. Selection
+// now runs through `src/viewport.js` (`isMobileViewport`, backed by the same
+// 900px media query), so the revealed shell is the styled shell by
+// construction. These boundaries are the correctness contract for that: mobile
+// below the CSS threshold, desktop at/above it, and never both.
+const CSS_DESKTOP_MIN_WIDTH = 900;
 const BOUNDARIES = Object.freeze([
   { width: 599, selectedShell: 'mobile' },
   { width: 600, selectedShell: 'mobile' },
-  { width: 601, selectedShell: 'desktop' },
-  { width: 899, selectedShell: 'desktop' },
+  { width: 601, selectedShell: 'mobile' },
+  { width: 899, selectedShell: 'mobile' },
   { width: 900, selectedShell: 'desktop' },
   { width: 901, selectedShell: 'desktop' },
 ]);
@@ -100,8 +101,13 @@ async function startMultiplayerAtWidth(browser, width) {
   };
 }
 
-async function shellSnapshot(page) {
-  return page.evaluate(() => ({
+async function shellSnapshot(page, cssDesktopMinWidth) {
+  return page.evaluate((desktopMinWidth) => ({
+    // Which shell the stylesheet itself is laying out, read from the same
+    // query the shell rules in `src/styles.css` are written against.
+    cssShell: window.matchMedia(`(min-width: ${desktopMinWidth}px)`).matches
+      ? 'desktop'
+      : 'mobile',
     document: {
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -127,10 +133,10 @@ async function shellSnapshot(page) {
           rect.height > 0,
       };
     }),
-  }));
+  }), cssDesktopMinWidth);
 }
 
-test('shows exactly one multiplayer shell per width and freezes the 600px JS versus 900px CSS selection mismatch', async ({
+test('reveals exactly one multiplayer shell per width and keeps that selection on the CSS 900px boundary (RSP-02)', async ({
   browser,
 }) => {
   test.setTimeout(120_000);
@@ -148,13 +154,17 @@ test('shows exactly one multiplayer shell per width and freezes the 600px JS ver
       );
 
       for (const [pageIndex, { errors, page }] of started.pages.entries()) {
-        const snapshot = await shellSnapshot(page);
+        const snapshot = await shellSnapshot(page, CSS_DESKTOP_MIN_WIDTH);
         expect(
           snapshot.shells
             .filter((shell) => shell.visible)
             .map((shell) => shell.id),
           `visible shells at multiplayer start width ${boundary.width}`,
         ).toEqual([boundary.selectedShell]);
+        expect(
+          snapshot.cssShell,
+          `stylesheet shell at multiplayer start width ${boundary.width}`,
+        ).toBe(boundary.selectedShell);
         expect(snapshot.document.scrollWidth).toBeLessThanOrEqual(
           snapshot.document.clientWidth,
         );

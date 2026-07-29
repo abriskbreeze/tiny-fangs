@@ -12,10 +12,20 @@ import * as THREE from 'three';
 import { buildCardFace, normalizeFaceModel } from './cards/card-face.js';
 import { getEffectiveAtk } from '../abilities.js';
 import './cards/cards.css';
-import './aaa-shell.css';
+// NOTE: aaa-shell.css is imported EAGERLY by src/main.js, not here. This
+// module is lazily imported (three.js is heavy), but the flag-gated styles
+// also dress classic-DOM surfaces — setup, modals, coin, rules — which are
+// visible long before any shell mounts.
 import { mountBoardCard, CHASSIS_W, CHASSIS_H } from './dom/board-card-mount.js';
 import { createParticlePool } from './particle-pool.js';
 import { createAudioDirector } from './audio-director.js';
+import {
+  QUALITY_TIER_LABELS,
+  nextQualityTier,
+  persistQualityTier,
+  qualityProfile,
+  resolveQualityTier,
+} from './quality-tier.js';
 import { GOLDEN_QUADS } from './scene/golden-quads.js';
 import { buildMeadowScene } from './scene/meadow-scene.js';
 
@@ -44,7 +54,13 @@ export function createAaaShell({
   window: win = globalThis.window,
   actions = {},
   onError = null,
+  quality = null,
 } = {}) {
+  // Phase 13: the tier is resolved once per shell instance. Changing it is a
+  // shell rebuild (actions.setQuality), never a live mutation — the renderer
+  // has to be recreated for antialiasing anyway.
+  const tier = resolveQualityTier({ tier: quality });
+  const profile = qualityProfile(tier);
   let stage = null;
   let cardLayer = null;
   let shadowLayer = null;
@@ -169,11 +185,16 @@ export function createAaaShell({
 
   function mount() {
     if (mounted) return true;
+    // `static` never mounts a WebGL scene at all. Reporting an unmounted
+    // shell is the SAME RSP-07 contract a WebGL failure uses, so the caller
+    // downgrades `data-presentation` to the fully playable classic renderer.
+    if (!profile.scene) return false;
     const host = doc.getElementById('aaa-stage');
     if (!host) return false;
     try {
       host.innerHTML = '';
       stage = el('div', 'aaa-frame', host);
+      stage.dataset.quality = tier;
       const canvas = el('canvas', 'aaa-canvas', stage);
       canvas.width = FRAME_W;
       canvas.height = FRAME_H;
@@ -181,7 +202,9 @@ export function createAaaShell({
       cardLayer = el('div', 'aaa-layer aaa-card-layer', stage);
       particleLayer = el('div', 'aaa-layer aaa-particle-layer', stage);
       hudLayer = el('div', 'aaa-layer aaa-hud-layer', stage);
-      particles = createParticlePool({ document: doc, layer: particleLayer });
+      particles = createParticlePool({
+        document: doc, layer: particleLayer, max: profile.particleMax,
+      });
       audio = createAudioDirector({ document: doc, window: win });
       audio.bindFirstGesture();
       // Event seams for the Anim facade (null-safe on both sides): bursts
@@ -201,8 +224,18 @@ export function createAaaShell({
         } catch { /* garnish never throws */ }
       };
       win.__tfAaaAudio = audio;
+      // Read-only seam so a test can assert the tier's actual budget rather
+      // than inferring it (mirrors the existing __tfAaa* garnish seams).
+      win.__tfAaaQuality = Object.freeze({
+        tier,
+        antialias: profile.antialias,
+        particleMax: particles.max,
+        lightSpill: profile.lightSpill,
+      });
 
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+      renderer = new THREE.WebGLRenderer({
+        canvas, antialias: profile.antialias, preserveDrawingBuffer: true,
+      });
       renderer.setPixelRatio(1);
       renderer.setSize(FRAME_W, FRAME_H, false);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -257,6 +290,7 @@ export function createAaaShell({
     const host = keyed ? getFlipOuter(card.uid) : cardLayer;
     const { wrapper } = mountBoardCard({
       layer: host, shadowLayer, corners, face, isStack, anchorId, document: doc,
+      lightSpill: profile.lightSpill,
     });
     if (keyed) cardLayer.appendChild(host);
     // Face-up cards with an identity open the card-detail surface — the
@@ -433,6 +467,22 @@ export function createAaaShell({
       soundChip.setAttribute('aria-pressed', String(Boolean(muted)));
     });
 
+    // Quality chip: cycles the render tier, persists the pick, and asks the
+    // host to rebuild the shell (the renderer cannot change antialiasing in
+    // place). Picking `static` rebuilds into the classic renderer via the
+    // existing RSP-07 downgrade contract.
+    const qualityChip = el('button', 'aaa-rules-link aaa-quality-chip', hudLayer,
+      `Quality: ${QUALITY_TIER_LABELS[tier]}`);
+    qualityChip.id = 'aaa-quality';
+    qualityChip.type = 'button';
+    qualityChip.dataset.quality = tier;
+    qualityChip.setAttribute('aria-label', `Quality: ${QUALITY_TIER_LABELS[tier]} — cycle render quality`);
+    qualityChip.addEventListener('click', () => {
+      const next = nextQualityTier(tier);
+      persistQualityTier(next);
+      actions.setQuality?.(next);
+    });
+
     // Log rail: mirror of the shell's log entries (newest last).
     const logRail = el('div', 'aaa-rail aaa-log-rail', hudLayer);
     logRail.id = 'aaa-log';
@@ -555,6 +605,7 @@ export function createAaaShell({
     resizeHandler = null;
     if (win.__tfAaaAudio === audio) win.__tfAaaAudio = null;
     win.__tfAaaBurst = null;
+    win.__tfAaaQuality = null;
     audio?.dispose?.();
     audio = null;
     particles = null;
@@ -567,5 +618,11 @@ export function createAaaShell({
     if (host) host.innerHTML = '';
   }
 
-  return { mount, update, dispose, get mounted() { return mounted; } };
+  return {
+    mount,
+    update,
+    dispose,
+    get mounted() { return mounted; },
+    get quality() { return tier; },
+  };
 }

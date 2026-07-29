@@ -8,12 +8,17 @@ ASCII card battler: Pokemon TCG meets Yu-Gi-Oh with original mythical tiny preda
 - **MP server:** http://localhost:3001 (`cd server && node index.js`)
 - **Live:** https://abriskbreeze.github.io/tiny-fangs/
 - **Repo:** github.com/abriskbreeze/tiny-fangs (public for GH Pages)
-- **Version:** v0.4.87 | **Tests:** 298 passing
+- **Version:** v0.4.87 | **Unit tests:** 630 passing (42 files, Vitest)
+- **Browser tests:** Playwright projects — `e2e` (21 specs / 115 tests), `multiplayer` (6 specs), `visual` (7 specs)
+- **Presentation:** classic ASCII by default; opt-in AAA 3D via `?presentation=aaa`
 
 ## Tech Stack
 - Vanilla HTML/CSS/JS, single `index.html`
-- Vite + Vitest for build/test
-- Font: JetBrains Mono (ASCII aesthetic, no emojis)
+- Vite + Vitest for build/test; Playwright for E2E/visual
+- Three.js (pinned `0.185.1`) — opt-in AAA presentation only, lazy-loaded
+- Fonts self-hosted as woff2, no remote requests: JetBrains Mono (ASCII
+  aesthetic, no emojis) + Alegreya (AAA display face, pairing pending user
+  ratification)
 - Deploy: Push to main → GitHub Actions builds → deploys dist/ to GH Pages
 
 ---
@@ -116,6 +121,60 @@ src/
 
 ---
 
+## Presentation Modes (AAA overhaul, `feat/cel-shaded-field`)
+
+Rendering is split behind a flag. **Classic ASCII stays the default and stays
+fully playable** — every AAA change is additive and opt-in.
+
+**Flag** (`src/presentation/presentation-mode.js`): `?presentation=aaa` wins,
+then `localStorage['tinyFangs.presentation.mode']`, else `classic`. The resolved
+mode lands on `<html data-presentation>`.
+
+**Shell** (`src/presentation/aaa-shell.js`): lazy-imported from
+`src/main.js::renderAaaShell()` so classic never downloads it. It renders
+projected state onto the board and delegates every action to the same dispatch
+functions the classic buttons call — `shared/engine.js` remains the sole rules
+authority, and presentation code never mutates state.
+
+**Fail-safe (RSP-07):** AAA CSS hides the classic shells, so a failed chunk load
+or a failed scene mount would leave a dead screen. Both paths rewrite
+`data-presentation` back to `classic` and hide `#aaa-stage`, so no-WebGL and
+load-failure users get the working classic game.
+
+**Scene:** a Three.js meadow under a **locked camera** (low-FOV perspective,
+FOV 30°, pitch 24.5°, distance 1950, canonical 1672 x 941 frame). The camera is
+a decision record, not a live value: the twelve anchor quadrilaterals are frozen
+in `tests/visual/baselines/camera-lock-v1/` and transcribed at full float
+precision into `scene/golden-quads.js` (4-decimal rounding broke byte-identity).
+
+**Card chassis:** DOM cards mapped onto the golden quads by a projective
+homography (`dom/quad-transform.js`, CSS `matrix3d`), so DOM text/controls and
+Three.js decals/shadows share one geometry. Identity is uid-keyed
+(`dom/keyed-board-view.js`) — the same DOM node survives zone moves, which is
+what makes FLIP travel possible.
+
+**Motion/audio:** uid-keyed FLIP transitions, event accents routed through the
+semantic target registry (`dom/target-registry.js`) so the whole classic event
+vocabulary plays into the AAA shell with no `event-playback.js` changes; pooled
+particles; a fail-silent audio director. Reduced motion keeps color feedback and
+drops displacement.
+
+**Quality tiers:** `quality-tier.js` resolves `desktop-high` / `desktop-low` /
+`static` from (in order) the HUD chip's session pick, `?quality=`,
+`localStorage['tinyFangs.presentation.quality']`, capability detection, then
+`static`. Changing a tier rebuilds the shell rather than mutating it (WebGL
+can't change antialiasing in place); board state is unaffected because the shell
+renders purely from `state.G`. Shell selection has one source of truth in
+`src/viewport.js` (900 px, mirroring the CSS media query) so JS and CSS can't
+disagree.
+
+**Known open items** (see `thoughts/shared/GOALS-tiny-fangs-aaa.md`):
+production art and audio are user-owned and still placeholder/template-tier, so
+the art gates stay open; Phase 14 critic loops and the Phase 15 release audit
+are queued; the mobile/tablet port is deliberately deferred.
+
+---
+
 ## Lessons Learned
 
 ### Operation Order (2026-02-04)
@@ -153,7 +212,8 @@ Later rules override earlier ones at same specificity. When adding overrides, ch
 
 See `VERSION` file and `CHANGELOG.md` for full history.
 
-Current: **v0.4.87** (298 tests)
+Current: **v0.4.87** (630 unit tests) — plus unreleased AAA presentation work on
+`feat/cel-shaded-field` (no version bump taken yet)
 
 Major milestones:
 - v2.0: Initial v2 rewrite
@@ -1235,3 +1295,78 @@ Kept Custom:
 - Verified create-room over `ws://127.0.0.1:3001`
 
 **Tests:** 298 passing
+
+---
+
+### 2026-07-27 → 2026-07-29 — AAA presentation overhaul (`feat/cel-shaded-field`)
+
+A multi-phase visual overhaul run as a task ledger with per-task handoffs.
+Working ledger: `thoughts/shared/GOALS-tiny-fangs-aaa.md`; handoffs:
+`thoughts/handoffs/2026-07-27-tiny-fangs-aaa-overhaul/`.
+
+**Ground rule that held throughout:** classic ASCII stays the default and stays
+playable. Every phase was gated on the 17 classic screenshot hashes staying
+byte-identical, and the whole thing sits behind `?presentation=aaa`.
+
+**Arc:**
+1. **Preserve and gate** — inert presentation flag, dual baselines recorded,
+   classic files preserved byte-for-byte.
+2. **Deterministic evidence** — Playwright topology (e2e / multiplayer / visual
+   projects, pinned ports and health checks), deterministic fixtures, privacy-
+   aware serialization, and a `__TINY_FANGS_VISUAL_READY__` lifecycle. Opponent
+   Set privacy tightened to `null` / `{ faceDown: true }`.
+3. **Art bible + camera lock** — the spec went seven critic revisions and was
+   finally accepted by user manual pass. The camera was chosen by a four-round
+   blind bake-off (sealed mappings unsealed only after scoring): low-FOV
+   perspective, FOV 30, pitch 24.5, distance 1950. Golden quads frozen.
+4. **Presentation boundary** — `PresentationCoordinator` (deep snapshots, no
+   mutable engine refs, failure containment) and the semantic `TargetRegistry`.
+   DOM/Three compositing spike measured under 2 CSS px drift at the canonical
+   frame.
+5. **Keyed cards** — uid-keyed reconciler across hand/active/bench/set/log with
+   byte-identical markup. Exposed and fixed a latent client defect: `uid()` was
+   pure `Math.random()` and collided under stubbed randomness; every generator
+   now carries a monotonic serial.
+6. **Meadow + card art** — terrain, props, slot decals, ambient motion, canopy
+   polish, populated-board harness. Card art went through blind challenger-vs-
+   reference critic rounds and **lost every round**; the converged verdict was
+   asset-class, so production art and audio are now user-owned and the gates
+   stay open. Template/placeholder art ships meanwhile.
+7. **The real shell (Phase 8-10)** — the AAA flag now runs the actual solo game:
+   all six actions, overlays in-material, diegetic targeting, 3D coin with the
+   classic 1780 ms timing preserved, FLIP motion, event accents, particles,
+   audio director, accessibility gates.
+8. **Audits (Phase 5/13 + matrix reconciliation)** — behavior matrix driven from
+   70/32/1 to 91 covered / 11 missing / 1 manual.
+
+**Three real defects the audits found:**
+- Status charms never rendered on **bench** creatures (`renderStatuses` was
+  wired only to the two active anchors).
+- Production card art **404'd** — `card-face.js` hard-coded a dev-only `/src/`
+  path absent from `dist/`; now resolved via `import.meta.glob`.
+- **WebGL-failure dead screen** — the AAA CSS hides the classic shells, so a
+  failed mount showed nothing. `renderAaaShell` now downgrades the flag itself.
+
+**Lessons worth keeping:**
+- *Authored is not visible.* Repeatedly, features existed in the scene but the
+  locked near-top-down camera hid them (canopies occluding their own shadows,
+  sub-pixel grass). Measure what the camera sees, not what the code emits.
+- *Gates can be green while the layout is broken.* A hand-card wrapper collapsed
+  to 0x0 and every §12 metric still passed. A human visual pass is now part of
+  the protocol before sealing a packet.
+- *Full float precision matters.* Transcribing the golden quads at 4 decimals
+  shifted slot antialiasing and broke byte-identity.
+- *Fail-closed reveals real bugs.* Keyed rendering and status auditing both
+  surfaced latent defects that permissive code had been hiding.
+- The blind critic protocol works: it rejected our work honestly and repeatedly,
+  and the reference images also failed their own gates — which is what finally
+  made the art an asset problem rather than a code problem.
+
+**Payload:** the AAA shell is code-split — classic entry 170.90 kB
+(49.61 kB gzip), AAA chunk 575.93 kB (149.41 kB gzip) fetched only under the flag.
+
+**Follow-on (same branch, after task 67):** quality tiers wired end to end with a
+HUD chip and `?quality=` override (`src/presentation/quality-tier.js`), and the
+RSP-02 shell-selection mismatch fixed — `src/main.js` used 900 px while
+`src/mp-client.js` used 600 px against a 900 px CSS query; both now go through
+`src/viewport.js`.
