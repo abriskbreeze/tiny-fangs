@@ -1020,6 +1020,16 @@
       const host = document.getElementById('aaa-stage');
       if (host) host.style.display = '';
       aaaShell.update(state.G, { selectedCard: state.selectedCard });
+      if (!aaaShell.mounted) {
+        // RSP-07: the scene failed to mount (no WebGL, context loss, or a
+        // scene error). The aaa CSS hides the classic shells, so a silent
+        // failure would leave a dead screen — downgrade the presentation
+        // flag itself so the classic renderer takes over fully.
+        document.documentElement.dataset.presentation = 'classic';
+        if (host) host.style.display = 'none';
+        aaaShell = null;
+        return;
+      }
       // Mirror the classic affordability computation (single source of truth
       // in updateButtons) onto the AAA action rail.
       const mirror = [
