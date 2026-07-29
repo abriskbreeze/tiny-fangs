@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TINY FANGS v0.4.87</title>
-  <script type="module" crossorigin src="./assets/index-C6X_1srB.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-C0RgtC79.css">
+  <script type="module" crossorigin src="./assets/index-BHwss8WA.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DWRnUJRC.css">
 </head>
 <body>
   <div class="bg-img"></div>
@@ -386,7 +386,10 @@
   <!-- Result -->
   <div id="result" class="result">
     <h2 id="result-text"></h2>
-    <button onclick="location.reload()">Play Again</button>
+    <!-- No inline handler: `src/main.js` binds this to `restartGame()`, which
+         disposes the match owner (state, timer, long-press) before navigating.
+         An inline `location.reload()` would race ahead of that disposal. -->
+    <button id="result-restart" type="button">Play Again</button>
   </div>
 
 </body>

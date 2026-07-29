@@ -119,12 +119,27 @@ test('the defender health medallion tracks curHp with the damaged ink state', as
   }
 });
 
-test('worst-case real cards fit the safe rects with no overflow at chassis size', async ({ context, page }) => {
-  await installDeterministicBrowser(context, page, [0.1]);
-  await page.goto(AAA_URL);
-  await expect
-    .poll(() => page.evaluate(() => typeof window.selectPlayerDeck))
-    .toBe('function');
+// Text-fit gate for the approved inset-window chassis. The rules box lost
+// 8 px of height (106 → 98) and the nameplate 23 px of width (250 → 227), so
+// this measures EVERY card in the catalog — not a hand-picked worst case —
+// against all four text rectangles at the real 333 × 505 chassis size.
+//
+// It runs on the chassis showcase, not on ?presentation=aaa: the AAA route
+// only pulls cards.css in when the shell module mounts, so measuring a
+// hand-built face there measures unstyled DOM and proves nothing.
+test('every real card fits its text rects with no overflow at chassis size', async ({ page }) => {
+  await page.goto('/showcase.html?mode=chassis');
+  await page.waitForFunction(() => window.__TF_CARDS_READY__ === true);
+  expect(await page.evaluate(() => window.__TF_CARDS_ERROR__ ?? null)).toBe(null);
+
+  // Measuring text without the authored face loaded would prove nothing.
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => document.fonts.check('22px Alegreya'))).toBe(true);
+  const footerStyled = await page.evaluate(() => {
+    const node = document.querySelector('.tf-aaa-card__footer-text');
+    return node ? getComputedStyle(node).fontFamily.includes('Alegreya') : false;
+  });
+  expect(footerStyled, 'cards.css must be applied on the measured surface').toBe(true);
 
   const results = await page.evaluate(async () => {
     const [{ buildCardFace, normalizeFaceModel }, { CREATURES, VERSES }] = await Promise.all([
@@ -135,26 +150,34 @@ test('worst-case real cards fit the safe rects with no overflow at chassis size'
       ...Object.values(CREATURES).map((c) => [c, 'creature']),
       ...Object.values(VERSES).map((v) => [v, v.type === 'set' ? 'set' : 'cast']),
     ];
-    const text = (c) => c.text ?? c.ability?.text ?? '';
-    const worst = [
-      all.sort((a, b) => b[0].name.length - a[0].name.length)[0],
-      all.sort((a, b) => text(b[0]).length - text(a[0]).length)[0],
-    ];
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:-2000px;top:0;';
     document.body.appendChild(host);
+
+    // Ink box vs its declared rectangle, on both axes. A flex-centered child
+    // overflows in BOTH directions, which scrollHeight alone cannot see.
+    const overflow = (inner, outer) => {
+      if (!inner || !outer) return { x: 0, y: 0 };
+      const i = inner.getBoundingClientRect();
+      const o = outer.getBoundingClientRect();
+      return {
+        x: Math.max(0, o.left - i.left) + Math.max(0, i.right - o.right),
+        y: Math.max(0, o.top - i.top) + Math.max(0, i.bottom - o.bottom),
+      };
+    };
+
     const out = [];
-    for (const [card, kind] of worst) {
+    for (const [card, kind] of all) {
       const face = buildCardFace(normalizeFaceModel(card, kind));
       host.appendChild(face);
-      const title = face.querySelector('.tf-aaa-card__title-text');
-      const titleBox = face.querySelector('.tf-aaa-card__title');
-      const rules = face.querySelector('.tf-aaa-card__rules');
+      const q = (sel) => face.querySelector(sel);
+      const rules = q('.tf-aaa-card__rules');
       out.push({
         name: card.name,
-        titleOverflow: title && titleBox
-          ? title.getBoundingClientRect().width - titleBox.getBoundingClientRect().width
-          : 0,
+        kind,
+        title: overflow(q('.tf-aaa-card__title-text'), q('.tf-aaa-card__title')),
+        type: overflow(q('.tf-aaa-card__type-text'), q('.tf-aaa-card__type')),
+        footer: overflow(q('.tf-aaa-card__footer-text'), q('.tf-aaa-card__footer')),
         rulesOverflow: rules ? rules.scrollHeight - rules.clientHeight : 0,
       });
       face.remove();
@@ -163,8 +186,15 @@ test('worst-case real cards fit the safe rects with no overflow at chassis size'
     return out;
   });
 
-  for (const result of results) {
-    expect(result.titleOverflow, `${result.name} title`).toBeLessThanOrEqual(1);
-    expect(result.rulesOverflow, `${result.name} rules`).toBeLessThanOrEqual(1);
+  expect(results.length).toBeGreaterThanOrEqual(55);
+  for (const r of results) {
+    const label = `${r.name} (${r.kind})`;
+    expect(r.title.x, `${label} title width`).toBeLessThanOrEqual(1);
+    expect(r.title.y, `${label} title height`).toBeLessThanOrEqual(1);
+    expect(r.type.x, `${label} type width`).toBeLessThanOrEqual(1);
+    expect(r.type.y, `${label} type height`).toBeLessThanOrEqual(1);
+    expect(r.footer.x, `${label} flavor width`).toBeLessThanOrEqual(1);
+    expect(r.footer.y, `${label} flavor height`).toBeLessThanOrEqual(1);
+    expect(r.rulesOverflow, `${label} rules`).toBeLessThanOrEqual(1);
   }
 });

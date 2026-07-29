@@ -385,7 +385,10 @@
   <!-- Result -->
   <div id="result" class="result">
     <h2 id="result-text"></h2>
-    <button onclick="location.reload()">Play Again</button>
+    <!-- No inline handler: `src/main.js` binds this to `restartGame()`, which
+         disposes the match owner (state, timer, long-press) before navigating.
+         An inline `location.reload()` would race ahead of that disposal. -->
+    <button id="result-restart" type="button">Play Again</button>
   </div>
 
   <script type="module" src="./src/main.js"></script>

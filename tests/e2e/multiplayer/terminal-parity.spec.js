@@ -340,11 +340,26 @@ test('a real lethal attack ends both clients after playback and freezes the unma
       probe: await probeSnapshot(guestPage),
       text: await guestPage.locator('body').innerText(),
     }).toLocaleLowerCase();
-    for (const sentinel of [...hostHidden.uids, ...hostHidden.names]) {
+    // Match on word boundaries, not raw substrings: short card names like
+    // "Brace", "Gloom", and "Alpha" collide with ordinary English inside
+    // stylesheet comments and class names ("belt-and-braces"), which makes a
+    // plain `toContain` a false-positive generator. Uids are opaque enough to
+    // match literally. The privacy assertion itself is unchanged in strength —
+    // a real leak renders the name as a word and still trips this.
+    for (const uid of hostHidden.uids) {
       expect(
         loserSurfaces,
-        `loser surfaces exposed the winner's hidden card ${JSON.stringify(sentinel)}`,
-      ).not.toContain(sentinel.toLocaleLowerCase());
+        `loser surfaces exposed the winner's hidden card uid ${JSON.stringify(uid)}`,
+      ).not.toContain(uid.toLocaleLowerCase());
+    }
+    for (const name of hostHidden.names) {
+      const wordMatch = new RegExp(
+        `\\b${name.toLocaleLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+      );
+      expect(
+        wordMatch.test(loserSurfaces),
+        `loser surfaces exposed the winner's hidden card ${JSON.stringify(name)}`,
+      ).toBe(false);
     }
 
     // ── Characterization of the real multiplayer result overlay: unlike the

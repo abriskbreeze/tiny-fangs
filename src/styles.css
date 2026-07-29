@@ -2880,3 +2880,25 @@
       #m-my-active .tf-card__art,
       #m-opp-active .tf-card__art { margin-bottom: 4px; }
     }
+
+    /* ── Game chrome is not a document ────────────────────────────────
+       Dragging across the board, the HUD rails, the action buttons, or a
+       modal option used to paint a text selection over the card faces.
+       Scoped to game surfaces ONLY: the rules overlay carries prose a
+       player may legitimately want to copy, and the setup screen holds the
+       multiplayer room-code input/display, so both stay selectable. */
+    #mobile,
+    #desktop,
+    .modal-box,
+    .trigger-box,
+    .result {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* The rules overlay reuses .modal, but its body is readable prose. */
+    #rulesModal .rules-content,
+    #rulesModal .rules-header {
+      -webkit-user-select: text;
+      user-select: text;
+    }

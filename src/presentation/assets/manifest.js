@@ -12,14 +12,20 @@ export const ASSET_VALIDATION_PHASES = Object.freeze({
   RELEASE: 'release'
 });
 
+/**
+ * Card art fills the chassis' inset art window, which the approved layout
+ * fixes at 280 × 200 display px — exactly 7:5. Every variant keeps that
+ * aspect so no illustration is ever cropped by the window. maxBytes stays
+ * roughly proportional to each variant's pixel count.
+ */
 const CARD_ART_VARIANTS = Object.freeze([
   Object.freeze({
     role: 'source',
     extension: 'png',
     mediaType: 'image',
-    minWidth: 2048,
-    minHeight: 1536,
-    aspectRatio: 4 / 3,
+    minWidth: 2100,
+    minHeight: 1500,
+    aspectRatio: 7 / 5,
     aspectTolerance: 0.01,
     maxBytes: 8_000_000
   }),
@@ -27,31 +33,31 @@ const CARD_ART_VARIANTS = Object.freeze([
     role: 'detail',
     extension: 'webp',
     mediaType: 'image',
-    minWidth: 1600,
-    minHeight: 1200,
-    aspectRatio: 4 / 3,
+    minWidth: 1400,
+    minHeight: 1000,
+    aspectRatio: 7 / 5,
     aspectTolerance: 0.01,
-    maxBytes: 1_500_000
+    maxBytes: 1_100_000
   }),
   Object.freeze({
     role: 'thumbnail',
     extension: 'webp',
     mediaType: 'image',
-    minWidth: 800,
-    minHeight: 600,
-    aspectRatio: 4 / 3,
+    minWidth: 700,
+    minHeight: 500,
+    aspectRatio: 7 / 5,
     aspectTolerance: 0.01,
-    maxBytes: 320_000
+    maxBytes: 235_000
   }),
   Object.freeze({
     role: 'fallback',
     extension: 'jpg',
     mediaType: 'image',
-    minWidth: 800,
-    minHeight: 600,
-    aspectRatio: 4 / 3,
+    minWidth: 700,
+    minHeight: 500,
+    aspectRatio: 7 / 5,
     aspectTolerance: 0.01,
-    maxBytes: 420_000
+    maxBytes: 310_000
   })
 ]);
 

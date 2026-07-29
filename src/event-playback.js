@@ -9,8 +9,19 @@ import { sideKey } from './side-key.js';
  * @param {function} deps.log
  * @param {object} deps.VERSES
  * @param {object} deps.CREATURES
+ * @param {function} [deps.presentResult] — sole owner of terminal result
+ *   presentation. Receives the engine's `gameOver` event
+ *   (`{ winner: 'p1'|'p2'|'me'|'opp', reason }`) after the rest of the frame
+ *   has played. Omitted (multiplayer) means playback presents nothing and the
+ *   caller keeps its own terminal presentation.
  */
-export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
+export function createEventPlayback({
+  Anim,
+  log,
+  VERSES,
+  CREATURES,
+  presentResult,
+}) {
   function resolveBenchSide(event) {
     const side = sideKey(event.side ?? event.animKey);
     return side === 'me' || side === 'opp' ? side : null;
@@ -183,7 +194,14 @@ export function createEventPlayback({ Anim, log, VERSES, CREATURES }) {
 
     setFlag: () => Promise.resolve(),
     turnStart: () => Promise.resolve(),
-    gameOver: () => Promise.resolve(),
+    // Single result owner: every terminal path — player attack, rival attack,
+    // either side's poison/end-turn tick, either side's deck out — reaches the
+    // overlay through this one handler, because the engine emits `gameOver`
+    // for all of them and playback is the only consumer.
+    gameOver: (e) => {
+      if (typeof presentResult !== 'function') return Promise.resolve();
+      return Promise.resolve(presentResult(e));
+    },
 
     skitterSwap: () => Promise.resolve(),
     skitterDecline: () => Promise.resolve(),
