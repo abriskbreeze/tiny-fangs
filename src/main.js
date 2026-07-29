@@ -808,6 +808,9 @@
       const str = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
       $('m-time').textContent = str;
       $('d-time').textContent = str;
+      // Phase 9b: the AAA timer chip mirrors the same clock.
+      const aaaTimer = document.getElementById('aaa-timer');
+      if (aaaTimer) aaaTimer.textContent = str;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -962,7 +965,7 @@
       }
       const host = document.getElementById('aaa-stage');
       if (host) host.style.display = '';
-      aaaShell.update(state.G);
+      aaaShell.update(state.G, { selectedCard: state.selectedCard });
       // Mirror the classic affordability computation (single source of truth
       // in updateButtons) onto the AAA action rail.
       const mirror = [
@@ -1924,9 +1927,27 @@
       }
     }
 
+    // Phase 9b: presentation-only board targeting highlights. The selector
+    // modal remains the resolution authority; a highlighted AAA card click
+    // routes through the SAME option action (exactly-once by construction).
+    function aaaSetTargetHighlights(uids) {
+      const stage = document.getElementById('aaa-stage');
+      if (!stage) return;
+      const wanted = new Set(uids ?? []);
+      for (const node of stage.querySelectorAll('[data-uid]')) {
+        node.classList.toggle('aaa-card--targetable', wanted.has(node.dataset.uid));
+      }
+      // Targeting mode docks the selector panel aside and lets the scrim
+      // pass clicks through, so highlighted board cards are physically
+      // clickable (the panel remains the keyboard/list path).
+      $('modal').classList.toggle('aaa-targeting', Boolean(uids && uids.length));
+      if (!uids || !uids.length) window._aaaTargetPick = null;
+    }
+
     function closeModal() {
       $('modal').classList.remove('open');
       window._modalActions = null;
+      aaaSetTargetHighlights(null);
       // Call onClose callback if set (for selection modals to resolve with null)
       if (window._modalOnClose) {
         const onClose = window._modalOnClose;
@@ -2001,7 +2022,13 @@
         return null;
       }
 
-      // Show selector modal with ownership styling
+      // Show selector modal with ownership styling; mirror the legal
+      // targets onto the AAA board as clickable highlights.
+      aaaSetTargetHighlights(options.map((opt) => opt.creature.uid));
+      window._aaaTargetPick = (uid) => {
+        const index = options.findIndex((opt) => opt.creature.uid === uid);
+        if (index >= 0) creatureSelectorAction(index);
+      };
       return new Promise(resolve => {
         $('modal-title').textContent = prompt;
         $('modal-opts').innerHTML = options.map((opt, i) => `
@@ -2026,6 +2053,7 @@
     }
 
     function creatureSelectorAction(i) {
+      aaaSetTargetHighlights(null);
       if (window._creatureSelectorOptions && window._creatureSelectorOptions[i]) {
         const opt = window._creatureSelectorOptions[i];
         closeModal();

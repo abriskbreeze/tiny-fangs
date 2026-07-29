@@ -308,3 +308,61 @@
   border: 1.5px solid rgba(238, 195, 78, 0.4);
   border-radius: 10px;
 }
+
+/* ── Phase 9b: targeting/selected states and the timer chip ─────────── */
+
+.aaa-card--targetable {
+  filter: brightness(1.08);
+}
+.aaa-card--targetable::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 3px solid rgba(238, 195, 78, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 0 18px rgba(238, 195, 78, 0.65), inset 0 0 14px rgba(238, 195, 78, 0.3);
+  pointer-events: none;
+}
+.aaa-hand-card--selected {
+  filter: brightness(1.1);
+}
+.aaa-hand-card--selected::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3.5px solid rgba(238, 195, 78, 0.95);
+  border-radius: 26px;
+  box-shadow: 0 0 20px rgba(238, 195, 78, 0.6);
+  pointer-events: none;
+}
+
+.aaa-timer-chip {
+  position: absolute;
+  right: 22px;
+  top: 432px;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(238, 195, 78, 0.4);
+  background: rgba(35, 40, 31, 0.75);
+  color: #DCBA96;
+}
+
+/* Targeting mode: the scrim passes clicks to the board; the selector panel
+   docks to the right edge so highlighted targets stay visible/clickable. */
+:root[data-presentation="aaa"] .modal.aaa-targeting {
+  pointer-events: none;
+  background: rgba(20, 24, 18, 0.22);
+}
+:root[data-presentation="aaa"] .modal.aaa-targeting .modal-box {
+  pointer-events: auto;
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
+}

@@ -127,10 +127,20 @@ export function createAaaShell({
     });
     // Face-up cards with an identity open the card-detail surface — the
     // same classic showCardDetail flow (face-down cards expose nothing).
+    // During a targeting selection (Phase 9b) a highlighted card resolves
+    // the selector instead: diegetic pick through the SAME option action.
     if (!faceDown && card?.uid) {
       wrapper.classList.add('aaa-board-card--inspectable');
+      wrapper.dataset.uid = card.uid;
       wrapper.style.pointerEvents = 'auto';
-      wrapper.addEventListener('click', () => actions.showCardDetail?.(card.uid));
+      wrapper.addEventListener('click', () => {
+        if (wrapper.classList.contains('aaa-card--targetable')
+          && typeof win._aaaTargetPick === 'function') {
+          win._aaaTargetPick(card.uid);
+          return;
+        }
+        actions.showCardDetail?.(card.uid);
+      });
     }
     if (count !== null && count > 0) countChip(anchorId, count, countLabel);
   }
@@ -154,7 +164,7 @@ export function createAaaShell({
     }
   }
 
-  function renderHand(hand, myTurn) {
+  function renderHand(hand, myTurn, selectedCard = null) {
     const n = hand.length;
     if (!n) return;
     const spacing = Math.min(152, n > 1 ? 560 / (n - 1) : 0);
@@ -165,6 +175,10 @@ export function createAaaShell({
       const tilt = (t - 0.5) * 2 * maxTilt;
       const wrapper = el('div', 'aaa-hand-card', cardLayer);
       wrapper.dataset.hand = card.uid ?? String(i);
+      if (card.uid) wrapper.dataset.uid = card.uid;
+      if (selectedCard && card.uid === selectedCard) {
+        wrapper.classList.add('aaa-hand-card--selected');
+      }
       wrapper.dataset.handIndex = String(i);
       const shadow = el('div', 'aaa-hand-shadow', wrapper);
       shadow.style.transform = 'translate(20px, 30px)';
@@ -227,11 +241,15 @@ export function createAaaShell({
     oppHand.id = 'aaa-opp-hand';
     oppHand.textContent = `hand ${G.opp.handCount ?? G.opp.hand?.length ?? 0}`;
 
-    // Turn token near the divider's right end.
+    // Turn token near the divider's right end, with the match timer under
+    // it (the classic updateTimer keeps #aaa-timer current between renders).
     const turnChip = el('div', 'aaa-turn-chip', hudLayer);
     turnChip.id = 'aaa-turn';
     turnChip.textContent = `Turn ${G.turn} — ${myTurn ? 'You' : 'Rival'}`;
     turnChip.dataset.owner = myTurn ? 'me' : 'opp';
+    const timerChip = el('div', 'aaa-timer-chip', hudLayer);
+    timerChip.id = 'aaa-timer';
+    timerChip.textContent = doc.getElementById('d-time')?.textContent ?? '0:00';
 
     // Bottom-right action rail: all six actions, same handlers as classic.
     const bar = el('div', 'aaa-rail aaa-action-rail', hudLayer);
@@ -263,7 +281,7 @@ export function createAaaShell({
     }
   }
 
-  function update(G) {
+  function update(G, options = {}) {
     if (!mounted && !mount()) return;
     if (!G) return;
     cardLayer.innerHTML = '';
@@ -301,7 +319,7 @@ export function createAaaShell({
       isStack: true, count: G.me.grave?.length ?? 0, countLabel: 'your graveyard',
     });
 
-    renderHand(G.me.hand ?? [], Boolean(G.myTurn));
+    renderHand(G.me.hand ?? [], Boolean(G.myTurn), options.selectedCard ?? null);
     renderHud(G);
   }
 
