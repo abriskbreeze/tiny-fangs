@@ -511,7 +511,27 @@
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
       const coinDisplay = document.createElement('pre');
       coinDisplay.style.cssText = 'color:var(--text);text-align:center;font-family:monospace;transition:transform 0.08s ease-out;line-height:1.2;';
-      overlay.appendChild(coinDisplay);
+      // Phase 9c: in aaa mode the same overlay/lifecycle hosts a CSS-3D gold
+      // coin instead of ASCII art; every frame delay below is unchanged, so
+      // the result timing contract (1780 ms) is byte-identical to classic.
+      const isAaaCoin = document.documentElement.dataset.presentation === 'aaa';
+      let aaaCoinScene = null;
+      let aaaCoin = null;
+      let aaaRotation = 0;
+      if (isAaaCoin) {
+        overlay.classList.add('aaa-coin-overlay');
+        aaaCoinScene = document.createElement('div');
+        aaaCoinScene.className = 'aaa-coin-scene';
+        aaaCoin = document.createElement('div');
+        aaaCoin.className = 'aaa-coin';
+        aaaCoin.innerHTML =
+          '<div class="aaa-coin-face aaa-coin-face--heads">H</div>'
+          + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
+        aaaCoinScene.appendChild(aaaCoin);
+        overlay.appendChild(aaaCoinScene);
+      } else {
+        overlay.appendChild(coinDisplay);
+      }
       document.body.appendChild(overlay);
 
       // Animation sequence: rise, spin, fall, bounce, reveal
@@ -543,14 +563,28 @@
         { art: coinSmall[result], size: 'small', delay: 400 },
       ];
 
-      // Play animation
-      for (const frame of frames) {
-        coinDisplay.textContent = frame.art;
-        coinDisplay.style.fontSize = fontSize[frame.size];
+      // Play animation (same frames/delays in both presentations)
+      const aaaScale = { small: 0.62, med: 0.85, big: 1.12 };
+      for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+        const frame = frames[frameIndex];
+        if (aaaCoin) {
+          aaaRotation += 90;
+          if (frameIndex === frames.length - 1) {
+            // Land exactly on the flipped result face.
+            aaaRotation = Math.ceil(aaaRotation / 360) * 360
+              + (result === 'tails' ? 180 : 0);
+          }
+          aaaCoin.style.transition = `transform ${frame.delay}ms ease-in-out`;
+          aaaCoin.style.transform =
+            `scale(${aaaScale[frame.size]}) rotateY(${aaaRotation}deg)`;
+        } else {
+          coinDisplay.textContent = frame.art;
+          coinDisplay.style.fontSize = fontSize[frame.size];
+        }
         if (frame.bounce) {
-          coinDisplay.style.transform = 'translateY(-20px)';
+          (aaaCoinScene ?? coinDisplay).style.transform = 'translateY(-20px)';
           await Anim.wait(60);
-          coinDisplay.style.transform = 'translateY(0)';
+          (aaaCoinScene ?? coinDisplay).style.transform = 'translateY(0)';
         }
         await Anim.wait(frame.delay);
       }
@@ -603,7 +637,27 @@
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
       const coinDisplay = document.createElement('pre');
       coinDisplay.style.cssText = 'color:var(--text);text-align:center;font-family:monospace;transition:transform 0.08s ease-out;line-height:1.2;';
-      overlay.appendChild(coinDisplay);
+      // Phase 9c: in aaa mode the same overlay/lifecycle hosts a CSS-3D gold
+      // coin instead of ASCII art; every frame delay below is unchanged, so
+      // the result timing contract (1780 ms) is byte-identical to classic.
+      const isAaaCoin = document.documentElement.dataset.presentation === 'aaa';
+      let aaaCoinScene = null;
+      let aaaCoin = null;
+      let aaaRotation = 0;
+      if (isAaaCoin) {
+        overlay.classList.add('aaa-coin-overlay');
+        aaaCoinScene = document.createElement('div');
+        aaaCoinScene.className = 'aaa-coin-scene';
+        aaaCoin = document.createElement('div');
+        aaaCoin.className = 'aaa-coin';
+        aaaCoin.innerHTML =
+          '<div class="aaa-coin-face aaa-coin-face--heads">H</div>'
+          + '<div class="aaa-coin-face aaa-coin-face--tails">T</div>';
+        aaaCoinScene.appendChild(aaaCoin);
+        overlay.appendChild(aaaCoinScene);
+      } else {
+        overlay.appendChild(coinDisplay);
+      }
       document.body.appendChild(overlay);
 
       const frames = [
@@ -959,7 +1013,7 @@
       if (!isAaaMode() || !state.G) return;
       if (!aaaShell) {
         aaaShell = createAaaShell({
-          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn, showCardDetail },
+          actions: { doSummon, doCast, doSet, doAttack, doRetreat, endTurn, showCardDetail, showGraveyard, showRules },
           onError: (error) => console.warn('AAA shell error; staying classic', error),
         });
       }

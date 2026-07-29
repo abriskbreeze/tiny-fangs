@@ -108,11 +108,21 @@ export function createAaaShell({
     if (!corners) return;
     const xs = corners.map((c) => c[0]);
     const ys = corners.map((c) => c[1]);
-    const chip = el('div', 'aaa-count-chip', hudLayer, String(count));
+    const isGrave = anchorId.endsWith('.grave');
+    const chip = el(isGrave ? 'button' : 'div', 'aaa-count-chip', hudLayer, String(count));
     chip.dataset.chip = anchorId;
     chip.setAttribute('aria-label', `${label}: ${count}`);
     chip.style.left = `${Math.max(...xs) - 18}px`;
     chip.style.top = `${Math.max(...ys) - 12}px`;
+    if (isGrave) {
+      // Phase 9c: the grave chip opens the graveyard browser (classic
+      // showGraveyard flow with hold-to-zoom preserved).
+      chip.classList.add('aaa-count-chip--action');
+      chip.style.pointerEvents = 'auto';
+      chip.type = 'button';
+      chip.addEventListener('click', () =>
+        actions.showGraveyard?.(anchorId.startsWith('me.') ? 'me' : 'opp'));
+    }
   }
 
   function renderAnchor(anchorId, card, { isStack = false, faceDown = false, count = null, countLabel = '' } = {}) {
@@ -268,6 +278,12 @@ export function createAaaShell({
       button.disabled = !myTurn;
       button.addEventListener('click', () => handler?.());
     }
+
+    // Rules link: quiet corner affordance opening the classic rules overlay.
+    const rulesLink = el('button', 'aaa-rules-link', hudLayer, 'Rules');
+    rulesLink.id = 'aaa-rules-link';
+    rulesLink.type = 'button';
+    rulesLink.addEventListener('click', () => actions.showRules?.());
 
     // Log rail: mirror of the shell's log entries (newest last).
     const logRail = el('div', 'aaa-rail aaa-log-rail', hudLayer);
