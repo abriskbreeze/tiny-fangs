@@ -37,8 +37,18 @@ export function normalizeFaceModel(card, kind) {
     flavor: card.flavor ?? '',
   };
   if (kind === 'creature') {
-    model.atk = Number.isFinite(card.atk) ? card.atk : null;
-    model.hp = Number.isFinite(card.hp) ? card.hp : null;
+    // Phase 5: medallions show CURRENT values. displayAtk is the effective
+    // attack computed by the caller (presentation-only, from the projected
+    // state); curHp is engine-authored damage state. Base stats remain the
+    // fallback and the damaged/boosted flags drive ink-state styling only.
+    const baseAtk = Number.isFinite(card.atk) ? card.atk : null;
+    const baseHp = Number.isFinite(card.hp) ? card.hp : null;
+    model.atk = Number.isFinite(card.displayAtk) ? card.displayAtk : baseAtk;
+    model.hp = Number.isFinite(card.curHp) ? card.curHp : baseHp;
+    model.maxHp = baseHp;
+    model.damaged = Number.isFinite(card.curHp) && baseHp !== null && card.curHp < baseHp;
+    model.atkBoosted = Number.isFinite(card.displayAtk) && baseAtk !== null && card.displayAtk > baseAtk;
+    model.atkReduced = Number.isFinite(card.displayAtk) && baseAtk !== null && card.displayAtk < baseAtk;
     if (model.atk === null || model.hp === null) {
       throw new Error(`Creature face ${card.name} is missing atk/hp`);
     }
@@ -149,9 +159,12 @@ export function buildCardFace(model, { document: doc = globalThis.document } = {
     const attack = el(doc, 'tf-aaa-card__attack', rects.attack);
     attack.innerHTML =
       `<span class="tf-aaa-card__medallion-num">${model.atk}</span>`;
+    if (model.atkBoosted) attack.dataset.boosted = 'true';
+    if (model.atkReduced) attack.dataset.reduced = 'true';
     const health = el(doc, 'tf-aaa-card__health', rects.health);
     health.innerHTML =
       `<span class="tf-aaa-card__medallion-num">${model.hp}</span>`;
+    if (model.damaged) health.dataset.damaged = 'true';
     content.append(attack, health);
   }
 

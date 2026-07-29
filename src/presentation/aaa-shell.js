@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import { buildCardFace, normalizeFaceModel } from './cards/card-face.js';
+import { getEffectiveAtk } from '../abilities.js';
 import './cards/cards.css';
 import './aaa-shell.css';
 import { mountBoardCard, CHASSIS_W, CHASSIS_H } from './dom/board-card-mount.js';
@@ -280,9 +281,11 @@ export function createAaaShell({
 
   function renderStatuses(anchorId, card) {
     if (!card) return;
+    // Engine truth: creature.status carries poison/trapped; fortified is a
+    // boolean flag (the pre-audit check read fields that never exist).
     const marks = [];
-    if (card.poison) marks.push(['psn', 'poisoned']);
-    if (card.trapped) marks.push(['trp', 'trapped']);
+    if (card.status === 'poison') marks.push(['psn', 'poisoned']);
+    if (card.status === 'trapped') marks.push(['trp', 'trapped']);
     if (card.fortified) marks.push(['frt', 'fortified']);
     if (!marks.length) return;
     const corners = GOLDEN_QUADS[anchorId];
@@ -360,6 +363,10 @@ export function createAaaShell({
     myMana.id = 'aaa-my-mana';
     myMana.setAttribute('aria-label', `mana ${G.me.mana} of ${G.me.maxMana}`);
     myMana.textContent = '●'.repeat(G.me.mana) + '○'.repeat(Math.max(0, G.me.maxMana - G.me.mana));
+    if (G.me.unbreakable) {
+      const ward = el('div', 'aaa-status-charm aaa-ward-charm', mySide, 'ward');
+      ward.setAttribute('aria-label', 'unbreakable this turn');
+    }
 
     // Top-right rail: rival vitals + hand count.
     const right = el('div', 'aaa-rail aaa-rail--top-right', hudLayer);
@@ -375,6 +382,10 @@ export function createAaaShell({
     const oppHand = el('div', 'aaa-opp-hand', oppSide);
     oppHand.id = 'aaa-opp-hand';
     oppHand.textContent = `hand ${G.opp.handCount ?? G.opp.hand?.length ?? 0}`;
+    if (G.opp.unbreakable) {
+      const ward = el('div', 'aaa-status-charm aaa-ward-charm', oppSide, 'ward');
+      ward.setAttribute('aria-label', 'rival unbreakable this turn');
+    }
 
     // Turn token near the divider's right end, with the match timer under
     // it (the classic updateTimer keeps #aaa-timer current between renders).
@@ -458,9 +469,19 @@ export function createAaaShell({
       count: G.opp.deckCount ?? G.opp.deck?.length ?? 0,
       countLabel: 'rival deck',
     });
+    // Presentation-only effective stats: actives show the modifier-adjusted
+    // attack (same shared getEffectiveAtk the classic shell displays).
+    const withEffective = (card, owner, enemy) => {
+      if (!card) return card;
+      try {
+        return { ...card, displayAtk: getEffectiveAtk(card, owner, enemy) };
+      } catch {
+        return card;
+      }
+    };
     renderAnchor('opp.bench.a', G.opp.bench?.[0]);
     renderAnchor('opp.bench.b', G.opp.bench?.[1]);
-    renderAnchor('opp.active', G.opp.active);
+    renderAnchor('opp.active', withEffective(G.opp.active, G.opp, G.me));
     renderStatuses('opp.active', G.opp.active);
     // Privacy: the rival Set is exactly opaque presence.
     renderAnchor('opp.set', null, { faceDown: Boolean(G.opp.setVerse) });
@@ -474,7 +495,7 @@ export function createAaaShell({
       count: G.me.deckCount ?? G.me.deck?.length ?? 0,
       countLabel: 'your deck',
     });
-    renderAnchor('me.active', G.me.active);
+    renderAnchor('me.active', withEffective(G.me.active, G.me, G.opp));
     renderStatuses('me.active', G.me.active);
     renderAnchor('me.bench.a', G.me.bench?.[0]);
     renderAnchor('me.bench.b', G.me.bench?.[1]);

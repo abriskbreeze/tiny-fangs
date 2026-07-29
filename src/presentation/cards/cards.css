@@ -317,3 +317,16 @@
   height: 100%;
   display: block;
 }
+
+/* ── Phase 5 medallion states: ink shifts only, geometry untouched ── */
+.tf-aaa-card__health[data-damaged="true"] .tf-aaa-card__medallion-num {
+  color: #ffd9c8;
+  text-shadow: 0 0 6px rgba(143, 47, 42, 0.9);
+}
+.tf-aaa-card__attack[data-boosted="true"] .tf-aaa-card__medallion-num {
+  color: #ffe9a8;
+  text-shadow: 0 0 6px rgba(238, 195, 78, 0.9);
+}
+.tf-aaa-card__attack[data-reduced="true"] .tf-aaa-card__medallion-num {
+  color: #cfc4bd;
+}

@@ -508,3 +508,5 @@
   will-change: transform, opacity;
 }
 .aaa-sound-chip { left: 96px; }
+
+.aaa-ward-charm { display: inline-block; margin-top: 4px; }
