@@ -1,0 +1,39 @@
+{
+ "critic1": {
+  "cropWins": 0,
+  "improvementsForChallenger": [
+   "The ground is a single flat olive-mustard fill with faint noise; there is no grass, no texture, no light falloff that reads as terrain. Replace it with an actual meadow surface (grass tufts, flowers, mowed-path value variation) \u2014 right now it reads as a UI background color, not a place.",
+   "Nothing casts a shadow: cards, the fence, and every perimeter rock/tree float on the ground plane. Add grounded contact shadows with one consistent sun direction; the fence in the top-left corner especially looks pasted on.",
+   "The perimeter 'environment' is unresolved: the corner crops (bl, br, tr) are abstract near-black and mud-brown polyhedra with no material identity \u2014 I could not tell rocks from bushes from trees. Give them albedo/lighting so they read as foliage and stone, and vary silhouettes.",
+   "Cards have zero edge thickness \u2014 they are flat rectangles. The hand cards also show a teal under-border sticking out on one side like a misregistered layer; either make that an intentional sleeve with even margins or remove it.",
+   "The stream in field-corner-tl/br is a hard-edged cyan ribbon with three flat bands and aliased edges; it looks like a masking-tape strip. It needs banks, softened edges, and lighting consistent with the scene.",
+   "The center divider is a clean glow line, but it sits on featureless ground so it reads as an HTML hr with bloom. Once the terrain is real, let the seam interact with it (scorched/blessed grass, irregular falloff) instead of a perfectly uniform gradient."
+  ],
+  "overallChallenger": false,
+  "ties": 0
+ },
+ "critic2": {
+  "cropWins": 0,
+  "improvementsForChallenger": [
+   "The ground is a flat, untextured olive-mustard gradient that reads as a UI background, not a meadow \u2014 add grass texture, tonal variation, flowers, and worn paths so the playfield reads as terrain.",
+   "Environment props (rocks, trees, stream) are unshaded near-black low-poly silhouettes with zero cast shadows; the corner crops show raw facets floating on a void. Establish one sun direction and give every prop a grounded shadow and lit/shadow faces.",
+   "Cards have no physical presence: no edge thickness, only a faint uniform halo instead of a contact shadow (see field-card-contact \u2014 Duskfang floats). Add card-stock extrusion and a directional grounded shadow consistent with the scene light.",
+   "The palette is muddy \u2014 mustard field against near-black props with no atmosphere or warm sunlight grading; introduce a coherent golden-hour grade tying cards, ground, and props together.",
+   "The stream is two flat cyan ribbon bands with no highlights, banks, or interaction with the surrounding rocks; it reads as a decal, not water.",
+   "The divider is a clean glow line but sits on dead-flat ground, which makes the whole center of the field feel like empty negative space; give the seam something to interact with."
+  ],
+  "overallChallenger": false,
+  "ties": 0
+ },
+ "gatePass": false,
+ "revision": "field-r2",
+ "schema": "tiny-fangs.field-verdict.v1",
+ "unsealedMapping": {
+  "challenger": "A",
+  "challengerCaptureSha256": "sha256:2137f2b832962718e365cd46a41b2929d3d7ffd0fa289a3e37ecbdc3ec72d379",
+  "reference": "B",
+  "referenceSha256": "sha256:5229e89ad2888ef9f3245d6ecd77605ec56a3cc29a6e378c4c7474659e4b79e7",
+  "schema": "tiny-fangs.blind-mapping.v1",
+  "set": "field-r2"
+ }
+}

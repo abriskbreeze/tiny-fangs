@@ -1,0 +1,35 @@
+{
+  "schema": "tiny-fangs.field-critic.v1",
+  "revision": "field-r2",
+  "critic": 1,
+  "crops": {
+    "field-full": "B",
+    "field-opponent": "B",
+    "field-divider": "B",
+    "field-player": "B",
+    "field-hand": "B",
+    "field-corner-tl": "B",
+    "field-corner-tr": "B",
+    "field-corner-bl": "B",
+    "field-corner-br": "B",
+    "field-card-contact": "B"
+  },
+  "overall": "B",
+  "improvementsForA": [
+    "The ground is a single flat olive-mustard fill with faint noise; there is no grass, no texture, no light falloff that reads as terrain. Replace it with an actual meadow surface (grass tufts, flowers, mowed-path value variation) — right now it reads as a UI background color, not a place.",
+    "Nothing casts a shadow: cards, the fence, and every perimeter rock/tree float on the ground plane. Add grounded contact shadows with one consistent sun direction; the fence in the top-left corner especially looks pasted on.",
+    "The perimeter 'environment' is unresolved: the corner crops (bl, br, tr) are abstract near-black and mud-brown polyhedra with no material identity — I could not tell rocks from bushes from trees. Give them albedo/lighting so they read as foliage and stone, and vary silhouettes.",
+    "Cards have zero edge thickness — they are flat rectangles. The hand cards also show a teal under-border sticking out on one side like a misregistered layer; either make that an intentional sleeve with even margins or remove it.",
+    "The stream in field-corner-tl/br is a hard-edged cyan ribbon with three flat bands and aliased edges; it looks like a masking-tape strip. It needs banks, softened edges, and lighting consistent with the scene.",
+    "The center divider is a clean glow line, but it sits on featureless ground so it reads as an HTML hr with bloom. Once the terrain is real, let the seam interact with it (scorched/blessed grass, irregular falloff) instead of a perfectly uniform gradient."
+  ],
+  "improvementsForB": [
+    "The rules text on every card face is pseudo-glyph gibberish (rows of diamond/circle symbols) — beautiful frames, unreadable game surfaces. Replace with real typeset card text; this is the single biggest blocker to shipping and the one axis where the other render is clearly ahead.",
+    "Heavy bloom/haze washes out the top-left quadrant (field-corner-tl is nearly overexposed and milky); pull the atmospheric glow back so the stream and fence keep local contrast.",
+    "Corner detail crops are soft and smeary — the bl/tr trees and rocks look like an upscaled painting with lost edges. A pass of crisper texture (grass blade detail, harder rock facets) at native resolution would remove the 'AI upscale' feel.",
+    "The divider seam's edge is wobbly with small crackle artifacts and an unexplained truncated glowing rectangle near its lower-left; clean the seam path and remove the stray glow fragment.",
+    "Card-face iconography (the stat rows and crest symbols) is mushy at gameplay scale; the 18-heart and some medallions show speckled artifacts. Tighten these UI elements as crisp vector overlays composited over the painterly board rather than baked into it.",
+    "The two rows read slightly differently in saturation (player row cooler/greener than the sunwashed opponent row); a light grade unification would lock the two halves into one continuous meadow."
+  ],
+  "notes": "B reads as an actual sunlit meadow: textured grass with flowers, one coherent warm sun with long cast shadows, decks and cards that have real edge thickness and contact shadows, and a stream with believable water. A is a flat mustard plane ringed by unlit black polyhedra — clean and legible, but it looks like a diagram, not a place; it loses every environment crop outright. B's decisive flaw is that all card text is illegible pseudo-glyphs and its detail crops are soft, but those are finishing problems on top of a shippable foundation, whereas A's problems are foundational."
+}
