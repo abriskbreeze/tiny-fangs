@@ -466,3 +466,22 @@
 }
 .aaa-rules-link:hover { filter: brightness(1.15); }
 .aaa-rules-link:focus-visible { outline: 2.5px solid #EEC34E; outline-offset: 2px; }
+
+/* ── Phase 10a: uid-keyed FLIP motion ──────────────────────────────── */
+
+.aaa-flip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.aaa-flip--moving {
+  transition: transform 380ms cubic-bezier(0.22, 0.9, 0.24, 1.02);
+  will-change: transform;
+}
+.aaa-flip--exiting {
+  transition: transform 420ms cubic-bezier(0.4, 0.1, 0.6, 1), opacity 420ms linear;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aaa-flip--moving, .aaa-flip--exiting { transition: none !important; }
+}

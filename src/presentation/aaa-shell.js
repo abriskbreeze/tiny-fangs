@@ -50,6 +50,100 @@ export function createAaaShell({
   let renderer = null;
   let mounted = false;
   let resizeHandler = null;
+  // Phase 10a: uid-keyed FLIP outers. Each card with an identity renders
+  // inside a persistent frame-spanning outer; zone changes animate the outer
+  // with a deterministic fixed-curve transform that always settles to ''.
+  const flipMap = new Map(); // uid -> outer element
+
+  function prefersReducedMotion() {
+    try {
+      return win.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  function getFlipOuter(uid) {
+    let outer = flipMap.get(uid);
+    if (!outer) {
+      outer = doc.createElement('div');
+      outer.className = 'aaa-flip';
+      outer.dataset.flipUid = uid;
+      flipMap.set(uid, outer);
+    }
+    outer.replaceChildren();
+    return outer;
+  }
+
+  function measureFlip(outer) {
+    const inner = outer.firstElementChild;
+    if (!inner) return null;
+    const rect = inner.getBoundingClientRect();
+    return rect.width > 0 ? rect : null;
+  }
+
+  function quadViewportRect(anchorId) {
+    const corners = GOLDEN_QUADS[anchorId];
+    const frame = stage?.getBoundingClientRect();
+    if (!corners || !frame) return null;
+    const scale = frame.width / FRAME_W;
+    const xs = corners.map((c) => c[0]);
+    const ys = corners.map((c) => c[1]);
+    return {
+      left: frame.left + Math.min(...xs) * scale,
+      top: frame.top + Math.min(...ys) * scale,
+      width: (Math.max(...xs) - Math.min(...xs)) * scale,
+      height: (Math.max(...ys) - Math.min(...ys)) * scale,
+    };
+  }
+
+  function animateFlip(outer, fromRect, toRect) {
+    const frame = stage?.getBoundingClientRect();
+    if (!frame || !fromRect || !toRect) return;
+    const stageScale = frame.width / FRAME_W || 1;
+    const fromCx = fromRect.left + fromRect.width / 2;
+    const fromCy = fromRect.top + fromRect.height / 2;
+    const toCx = toRect.left + toRect.width / 2;
+    const toCy = toRect.top + toRect.height / 2;
+    const dx = (fromCx - toCx) / stageScale;
+    const dy = (fromCy - toCy) / stageScale;
+    const sx = toRect.width > 0 ? fromRect.width / toRect.width : 1;
+    const sy = toRect.height > 0 ? fromRect.height / toRect.height : 1;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.02) return;
+    outer.style.transformOrigin =
+      `${(toCx - frame.left) / stageScale}px ${(toCy - frame.top) / stageScale}px`;
+    outer.classList.remove('aaa-flip--moving');
+    outer.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    void outer.offsetWidth; // commit First
+    outer.classList.add('aaa-flip--moving');
+    outer.style.transform = '';
+    const settle = () => {
+      outer.classList.remove('aaa-flip--moving');
+      outer.removeEventListener('transitionend', settle);
+    };
+    outer.addEventListener('transitionend', settle);
+    win.setTimeout(settle, 520);
+  }
+
+  function animateExitToGrave(outer, side) {
+    const toRect = quadViewportRect(`${side}.grave`);
+    const fromRect = measureFlip(outer);
+    if (!toRect || !fromRect) { flipMap.delete(outer.dataset.flipUid); return; }
+    cardLayer.appendChild(outer); // resurrect the old content for the exit
+    const frame = stage.getBoundingClientRect();
+    const stageScale = frame.width / FRAME_W || 1;
+    const dx = ((toRect.left + toRect.width / 2) - (fromRect.left + fromRect.width / 2)) / stageScale;
+    const dy = ((toRect.top + toRect.height / 2) - (fromRect.top + fromRect.height / 2)) / stageScale;
+    outer.style.transformOrigin =
+      `${(fromRect.left + fromRect.width / 2 - frame.left) / stageScale}px ${(fromRect.top + fromRect.height / 2 - frame.top) / stageScale}px`;
+    outer.classList.add('aaa-flip--moving', 'aaa-flip--exiting');
+    outer.style.transform = `translate(${dx}px, ${dy}px) scale(0.55)`;
+    const uid = outer.dataset.flipUid;
+    win.setTimeout(() => {
+      outer.remove();
+      if (flipMap.get(uid) === outer) flipMap.delete(uid);
+    }, 460);
+  }
 
   function el(tag, className, parent, text) {
     const node = doc.createElement(tag);
@@ -132,9 +226,12 @@ export function createAaaShell({
     const face = faceDown
       ? buildCardFace(normalizeFaceModel(null, 'back'))
       : safeFace(card, faceKindOf(card));
+    const keyed = !faceDown && card?.uid;
+    const host = keyed ? getFlipOuter(card.uid) : cardLayer;
     const { wrapper } = mountBoardCard({
-      layer: cardLayer, shadowLayer, corners, face, isStack, anchorId, document: doc,
+      layer: host, shadowLayer, corners, face, isStack, anchorId, document: doc,
     });
+    if (keyed) cardLayer.appendChild(host);
     // Face-up cards with an identity open the card-detail surface — the
     // same classic showCardDetail flow (face-down cards expose nothing).
     // During a targeting selection (Phase 9b) a highlighted card resolves
@@ -183,7 +280,9 @@ export function createAaaShell({
     hand.forEach((card, i) => {
       const t = n > 1 ? i / (n - 1) : 0.5;
       const tilt = (t - 0.5) * 2 * maxTilt;
-      const wrapper = el('div', 'aaa-hand-card', cardLayer);
+      const host = card.uid ? getFlipOuter(card.uid) : cardLayer;
+      const wrapper = el('div', 'aaa-hand-card', host);
+      if (card.uid) cardLayer.appendChild(host);
       wrapper.dataset.hand = card.uid ?? String(i);
       if (card.uid) wrapper.dataset.uid = card.uid;
       if (selectedCard && card.uid === selectedCard) {
@@ -300,6 +399,17 @@ export function createAaaShell({
   function update(G, options = {}) {
     if (!mounted && !mount()) return;
     if (!G) return;
+    const reduced = prefersReducedMotion();
+    // FLIP First: capture the rect of every keyed card still on stage.
+    const prevRects = new Map();
+    if (!reduced) {
+      for (const [uid, outer] of flipMap) {
+        if (outer.isConnected && !outer.classList.contains('aaa-flip--exiting')) {
+          const rect = measureFlip(outer);
+          if (rect) prevRects.set(uid, rect);
+        }
+      }
+    }
     cardLayer.innerHTML = '';
     shadowLayer.innerHTML = '';
     hudLayer.innerHTML = '';
@@ -337,6 +447,44 @@ export function createAaaShell({
 
     renderHand(G.me.hand ?? [], Boolean(G.myTurn), options.selectedCard ?? null);
     renderHud(G);
+
+    if (!reduced) {
+      // FLIP Last+Play: moved cards glide; drawn cards rise from the deck;
+      // departed cards that reached a grave exit toward it.
+      const present = new Set();
+      for (const outer of cardLayer.querySelectorAll('.aaa-flip')) {
+        const uid = outer.dataset.flipUid;
+        present.add(uid);
+        const newRect = measureFlip(outer);
+        if (!newRect) continue;
+        if (prevRects.has(uid)) {
+          animateFlip(outer, prevRects.get(uid), newRect);
+        } else if ((G.me.hand ?? []).some((c) => c.uid === uid)) {
+          const deckRect = quadViewportRect('me.deck');
+          if (deckRect) animateFlip(outer, deckRect, newRect);
+        }
+      }
+      for (const [uid, rect] of prevRects) {
+        if (present.has(uid)) continue;
+        const outer = flipMap.get(uid);
+        if (!outer || outer.isConnected) continue;
+        const side = (G.me.grave ?? []).some((c) => c.uid === uid)
+          ? 'me'
+          : (G.opp.grave ?? []).some((c) => c.uid === uid) ? 'opp' : null;
+        if (side) animateExitToGrave(outer, side);
+        else flipMap.delete(uid);
+      }
+      // Prune map entries neither on stage nor exiting.
+      for (const [uid, outer] of flipMap) {
+        if (!outer.isConnected) flipMap.delete(uid);
+      }
+    } else {
+      for (const [uid, outer] of flipMap) {
+        outer.classList.remove('aaa-flip--moving', 'aaa-flip--exiting');
+        outer.style.transform = '';
+        if (!outer.isConnected) flipMap.delete(uid);
+      }
+    }
   }
 
   function dispose() {
